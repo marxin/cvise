@@ -3,9 +3,21 @@ import enum
 import logging
 import copy
 
+from enum import Enum, auto
+
+@enum.unique
+class PassResult(Enum):
+    OK = auto()
+    INVALID = auto()
+    STOP = auto()
+    ERROR = auto()
+
 class BinaryState:
     def __init__(self):
         pass
+
+    def __repr__(self):
+        return 'BinaryState: %d-%d of %d instances' % (self.index, self.end(), self.instances)
 
     @staticmethod
     def create(instances):
@@ -47,12 +59,6 @@ class BinaryState:
             return self
 
 class AbstractPass:
-    @enum.unique
-    class Result(enum.Enum):
-        ok = 0
-        stop = 1
-        error = 2
-
     @enum.unique
     class Option(enum.Enum):
         slow = "slow"

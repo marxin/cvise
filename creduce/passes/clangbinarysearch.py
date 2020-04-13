@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import tempfile
 
-from creduce.passes.abstract import AbstractPass, BinaryState
+from creduce.passes.abstract import AbstractPass, BinaryState, PassResult
 from creduce.utils import compat
 
 class ClangBinarySearchPass(AbstractPass):
@@ -26,7 +26,7 @@ class ClangBinarySearchPass(AbstractPass):
         cmd = [self.external_programs["clang_delta"], "--query-instances={}".format(self.arg), test_case]
 
         try:
-            proc = compat.subprocess_run(cmd, universal_newlines=True, stdout=subprocess.PIPE)
+            proc = compat.subprocess_run(cmd, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except subprocess.SubprocessError:
             return 0
 
@@ -40,18 +40,19 @@ class ClangBinarySearchPass(AbstractPass):
     def transform(self, test_case, state):
         logging.debug("TRANSFORM: index = {}, chunk = {}, instances = {}".format(state.index, state.chunk, state.instances))
 
-        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+        tmp = os.path.dirname(test_case)
+        with tempfile.NamedTemporaryFile(delete=False, dir=tmp) as tmp_file:
             cmd = [self.external_programs["clang_delta"], "--transformation={}".format(self.arg), "--counter={}".format(state.index + 1), "--to-counter={}".format(state.end()), test_case]
             logging.debug(" ".join(cmd))
 
             try:
-                proc = compat.subprocess_run(cmd, universal_newlines=True, stdout=tmp_file)
+                proc = compat.subprocess_run(cmd, universal_newlines=True, stdout=tmp_file, stderr=subprocess.PIPE)
             except subprocess.SubprocessError:
-                return (self.Result.error, state)
+                return (PassResult.ERROR, state)
 
         if proc.returncode == 0:
             shutil.move(tmp_file.name, test_case)
-            return (self.Result.ok, state)
+            return (PassResult.OK, state)
         else:
             os.unlink(tmp_file.name)
-            return (self.Result.stop if proc.returncode == 255 else self.Result.error, state)
+            return (PassResult.STOP if proc.returncode == 255 else PassResult.ERROR, state)

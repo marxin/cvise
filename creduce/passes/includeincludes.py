@@ -3,7 +3,7 @@ import re
 import shutil
 import tempfile
 
-from creduce.passes.abstract import AbstractPass
+from creduce.passes.abstract import AbstractPass, PassResult
 
 class IncludeIncludesPass(AbstractPass):
     def check_prerequisites(self):
@@ -20,7 +20,8 @@ class IncludeIncludesPass(AbstractPass):
 
     def transform(self, test_case, state):
         with open(test_case, "r") as in_file:
-            with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp_file:
+            tmp = os.path.dirname(test_case)
+            with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
                 includes = 0
                 matched = False
 
@@ -46,7 +47,7 @@ class IncludeIncludesPass(AbstractPass):
 
         if matched:
             shutil.move(tmp_file.name, test_case)
-            return (self.Result.ok, state)
+            return (PassResult.OK, state)
         else:
             os.unlink(tmp_file.name)
-            return (self.Result.stop, state)
+            return (PassResult.STOP, state)

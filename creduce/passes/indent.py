@@ -1,7 +1,7 @@
 import shutil
 import subprocess
 
-from creduce.passes.abstract import AbstractPass
+from creduce.passes.abstract import AbstractPass, PassResult
 from creduce.utils import compat
 from creduce.utils.error import UnknownArgumentError
 
@@ -23,7 +23,7 @@ class IndentPass(AbstractPass):
             old = in_file.read()
 
         if state != 0:
-            return (self.Result.stop, state)
+            return (PassResult.STOP, state)
 
         cmd = [self.external_programs["clang-format"], "-i"]
 
@@ -37,12 +37,12 @@ class IndentPass(AbstractPass):
         try:
             compat.subprocess_run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except subprocess.SubprocessError:
-            return (self.Result.error, state)
+            return (PassResult.ERROR, state)
 
         with open(test_case, "r") as in_file:
             new = in_file.read()
 
         if old == new:
-            return (self.Result.stop, state)
+            return (PassResult.STOP, state)
         else:
-            return (self.Result.ok, state)
+            return (PassResult.OK, state)

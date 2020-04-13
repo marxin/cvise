@@ -18,7 +18,7 @@ class LineMarkersTestCase(unittest.TestCase):
         self.assertEqual(state.index, 0)
         self.assertEqual(state.instances, 1)
 
-        with open(tmp_file.name, mode="r") as variant_file:
+        with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
 
         os.unlink(tmp_file.name)

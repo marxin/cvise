@@ -1,4 +1,4 @@
-from creduce.passes.abstract import AbstractPass
+from creduce.passes.abstract import AbstractPass, PassResult
 from creduce.utils import nestedmatcher
 from creduce.utils.error import UnknownArgumentError
 
@@ -99,7 +99,7 @@ class BalancedPass(AbstractPass):
 
         while True:
             if state is None:
-                return (self.Result.stop, state)
+                return (PassResult.STOP, state)
             else:
                 prog2 = config["replace_fn"](prog2, state)
 
@@ -107,6 +107,6 @@ class BalancedPass(AbstractPass):
                     with open(test_case, "w") as out_file:
                         out_file.write(prog2)
 
-                    return (self.Result.ok, state)
+                    return (PassResult.OK, state)
                 else:
                     state = self.advance(test_case, state)

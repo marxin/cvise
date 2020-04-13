@@ -2,8 +2,9 @@ import logging
 import shutil
 import subprocess
 import tempfile
+import os
 
-from creduce.passes.abstract import AbstractPass, BinaryState
+from creduce.passes.abstract import AbstractPass, BinaryState, PassResult
 from creduce.utils import compat
 
 class LinesPass(AbstractPass):
@@ -11,13 +12,14 @@ class LinesPass(AbstractPass):
         return shutil.which(self.external_programs["topformflat"]) is not None
 
     def __format(self, test_case):
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp_file:
+        tmp = os.path.dirname(test_case)
+        with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
             with open(test_case, "r") as in_file:
                 try:
                     cmd = [self.external_programs["topformflat"], self.arg]
-                    proc = compat.subprocess_run(cmd, stdin=in_file, stdout=subprocess.PIPE, universal_newlines=True)
+                    proc = compat.subprocess_run(cmd, stdin=in_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                 except subprocess.SubprocessError:
-                    return (self.Result.error, new_state)
+                    return (PassResult.ERROR, new_state)
 
             for l in proc.stdout.splitlines(keepends=True):
                 if not l.isspace():
@@ -49,9 +51,10 @@ class LinesPass(AbstractPass):
         data = data[0:state.index] + data[state.end():]
         assert len(data) < old_len
 
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp_file:
+        tmp = os.path.dirname(test_case)
+        with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
             tmp_file.writelines(data)
 
         shutil.move(tmp_file.name, test_case)
 
-        return (self.Result.ok, state)
+        return (PassResult.OK, state)

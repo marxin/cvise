@@ -124,8 +124,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", default=False, help="Print debug information")
     parser.add_argument("--log-level", type=str, choices=["INFO", "DEBUG", "WARNING", "ERROR"], default="INFO", help="Define the verbosity of the logged events")
     parser.add_argument("--log-file", type=str, help="Log events into LOG_FILE instead of stderr. New events are appended to the end of the file")
-    parser.add_argument("--no-kill", action="store_true", default=False, help="Wait for testing instances to terminate on their own instead of killing them (only useful for debugging)")
-    parser.add_argument("--no-give-up", action="store_true", default=False, help="Don't give up on a pass that hasn't made progress for {} iterations".format(testing.AbstractTestManager.GIVEUP_CONSTANT))
+    parser.add_argument("--no-give-up", action="store_true", default=False, help="Don't give up on a pass that hasn't made progress for {} iterations".format(testing.TestManager.GIVEUP_CONSTANT))
     parser.add_argument("--print-diff", action="store_true", default=False, help="Show changes made by transformations, for debugging")
     parser.add_argument("--save-temps", action="store_true", default=False, help="Don't delete /tmp/creduce-xxxxxx directories on termination")
     parser.add_argument("--skip-initial-passes", action="store_true", default=False, help="Skip initial passes (useful if input is already partially reduced)")
@@ -139,8 +138,6 @@ if __name__ == "__main__":
     passes_group = parser.add_mutually_exclusive_group()
     passes_group.add_argument("--pass-group", type=str, choices=get_available_pass_groups(), help="Set of passes used during the reduction")
     passes_group.add_argument("--pass-group-file", type=str, help="JSON file defining a custom pass group")
-    parser.add_argument("--test-manager", type=str, choices=["conservative", "fast-conservative", "non-deterministic"], help="Strategy for the testing reduction process")
-    parser.add_argument("--no-fast-test", action="store_true", help="Use the general test runner even if a faster implementation is available")
     parser.add_argument("interestingness_test", metavar="INTERESTINGNESS_TEST", help="Executable to check interestingness of test cases")
     parser.add_argument("test_cases", metavar="TEST_CASE", nargs="+", help="Test cases")
 
@@ -189,23 +186,11 @@ if __name__ == "__main__":
 
     pass_group_dict = CReduce.load_pass_group_file(pass_group_file)
     pass_group = CReduce.parse_pass_group_dict(pass_group_dict, pass_options, external_programs, args.remove_pass)
-
-    if (not args.no_fast_test and
-        testing.PythonTestRunner.is_valid_test(args.interestingness_test)):
-        test_runner = testing.PythonTestRunner(args.interestingness_test, args.timeout, args.save_temps, args.no_kill)
-    else:
-        test_runner = testing.GeneralTestRunner(args.interestingness_test, args.timeout, args.save_temps, args.no_kill)
-
     pass_statistic = statistics.PassStatistic()
 
-    if args.test_manager == "fast-conservative":
-        test_manager_class = testing.FastConservativeTestManager
-    elif args.test_manager == "non-deterministic":
-        test_manager_class = testing.NonDeterministicTestManager
-    else:
-        test_manager_class = testing.ConservativeTestManager
-
-    test_manager = test_manager_class(test_runner, pass_statistic, args.test_cases, args.n, args.no_cache, args.skip_key_off, args.shaddap, args.die_on_pass_bug, args.print_diff, args.max_improvement, args.no_give_up, args.also_interesting)
+    test_manager = testing.TestManager(pass_statistic, args.interestingness_test, args.timeout,
+            args.save_temps, args.test_cases, args.n, args.no_cache, args.skip_key_off, args.shaddap,
+            args.die_on_pass_bug, args.print_diff, args.max_improvement, args.no_give_up, args.also_interesting)
 
     reducer = CReduce(test_manager)
 
@@ -226,7 +211,7 @@ if __name__ == "__main__":
             print("method {pass} worked {worked} times and failed {failed} times".format(**item))
 
         for test_case in test_manager.sorted_test_cases:
-            with open(test_case, mode="r") as test_case_file:
+            with open(test_case) as test_case_file:
                 print(test_case_file.read())
 
     if args.timing:

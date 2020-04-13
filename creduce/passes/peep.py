@@ -1,6 +1,6 @@
 import re
 
-from creduce.passes.abstract import AbstractPass
+from creduce.passes.abstract import AbstractPass, PassResult
 from creduce.utils import nestedmatcher
 
 class PeepPass(AbstractPass):
@@ -145,83 +145,85 @@ class PeepPass(AbstractPass):
             new_state["regex"] = 0
             new_state["pos"] += 1
 
+        with open(test_case, "r") as in_file:
+            length = len(in_file.read())
+            if new_state["pos"] >= length:
+                return None
+
         return new_state
 
     def advance_on_success(self, test_case, state):
         return state
 
     def transform(self, test_case, state):
-        new_state = state.copy()
-
         with open(test_case, "r") as in_file:
             prog = in_file.read()
             prog2 = prog
 
-        while True:
-            if new_state["pos"] > len(prog):
-                return (self.Result.stop, new_state)
+        if state["pos"] > len(prog):
+            return (PassResult.STOP, state)
 
-            if self.arg == "a":
-                l = self.regexes_to_replace[new_state["regex"]]
-                search = l[0];
-                replace = l[1];
+        if self.arg == "a":
+            l = self.regexes_to_replace[state["regex"]]
+            search = l[0];
+            replace = l[1];
 
-                m = nestedmatcher.search(search, prog2, pos=new_state["pos"], search=False)
+            m = nestedmatcher.search(search, prog2, pos=state["pos"], search=False)
 
-                if m is not None:
-                    prog2 = prog2[0:m["all"][0]] + replace + prog2[m["all"][1]:]
+            if m is not None:
+                prog2 = prog2[0:m["all"][0]] + replace + prog2[m["all"][1]:]
 
-                    if prog != prog2:
-                        with open(test_case, "w") as out_file:
-                            out_file.write(prog2)
+                if prog != prog2:
+                    with open(test_case, "w") as out_file:
+                        out_file.write(prog2)
 
-                        return (self.Result.ok, new_state)
-            elif self.arg == "b":
-                l = self.delimited_regexes_to_replace[new_state["regex"]]
-                search = l[0]
-                replace = l[1]
+                    return (PassResult.OK, state)
+        elif self.arg == "b":
+            l = self.delimited_regexes_to_replace[state["regex"]]
+            search = l[0]
+            replace = l[1]
 
-                if prog2.startswith(","):
-                    front = (self.border_or_space_optional_pattern, "delim1")
-                else:
-                    front = (self.border_or_space_pattern, "delim1")
-
-                if prog2.endswith(","):
-                    back = (self.border_or_space_optional_pattern, "delim2")
-                else:
-                    back = (self.border_or_space_pattern, "delim2")
-
-                search = [front] + search + [back]
-
-                m = nestedmatcher.search(search, prog2, pos=new_state["pos"], search=False)
-
-                if m is not None:
-                    prog2 = prog2[0:m["delim1"][1]] + replace + prog2[m["delim2"][0]:]
-
-                    if prog != prog2:
-                        with open(test_case, "w") as out_file:
-                            out_file.write(prog2)
-
-                        return (self.Result.ok, new_state)
-            elif self.arg == "c":
-                search = [nestedmatcher.RegExPattern(r"^while\s*"),
-                          nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.parens),
-                          nestedmatcher.RegExPattern(r"\s*"),
-                          (nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies), "body")]
-
-                m = nestedmatcher.search(search, prog2, pos=new_state["pos"], search=False)
-
-                if m is not None:
-                    body = prog2[m["body"][0]:m["body"][1]]
-                    body = re.sub(r"break\s*;", "", body)
-                    prog2 = prog2[0:m["all"][0]] + body + prog2[m["all"][1]:]
-
-                    if prog != prog2:
-                        with open(test_case, "w") as out_file:
-                            out_file.write(prog2)
-
-                        return (self.Result.ok, new_state)
+            if prog2.startswith(","):
+                front = (self.border_or_space_optional_pattern, "delim1")
             else:
-                raise UnknownArgumentError()
+                front = (self.border_or_space_pattern, "delim1")
 
-            new_state = self.advance(test_case, new_state)
+            if prog2.endswith(","):
+                back = (self.border_or_space_optional_pattern, "delim2")
+            else:
+                back = (self.border_or_space_pattern, "delim2")
+
+            search = [front] + search + [back]
+
+            m = nestedmatcher.search(search, prog2, pos=state["pos"], search=False)
+
+            if m is not None:
+                prog2 = prog2[0:m["delim1"][1]] + replace + prog2[m["delim2"][0]:]
+
+                if prog != prog2:
+                    with open(test_case, "w") as out_file:
+                        out_file.write(prog2)
+
+                    return (PassResult.OK, state)
+        elif self.arg == "c":
+            search = [nestedmatcher.RegExPattern(r"^while\s*"),
+                      nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.parens),
+                      nestedmatcher.RegExPattern(r"\s*"),
+                      (nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies), "body")]
+
+            m = nestedmatcher.search(search, prog2, pos=state["pos"], search=False)
+
+            if m is not None:
+                body = prog2[m["body"][0]:m["body"][1]]
+                body = re.sub(r"break\s*;", "", body)
+                prog2 = prog2[0:m["all"][0]] + body + prog2[m["all"][1]:]
+
+                if prog != prog2:
+                    with open(test_case, "w") as out_file:
+                        out_file.write(prog2)
+
+                    return (PassResult.OK, state)
+        else:
+            raise UnknownArgumentError()
+
+        return (PassResult.INVALID, state)

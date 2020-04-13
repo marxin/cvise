@@ -4,7 +4,7 @@ import subprocess
 import shutil
 import tempfile
 
-from creduce.passes.abstract import AbstractPass
+from creduce.passes.abstract import AbstractPass, PassResult
 from creduce.utils import compat
 
 class ClangPass(AbstractPass):
@@ -21,23 +21,24 @@ class ClangPass(AbstractPass):
         return state
 
     def transform(self, test_case, state):
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp_file:
+        tmp = os.path.dirname(test_case)
+        with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
             cmd = [self.external_programs["clang_delta"], "--transformation={}".format(self.arg), "--counter={}".format(state), test_case]
 
             logging.debug(" ".join(cmd))
 
             try:
-                proc = compat.subprocess_run(cmd, universal_newlines=True, stdout=tmp_file)
+                proc = compat.subprocess_run(cmd, universal_newlines=True, stdout=tmp_file, stderr=subprocess.PIPE)
             except subprocess.SubprocessError:
-                return (self.Result.error, state)
+                return (PassResult.ERROR, state)
 
         if proc.returncode == 0:
             shutil.move(tmp_file.name, test_case)
-            return (self.Result.ok, state)
+            return (PassResult.OK, state)
         else:
             os.unlink(tmp_file.name)
 
             if proc.returncode == 255 or proc.returncode == 1:
-                return (self.Result.stop, state)
+                return (PassResult.STOP, state)
             else:
-                return (self.Result.error, state)
+                return (PassResult.ERROR, state)

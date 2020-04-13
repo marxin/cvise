@@ -1,4 +1,4 @@
-from creduce.passes.abstract import AbstractPass
+from creduce.passes.abstract import AbstractPass, PassResult
 from creduce.utils.error import UnknownArgumentError
 from creduce.utils import nestedmatcher
 
@@ -46,7 +46,7 @@ class TernaryPass(AbstractPass):
 
         while True:
             if state is None:
-                return (self.Result.stop, state)
+                return (PassResult.STOP, state)
             else:
                 if self.arg not in ["b", "c"]:
                     raise UnknownArgumentError()
@@ -57,6 +57,6 @@ class TernaryPass(AbstractPass):
                     with open(test_case, "w") as out_file:
                         out_file.write(prog2)
 
-                    return (self.Result.ok, state)
+                    return (PassResult.OK, state)
                 else:
                     state = self.advance(test_case, state)

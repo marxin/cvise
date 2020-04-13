@@ -1,6 +1,6 @@
 import re
 
-from creduce.passes.abstract import AbstractPass
+from creduce.passes.abstract import AbstractPass, PassResult
 from creduce.utils.error import UnknownArgumentError
 
 class SpecialPass(AbstractPass):
@@ -43,31 +43,31 @@ class SpecialPass(AbstractPass):
         return m
 
     def new(self, test_case):
-        return self.__get_next_match(test_case, pos=0)
+        config = self.__get_config()
+        with open(test_case, "r") as in_file:
+            prog = in_file.read()
+            regex = re.compile(config["search"], flags=re.DOTALL)
+            modifications = list(reversed([(m.span(), config["replace_fn"](m)) for m in regex.finditer(prog)]))
+            if not modifications:
+                return None
+            return {"modifications": modifications, "index": 0}
 
     def advance(self, test_case, state):
-        return self.__get_next_match(test_case, pos=state.start() + 1)
+        state = state.copy()
+        state["index"] += 1
+        if state["index"] >= len(state["modifications"]):
+            return None
+        return state
 
     def advance_on_success(self, test_case, state):
-        return self.__get_next_match(test_case, pos=state.start())
+        return self.new(test_case)
 
     def transform(self, test_case, state):
         with open(test_case, "r") as in_file:
-            prog = in_file.read()
-            prog2 = prog
-
-        config = self.__get_config()
-
-        while True:
-            if state is None:
-                return (self.Result.stop, state)
-            else:
-                prog2 = prog2[:state.start()] + config["replace_fn"](state) + prog2[state.end():]
-
-                if prog != prog2:
-                    with open(test_case, "w") as out_file:
-                        out_file.write(prog2)
-
-                    return (self.Result.ok, state)
-                else:
-                    state = self.advance(test_case, state)
+            data = in_file.read()
+            index = state["index"]
+            ((start, end), replacement) = state["modifications"][index]
+            new_data = data[:start] + replacement + data[end:]
+            with open(test_case, "w") as out_file:
+                out_file.write(new_data)
+                return (PassResult.OK, state)

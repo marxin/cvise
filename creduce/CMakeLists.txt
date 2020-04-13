@@ -166,6 +166,11 @@ configure_file(
   COPYONLY
 )
 configure_file(
+  "${creduce_python_SOURCE_DIR}/tests/testabstract.py"
+  "${creduce_python_BINARY_DIR}/tests/testabstract.py"
+  COPYONLY
+)
+configure_file(
   "${creduce_python_SOURCE_DIR}/tests/test_balanced.py"
   "${creduce_python_BINARY_DIR}/tests/test_balanced.py"
   COPYONLY

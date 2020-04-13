@@ -3,8 +3,9 @@ import shutil
 import subprocess
 import tempfile
 import re
+import os
 
-from creduce.passes.abstract import AbstractPass, BinaryState
+from creduce.passes.abstract import AbstractPass, BinaryState, PassResult
 
 class LineMarkersPass(AbstractPass):
     line_regex = re.compile('^\\s*#\\s*[0-9]+')
@@ -30,7 +31,8 @@ class LineMarkersPass(AbstractPass):
         return state.advance_on_success(self.__count_instances(test_case))
 
     def transform(self, test_case, state):
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp_file:
+        tmp = os.path.dirname(test_case)
+        with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
             with open(test_case, "r") as in_file:
                 i = 0
                 for line in in_file.readlines():
@@ -42,4 +44,4 @@ class LineMarkersPass(AbstractPass):
                         tmp_file.write(line)
 
         shutil.move(tmp_file.name, test_case)
-        return (self.Result.ok, state)
+        return (PassResult.OK, state)

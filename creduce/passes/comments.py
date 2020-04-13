@@ -1,6 +1,6 @@
 import re
 
-from creduce.passes.abstract import AbstractPass
+from creduce.passes.abstract import AbstractPass, PassResult
 
 class CommentsPass(AbstractPass):
     def check_prerequisites(self):
@@ -30,12 +30,12 @@ class CommentsPass(AbstractPass):
                 # Remove all single line comments
                 prog2 = re.sub(r"//.*$", "", prog2, flags=re.MULTILINE)
             else:
-                return (self.Result.stop, state)
+                return (PassResult.STOP, state)
 
             if prog != prog2:
                 with open(test_case, "w") as out_file:
                     out_file.write(prog2)
 
-                return (self.Result.ok, state)
+                return (PassResult.OK, state)
             else:
                 state = self.advance(test_case, state)

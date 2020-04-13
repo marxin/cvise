@@ -2,6 +2,7 @@ import os
 import tempfile
 import unittest
 
+from creduce.passes.abstract import PassResult
 from ..passes import TernaryPass
 
 class TernaryBTestCase(unittest.TestCase):
@@ -15,7 +16,7 @@ class TernaryBTestCase(unittest.TestCase):
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state)
 
-        with open(tmp_file.name, mode="r") as variant_file:
+        with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
 
         os.unlink(tmp_file.name)
@@ -29,7 +30,7 @@ class TernaryBTestCase(unittest.TestCase):
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state)
 
-        with open(tmp_file.name, mode="r") as variant_file:
+        with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
 
         os.unlink(tmp_file.name)
@@ -43,11 +44,11 @@ class TernaryBTestCase(unittest.TestCase):
         state = self.pass_.new(tmp_file.name)
         (result, state) = self.pass_.transform(tmp_file.name, state)
 
-        while result == self.pass_.Result.ok:
+        while result == PassResult.OK:
             state = self.pass_.advance_on_success(tmp_file.name, state)
             (result, state) = self.pass_.transform(tmp_file.name, state)
 
-        with open(tmp_file.name, mode="r") as variant_file:
+        with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
 
         os.unlink(tmp_file.name)
@@ -63,12 +64,12 @@ class TernaryBTestCase(unittest.TestCase):
 
         iteration = 0
 
-        while result == self.pass_.Result.ok and iteration < 5:
+        while result == PassResult.OK and iteration < 5:
             state = self.pass_.advance_on_success(tmp_file.name, state)
             (result, state) = self.pass_.transform(tmp_file.name, state)
             iteration += 1
 
-        with open(tmp_file.name, mode="r") as variant_file:
+        with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
 
         os.unlink(tmp_file.name)
@@ -85,7 +86,7 @@ class TernaryBTestCase(unittest.TestCase):
 
         iteration = 0
 
-        while result == self.pass_.Result.ok and iteration < 6:
+        while result == PassResult.OK and iteration < 6:
             with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
                 tmp_file.write("// no ? match :\nint res = a ? (ba ? bb : bc) : c\nint sec = t ? u : v\n")
 
@@ -108,7 +109,7 @@ class TernaryCTestCase(unittest.TestCase):
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state)
 
-        with open(tmp_file.name, mode="r") as variant_file:
+        with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
 
         os.unlink(tmp_file.name)

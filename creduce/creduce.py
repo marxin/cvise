@@ -49,7 +49,7 @@ class CReduce:
 
     @classmethod
     def load_pass_group_file(cls, path):
-        with open(path, mode="r") as pass_group_file:
+        with open(path) as pass_group_file:
             try:
                 pass_group_dict = json.load(pass_group_file)
             except json.JSONDecodeError:
