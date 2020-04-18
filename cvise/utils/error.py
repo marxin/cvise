@@ -1,16 +1,16 @@
 import os
 
-class CReduceError(Exception):
+class CViseError(Exception):
     pass
 
-class PrerequisitesNotFoundError(CReduceError):
+class PrerequisitesNotFoundError(CViseError):
     def __init__(self, missing):
         self.missing = missing
 
     def __str__(self):
         return "Missing prerequisites for passes {}!".format(", ".join(self.missing))
 
-class UnknownArgumentError(CReduceError):
+class UnknownArgumentError(CViseError):
     def __init__(self, pass_, arg):
         self.pass_ = pass_
         self.arg = arg
@@ -18,7 +18,7 @@ class UnknownArgumentError(CReduceError):
     def __str__(self):
         return "The argument '{}' is not valid for pass '{}'!".format(self.arg, self.pass_.__name__)
 
-class InvalidFileError(CReduceError):
+class InvalidFileError(CViseError):
     def __init__(self, path, error):
         self.path = path
         self.error = error
@@ -47,7 +47,7 @@ class InvalidInterestingnessTestError(InvalidFileError):
     def __str__(self):
         return "The specified interestingness test '{}' cannot be executed!".format(self.path)
 
-class ZeroSizeError(CReduceError):
+class ZeroSizeError(CViseError):
     def __init__(self, test_cases):
         super().__init__()
         self.test_cases = test_cases
@@ -65,14 +65,14 @@ making sure that your interestingness test does not find files like
 this to be interesting."""
         return message
 
-class PassOptionError(CReduceError):
+class PassOptionError(CViseError):
     pass
 
-class MissingPassGroupsError(CReduceError):
+class MissingPassGroupsError(CViseError):
     def __str__(self):
         return "Could not find a directory with definitions for pass groups!"
 
-class PassBugError(CReduceError):
+class PassBugError(CViseError):
     MSG = """***************************************************
 
 {} has encountered a bug:
@@ -95,7 +95,7 @@ and mailing it to creduce-bugs@flux.utah.edu and we will try to fix the bug.
     def __str__(self):
         return self.MSG.format(self.current_pass, self.problem, self.state, self.crash_dir)
 
-class InsaneTestCaseError(CReduceError):
+class InsaneTestCaseError(CViseError):
     def __init__(self, test_cases, test):
         super().__init__()
         self.test_cases = test_cases

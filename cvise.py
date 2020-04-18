@@ -18,9 +18,9 @@ if importlib.util.find_spec("cvise") is None:
     script_path = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.join(script_path, "..", "share"))
 
-from cvise import CReduce
+from cvise import CVise
 from cvise.passes.abstract import AbstractPass
-from cvise.utils.error import CReduceError
+from cvise.utils.error import CViseError
 from cvise.utils.error import MissingPassGroupsError
 from cvise.utils.info import ExternalPrograms
 from cvise.utils import testing
@@ -45,7 +45,7 @@ def get_share_dir():
         if os.path.isdir(d):
             return d
 
-    raise CReduceError("Cannot find cvise module directory!")
+    raise CViseError("Cannot find cvise module directory!")
 
 def get_libexec_dir():
     script_path = os.path.dirname(os.path.realpath(__file__))
@@ -61,7 +61,7 @@ def get_libexec_dir():
         if os.path.isdir(d):
             return d
 
-    raise CReduceError("Cannot find libexec directory!")
+    raise CViseError("Cannot find libexec directory!")
 
 def find_external_programs():
     programs = ExternalPrograms()
@@ -98,8 +98,8 @@ def get_available_pass_groups():
             continue
 
         try:
-            pass_group_dict = CReduce.load_pass_group_file(path)
-            CReduce.parse_pass_group_dict(pass_group_dict, set(), None, None)
+            pass_group_dict = CVise.load_pass_group_file(path)
+            CVise.parse_pass_group_dict(pass_group_dict, set(), None, None)
         except MissingPassGroupsError:
             logging.warning("Skipping file {}. Not valid pass group.".format(path))
         else:
@@ -184,15 +184,15 @@ if __name__ == "__main__":
 
     external_programs = find_external_programs()
 
-    pass_group_dict = CReduce.load_pass_group_file(pass_group_file)
-    pass_group = CReduce.parse_pass_group_dict(pass_group_dict, pass_options, external_programs, args.remove_pass)
+    pass_group_dict = CVise.load_pass_group_file(pass_group_file)
+    pass_group = CVise.parse_pass_group_dict(pass_group_dict, pass_options, external_programs, args.remove_pass)
     pass_statistic = statistics.PassStatistic()
 
     test_manager = testing.TestManager(pass_statistic, args.interestingness_test, args.timeout,
             args.save_temps, args.test_cases, args.n, args.no_cache, args.skip_key_off, args.shaddap,
             args.die_on_pass_bug, args.print_diff, args.max_improvement, args.no_give_up, args.also_interesting)
 
-    reducer = CReduce(test_manager)
+    reducer = CVise(test_manager)
 
     reducer.tidy = args.tidy
 
@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
     try:
         reducer.reduce(pass_group, skip_initial=args.skip_initial_passes)
-    except CReduceError as err:
+    except CViseError as err:
         print(err)
     else:
         print("pass statistics:")

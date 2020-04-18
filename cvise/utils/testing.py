@@ -19,7 +19,7 @@ import concurrent.futures
 from concurrent.futures import wait, FIRST_COMPLETED, TimeoutError
 from pebble import ProcessPool
 
-from .. import CReduce
+from .. import CVise
 from cvise.passes.abstract import AbstractPass, PassResult
 
 from . import compat
@@ -207,8 +207,8 @@ class TestManager:
             logging.debug("Please consider tarring up {} and mailing it to creduce-bugs@flux.utah.edu and we will try to fix the bug.".format(crash_dir))
 
         with open(os.path.join(crash_dir, "PASS_BUG_INFO.TXT"), mode="w") as info_file:
-            info_file.write("{}\n".format(CReduce.Info.PACKAGE_STRING))
-            info_file.write("{}\n".format(CReduce.Info.GIT_VERSION))
+            info_file.write("{}\n".format(CVise.Info.PACKAGE_STRING))
+            info_file.write("{}\n".format(CVise.Info.GIT_VERSION))
             info_file.write("{}\n".format(platform.uname()))
             info_file.write(PassBugError.MSG.format(self.current_pass, problem, test_env.state, crash_dir))
 

@@ -7,11 +7,11 @@ import sys
 
 from cvise.passes.abstract import AbstractPass
 from . import passes
-from .utils.error import CReduceError
+from .utils.error import CViseError
 from .utils.error import PassOptionError
 from .utils.error import PrerequisitesNotFoundError
 
-class CReduce:
+class CVise:
     class Info:
         PACKAGE_BUGREPORT = "@cvise_PACKAGE_BUGREPORT@"
         PACKAGE_NAME = "@cvise_PACKAGE_NAME@"
@@ -53,7 +53,7 @@ class CReduce:
             try:
                 pass_group_dict = json.load(pass_group_file)
             except json.JSONDecodeError:
-                raise CReduceError("Not valid JSON.")
+                raise CViseError("Not valid JSON.")
 
         return pass_group_dict
 
@@ -78,7 +78,7 @@ class CReduce:
 
         for category in ["first", "main", "last"]:
             if category not in pass_group_dict:
-                raise CReduceError("Missing category {}".format(category))
+                raise CViseError("Missing category {}".format(category))
 
             pass_group[category] = []
 
@@ -87,12 +87,12 @@ class CReduce:
                     continue
 
                 if "pass" not in pass_dict:
-                    raise CReduceError("Invalid pass in category {}".format(category))
+                    raise CViseError("Invalid pass in category {}".format(category))
 
                 try:
                     pass_class = cls.pass_name_mapping[pass_dict["pass"]]
                 except KeyValueError:
-                    raise CReduceError("Unkown pass {}".format(pass_dict["pass"]))
+                    raise CViseError("Unkown pass {}".format(pass_dict["pass"]))
 
                 pass_instance = pass_class(pass_dict.get("arg"), external_programs)
                 if str(pass_instance) == remove_pass:

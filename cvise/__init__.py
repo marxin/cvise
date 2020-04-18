@@ -1,1 +1,1 @@
-from .cvise import CReduce
+from .cvise import CVise
