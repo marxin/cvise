@@ -13,15 +13,31 @@ sudo: required
 dist: bionic
 language: cpp
 
-before_install:
-  - sudo scripts/travis_deps.sh
+env:
+  - DIST=opensusetw
 
-script: >
-  CXX=/usr/lib/llvm-9/bin/clang++
-  CC=/usr/lib/llvm-9/bin/clang
-  ./configure --with-llvm=/usr/lib/llvm-9 &&
-  make -j2 &&
-  make check
+# podman is currently not in Ubuntu
+addons:
+  apt:
+    update: true
+    sources:
+      - sourceline: "ppa:projectatomic/ppa"
+    packages:
+      - podman
+
+before_install:
+  # podman needs a basic register set up (packaging bug in the ppa)
+  - sudo mkdir -p /etc/containers
+  - echo -e "[registries.search]\nregistries = ['docker.io']" | sudo tee /etc/containers/registries.conf
+  # we need to register travis to allow subuid/gid for the rootless execution
+  - echo "travis:110000:65535" | sudo tee /etc/subuid
+  - echo "travis:110000:65535" | sudo tee /etc/subgid
+
+script:
+  - podman build -t $DIST -f Dockerfile-$DIST .
+  - podman run -v $(pwd):/usr/src/cvise $DIST cmake .
+  - podman run -v $(pwd):/usr/src/cvise $DIST make -j2
+  - podman run -v $(pwd):/usr/src/cvise $DIST pytest cvise
 
 ###############################################################################
 
