@@ -16,7 +16,7 @@ include(CheckIncludeFile)
 include(CheckCXXCompilerFlag)
 include(GetGitRevisionDescription)
 
-project(creduce)
+project(cvise)
 
 ###############################################################################
 
@@ -83,14 +83,14 @@ check_include_file("sys/stat.h"		HAVE_SYS_STAT_H)
 check_include_file("sys/types.h"	HAVE_SYS_TYPES_H)
 check_include_file("unistd.h"		HAVE_UNISTD_H)
 
-set(creduce_PACKAGE			"creduce")
-set(creduce_PACKAGE_BUGREPORT		"creduce-bugs@flux.utah.edu")
-set(creduce_PACKAGE_NAME		"creduce")
-set(creduce_PACKAGE_STRING		"creduce 2.11.0")
-set(creduce_PACKAGE_TARNAME		"creduce")
-set(creduce_PACKAGE_URL			"http://embed.cs.utah.edu/creduce/")
-set(creduce_PACKAGE_VERSION		"2.11.0")
-set(creduce_VERSION			"2.11.0")
+set(cvise_PACKAGE			"cvise")
+set(cvise_PACKAGE_BUGREPORT		"creduce-bugs@flux.utah.edu")
+set(cvise_PACKAGE_NAME		"cvise")
+set(cvise_PACKAGE_STRING		"cvise 2.11.0")
+set(cvise_PACKAGE_TARNAME		"cvise")
+set(cvise_PACKAGE_URL			"http://embed.cs.utah.edu/creduce/")
+set(cvise_PACKAGE_VERSION		"2.11.0")
+set(cvise_VERSION			"2.11.0")
 
 # FIXME: Should be determined automatically.
 set(YYTEXT_POINTER 1)
@@ -124,18 +124,18 @@ endif()
 
 add_subdirectory(clang_delta)
 add_subdirectory(clex)
-add_subdirectory(creduce)
+add_subdirectory(cvise)
 
-# Copy top-level creduce script
+# Copy top-level cvise script
 configure_file(
-  "${PROJECT_SOURCE_DIR}/creduce.py"
-  "${PROJECT_BINARY_DIR}/creduce.py"
+  "${PROJECT_SOURCE_DIR}/cvise.py"
+  "${PROJECT_BINARY_DIR}/cvise.py"
   COPYONLY
 )
 
-install(PROGRAMS "${PROJECT_BINARY_DIR}/creduce.py"
+install(PROGRAMS "${PROJECT_BINARY_DIR}/cvise.py"
   DESTINATION "bin"
-  RENAME "creduce"
+  RENAME "cvise"
 )
 
 ###############################################################################

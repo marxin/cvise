@@ -6,7 +6,7 @@
 *.lo
 *.o
 *.obj
-creduce-*.tar.gz
+cvise-*.tar.gz
 
 # Files made by Eclipse CDT.
 .autotools
