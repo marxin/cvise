@@ -462,8 +462,7 @@ void RemoveNestedFunction::getNewTmpVariableStr(ASTContext &ASTCtx,
     return;
   }
 
-  if (const AutoType *AT = 
-      dyn_cast<AutoType>(CalleeType)) {
+  if (dyn_cast<AutoType>(CalleeType)) {
     VarStr = "auto " + VarStr;
     return;
   }
