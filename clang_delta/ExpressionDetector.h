@@ -40,9 +40,9 @@ public:
     : Transformation(TransName, Desc),
       CollectionVisitor(NULL), ControlVarNameQueryWrap(NULL),
       TmpVarNameQueryWrap(NULL), TheFunc(NULL), TheStmt(NULL), TheExpr(NULL),
-      PrintedVarNamePrefix("__creduce_printed_"),
-      CheckedVarNamePrefix("__creduce_checked_"), ControlVarNamePrefix(""),
-      TmpVarNamePrefix("__creduce_expr_tmp_")
+      PrintedVarNamePrefix("__cvise_printed_"),
+      CheckedVarNamePrefix("__cvise_checked_"), ControlVarNamePrefix(""),
+      TmpVarNamePrefix("__cvise_expr_tmp_")
   { }
 
   ~ExpressionDetector(void);

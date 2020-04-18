@@ -1,6 +1,6 @@
 --------------------------------------------------------------------
 
-Normally clang_delta is invoked from C-Reduce. But if you wish to
+Normally clang_delta is invoked from C-Vise. But if you wish to
 invoke it manually:
 
 ./clang_delta --transformation=xx --counter=xx foo.c
@@ -16,14 +16,14 @@ Testing clang_delta:
 To run the tests, please follow the steps below:
 
 If you use make: 
-$ cd /creduce/top/dir
+$ cd /cvise/top/dir
 $ ./configure
 $ make
 $ cd clang_delta
 $ make check-clang-delta
 
 If you use cmake:
-$ /creduce/top/dir
+$ /cvise/top/dir
 $ mkdir build
 $ cd build
 $ cmake ..
