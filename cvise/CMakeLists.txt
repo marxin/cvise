@@ -18,7 +18,7 @@ project(cvise_python)
 
 ###############################################################################
 
-# Check for the run-time prerequisites of C-Reduce.  We only warn the user when
+# Check for the run-time prerequisites of C-Vise.  We only warn the user when
 # these are not found at configure time.  Let the user install the dependencies
 # later.
 #
@@ -34,7 +34,7 @@ endif()
 
 if(NOT CLANG_FORMAT)
   message(STATUS "`clang-format${CMAKE_EXECUTABLE_SUFFIX}' was not found")
-  message("You must install `clang-format' before running C-Reduce.")
+  message("You must install `clang-format' before running C-Vise.")
   set(CLANG_FORMAT "clang-format")
 endif()
 
@@ -48,7 +48,7 @@ configure_file("${cvise_python_SOURCE_DIR}/cvise.py"
 
 ###############################################################################
 
-# Copy the Python modules into the build tree so that we can run C-Reduce there.
+# Copy the Python modules into the build tree so that we can run C-Vise there.
 #
 configure_file(
   "${cvise_python_SOURCE_DIR}/__init__.py"

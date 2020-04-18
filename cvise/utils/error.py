@@ -60,7 +60,7 @@ class ZeroSizeError(CViseError):
 
         message += """our work here is done.
 
-If you did not want a zero size file, you must help C-Reduce out by
+If you did not want a zero size file, you must help C-Vise out by
 making sure that your interestingness test does not find files like
 this to be interesting."""
         return message
@@ -102,9 +102,9 @@ class InsaneTestCaseError(CViseError):
         self.test = test
 
     def __str__(self):
-        message = """C-Reduce cannot run because the interestingness test does not return
+        message = """C-Vise cannot run because the interestingness test does not return
 zero. Please ensure that it does so not only in the directory where
-you are invoking C-Reduce, but also in an arbitrary temporary
+you are invoking C-Vise, but also in an arbitrary temporary
 directory containing only the files that are being reduced. In other
 words, running these commands:
 

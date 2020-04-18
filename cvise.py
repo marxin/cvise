@@ -114,13 +114,13 @@ if __name__ == "__main__":
     except NotImplementedError:
         core_count = 1
 
-    parser = argparse.ArgumentParser(description="C-Reduce")
-    parser.add_argument("--n", "-n", type=int, default=core_count, help="Number of cores to use; C-Reduce tries to automatically pick a good setting but its choice may be too low or high for your situation")
+    parser = argparse.ArgumentParser(description="C-Vise")
+    parser.add_argument("--n", "-n", type=int, default=core_count, help="Number of cores to use; C-Vise tries to automatically pick a good setting but its choice may be too low or high for your situation")
     parser.add_argument("--tidy", action="store_true", default=False, help="Do not make a backup copy of each file to reduce as file.orig")
     parser.add_argument("--shaddap", action="store_true", default=False, help="Suppress output about non-fatal internal errors")
-    parser.add_argument("--die-on-pass-bug", action="store_true", default=False, help="Terminate C-Reduce if a pass encounters an otherwise non-fatal problem")
+    parser.add_argument("--die-on-pass-bug", action="store_true", default=False, help="Terminate C-Vise if a pass encounters an otherwise non-fatal problem")
     parser.add_argument("--sllooww", action="store_true", default=False, help="Try harder to reduce, but perhaps take a long time to do so")
-    parser.add_argument("--also-interesting", metavar="EXIT_CODE", type=int, help="A process exit code (somewhere in the range 64-113 would be usual) that, when returned by the interestingness test, will cause C-Reduce to save a copy of the variant")
+    parser.add_argument("--also-interesting", metavar="EXIT_CODE", type=int, help="A process exit code (somewhere in the range 64-113 would be usual) that, when returned by the interestingness test, will cause C-Vise to save a copy of the variant")
     parser.add_argument("--debug", action="store_true", default=False, help="Print debug information")
     parser.add_argument("--log-level", type=str, choices=["INFO", "DEBUG", "WARNING", "ERROR"], default="INFO", help="Define the verbosity of the logged events")
     parser.add_argument("--log-file", type=str, help="Log events into LOG_FILE instead of stderr. New events are appended to the end of the file")
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     parser.add_argument("--timeout", type=int, nargs="?", const=300, help="Interestingness test timeout in seconds")
     parser.add_argument("--no-cache", action="store_true", default=False, help="Don't cache behavior of passes")
     parser.add_argument("--skip-key-off", action="store_true", default=False, help="Disable skipping the rest of the current pass when \"s\" is pressed")
-    parser.add_argument("--max-improvement", metavar="BYTES", type=int, help="Largest improvement in file size from a single transformation that C-Reduce should accept (useful only to slow C-Reduce down)")
+    parser.add_argument("--max-improvement", metavar="BYTES", type=int, help="Largest improvement in file size from a single transformation that C-Vise should accept (useful only to slow C-Vise down)")
     passes_group = parser.add_mutually_exclusive_group()
     passes_group.add_argument("--pass-group", type=str, choices=get_available_pass_groups(), help="Set of passes used during the reduction")
     passes_group.add_argument("--pass-group-file", type=str, help="JSON file defining a custom pass group")
