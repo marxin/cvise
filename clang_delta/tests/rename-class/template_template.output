@@ -1,0 +1,9 @@
+template<typename>
+struct A {};
+
+template<template <typename> class >
+struct BBB {
+  BBB() {}
+};
+
+BBB<A> b;

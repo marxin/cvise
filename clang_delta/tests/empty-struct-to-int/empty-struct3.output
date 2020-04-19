@@ -1,0 +1,4 @@
+struct S1 {
+  struct {} S;
+   int *s1;
+};

@@ -1,0 +1,4 @@
+template<typename T1> 
+class A {
+  struct BBB : T1 {};
+};

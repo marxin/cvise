@@ -1,0 +1,8 @@
+struct S {
+  
+  int f2;
+};
+
+void foo() {
+  S s = { 2};
+}

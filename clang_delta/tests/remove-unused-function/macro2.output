@@ -1,0 +1,5 @@
+#define __LEAF, __leaf__
+#define __THROW __attribute__((__nothrow__ __LEAF))
+# define __nonnull(params) __attribute__ ((__nonnull__ params))
+
+

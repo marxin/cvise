@@ -1,0 +1,4 @@
+struct S{};
+struct S1 : S {};
+
+

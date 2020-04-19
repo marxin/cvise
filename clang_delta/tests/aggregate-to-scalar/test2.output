@@ -1,0 +1,10 @@
+struct S {
+  int **f1;
+};
+
+void foo() {
+  int *a[16];
+  struct S s = { a };
+  int *s_0_0;
+  s_0_0 = 0;
+}

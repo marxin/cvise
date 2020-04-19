@@ -1,0 +1,7 @@
+template <int h>
+void foo() {
+  double k[1];
+}
+void bar() {
+  foo<1>();
+}

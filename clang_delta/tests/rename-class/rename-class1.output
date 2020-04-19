@@ -1,0 +1,11 @@
+class A {
+public:
+  A() {}
+  static int m1;
+};
+int A::m1;
+void foo() {
+  A a1;
+  A::m1 = 1;
+}
+

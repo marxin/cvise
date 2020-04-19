@@ -1,0 +1,4 @@
+#include "test1.h"
+
+void fn1();
+int fn2() { return 0; }

@@ -1,0 +1,5 @@
+template <class T> struct A {};
+template <class T> struct Derived: public A<T> {
+  typename Derived::template A<double>* p1;
+};
+

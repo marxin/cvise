@@ -1,0 +1,9 @@
+namespace NS {
+  struct A { static void foo(); };
+  void A::foo() {}
+}
+
+using NS::A;
+void bar(void) {
+  NS::A::foo();
+}

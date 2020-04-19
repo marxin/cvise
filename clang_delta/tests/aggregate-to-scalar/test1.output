@@ -1,0 +1,8 @@
+extern "C" {
+  extern char *gnu_optarg;
+char gnu_optarg_0;
+}
+
+char foo() {
+ return gnu_optarg_0;
+}

@@ -1,0 +1,7 @@
+namespace NS {
+  template <typename T1>
+  class A {};
+}
+
+template <typename T1>
+class BBB: NS::A<T1> {};

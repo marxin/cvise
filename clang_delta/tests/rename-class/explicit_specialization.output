@@ -1,0 +1,3 @@
+struct A {};
+template<typename T> class BBB {};
+template<> class BBB<int> : public A {};

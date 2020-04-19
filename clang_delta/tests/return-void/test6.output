@@ -1,0 +1,5 @@
+#define M(x) (x)
+void test(void) {
+  int *t = 0;
+   M(t);
+}

@@ -1,0 +1,5 @@
+class A {
+  template <typename T> static int m_fn1(T, int) {
+     m_fn1<T, 0>(0, 0);
+  }
+};

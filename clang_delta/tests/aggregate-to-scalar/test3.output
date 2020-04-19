@@ -1,0 +1,9 @@
+struct S {
+  int a[2];
+};
+
+int foo() {
+  struct S s = {1,2};
+  int s_0_0 = 1;
+  return s_0_0;
+}

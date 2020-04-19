@@ -1,0 +1,10 @@
+#define LBRAC {
+#define RBRAC }
+
+void foo(void) {
+   !0;
+   
+    LBRAC
+     0;
+   RBRAC
+}

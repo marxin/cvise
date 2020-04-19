@@ -1,0 +1,7 @@
+union {
+    int j;
+  } f_l;
+void f() {
+  
+  long i = 1;
+}

@@ -1,0 +1,5 @@
+#define TYPE unsigned short int
+unsigned short foo_t;
+void foo() {
+  
+}

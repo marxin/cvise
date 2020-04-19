@@ -1,0 +1,5 @@
+namespace NS1 {
+  template<typename T> class A {};
+}
+
+class BBB : public NS1::A<bool> {};

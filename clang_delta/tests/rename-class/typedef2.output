@@ -1,0 +1,10 @@
+namespace NS {
+  template<bool C> struct A;
+  typedef A<false> S1_t;
+
+  template<bool C> struct A {
+    typedef A type;
+  };
+}
+
+struct S2 : NS::S1_t {};

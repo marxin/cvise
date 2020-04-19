@@ -1,0 +1,6 @@
+template<template<class> class BBB>
+struct A {
+  template <class T> struct CCC {
+      static BBB<T> a;
+  };
+};

@@ -1,0 +1,12 @@
+struct S {
+  S() {
+    int t1; int a;
+    int b = a;
+    {
+      m;
+      int a = a;
+      t1 = a;
+    }
+  }
+  int m;
+};

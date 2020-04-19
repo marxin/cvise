@@ -1,0 +1,5 @@
+struct S {
+  int *f1;
+};
+int a;
+struct S b = {&a};

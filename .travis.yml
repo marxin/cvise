@@ -37,7 +37,7 @@ script:
   - podman build -t $DIST -f Dockerfile-$DIST .
   - podman run -v $(pwd):/usr/src/cvise $DIST cmake .
   - podman run -v $(pwd):/usr/src/cvise $DIST make -j2
-  - podman run -v $(pwd):/usr/src/cvise $DIST pytest cvise
+  - podman run -v $(pwd):/usr/src/cvise $DIST pytest
 
 ###############################################################################
 

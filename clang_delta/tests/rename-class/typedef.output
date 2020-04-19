@@ -1,0 +1,5 @@
+template <class T> class A {};
+
+typedef A<int> BBB;
+
+class CCC : BBB {};

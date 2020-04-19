@@ -1,0 +1,24 @@
+template <class T> struct A {
+  typedef T value_type;
+};
+
+template <class T> struct Derived : A<T> {
+  using A<T>::value_type;
+  typename A<T>::value_type get();
+};
+
+template<typename T> struct SomeClass {
+  SomeClass() {}
+  ~SomeClass() {}
+};
+
+template<typename T> struct MyTypeDef {
+  typedef SomeClass<T> type;
+};
+
+template<typename T>
+using MyType = SomeClass<T>;
+MyType<int> mytype;
+
+template <class T> using Ptr = T*;
+Ptr<int> ip;

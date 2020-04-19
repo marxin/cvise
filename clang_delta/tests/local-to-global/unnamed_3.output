@@ -1,0 +1,9 @@
+union {
+      int j;
+    } f_l;
+void f() {
+  long i = ({
+    
+    f_l.j;
+  });
+}

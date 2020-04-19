@@ -1,0 +1,10 @@
+struct A {};
+
+template<typename T> class Base {
+  int foo(A) {}
+};
+
+template<typename Tp, typename T> class S2 : Base<Tp> {
+  int foo(A) {}
+};
+

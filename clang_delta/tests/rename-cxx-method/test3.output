@@ -1,0 +1,3 @@
+class A {
+  template < typename T > void m_fn1 (T) { m_fn1 <T> (0); }
+};

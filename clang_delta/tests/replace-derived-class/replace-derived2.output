@@ -1,0 +1,7 @@
+struct a {
+  ~a();
+};
+a *b;
+void foo() {
+  b->~a();
+}

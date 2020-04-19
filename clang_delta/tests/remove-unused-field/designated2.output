@@ -1,0 +1,9 @@
+struct {
+  int x;
+  
+  int z;
+} s = {
+  
+  3,
+  .x = 1,
+};

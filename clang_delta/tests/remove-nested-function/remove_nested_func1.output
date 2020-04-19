@@ -1,0 +1,11 @@
+struct S1 {
+  S1(int);
+};
+int foo();
+int bar(int);
+struct f : S1 {
+  f() : S1(bar(foo())) {
+    int __trans_tmp_1 = foo();
+    bar(__trans_tmp_1);
+  }
+};

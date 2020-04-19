@@ -1,0 +1,10 @@
+template <typename T, int N>
+struct A {
+  T value() const { return N; }
+};
+
+template <typename T>
+struct A <T, 3> {
+  T value() const { return 0; }
+};
+

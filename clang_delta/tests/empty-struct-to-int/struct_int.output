@@ -1,0 +1,4 @@
+struct {
+  int f1;
+  int  f3[];
+} s1 = {};

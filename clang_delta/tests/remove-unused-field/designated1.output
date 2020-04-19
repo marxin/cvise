@@ -1,0 +1,8 @@
+struct {
+  
+  int y;
+  int z;
+} s = {
+  .y = 2,
+  3,
+};

@@ -1,0 +1,13 @@
+template<typename T>
+class A {
+public:
+  A() {}
+  ~A<T>() {}
+};
+
+template<typename T>
+class SomeClass2 {
+public:
+  SomeClass2<T>() {}
+  ~SomeClass2<T>() {}
+};

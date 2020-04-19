@@ -1,0 +1,8 @@
+# define BEGIN_NAMESPACE_STD namespace std {
+# define END_NAMESPACE_STD }
+# define __THROW throw ()
+# define __nonnull(params)
+
+BEGIN_NAMESPACE_STD
+
+END_NAMESPACE_STD
