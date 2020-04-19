@@ -8,7 +8,6 @@ class TestClangDelta(unittest.TestCase):
         current = os.path.dirname(__file__)
         binary = os.path.join(current, '../clang_delta')
         cmd = '%s %s %s' % (binary, os.path.join(current, testcase), arguments)
-        print(cmd)
         output = subprocess.check_output(cmd, shell=True, encoding='utf8')
         expected = open(os.path.join(current, os.path.splitext(testcase)[0] + '.output')).read()
         assert output == expected
