@@ -22,8 +22,6 @@ it would be nice to have a way to glue multiple C/C++ files into a
 single compilation unit, as an alternative to multi-file reduction
 - CIL can do this but it's pretty invasive
 
-testing via lit
-
 make llvm-svn-compatible build against a specific LLVM version
   the CI is the problem here
   could solve it like we do in Souper with a pre-built LLVM tarball
