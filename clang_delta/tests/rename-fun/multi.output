@@ -1,0 +1,11 @@
+void foo();
+
+int bar()
+{
+  return 2;
+}
+
+const char *baz {}
+{
+  return "baz";
+}

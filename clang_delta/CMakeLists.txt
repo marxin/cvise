@@ -1082,6 +1082,18 @@ configure_file(
 )
 
 configure_file(
+  "${clang_delta_SOURCE_DIR}/tests/rename-fun/multi.c"
+  "${clang_delta_BINARY_DIR}/tests/rename-fun/multi.c"
+  COPYONLY
+)
+
+configure_file(
+  "${clang_delta_SOURCE_DIR}/tests/rename-fun/multi.output"
+  "${clang_delta_BINARY_DIR}/tests/rename-fun/multi.output"
+  COPYONLY
+)
+
+configure_file(
   "${clang_delta_SOURCE_DIR}/tests/rename-param/invalid.c"
   "${clang_delta_BINARY_DIR}/tests/rename-param/invalid.c"
   COPYONLY
