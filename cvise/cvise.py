@@ -59,7 +59,7 @@ class CVise:
 
     @classmethod
     def parse_pass_group_dict(cls, pass_group_dict, pass_options, external_programs, remove_pass,
-            clang_delta_std):
+            clang_delta_std, not_c):
         pass_group = {}
 
         def parse_options(options):
@@ -97,6 +97,9 @@ class CVise:
 
                 pass_instance = pass_class(pass_dict.get("arg"), external_programs)
                 if str(pass_instance) == remove_pass:
+                    continue
+
+                if not_c and "c" in pass_dict and pass_dict["c"]:
                     continue
 
                 pass_instance.clang_delta_std = clang_delta_std
