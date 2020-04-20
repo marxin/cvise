@@ -146,6 +146,7 @@ if __name__ == "__main__":
     passes_group.add_argument("--pass-group-file", type=str, help="JSON file defining a custom pass group")
     parser.add_argument("--clang-delta-std", type=str, choices=["c++98", "c++11", "c++14", "c++17", "c++20"], help="Specify clang_delta C++ standard, it can rapidly speed up all clang_delta passes")
     parser.add_argument("--not-c", action="store_true", help="Don't run passes that are specific to C and C++, use this mode for reducing other languages")
+    parser.add_argument("--list-passes", action="store_true", help="Print all available passes and exit")
     parser.add_argument("interestingness_test", metavar="INTERESTINGNESS_TEST", help="Executable to check interestingness of test cases")
     parser.add_argument("test_cases", metavar="TEST_CASE", nargs="+", help="Test cases")
 
@@ -195,6 +196,21 @@ if __name__ == "__main__":
     pass_group_dict = CVise.load_pass_group_file(pass_group_file)
     pass_group = CVise.parse_pass_group_dict(pass_group_dict, pass_options, external_programs,
             args.remove_pass, args.clang_delta_std, args.not_c)
+    if args.list_passes:
+        logging.info('Available passes:')
+        logging.info('INITIAL PASSES')
+        for p in pass_group["first"]:
+            logging.info(str(p))
+        logging.info('MAIN PASSES')
+        for p in pass_group["main"]:
+            logging.info(str(p))
+        logging.info('CLEANUP PASSES')
+        for p in pass_group["last"]:
+            logging.info(str(p))
+
+        sys.exit(0)
+        logging.shutdown()
+
     pass_statistic = statistics.PassStatistic()
 
     test_manager = testing.TestManager(pass_statistic, args.interestingness_test, args.timeout,

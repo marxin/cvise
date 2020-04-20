@@ -125,7 +125,7 @@ class CVise:
         logging.info("MAIN PASSES")
         self._run_main_passes(pass_group["main"])
 
-        logging.info("CLEANUP PASS")
+        logging.info("CLEANUP PASSES")
         self._run_additional_passes(pass_group["last"])
 
         logging.info("===================== done ====================")
