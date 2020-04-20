@@ -58,7 +58,8 @@ class CVise:
         return pass_group_dict
 
     @classmethod
-    def parse_pass_group_dict(cls, pass_group_dict, pass_options, external_programs, remove_pass):
+    def parse_pass_group_dict(cls, pass_group_dict, pass_options, external_programs, remove_pass,
+            clang_delta_std):
         pass_group = {}
 
         def parse_options(options):
@@ -98,6 +99,7 @@ class CVise:
                 if str(pass_instance) == remove_pass:
                     continue
 
+                pass_instance.clang_delta_std = clang_delta_std
                 pass_group[category].append(pass_instance)
 
         return pass_group

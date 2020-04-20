@@ -22,7 +22,10 @@ class ClangBinarySearchPass(AbstractPass):
         return state.advance_on_success(self.__count_instances(test_case))
 
     def __count_instances(self, test_case):
-        cmd = [self.external_programs["clang_delta"], "--query-instances={}".format(self.arg), test_case]
+        args = [self.external_programs["clang_delta"], "--query-instances={}".format(self.arg)]
+        if self.clang_delta_std:
+            args.append('--std={}'.format(self.clang_delta_std))
+        cmd = args + [test_case]
 
         try:
             proc = subprocess.run(cmd, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -41,7 +44,10 @@ class ClangBinarySearchPass(AbstractPass):
 
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(delete=False, dir=tmp) as tmp_file:
-            cmd = [self.external_programs["clang_delta"], "--transformation={}".format(self.arg), "--counter={}".format(state.index + 1), "--to-counter={}".format(state.end()), test_case]
+            args = ["--transformation={}".format(self.arg), "--counter={}".format(state.index + 1), "--to-counter={}".format(state.end())]
+            if self.clang_delta_std:
+                args.append('--std={}'.format(self.clang_delta_std))
+            cmd = [self.external_programs["clang_delta"]] + args + [test_case]
             logging.debug(" ".join(cmd))
 
             try:
