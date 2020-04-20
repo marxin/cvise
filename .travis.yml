@@ -23,7 +23,7 @@ addons:
     sources:
       - sourceline: "ppa:projectatomic/ppa"
     packages:
-      - podman
+      - podman slirp4netns
 
 before_install:
   # podman needs a basic register set up (packaging bug in the ppa)
