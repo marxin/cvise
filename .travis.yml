@@ -13,6 +13,9 @@ sudo: required
 dist: bionic
 language: cpp
 
+stages:
+  - build
+
 env:
   - DIST=opensusetw
 
@@ -25,6 +28,20 @@ addons:
     packages:
       - podman slirp4netns
 
+matrix:
+  - include:
+    - name: Normal build
+      stage: build
+      env: BUILD_TYPE=DEBUG
+
+    - name: UBSAN build
+      stage: build
+      env: BUILD_TYPE=UBSAN
+
+    - name: ASAN build
+      stage: build
+      env: BUILD_TYPE=ASAN
+
 before_install:
   # podman needs a basic register set up (packaging bug in the ppa)
   - sudo mkdir -p /etc/containers
@@ -35,7 +52,7 @@ before_install:
 
 script:
   - podman build -t $DIST -f Dockerfile-$DIST .
-  - podman run -v $(pwd):/usr/src/cvise $DIST cmake .
+  - podman run -v $(pwd):/usr/src/cvise $DIST cmake . -DCMAKE_BUILD_TYPE=$BUILD_TYPE
   - podman run -v $(pwd):/usr/src/cvise $DIST make -j2 VERBOSE=1
   - podman run -v $(pwd):/usr/src/cvise $DIST pytest
 

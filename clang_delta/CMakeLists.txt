@@ -1550,6 +1550,26 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(clang_delta Version)
 endif()
 
+# UndefinedBehaviourSanitizer
+set(CMAKE_C_FLAGS_UBSAN
+    "-fsanitize=undefined -g"
+    CACHE STRING "Flags used by the C compiler during UndefinedBehaviourSanitizer builds."
+    FORCE)
+set(CMAKE_CXX_FLAGS_UBSAN
+    "-fsanitize=undefined -g"
+    CACHE STRING "Flags used by the C++ compiler during UndefinedBehaviourSanitizer builds."
+    FORCE)
+
+# AddressSanitizer
+set(CMAKE_C_FLAGS_ASAN
+    "-fsanitize=address -g"
+    CACHE STRING "Flags used by the C compiler during AddressSanitizer builds."
+    FORCE)
+set(CMAKE_CXX_FLAGS_ASAN
+    "-fsanitize=address -g"
+    CACHE STRING "Flags used by the C++ compiler during AddressSanitizer builds."
+    FORCE)
+
 install(TARGETS clang_delta
   RUNTIME DESTINATION
 )
