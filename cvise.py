@@ -108,13 +108,19 @@ def get_available_pass_groups():
 
     return group_names
 
+EPILOG_TEXT = """
+available shortcuts:
+  S - skip execution of the current pass
+  D - toggle --print-diff option
+"""
+
 if __name__ == "__main__":
     try:
         core_count = multiprocessing.cpu_count()
     except NotImplementedError:
         core_count = 1
 
-    parser = argparse.ArgumentParser(description="C-Vise")
+    parser = argparse.ArgumentParser(description="C-Vise", formatter_class=argparse.RawDescriptionHelpFormatter, epilog=EPILOG_TEXT)
     parser.add_argument("--n", "-n", type=int, default=core_count, help="Number of cores to use; C-Vise tries to automatically pick a good setting but its choice may be too low or high for your situation")
     parser.add_argument("--tidy", action="store_true", default=False, help="Do not make a backup copy of each file to reduce as file.orig")
     parser.add_argument("--shaddap", action="store_true", default=False, help="Suppress output about non-fatal internal errors")
