@@ -289,13 +289,11 @@ void RemoveArray::handleOneVarDecl(const VarDecl *VD)
 
 RemoveArray::~RemoveArray(void)
 {
-  if (CollectionVisitor)
-    delete CollectionVisitor;
+  delete CollectionVisitor;
 
   for (VarDeclToArraySubscriptExprMap::iterator I = ValidVarToASEMap.begin(),
        E = ValidVarToASEMap.end(); I != E; ++I) {
     ArraySubscriptExprVector *ASEVec = (*I).second;
-    if (ASEVec)
-      delete ASEVec;
+    delete ASEVec;
   }
 }
