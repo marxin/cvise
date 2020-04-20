@@ -411,7 +411,9 @@ TransformationManager::TransformationManager()
     DoReplacement(false),
     Replacement(""),
     CheckReference(false),
-    ReferenceValue("")
+    ReferenceValue(""),
+    SetCXXStandard(false),
+    CXXStandard("")
 {
   // Nothing to do
 }
