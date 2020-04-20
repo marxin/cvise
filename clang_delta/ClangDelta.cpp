@@ -87,6 +87,9 @@ static void PrintHelpMessage()
   llvm::outs() << "  --output=<filename>: ";
   llvm::outs() << "specify where to output the transformed source code ";
   llvm::outs() << "(default: stdout)\n";
+
+  llvm::outs() << "  --std=<standard>: ";
+  llvm::outs() << "specify C++ standard used (c++98, c++11, c++14, c++17, c++20) ";
   llvm::outs() << "\n";
 }
 
@@ -159,6 +162,9 @@ static void HandleOneArgValue(const std::string &ArgValueStr, size_t SepPos)
   }
   else if (!ArgName.compare("check-reference")) {
     TransMgr->setReferenceValue(ArgValue);
+  }
+  else if (!ArgName.compare("std")) {
+    TransMgr->setCXXStandard(ArgValue);
   }
   else {
     DieOnBadCmdArg("--" + ArgValueStr);

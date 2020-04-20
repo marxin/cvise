@@ -102,6 +102,24 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
   CompilerInvocation &Invocation = ClangInstance->getInvocation();
   InputKind IK = FrontendOptions::getInputKindForExtension(
         StringRef(SrcFileName).rsplit('.').second);
+  LangStandard::Kind LSTD = LangStandard::lang_unspecified;
+  if (SetCXXStandard) {
+    if (!CXXStandard.compare("c++98"))
+      LSTD = LangStandard::Kind::lang_cxx98;
+    else if (!CXXStandard.compare("c++11"))
+      LSTD = LangStandard::Kind::lang_cxx11;
+    else if (!CXXStandard.compare("c++14"))
+      LSTD = LangStandard::Kind::lang_cxx14;
+    else if (!CXXStandard.compare("c++17"))
+      LSTD = LangStandard::Kind::lang_cxx17;
+    else if (!CXXStandard.compare("c++20"))
+      LSTD = LangStandard::Kind::lang_cxx20;
+    else {
+      ErrorMsg = "Can't parse CXXStandard option argument!";
+      return false;
+    }
+  }
+
 #if LLVM_VERSION_MAJOR < 10
   if (IK.getLanguage() == InputKind::C) {
     Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind::C, T, PPOpts);
@@ -110,7 +128,7 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     // ISSUE: it might cause some problems when building AST
     // for a function which has a non-declared callee, e.g.,
     // It results an empty AST for the caller.
-    Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind::CXX, T, PPOpts);
+    Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind::CXX, T, PPOpts, LSTD);
   }
   else if(IK.getLanguage() == InputKind::OpenCL) {
 #else
@@ -121,7 +139,7 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     // ISSUE: it might cause some problems when building AST
     // for a function which has a non-declared callee, e.g.,
     // It results an empty AST for the caller.
-    Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::CXX), T, PPOpts);
+    Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::CXX), T, PPOpts, LSTD);
   }
   else if(IK.getLanguage() == Language::OpenCL) {
 #endif

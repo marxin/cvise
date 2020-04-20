@@ -93,6 +93,11 @@ public:
     return QueryInstanceOnly;
   }
 
+  void setCXXStandard(const std::string &Str) {
+    CXXStandard = Str;
+    SetCXXStandard = true;
+  }
+
   bool initializeCompilerInstance(std::string &ErrorMsg);
 
   void outputNumTransformationInstances();
@@ -140,6 +145,10 @@ private:
   bool CheckReference;
 
   std::string ReferenceValue;
+
+  bool SetCXXStandard;
+
+  std::string CXXStandard;
 
   // Unimplemented
   TransformationManager(const TransformationManager &);
