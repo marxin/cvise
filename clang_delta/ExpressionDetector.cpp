@@ -691,7 +691,7 @@ void ExpressionDetector::doRewrite()
   std::string ControlVarName = ControlVarNamePrefix +
     std::to_string(ControlVarNameQueryWrap->getMaxNamePostfix()+1);
   Str += "static int " + ControlVarName + " = 0;\n";
-  Str += "if (" + ControlVarName + " == __CREDUCE_INSTANCE_NUMBER) {\n";
+  Str += "if (" + ControlVarName + " == __CVISE_INSTANCE_NUMBER) {\n";
   if (CheckReference) {
     Str += "  if (" + TmpVarName + " != " + ReferenceValue + ") ";
     Str +=  HFInfo.FunctionName + "();\n";

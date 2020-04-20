@@ -93,7 +93,7 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
 
   TargetOptions &TargetOpts = ClangInstance->getTargetOpts();
   PreprocessorOptions &PPOpts = ClangInstance->getPreprocessorOpts();
-  if (const char *env = getenv("CREDUCE_TARGET_TRIPLE")) {
+  if (const char *env = getenv("CVISE_TARGET_TRIPLE")) {
     TargetOpts.Triple = std::string(env);
   } else {
     TargetOpts.Triple = LLVM_DEFAULT_TARGET_TRIPLE;
@@ -131,7 +131,7 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     Args.push_back("cl");
     Args.push_back("-Dcl_clang_storage_class_specifiers");
 
-    const char *CLCPath = getenv("CREDUCE_LIBCLC_INCLUDE_PATH");
+    const char *CLCPath = getenv("CVISE_LIBCLC_INCLUDE_PATH");
 
     ClangInstance->createFileManager();
 
@@ -170,7 +170,7 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
                                  ClangInstance->getInvocation().TargetOpts);
   ClangInstance->setTarget(Target);
 
-  if (const char *env = getenv("CREDUCE_INCLUDE_PATH")) {
+  if (const char *env = getenv("CVISE_INCLUDE_PATH")) {
     HeaderSearchOptions &HeaderSearchOpts = ClangInstance->getHeaderSearchOpts();
 
     const std::size_t npos = std::string::npos;
