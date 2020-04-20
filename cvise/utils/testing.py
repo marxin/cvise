@@ -329,6 +329,7 @@ class TestManager:
                     elif test_env.result == PassResult.ERROR:
                         if not self.silent_pass_bug:
                             self.report_pass_bug(test_env, "pass error")
+                            quit_loop = True
                     else:
                         if not self.no_give_up and test_env.order > self.GIVEUP_CONSTANT:
                             self.report_pass_bug(test_env, "pass got stuck")
