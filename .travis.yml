@@ -17,7 +17,8 @@ stages:
   - build
 
 env:
-  - DIST=opensusetw
+  global:
+    - DIST=opensusetw
 
 # podman is currently not in Ubuntu
 addons:
