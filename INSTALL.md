@@ -49,7 +49,11 @@ manager:
   and "libxml2".  You may need to install these, e.g.:
   `sudo apt-get install libtinfo-dev libxml2-dev`.)
 
-* [Python3](https://www.python.org/downloads/)
+* [Python 3.6+](https://www.python.org/downloads/)
+
+* [Pebble](https://pypi.org/project/Pebble/)
+
+* [pytest](https://docs.pytest.org/en/latest/)
 
 * [CMake](https://cmake.org/)
 
