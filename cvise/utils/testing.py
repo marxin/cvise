@@ -203,7 +203,7 @@ class TestManager:
         test_env.dump(crash_dir)
 
         if not self.die_on_pass_bug:
-            logging.debug("Please consider tarring up {} and mailing it to creduce-bugs@flux.utah.edu and we will try to fix the bug.".format(crash_dir))
+            logging.debug("Please consider tarring up {} and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.".format(crash_dir))
 
         with open(os.path.join(crash_dir, "PASS_BUG_INFO.TXT"), mode="w") as info_file:
             info_file.write("{}\n".format(CVise.Info.PACKAGE_STRING))

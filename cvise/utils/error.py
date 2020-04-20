@@ -80,7 +80,7 @@ class PassBugError(CViseError):
 state: {}
 
 Please consider tarring up {}
-and mailing it to creduce-bugs@flux.utah.edu and we will try to fix the bug.
+and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.
 
 ***************************************************
 """

@@ -16,9 +16,6 @@ programs in languages other than C/C++, such as JavaScript and Rust.
 If you need to reduce programs in some other language, please give it
 a try.
 
-Documentation and other information can be found at the [C-Reduce web
-page](http://embed.cs.utah.edu/creduce/)
-
 ## Installation
 
 See [INSTALL.md](INSTALL.md).
