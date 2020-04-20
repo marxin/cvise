@@ -41,13 +41,10 @@ manager:
 
 * [Flex](http://flex.sourceforge.net/)
 
-* [LLVM/Clang 9.0.0](http://llvm.org/releases/download.html#9.0.0)
+* [LLVM/Clang 9.0.0 or later](http://llvm.org/releases/download.html)
   (No need to compile it: the appropriate "pre-built binaries" package is
-  all you need.  If you use one of the binary packages, you may need
-  to install additional packages that the binary package depends on.
-  For example, the "Ubuntu 18.04" binary package depends on "libtinfo5"
-  and "libxml2".  You may need to install these, e.g.:
-  `sudo apt-get install libtinfo-dev libxml2-dev`.)
+  all you need.  For example, the openSUSE Tumbleweed provides them
+  by llvm10-devel and clang10-devel packages.
 
 * [Python 3.6+](https://www.python.org/downloads/)
 
@@ -100,9 +97,3 @@ Note that assertions are enabled by default. To disable assertions:
 ```
 cmake ... -DENABLE_TRANS_ASSERT=OFF
 ```
-
-## Regarding LLVM versions
-
-Released versions of C-Reduce, and also our master branch at GitHub,
-need to be compiled against specific released versions of LLVM, as
-noted in this file.
