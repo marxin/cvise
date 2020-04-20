@@ -1,5 +1,7 @@
 # C-Reduce
 
+[![Travis Build Status](https://travis-ci.com/marxin/cvise.svg?branch=master)](https://travis-ci.com/marxin/cvise)
+
 ## About 
 
 C-Reduce is a tool that takes a large C, C++ or OpenCL program that
