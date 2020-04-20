@@ -113,7 +113,11 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     else if (!CXXStandard.compare("c++17"))
       LSTD = LangStandard::Kind::lang_cxx17;
     else if (!CXXStandard.compare("c++20"))
+#if LLVM_VERSION_MAJOR < 10
+      LSTD = LangStandard::Kind::lang_cxx2a;
+#else
       LSTD = LangStandard::Kind::lang_cxx20;
+#endif
     else {
       ErrorMsg = "Can't parse CXXStandard option argument!";
       return false;
