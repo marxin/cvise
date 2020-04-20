@@ -292,48 +292,49 @@ class TestManager:
                 future.cancel()
                 continue
 
-            if future.exception():
-                if type(future.exception()) is TimeoutError:
-                    future.cancel()
-                    logging.debug("Test timed out!")
-                else:
-                    raise future.exception()
-            else:
-                if future.done():
-                    test_env = future.result()
-                    if test_env.success:
-                        if (self.max_improvement is not None and
-                            test_env.size_improvement > self.max_improvement):
-                            logging.debug("Too large improvement: {} B".format(test_env.size_improvement))
-                        else:
-                            # Report bug if transform did not change the file
-                            if filecmp.cmp(self.current_test_case, test_env.test_case_path):
-                                if not self.silent_pass_bug:
-                                    self.report_pass_bug(test_env, "pass failed to modify the variant")
-                            else:
-                                quit_loop = True
-                                new_futures.append(future)
+            if future.done():
+                if future.exception():
+                    if type(future.exception()) is TimeoutError:
+                        future.cancel()
+                        logging.debug("Test timed out!")
+                        continue
                     else:
-                        if test_env.result == PassResult.OK:
-                            assert test_env.exitcode
-                            if (self.also_interesting is not None and
-                                test_env.exitcode == self.also_interesting):
-                                extra_dir = self.get_extra_dir("cvise_extra_", self.MAX_EXTRA_DIRS)
-                                if extra_dir != None:
-                                    os.mkdir(extra_dir)
-                                    shutil.move(test_env.test_case_path, extra_dir)
-                                    logging.info("Created extra directory {} for you to look at later".format(extra_dir))
-                        elif test_env.result == PassResult.STOP:
-                            quit_loop = True
-                        elif test_env.result == PassResult.ERROR:
+                        raise future.exception()
+
+                test_env = future.result()
+                if test_env.success:
+                    if (self.max_improvement is not None and
+                        test_env.size_improvement > self.max_improvement):
+                        logging.debug("Too large improvement: {} B".format(test_env.size_improvement))
+                    else:
+                        # Report bug if transform did not change the file
+                        if filecmp.cmp(self.current_test_case, test_env.test_case_path):
                             if not self.silent_pass_bug:
-                                self.report_pass_bug(test_env, "pass error")
+                                self.report_pass_bug(test_env, "pass failed to modify the variant")
                         else:
-                            if not self.no_give_up and test_env.order > self.GIVEUP_CONSTANT:
-                                self.report_pass_bug(test_env, "pass got stuck")
-                                quit_loop = True
+                            quit_loop = True
+                            new_futures.append(future)
                 else:
-                    new_futures.append(future)
+                    if test_env.result == PassResult.OK:
+                        assert test_env.exitcode
+                        if (self.also_interesting is not None and
+                            test_env.exitcode == self.also_interesting):
+                            extra_dir = self.get_extra_dir("cvise_extra_", self.MAX_EXTRA_DIRS)
+                            if extra_dir != None:
+                                os.mkdir(extra_dir)
+                                shutil.move(test_env.test_case_path, extra_dir)
+                                logging.info("Created extra directory {} for you to look at later".format(extra_dir))
+                    elif test_env.result == PassResult.STOP:
+                        quit_loop = True
+                    elif test_env.result == PassResult.ERROR:
+                        if not self.silent_pass_bug:
+                            self.report_pass_bug(test_env, "pass error")
+                    else:
+                        if not self.no_give_up and test_env.order > self.GIVEUP_CONSTANT:
+                            self.report_pass_bug(test_env, "pass got stuck")
+                            quit_loop = True
+            else:
+                new_futures.append(future)
 
         new_futures_set = set(new_futures)
         for future in futures:
