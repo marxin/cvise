@@ -4,7 +4,6 @@ import subprocess
 import tempfile
 
 from cvise.passes.abstract import AbstractPass, PassResult
-from cvise.utils import compat
 
 class ClexPass(AbstractPass):
     def check_prerequisites(self):
@@ -25,7 +24,7 @@ class ClexPass(AbstractPass):
             cmd = [self.external_programs["clex"], str(self.arg), str(state), test_case]
 
             try:
-                proc = compat.subprocess_run(cmd, universal_newlines=True, stdout=tmp_file, stderr=subprocess.PIPE)
+                proc = subprocess.run(cmd, universal_newlines=True, stdout=tmp_file, stderr=subprocess.PIPE)
             except subprocess.SubprocessError:
                 return (PassResult.ERROR, state)
 

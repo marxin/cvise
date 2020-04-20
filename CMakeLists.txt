@@ -37,7 +37,7 @@ message(STATUS "Using ClangConfig.cmake in ${Clang_DIR}")
 
 # Locate Python and check its version.
 #
-find_package(PythonInterp 3.4 REQUIRED)
+find_package(PythonInterp 3.6 REQUIRED)
 
 # Locate flex.  Do this here because we need the package definitions in the
 # "CMakeLists.txt" files for multiple subdirs.

@@ -6,7 +6,6 @@ import tempfile
 import re
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
-from cvise.utils import compat
 
 class IfPass(AbstractPass):
     line_regex = re.compile('^\\s*#\\s*if')
@@ -76,7 +75,7 @@ class IfPass(AbstractPass):
 
         try:
             cmd = [self.external_programs["unifdef"], "-B", "-x", "2", "-k", "-o", test_case, tmp_file.name]
-            proc = compat.subprocess_run(cmd, universal_newlines=True, stderr=subprocess.PIPE)
+            proc = subprocess.run(cmd, universal_newlines=True, stderr=subprocess.PIPE)
         except subprocess.SubprocessError:
             return (PassResult.ERROR, state)
         return (PassResult.OK, state)

@@ -22,7 +22,6 @@ from pebble import ProcessPool
 from .. import CVise
 from cvise.passes.abstract import AbstractPass, PassResult
 
-from . import compat
 from . import readkey
 from .error import InsaneTestCaseError
 from .error import InvalidInterestingnessTestError

@@ -5,7 +5,6 @@ import tempfile
 import os
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
-from cvise.utils import compat
 
 class LinesPass(AbstractPass):
     def check_prerequisites(self):
@@ -17,7 +16,7 @@ class LinesPass(AbstractPass):
             with open(test_case, "r") as in_file:
                 try:
                     cmd = [self.external_programs["topformflat"], self.arg]
-                    proc = compat.subprocess_run(cmd, stdin=in_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                    proc = subprocess.run(cmd, stdin=in_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                 except subprocess.SubprocessError:
                     return (PassResult.ERROR, new_state)
 

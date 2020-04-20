@@ -2,7 +2,6 @@ import shutil
 import subprocess
 
 from cvise.passes.abstract import AbstractPass, PassResult
-from cvise.utils import compat
 from cvise.utils.error import UnknownArgumentError
 
 class IndentPass(AbstractPass):
@@ -35,7 +34,7 @@ class IndentPass(AbstractPass):
             raise UnknownArgumentError()
 
         try:
-            compat.subprocess_run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except subprocess.SubprocessError:
             return (PassResult.ERROR, state)
 

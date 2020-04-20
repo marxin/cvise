@@ -221,11 +221,6 @@ configure_file(
   COPYONLY
 )
 configure_file(
-  "${cvise_python_SOURCE_DIR}/utils/compat.py"
-  "${cvise_python_BINARY_DIR}/utils/compat.py"
-  COPYONLY
-)
-configure_file(
   "${cvise_python_SOURCE_DIR}/utils/error.py"
   "${cvise_python_BINARY_DIR}/utils/error.py"
   COPYONLY

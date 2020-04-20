@@ -5,7 +5,6 @@ import subprocess
 import tempfile
 
 from cvise.passes.abstract import AbstractPass, PassResult
-from cvise.utils import compat
 
 class UnIfDefPass(AbstractPass):
     def check_prerequisites(self):
@@ -23,7 +22,7 @@ class UnIfDefPass(AbstractPass):
     def transform(self, test_case, state):
         try:
             cmd = [self.external_programs["unifdef"], "-s", test_case]
-            proc = compat.subprocess_run(cmd, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.run(cmd, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except subprocess.SubprocessError:
             return (PassResult.ERROR, state)
 
@@ -48,7 +47,7 @@ class UnIfDefPass(AbstractPass):
 
                 try:
                     cmd = [self.external_programs["unifdef"], "-B", "-x", "2", "{}{}".format(du, def_), "-o", tmp_file.name, test_case]
-                    proc = compat.subprocess_run(cmd, universal_newlines=True)
+                    proc = subprocess.run(cmd, universal_newlines=True)
                 except subprocess.SubprocessError:
                     return (PassResult.ERROR, state)
 
