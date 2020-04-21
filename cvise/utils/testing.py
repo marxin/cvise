@@ -37,16 +37,18 @@ def rmfolder(name):
         pass
 
 class TestEnvironment:
-    def __init__(self, test_script, order, folder):
+    def __init__(self, state, order, test_script, folder, test_case, additional_files, transform):
         self.test_case = None
         self.additional_files = set()
-        self.state = None
+        self.state = state
         self.folder = folder
         self.base_size = None
         self.test_script = test_script
         self.exitcode = None
         self.result = None
         self.order = order
+        self.transform = transform
+        self.copy_files(test_case, additional_files)
 
     def copy_files(self, test_case, additional_files):
         if test_case is not None:
@@ -85,6 +87,24 @@ class TestEnvironment:
             shutil.copy(f, dst)
 
         shutil.copy(self.test_script, dst)
+
+    def run(self):
+        try:
+            # transform by state
+            (result, self.state) = self.transform(self.test_case_path, self.state)
+            self.result = result
+            if self.result != PassResult.OK:
+                return self
+
+            # run test script
+            p = self.run_test()
+            self.exitcode = p.returncode
+            return self
+        except OSError as e:
+            # this can happen when we clean up temporary files for cancelled processes
+            pass
+        except Exception as e:
+            print('Should not happen: ' + str(e))
 
     def run_test(self):
         cmd = [self.test_script]
@@ -229,11 +249,8 @@ class TestManager:
         logging.debug("perform sanity check... ")
 
         folder = tempfile.mkdtemp(prefix=self.TEMP_PREFIX)
-        test_env = self.create_environment(0, folder)
-
+        test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, None)
         logging.debug("sanity check tmpdir = {}".format(test_env.folder))
-
-        test_env.copy_files(None, self.test_cases)
 
         p = test_env.run_test()
         rmfolder(folder)
@@ -241,31 +258,6 @@ class TestManager:
             logging.debug("sanity check successful")
         else:
             raise InsaneTestCaseError(self.test_cases, p.args)
-
-    def create_environment(self, order, folder):
-        return TestEnvironment(self.test_script, order, folder)
-
-    def create_and_run_test_env(self, state, order, folder):
-        try:
-            test_env = self.create_environment(order, folder)
-            test_env.copy_files(self.current_test_case, self.test_cases ^ {self.current_test_case})
-            test_env.state = state
-
-            # transform by state
-            (result, test_env.state) = self.current_pass.transform(test_env.test_case_path, test_env.state)
-            test_env.result = result
-            if test_env.result != PassResult.OK:
-                return test_env
-
-            # run test script
-            p = test_env.run_test()
-            test_env.exitcode = p.returncode
-            return test_env
-        except OSError as e:
-            # this can happen when we clean up temporary files for cancelled processes
-            pass
-        except Exception as e:
-            print('Should not happen: ' + str(e))
 
     def release_folder(self, future, temporary_folders):
         name = temporary_folders.pop(future)
@@ -374,8 +366,10 @@ class TestManager:
                     return (success, futures, temporary_folders)
 
                 folder = tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=self.root)
-                future = pool.schedule(self.create_and_run_test_env, [self.state, order, folder],
-                        timeout=self.timeout)
+                test_env = TestEnvironment(self.state, order, self.test_script, folder,
+                        self.current_test_case, self.test_cases ^ {self.current_test_case},
+                        self.current_pass.transform)
+                future = pool.schedule(test_env.run, timeout=self.timeout)
                 temporary_folders[future] = folder
                 futures.append(future)
                 order += 1
