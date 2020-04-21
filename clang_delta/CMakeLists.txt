@@ -531,6 +531,18 @@ configure_file(
 )
 
 configure_file(
+  "${clang_delta_SOURCE_DIR}/tests/remove-unused-function/inline_ns.cc"
+  "${clang_delta_BINARY_DIR}/tests/remove-unused-function/inline_ns.cc"
+  COPYONLY
+)
+
+configure_file(
+  "${clang_delta_SOURCE_DIR}/tests/remove-unused-function/inline_ns.output"
+  "${clang_delta_BINARY_DIR}/tests/remove-unused-function/inline_ns.output"
+  COPYONLY
+)
+
+configure_file(
   "${clang_delta_SOURCE_DIR}/tests/remove-unused-function/macro1.cc"
   "${clang_delta_BINARY_DIR}/tests/remove-unused-function/macro1.cc"
   COPYONLY

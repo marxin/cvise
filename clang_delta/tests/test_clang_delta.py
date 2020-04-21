@@ -3,6 +3,7 @@ import unittest
 import subprocess
 
 class TestClangDelta(unittest.TestCase):
+
     @classmethod
     def check_clang_delta(cls, testcase, arguments):
         current = os.path.dirname(__file__)
@@ -11,6 +12,14 @@ class TestClangDelta(unittest.TestCase):
         output = subprocess.check_output(cmd, shell=True, encoding='utf8')
         expected = open(os.path.join(current, os.path.splitext(testcase)[0] + '.output')).read()
         assert output == expected
+
+    @classmethod
+    def check_query_instances(cls, testcase, arguments, expected):
+        current = os.path.dirname(__file__)
+        binary = os.path.join(current, '../clang_delta')
+        cmd = '%s %s %s' % (binary, os.path.join(current, testcase), arguments)
+        output = subprocess.check_output(cmd, shell=True, encoding='utf8')
+        assert output.strip() == expected
 
     def test_aggregate_to_scalar_cast(self):
         self.check_clang_delta('aggregate-to-scalar/cast.c', '--transformation=aggregate-to-scalar --counter=1')
@@ -138,6 +147,10 @@ class TestClangDelta(unittest.TestCase):
 
     def test_remove_unused_function_class(self):
         self.check_clang_delta('remove-unused-function/class.cc', '--transformation=remove-unused-function --counter=1')
+
+    def test_remove_unused_function_inline_ns(self):
+        self.check_query_instances('remove-unused-function/inline_ns.cc', '--query-instances=remove-unused-function',
+                'Available transformation instances: 0')
 
     def test_remove_unused_function_macro1(self):
         self.check_clang_delta('remove-unused-function/macro1.cc', '--transformation=remove-unused-function --counter=1')
