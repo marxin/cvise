@@ -37,12 +37,11 @@ def rmfolder(name):
         pass
 
 class TestEnvironment:
-    def __init__(self, test_script, save_temps, order, folder):
+    def __init__(self, test_script, order, folder):
         self.test_case = None
         self.additional_files = set()
         self.state = None
         self.folder = folder
-        self.save_temps = save_temps
         self.base_size = None
         self.test_script = test_script
         self.exitcode = None
@@ -244,7 +243,7 @@ class TestManager:
             raise InsaneTestCaseError(self.test_cases, p.args)
 
     def create_environment(self, order, folder):
-        return TestEnvironment(self.test_script, self.save_temps, order, folder)
+        return TestEnvironment(self.test_script, order, folder)
 
     def create_and_run_test_env(self, state, order, folder):
         try:
@@ -268,15 +267,14 @@ class TestManager:
         except Exception as e:
             print('Should not happen: ' + str(e))
 
-    @classmethod
-    def release_folder(cls, future, temporary_folders):
+    def release_folder(self, future, temporary_folders):
         name = temporary_folders.pop(future)
-        rmfolder(name)
+        if not self.save_temps:
+            rmfolder(name)
 
-    @classmethod
-    def release_folders(cls, futures, temporary_folders):
+    def release_folders(self, futures, temporary_folders):
         for future in futures:
-            cls.release_folder(future, temporary_folders)
+            self.release_folder(future, temporary_folders)
         assert not any(temporary_folders)
 
     @classmethod
