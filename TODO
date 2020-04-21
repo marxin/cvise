@@ -2,14 +2,14 @@
 
 --------------------------------------------------------------------
 
-C-Reduce pre-release list:
+C-Vise pre-release list:
 
 - make sure copyright years are up to date
 - test on Windows, Linux, OS X
 
 --------------------------------------------------------------------
 
-C-Reduce TODO list:
+C-Vise TODO list:
 
 turn
   if (foo) goto bar; baz; bar:
@@ -50,12 +50,12 @@ maybe implement passes to:
 maybe add a format string reduction pass that eliminates a format
   specifier and also the corresponding argument
 
-write some documentation about creating a c-reduce pass: side effects,
+write some documentation about creating a c-vise pass: side effects,
 directory restrictions, etc.
 
 Konstantin suggestion:
   deal with un-preprocessed code in a smart way, for example by
-  incrementally preprocessing files from inside c-reduce
+  incrementally preprocessing files from inside c-vise
 
 implement suggestion from Joerg Sonnenberger:
   do transformations in chunks, like the line-reducer pass already does
@@ -75,7 +75,7 @@ change operators to other operators, e.g., replace / with +
 - From Konstantin Tokarev
 
 As you may know, there is a clang-based tool "Include What You Use"
-[1]. I think similar approach could be useful in C-Reduce to remove
+[1]. I think similar approach could be useful in C-Vise to remove
 whole header files instead of separate lines. Though I'm not sure it's
 feasible without non-preprocessed source file and compilation command
 line available.
@@ -102,6 +102,6 @@ traditional line-based reduction.
 
 - (low priority) constant-propagation
 
-- (low priority) replace peephole passes in c_reduce
+- (low priority) replace peephole passes in c_vise
 
 --------------------------------------------------------------------

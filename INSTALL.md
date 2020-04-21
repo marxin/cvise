@@ -1,9 +1,9 @@
-# Installing C-Reduce
+# Installing C-Vise
 
 ## Using a Package Manager
 
-Before compiling C-Reduce yourself, you might want to see if your OS
-comes with a precompiled package for C-Reduce.  Ubuntu, Debian, Gentoo,
+Before compiling C-Vise yourself, you might want to see if your OS
+comes with a precompiled package for C-Vise.  Ubuntu, Debian, Gentoo,
 and Mac OS X (Homebrew) all do.  For example, on OS X:
 
 ```
@@ -14,11 +14,11 @@ $ brew install creduce
 
 ### Prereqs
 
-C-Reduce is written in Python3, C++, and C.  To compile and run C-Reduce,
+C-Vise is written in Python 3, C++, and C.  To compile and run C-Vise,
 you will need a development environment that supports these languages.
-C-Reduce's build system requires CMake.
+C-Vise's build system requires CMake.
 
-Beyond the basic compile/build tools, C-Reduce depends on a set of
+Beyond the basic compile/build tools, C-Vise depends on a set of
 third-party software packages, including LLVM.
 
 On Ubuntu or Mint, the prerequisites other than LLVM can be installed
@@ -54,9 +54,9 @@ manager:
 
 * [CMake](https://cmake.org/)
 
-## Building and installing C-Reduce
+## Building and installing C-Vise
 
-You can configure, build, and install C-Reduce with the CMake.
+You can configure, build, and install C-Vise with the CMake.
 
 From either the source directory or a build directory:
 
@@ -90,7 +90,7 @@ cmake [source-dir] -DLLVM_DIR=/work/my-llvm/lib/cmake/llvm \
 
 You do *not* need to set `Clang_DIR` if you build Clang within your LLVM
 tree.  Also, note that you must actually *build* LLVM and Clang before
-building C-Reduce.
+building C-Vise.
 
 Note that assertions are enabled by default. To disable assertions:
 
