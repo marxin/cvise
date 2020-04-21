@@ -39,6 +39,24 @@ message(STATUS "Using ClangConfig.cmake in ${Clang_DIR}")
 #
 find_package(PythonInterp 3.6 REQUIRED)
 
+# Locate pytest
+execute_process(COMMAND python3 -m pytest --version
+  OUTPUT_VARIABLE PYTEST_output
+  ERROR_VARIABLE  PYTEST_error
+  RESULT_VARIABLE PYTEST_result)
+if(NOT ${PYTEST_result} EQUAL 0)
+  message(SEND_ERROR "Pytest package not available: ${PYTEST_error}")
+endif()
+
+# Locate Pebble
+execute_process(COMMAND python3 -c "import pebble"
+  OUTPUT_VARIABLE PEBBLE_output
+  ERROR_VARIABLE  PEBBLE_error
+  RESULT_VARIABLE PEBBLE_result)
+if(NOT ${PEBBLE_result} EQUAL 0)
+  message(SEND_ERROR "Pebble package not available: ${PEBBLE_error}")
+endif()
+
 # Locate flex.  Do this here because we need the package definitions in the
 # "CMakeLists.txt" files for multiple subdirs.
 #
