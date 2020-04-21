@@ -151,9 +151,11 @@ class TestManager:
 
     def create_root(self):
         self.root = tempfile.mkdtemp(prefix=self.TEMP_PREFIX)
+        logging.debug('Creating pass root folder: %s' % self.root)
 
     def remove_root(self):
-        rmfolder(self.root)
+        if not self.save_temps:
+            rmfolder(self.root)
 
     @classmethod
     def is_valid_test(cls, test_script):
