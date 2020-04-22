@@ -45,7 +45,7 @@ static int add_tok(char *str, enum tok_kind kind) {
 }
 
 void process_token(enum tok_kind kind) {
-  int tok = add_tok(yytext, kind);
+  add_tok(yytext, kind);
   count++;
 }
 
@@ -114,7 +114,7 @@ static void find_unused_name(char *name) {
 }
 
 static int should_be_renamed(char *name, char *newname) {
-  int i;
+  unsigned int i;
   for (i=0; i < strlen(name); i++) {
     if (name[i] < 'a' || name[i] > 'z')
       return 1;
@@ -183,36 +183,10 @@ static void rename_toks(int tok_index) {
 }
 
 static void string_rm_chars(char *s, int i) {
-  int j;
+  unsigned int j;
   for (j = 0; j < (strlen(s) - i + 1); j++) {
     s[j] = s[j + i];
   }
-}
-
-static int remove_line(char *s, int idx, int *numlines) {
-  int line = 0;
-  int lastpos = 1;
-  int ret = 0;
-  int i;
-  for (i = 0; i < strlen(s); i++) {
-    if (strncmp(s + i, "\\n", 2) == 0 || s[i + 1] == 0) {
-      if (line == idx) {
-        if (s[i + 1] == 0) {
-          // printf ("removing rest of string at %d\n", lastpos);
-          s[lastpos] = '"';
-          s[lastpos + 1] = 0;
-        } else {
-          // printf ("removing %d chars at %d\n", i - lastpos + 2, lastpos);
-          string_rm_chars(s + lastpos, i - lastpos + 2);
-          ret = 1;
-        }
-      }
-      lastpos = i + 2;
-      line++;
-    }
-  }
-  *numlines = line;
-  return ret;
 }
 
 static void shorten_string(int idx) {
@@ -247,7 +221,7 @@ static void x_string(int idx) {
   for (i = 0; i < toks; i++) {
     if (!matched && tok_list[i].kind == TOK_STRING) {
       char *s = tok_list[i].str;
-      int j;
+      unsigned int j;
       for (j = 0; j < strlen(s); j++) {
         if (s[j] != 'x') {
           if (which == idx) {
@@ -371,7 +345,6 @@ static void rm_tok_pattern(int idx) {
       which++;
     }
     int print = 0;
-    int pattern_idx = which - idx;
     if (tok_list[i].kind == TOK_WS ||
         tok_list[i].kind == TOK_NEWLINE) {
       print = 1;

@@ -49,6 +49,9 @@ add_executable(strlex
   driver.c
   )
 
+set_source_files_properties(clex.c PROPERTIES COMPILE_FLAGS -Wno-unused-function)
+set_source_files_properties(strlex.c PROPERTIES COMPILE_FLAGS -Wno-unused-function)
+
 ###############################################################################
 
 install(TARGETS clex strlex
