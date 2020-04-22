@@ -31,7 +31,7 @@ addons:
 
 matrix:
   - include:
-    - name: Normal build
+    - name: DEBUG build
       stage: build
       env: BUILD_TYPE=DEBUG
 
