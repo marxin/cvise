@@ -332,6 +332,7 @@ class TestManager:
                             quit_loop = True
                             new_futures.add(future)
                 else:
+                    self.pass_statistic.update(self.current_pass, success=False)
                     if test_env.result == PassResult.OK:
                         assert test_env.exitcode
                         if (self.also_interesting is not None and
@@ -347,10 +348,9 @@ class TestManager:
                         if not self.silent_pass_bug:
                             self.report_pass_bug(test_env, "pass error")
                             quit_loop = True
-                    else:
-                        if not self.no_give_up and test_env.order > self.GIVEUP_CONSTANT:
-                            self.report_pass_bug(test_env, "pass got stuck")
-                            quit_loop = True
+                    if not self.no_give_up and test_env.order > self.GIVEUP_CONSTANT:
+                        self.report_pass_bug(test_env, "pass got stuck")
+                        quit_loop = True
             else:
                 new_futures.add(future)
 
