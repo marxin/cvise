@@ -109,6 +109,7 @@ class TestClangDelta(unittest.TestCase):
     def test_param_to_global_macro(self):
         self.check_clang_delta('param-to-global/macro.c', '--transformation=param-to-global --counter=1')
 
+    @unittest.skip(reason='i586 assert: csmith-project/creduce#212')
     def test_reduce_array_dim_non_type_temp_arg(self):
         self.check_clang_delta('reduce-array-dim/non-type-temp-arg.cpp', '--transformation=reduce-array-dim --counter=1')
 
