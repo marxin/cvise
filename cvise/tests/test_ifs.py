@@ -2,11 +2,13 @@ import os
 import tempfile
 import unittest
 
+from cvise.passes.abstract import ProcessEventNotifier
 from ..passes import IfPass
 
 class LineMarkersTestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = IfPass(external_programs = {'unifdef': 'unifdef'})
+        self.process_event_notifier = ProcessEventNotifier(None) 
 
     def test_all(self):
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
@@ -14,7 +16,7 @@ class LineMarkersTestCase(unittest.TestCase):
 
         state = self.pass_.new(tmp_file.name)
         state = self.pass_.advance(tmp_file.name, state)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, self.process_event_notifier)
         self.assertEqual(state.index, 0)
         self.assertEqual(state.instances, 1)
 

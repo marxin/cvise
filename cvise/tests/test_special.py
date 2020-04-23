@@ -28,7 +28,7 @@ class SpecialATestCase(unittest.TestCase):
             tmp_file.write('// Useless comment\ntransparent_crc(g_376.f0, "g_376.f0", print_hash_value);\ntransparent_crc(g_1194[i].f0, "g_1194[i].f0", print_hash_value);\nint a = 9;')
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iterate_pass(self.pass_, tmp_file.name)
 
@@ -48,7 +48,7 @@ class SpecialBTestCase(unittest.TestCase):
             tmp_file.write('void foo(){} extern "C" {int a;}; a = 9;\n')
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -66,7 +66,7 @@ class SpecialCTestCase(unittest.TestCase):
             tmp_file.write('void foo(){} extern "C++" {int a;}; a = 9;\n')
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()

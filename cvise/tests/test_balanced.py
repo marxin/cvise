@@ -14,7 +14,7 @@ class BalancedParensTestCase(unittest.TestCase):
             tmp_file.write("This is a simple test!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -28,7 +28,7 @@ class BalancedParensTestCase(unittest.TestCase):
             tmp_file.write("This is a (simple) test!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -42,7 +42,7 @@ class BalancedParensTestCase(unittest.TestCase):
             tmp_file.write("This (is a (simple) test)!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -58,7 +58,7 @@ class BalancedParensTestCase(unittest.TestCase):
         state = self.pass_.new(tmp_file.name)
         # Transform failed
         state = self.pass_.advance(tmp_file.name, state)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -76,7 +76,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
             tmp_file.write("This is a simple test!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -90,7 +90,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
             tmp_file.write("This is a (simple) test!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -104,7 +104,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
             tmp_file.write("This (is a (simple) test)!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -120,7 +120,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         state = self.pass_.new(tmp_file.name)
         # Transform failed
         state = self.pass_.advance(tmp_file.name, state)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -134,9 +134,9 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
             tmp_file.write("This (is a (simple) test)!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
         state = self.pass_.advance_on_success(tmp_file.name, state)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -150,13 +150,13 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
             tmp_file.write("(This) (is a (((more)) complex) test)!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iteration = 0
 
         while result == PassResult.OK and iteration < 7:
             state = self.pass_.advance_on_success(tmp_file.name, state)
-            (result, state) = self.pass_.transform(tmp_file.name, state)
+            (result, state) = self.pass_.transform(tmp_file.name, state, None)
             iteration += 1
 
         with open(tmp_file.name) as variant_file:
@@ -172,7 +172,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
             tmp_file.write("(This) (is a (((more)) complex) test)!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iteration = 0
 
@@ -181,7 +181,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
                 tmp_file.write("(This) (is a (((more)) complex) test)!\n")
 
             state = self.pass_.advance(tmp_file.name, state)
-            (result, state) = self.pass_.transform(tmp_file.name, state)
+            (result, state) = self.pass_.transform(tmp_file.name, state, None)
             iteration += 1
 
         os.unlink(tmp_file.name)
@@ -197,7 +197,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
             tmp_file.write("This is a simple test!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -211,7 +211,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
             tmp_file.write("This is a (simple) test!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -225,7 +225,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
             tmp_file.write("This (is a (simple) test)!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -241,7 +241,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         state = self.pass_.new(tmp_file.name)
         # Transform failed
         state = self.pass_.advance(tmp_file.name, state)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -255,9 +255,9 @@ class BalancedParensInsideTestCase(unittest.TestCase):
             tmp_file.write("This (is a (simple) test)!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
         state = self.pass_.advance_on_success(tmp_file.name, state)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -271,13 +271,13 @@ class BalancedParensInsideTestCase(unittest.TestCase):
             tmp_file.write("(This) (is a (((more)) complex) test)!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iteration = 0
 
         while result == PassResult.OK and iteration < 4:
             state = self.pass_.advance_on_success(tmp_file.name, state)
-            (result, state) = self.pass_.transform(tmp_file.name, state)
+            (result, state) = self.pass_.transform(tmp_file.name, state, None)
             iteration += 1
 
         with open(tmp_file.name) as variant_file:
@@ -293,7 +293,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
             tmp_file.write("(This) (is a (((more)) complex) test)!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iteration = 0
 
@@ -302,7 +302,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
                 tmp_file.write("(This) (is a (((more)) complex) test)!\n")
 
             state = self.pass_.advance(tmp_file.name, state)
-            (result, state) = self.pass_.transform(tmp_file.name, state)
+            (result, state) = self.pass_.transform(tmp_file.name, state, None)
             iteration += 1
 
         os.unlink(tmp_file.name)

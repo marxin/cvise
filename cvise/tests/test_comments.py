@@ -14,7 +14,7 @@ class CommentsTestCase(unittest.TestCase):
             tmp_file.write("This /* contains *** /* two */ /*comments*/!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -28,7 +28,7 @@ class CommentsTestCase(unittest.TestCase):
             tmp_file.write("This ///contains //two\n //comments\n!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -42,13 +42,13 @@ class CommentsTestCase(unittest.TestCase):
             tmp_file.write("/*This*/ ///contains //two\n //comments\n!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iteration = 0
 
         while result == PassResult.OK and iteration < 4:
             state = self.pass_.advance_on_success(tmp_file.name, state)
-            (result, state) = self.pass_.transform(tmp_file.name, state)
+            (result, state) = self.pass_.transform(tmp_file.name, state, None)
             iteration += 1
 
         with open(tmp_file.name) as variant_file:
@@ -64,7 +64,7 @@ class CommentsTestCase(unittest.TestCase):
             tmp_file.write("/*This*/ ///contains //two\n //comments\n!\n")
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iteration = 0
 
@@ -73,7 +73,7 @@ class CommentsTestCase(unittest.TestCase):
                 tmp_file.write("/*This*/ ///contains //two\n //comments\n!\n")
 
             state = self.pass_.advance(tmp_file.name, state)
-            (result, state) = self.pass_.transform(tmp_file.name, state)
+            (result, state) = self.pass_.transform(tmp_file.name, state, None)
             iteration += 1
 
         os.unlink(tmp_file.name)

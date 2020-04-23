@@ -14,7 +14,7 @@ class TernaryBTestCase(unittest.TestCase):
             tmp_file.write("int res = a ? b : c;\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -28,7 +28,7 @@ class TernaryBTestCase(unittest.TestCase):
             tmp_file.write("int res = (a != 0) ? (b + 5) : c;\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -42,11 +42,11 @@ class TernaryBTestCase(unittest.TestCase):
             tmp_file.write("// no ? match :\nint res = a ? (ba ? bb : bc) : c\nint sec = t ? u : v\n")
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         while result == PassResult.OK:
             state = self.pass_.advance_on_success(tmp_file.name, state)
-            (result, state) = self.pass_.transform(tmp_file.name, state)
+            (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
@@ -60,13 +60,13 @@ class TernaryBTestCase(unittest.TestCase):
            tmp_file.write("// no ? match :!\nint res = a ? (ba ? bb : bc) : c\nint sec = t ? u : v\n")
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iteration = 0
 
         while result == PassResult.OK and iteration < 5:
             state = self.pass_.advance_on_success(tmp_file.name, state)
-            (result, state) = self.pass_.transform(tmp_file.name, state)
+            (result, state) = self.pass_.transform(tmp_file.name, state, None)
             iteration += 1
 
         with open(tmp_file.name) as variant_file:
@@ -82,7 +82,7 @@ class TernaryBTestCase(unittest.TestCase):
             tmp_file.write("// no ? match :\nint res = a ? (ba ? bb : bc) : c\nint sec = t ? u : v\n")
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iteration = 0
 
@@ -91,7 +91,7 @@ class TernaryBTestCase(unittest.TestCase):
                 tmp_file.write("// no ? match :\nint res = a ? (ba ? bb : bc) : c\nint sec = t ? u : v\n")
 
             state = self.pass_.advance(tmp_file.name, state)
-            (result, state) = self.pass_.transform(tmp_file.name, state)
+            (result, state) = self.pass_.transform(tmp_file.name, state, None)
             iteration += 1
 
         os.unlink(tmp_file.name)
@@ -107,7 +107,7 @@ class TernaryCTestCase(unittest.TestCase):
             tmp_file.write("int res = a ? b : c;\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()

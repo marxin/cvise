@@ -80,7 +80,7 @@ class PeepATestCase(unittest.TestCase):
             tmp_file.write("struct test_t {int a;} foo = {1};\n")
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iterate_pass(self.pass_, tmp_file.name)
 
@@ -113,7 +113,7 @@ class PeepBTestCase(unittest.TestCase):
             tmp_file.write("struct test_t {int a;} foo = {1};\n")
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iterate_pass(self.pass_, tmp_file.name)
 
@@ -129,7 +129,7 @@ class PeepBTestCase(unittest.TestCase):
             tmp_file.write(",0,")
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state)
+        (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iterate_pass(self.pass_, tmp_file.name)
 
@@ -149,7 +149,7 @@ class PeepCTestCase(unittest.TestCase):
             tmp_file.write("while   (a == b)\n{\n    int a = 4;\n    short b = 5;\n    break;\n}\n\nulong c = 18;\n")
 
         state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
             variant = variant_file.read()
