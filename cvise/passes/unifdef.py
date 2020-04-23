@@ -19,7 +19,7 @@ class UnIfDefPass(AbstractPass):
     def advance_on_success(self, test_case, state):
         return state
 
-    def transform(self, test_case, state):
+    def transform(self, test_case, state, process_event_notifier):
         try:
             cmd = [self.external_programs["unifdef"], "-s", test_case]
             proc = subprocess.run(cmd, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -45,10 +45,9 @@ class UnIfDefPass(AbstractPass):
 
                 def_ = deflist[n_index]
 
-                try:
-                    cmd = [self.external_programs["unifdef"], "-B", "-x", "2", "{}{}".format(du, def_), "-o", tmp_file.name, test_case]
-                    proc = subprocess.run(cmd, universal_newlines=True)
-                except subprocess.SubprocessError:
+                cmd = [self.external_programs["unifdef"], "-B", "-x", "2", "{}{}".format(du, def_), "-o", tmp_file.name, test_case]
+                stdout, stderr, returncode = process_event_notifier.run_process(cmd)
+                if returncode != 0:
                     return (PassResult.ERROR, state)
 
                 if filecmp.cmp(test_case, tmp_file.name, shallow=False):

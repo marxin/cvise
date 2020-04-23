@@ -18,9 +18,10 @@ import weakref
 import concurrent.futures
 from concurrent.futures import wait, FIRST_COMPLETED, TimeoutError
 from pebble import ProcessPool
+from multiprocessing import Queue, Manager
 
 from .. import CVise
-from cvise.passes.abstract import AbstractPass, PassResult
+from cvise.passes.abstract import *
 
 from . import readkey
 from .error import InsaneTestCaseError
@@ -37,7 +38,8 @@ def rmfolder(name):
         pass
 
 class TestEnvironment:
-    def __init__(self, state, order, test_script, folder, test_case, additional_files, transform):
+    def __init__(self, state, order, test_script, folder, test_case,
+            additional_files, transform, pid_queue=None):
         self.test_case = None
         self.additional_files = set()
         self.state = state
@@ -48,6 +50,7 @@ class TestEnvironment:
         self.result = None
         self.order = order
         self.transform = transform
+        self.pid_queue = pid_queue
         self.copy_files(test_case, additional_files)
 
     def copy_files(self, test_case, additional_files):
@@ -91,14 +94,14 @@ class TestEnvironment:
     def run(self):
         try:
             # transform by state
-            (result, self.state) = self.transform(self.test_case_path, self.state)
+            (result, self.state) = self.transform(self.test_case_path, self.state,
+                    ProcessEventNotifier(self.pid_queue))
             self.result = result
             if self.result != PassResult.OK:
                 return self
 
             # run test script
-            p = self.run_test()
-            self.exitcode = p.returncode
+            self.exitcode = self.run_test()
             return self
         except OSError as e:
             # this can happen when we clean up temporary files for cancelled processes
@@ -111,11 +114,12 @@ class TestEnvironment:
         if self.test_case is not None:
             cmd.append(self.test_case_path)
         cmd.extend(self.additional_files_paths)
-
-        return subprocess.run(cmd, cwd=self.folder, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        _, _, returncode = ProcessEventNotifier(self.pid_queue).run_process(cmd)
+        return returncode
 
 class TestManager:
     GIVEUP_CONSTANT = 50000
+    MAX_TIMEOUTS = 20
     MAX_CRASH_DIRS = 10
     MAX_EXTRA_DIRS = 25000
     TEMP_PREFIX = "cvise-"
@@ -254,31 +258,49 @@ class TestManager:
         test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, None)
         logging.debug("sanity check tmpdir = {}".format(test_env.folder))
 
-        p = test_env.run_test()
+        returncode = test_env.run_test()
         rmfolder(folder)
-        if not p.returncode:
+        if returncode == 0:
             logging.debug("sanity check successful")
         else:
-            raise InsaneTestCaseError(self.test_cases, p.args)
+            raise InsaneTestCaseError(self.test_cases, [])
 
-    def release_folder(self, future, temporary_folders):
-        name = temporary_folders.pop(future)
+    def release_folder(self, future):
+        name = self.temporary_folders.pop(future)
         if not self.save_temps:
             rmfolder(name)
 
-    def release_folders(self, futures, temporary_folders):
-        for future in futures:
-            self.release_folder(future, temporary_folders)
-        assert not any(temporary_folders)
+    def release_folders(self):
+        for future in self.futures:
+            self.release_folder(future)
+        assert not self.temporary_folders
 
     @classmethod
     def log_key_event(cls, event):
         logging.info("****** %s  ******" % event)
 
-    def process_done_futures(self, futures, temporary_folders):
+    def kill_pid_queue(self):
+        active_pids = set()
+        while not self.pid_queue.empty():
+            event = self.pid_queue.get()
+            if event.type == ProcessEventType.FINISHED:
+                active_pids.discard(event.pid)
+            else:
+                active_pids.add(event.pid)
+        for pid in active_pids:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+
+    def release_future(self, future):
+        self.futures.remove(future)
+        self.release_folder(future)
+
+    def process_done_futures(self):
         quit_loop = False
-        new_futures = []
-        for future in futures:
+        new_futures = set()
+        for future in self.futures:
             # all items after first successfull (or STOP) should be cancelled
             if quit_loop:
                 future.cancel()
@@ -287,8 +309,11 @@ class TestManager:
             if future.done():
                 if future.exception():
                     if type(future.exception()) is TimeoutError:
-                        future.cancel()
+                        self.timeout_count += 1
                         logging.debug("Test timed out!")
+                        if self.timeout_count >= self.MAX_TIMEOUTS:
+                            logging.warning("Maximum number of timeout were reached: %d" % self.MAX_TIMEOUTS)
+                            quit_loop = True
                         continue
                     else:
                         raise future.exception()
@@ -305,7 +330,7 @@ class TestManager:
                                 self.report_pass_bug(test_env, "pass failed to modify the variant")
                         else:
                             quit_loop = True
-                            new_futures.append(future)
+                            new_futures.add(future)
                 else:
                     if test_env.result == PassResult.OK:
                         assert test_env.exitcode
@@ -327,23 +352,22 @@ class TestManager:
                             self.report_pass_bug(test_env, "pass got stuck")
                             quit_loop = True
             else:
-                new_futures.append(future)
+                new_futures.add(future)
 
-        new_futures_set = set(new_futures)
-        for future in futures:
-            if not future in new_futures_set:
-                self.release_folder(future, temporary_folders)
+        removed_futures = [f for f in self.futures if not f in new_futures]
+        for f in removed_futures:
+            self.release_future(f)
 
-        return (quit_loop, new_futures)
+        return quit_loop
 
-    def wait_for_first_success(self, futures):
-        for future in futures:
+    def wait_for_first_success(self):
+        for i, future in enumerate(self.futures):
             try:
                 test_env = future.result()
                 if test_env.success:
                     return test_env
             except TimeoutError:
-                future.cancel()
+                pass
         return None
 
     @classmethod
@@ -352,41 +376,45 @@ class TestManager:
         pool.join()
 
     def run_parallel_tests(self):
+        assert not self.futures
+        assert not self.temporary_folders
         with ProcessPool(max_workers=self.parallel_tests) as pool:
-            futures = []
-            temporary_folders = {}
             order = 1
+            self.timeout_count = 0
             while self.state != None:
                 # do not create too many states
-                if len(futures) >= self.parallel_tests:
-                    wait(futures, return_when=FIRST_COMPLETED)
+                if len(self.futures) >= self.parallel_tests:
+                    wait(self.futures, return_when=FIRST_COMPLETED)
 
-                (quit_loop, futures) = self.process_done_futures(futures, temporary_folders)
+                quit_loop = self.process_done_futures()
                 if quit_loop:
-                    success = self.wait_for_first_success(futures)
+                    success = self.wait_for_first_success()
                     self.terminate_all(pool)
-                    return (success, futures, temporary_folders)
+                    return success
 
                 folder = tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=self.root)
                 test_env = TestEnvironment(self.state, order, self.test_script, folder,
                         self.current_test_case, self.test_cases ^ {self.current_test_case},
-                        self.current_pass.transform)
+                        self.current_pass.transform, self.pid_queue)
                 future = pool.schedule(test_env.run, timeout=self.timeout)
-                temporary_folders[future] = folder
-                futures.append(future)
+                self.temporary_folders[future] = folder
+                self.futures.append(future)
                 order += 1
                 state = self.current_pass.advance(self.current_test_case, self.state)
                 # we are at the end of enumeration
                 if state == None:
-                    success = self.wait_for_first_success(futures)
+                    success = self.wait_for_first_success()
                     self.terminate_all(pool)
-                    return (success, futures, temporary_folders)
+                    return success
                 else:
                     self.state = state
 
     def run_pass(self, pass_):
         self.current_pass = pass_
         self.futures = []
+        self.temporary_folders = {}
+        m = Manager()
+        self.pid_queue = m.Queue()
         self.create_root()
         pass_key = repr(self.current_pass)
 
@@ -419,7 +447,6 @@ class TestManager:
             # create initial state
             self.state = self.current_pass.new(self.current_test_case)
             self.skip = False
-            self.since_success = 0
 
             while self.state != None and not self.skip:
                 # Ignore more key presses after skip has been detected
@@ -432,13 +459,15 @@ class TestManager:
                         self.log_key_event("toggle print diff")
                         self.print_diff = not self.print_diff
 
-                success_env, futures, temporary_folders = self.run_parallel_tests()
+                success_env = self.run_parallel_tests()
+                self.kill_pid_queue()
                 if not success_env:
                     self.remove_root()
                     break
 
                 self.process_result(success_env)
-                self.release_folders(futures, temporary_folders)
+                self.release_folders()
+                self.futures.clear()
 
             # Cache result of this pass
             if not self.no_cache:
@@ -460,7 +489,6 @@ class TestManager:
         shutil.copy(test_env.test_case_path, self.current_test_case)
 
         self.state = self.current_pass.advance_on_success(test_env.test_case_path, test_env.state)
-        self.since_success = 0
         self.pass_statistic.update(self.current_pass, success=True)
 
         pct = 100 - (self.total_file_size * 100.0 / self.orig_total_file_size)

@@ -39,7 +39,7 @@ class TernaryPass(AbstractPass):
     def advance_on_success(self, test_case, state):
         return self.__get_next_match(test_case, pos=state["all"][0])
 
-    def transform(self, test_case, state):
+    def transform(self, test_case, state, process_event_notifier):
         with open(test_case, "r") as in_file:
             prog = in_file.read()
             prog2 = prog

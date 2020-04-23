@@ -2,6 +2,7 @@ import re
 import enum
 import logging
 import copy
+import subprocess
 
 from enum import Enum, auto
 
@@ -86,5 +87,28 @@ class AbstractPass:
     def advance_on_success(self, test_case, state):
         raise NotImplementedError("Class {} has not implemented 'advance_on_success'!".format(type(self).__name__))
 
-    def transform(self, test_case, state):
+    def transform(self, test_case, state, process_event_notifier):
         raise NotImplementedError("Class {} has not implemented 'transform'!".format(type(self).__name__))
+
+@enum.unique
+class ProcessEventType(Enum):
+    STARTED = auto()
+    FINISHED = auto()
+
+class ProcessEvent:
+    def __init__(self, pid, event_type):
+        self.pid = pid
+        self.type = event_type
+
+class ProcessEventNotifier:
+    def __init__(self, pid_queue):
+        self.pid_queue = pid_queue
+
+    def run_process(self, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
+        proc = subprocess.Popen(cmd, stdout=stdout, stderr=stderr, universal_newlines=True, encoding='utf8')
+        if self.pid_queue:
+            self.pid_queue.put(ProcessEvent(proc.pid, ProcessEventType.STARTED))
+        stdout, stderr = proc.communicate()
+        if self.pid_queue:
+            self.pid_queue.put(ProcessEvent(proc.pid, ProcessEventType.FINISHED))
+        return (stdout, stderr, proc.returncode)

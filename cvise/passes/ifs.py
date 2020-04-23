@@ -48,10 +48,10 @@ class IfPass(AbstractPass):
             state.value = 0
         return state
 
-    def advance_on_success(self, test_case, state):
+    def advance_on_success(self, test_case, state, process_event_notifier):
         return state.advance_on_success(self.__count_instances(test_case))
 
-    def transform(self, test_case, state):
+    def transform(self, test_case, state, process_even_notifier):
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
             with open(test_case, "r") as in_file:
@@ -73,9 +73,9 @@ class IfPass(AbstractPass):
                     else:
                         tmp_file.write(line)
 
-        try:
-            cmd = [self.external_programs["unifdef"], "-B", "-x", "2", "-k", "-o", test_case, tmp_file.name]
-            proc = subprocess.run(cmd, universal_newlines=True, stderr=subprocess.PIPE)
-        except subprocess.SubprocessError:
+        cmd = [self.external_programs["unifdef"], "-B", "-x", "2", "-k", "-o", test_case, tmp_file.name]
+        stdout, stderr, returncode = process_event_notifier.run_process(cmd)
+        if returncode != 0:
             return (PassResult.ERROR, state)
-        return (PassResult.OK, state)
+        else:
+            return (PassResult.OK, state)

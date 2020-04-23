@@ -18,19 +18,15 @@ class ClexPass(AbstractPass):
     def advance_on_success(self, test_case, state):
         return state
 
-    def transform(self, test_case, state):
+    def transform(self, test_case, state, process_event_notifier):
         tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, dir=tmp) as tmp_file:
             cmd = [self.external_programs["clex"], str(self.arg), str(state), test_case]
-
-            try:
-                proc = subprocess.run(cmd, universal_newlines=True, stdout=tmp_file, stderr=subprocess.PIPE)
-            except subprocess.SubprocessError:
-                return (PassResult.ERROR, state)
-
-        if proc.returncode == 51:
-            shutil.move(tmp_file.name, test_case)
-            return (PassResult.OK, state)
-        else:
-            os.unlink(tmp_file.name)
-            return (PassResult.STOP if proc.returncode == 71 else PassResult.ERROR, state)
+            stdout, stderr, returncode = process_event_notifier.run_process(cmd)
+            if returncode == 51:
+                tmp_file.write(stdout)
+                shutil.move(tmp_file.name, test_case)
+                return (PassResult.OK, state)
+            else:
+                os.unlink(tmp_file.name)
+                return (PassResult.STOP if returncode == 71 else PassResult.ERROR, state)

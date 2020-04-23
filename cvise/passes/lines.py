@@ -42,7 +42,7 @@ class LinesPass(AbstractPass):
     def advance_on_success(self, test_case, state):
         return state.advance_on_success(self.__count_instances(test_case))
 
-    def transform(self, test_case, state):
+    def transform(self, test_case, state, process_event_notifier):
         with open(test_case, "r") as in_file:
             data = in_file.readlines()
 

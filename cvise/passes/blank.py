@@ -38,7 +38,7 @@ class BlankPass(AbstractPass):
 
         return matched
 
-    def transform(self, test_case, state):
+    def transform(self, test_case, state, process_event_notifier):
         patterns = [r"^\s*$", r"^#"]
 
         if state >= len(patterns):

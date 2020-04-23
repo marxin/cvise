@@ -18,7 +18,7 @@ class IncludeIncludesPass(AbstractPass):
     def advance_on_success(self, test_case, state):
         return state
 
-    def transform(self, test_case, state):
+    def transform(self, test_case, state, process_event_notifier):
         with open(test_case, "r") as in_file:
             tmp = os.path.dirname(test_case)
             with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
