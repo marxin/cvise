@@ -423,6 +423,30 @@ configure_file(
 )
 
 configure_file(
+  "${clang_delta_SOURCE_DIR}/tests/remove-try-catch/try-catch-1.cpp"
+  "${clang_delta_BINARY_DIR}/tests/remove-try-catch/try-catch-1.cpp"
+  COPYONLY
+)
+
+configure_file(
+  "${clang_delta_SOURCE_DIR}/tests/remove-try-catch/try-catch-1.output"
+  "${clang_delta_BINARY_DIR}/tests/remove-try-catch/try-catch-1.output"
+  COPYONLY
+)
+
+configure_file(
+  "${clang_delta_SOURCE_DIR}/tests/remove-try-catch/try-catch-2.cpp"
+  "${clang_delta_BINARY_DIR}/tests/remove-try-catch/try-catch-2.cpp"
+  COPYONLY
+)
+
+configure_file(
+  "${clang_delta_SOURCE_DIR}/tests/remove-try-catch/try-catch-2.output"
+  "${clang_delta_BINARY_DIR}/tests/remove-try-catch/try-catch-2.output"
+  COPYONLY
+)
+
+configure_file(
   "${clang_delta_SOURCE_DIR}/tests/remove-unused-field/designated1.c"
   "${clang_delta_BINARY_DIR}/tests/remove-unused-field/designated1.c"
   COPYONLY

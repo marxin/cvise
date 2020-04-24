@@ -122,6 +122,12 @@ class TestClangDelta(unittest.TestCase):
     def test_remove_nested_function_remove_nested_func1(self):
         self.check_clang_delta('remove-nested-function/remove_nested_func1.cc', '--transformation=remove-nested-function --counter=1')
 
+    def test_remove_try_catch_1(self):
+        self.check_clang_delta('remove-try-catch/try-catch-1.cpp', '--transformation=remove-try-catch --counter=1')
+
+    def test_remove_try_catch_2(self):
+        self.check_clang_delta('remove-try-catch/try-catch-2.cpp', '--transformation=remove-try-catch --counter=2')
+
     def test_remove_unused_field_designated1(self):
         self.check_clang_delta('remove-unused-field/designated1.c', '--transformation=remove-unused-field --counter=1')
 
