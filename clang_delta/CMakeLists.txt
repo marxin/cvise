@@ -1412,8 +1412,12 @@ llvm_map_components_to_libnames(LLVM_LIBS
 )
 
 set(CLANG_LIBS
-  clang-cpp
-  LLVM
+  clangAST
+  clangBasic
+  clangFrontend
+  clangParse
+  clangLex
+  clangRewrite
 )
 
 add_executable(clang_delta
