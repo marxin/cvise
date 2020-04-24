@@ -61,6 +61,7 @@ class CVise:
     def parse_pass_group_dict(cls, pass_group_dict, pass_options, external_programs, remove_pass,
             clang_delta_std, not_c):
         pass_group = {}
+        removed_passes = set(remove_pass.split(",")) if remove_pass else set()
 
         def parse_options(options):
             valid_options = set()
@@ -96,7 +97,7 @@ class CVise:
                     raise CViseError("Unkown pass {}".format(pass_dict["pass"]))
 
                 pass_instance = pass_class(pass_dict.get("arg"), external_programs)
-                if str(pass_instance) == remove_pass:
+                if str(pass_instance) in removed_passes:
                     continue
 
                 if not_c and "c" in pass_dict and pass_dict["c"]:

@@ -134,7 +134,7 @@ if __name__ == "__main__":
     parser.add_argument("--print-diff", action="store_true", default=False, help="Show changes made by transformations, for debugging")
     parser.add_argument("--save-temps", action="store_true", default=False, help="Don't delete /tmp/cvise-xxxxxx directories on termination")
     parser.add_argument("--skip-initial-passes", action="store_true", default=False, help="Skip initial passes (useful if input is already partially reduced)")
-    parser.add_argument("--remove-pass", help="Remove all instances of the specified pass from the schedule")
+    parser.add_argument("--remove-pass", help="Remove all instances of the specified passes from the schedule (comma-separated)")
     parser.add_argument("--timing", action="store_true", default=False, help="Print timestamps about reduction progress")
     parser.add_argument("--timing-since-start", action="store_true", default=False, help="Print timestamps since the start of a reduction")
     parser.add_argument("--timeout", type=int, nargs="?", const=300, help="Interestingness test timeout in seconds")
