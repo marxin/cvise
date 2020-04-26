@@ -1071,6 +1071,18 @@ configure_file(
 )
 
 configure_file(
+  "${clang_delta_SOURCE_DIR}/tests/rename-fun/func_templ.cc"
+  "${clang_delta_BINARY_DIR}/tests/rename-fun/func_templ.cc"
+  COPYONLY
+)
+
+configure_file(
+  "${clang_delta_SOURCE_DIR}/tests/rename-fun/func_templ.output"
+  "${clang_delta_BINARY_DIR}/tests/rename-fun/func_templ.output"
+  COPYONLY
+)
+
+configure_file(
   "${clang_delta_SOURCE_DIR}/tests/rename-fun/overloaded.cc"
   "${clang_delta_BINARY_DIR}/tests/rename-fun/overloaded.cc"
   COPYONLY

@@ -1,0 +1,11 @@
+template <typename> struct S1 {
+  typedef S1 b;
+  void operator<<(b ());
+};
+
+template <typename T> S1<T> fn1();
+S1<char> s;
+
+int fn2() {
+  s << fn1;
+}
