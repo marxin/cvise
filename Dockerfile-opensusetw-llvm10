@@ -1,0 +1,8 @@
+FROM opensuse/tumbleweed
+
+RUN zypper -n install \
+        binutils clang10-devel cmake flex gcc-c++ llvm10-devel python3-Pebble python3-pytest unifdef
+ENV LSAN_OPTIONS="detect_leaks=0"
+
+WORKDIR /usr/src/cvise
+VOLUME /usr/src/cvise

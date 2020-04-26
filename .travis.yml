@@ -18,7 +18,8 @@ stages:
 
 env:
   global:
-    - DIST=opensusetw
+    - DIST=opensusetw-llvm9
+    - DIST=opensusetw-llvm10
 
 # podman is currently not in Ubuntu
 addons:
