@@ -16,11 +16,6 @@ language: cpp
 stages:
   - build
 
-env:
-  global:
-    - DIST=opensusetw-llvm9
-    - DIST=opensusetw-llvm10
-
 # podman is currently not in Ubuntu
 addons:
   apt:
@@ -32,17 +27,29 @@ addons:
 
 matrix:
   - include:
-    - name: DEBUG build
+    - name: DEBUG build (LLVM 9)
       stage: build
-      env: BUILD_TYPE=DEBUG
+      env:
+        - BUILD_TYPE=DEBUG
+        - DIST=opensusetw-llvm9
 
-    - name: UBSAN build
+    - name: DEBUG build (LLVM 10)
       stage: build
-      env: BUILD_TYPE=UBSAN
+      env:
+        - BUILD_TYPE=DEBUG
+        - DIST=opensusetw-llvm10
 
-    - name: ASAN build
+    - name: UBSAN build (LLVM 10)
       stage: build
-      env: BUILD_TYPE=ASAN
+      env:
+        - BUILD_TYPE=UBSAN
+        - DIST=opensusetw-llvm10
+
+    - name: ASAN build (LLVM 10)
+      stage: build
+      env:
+        - BUILD_TYPE=ASAN
+        - DIST=opensusetw-llvm10
 
 before_install:
   # podman needs a basic register set up (packaging bug in the ppa)
