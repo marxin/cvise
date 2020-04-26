@@ -29,7 +29,7 @@ sudo apt-get install \
   flex build-essential
 ```
 
-On FreeBSD 11.2, the prerequisites can be installed like this:
+On FreeBSD 12.1, the prerequisites can be installed like this:
 
 ```
 sudo pkg install \
