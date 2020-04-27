@@ -51,6 +51,12 @@ matrix:
         - BUILD_TYPE=ASAN
         - DIST=opensusetw-llvm10
 
+    - name: Fedora 31 DEBUG build (LLVM 10)
+      stage: build
+      env:
+        - BUILD_TYPE=DEBUG
+        - DIST=fedora31-llvm10
+
 before_install:
   # podman needs a basic register set up (packaging bug in the ppa)
   - sudo mkdir -p /etc/containers
@@ -60,7 +66,7 @@ before_install:
   - echo "travis:110000:65535" | sudo tee /etc/subgid
 
 script:
-  - podman build -t $DIST -f Dockerfile-$DIST .
+  - podman build -t $DIST -f Docker/Dockerfile-$DIST .
   - podman run -v $(pwd):/usr/src/cvise $DIST cmake . -DCMAKE_BUILD_TYPE=$BUILD_TYPE
   - podman run -v $(pwd):/usr/src/cvise $DIST make -j2 VERBOSE=1
   - podman run -v $(pwd):/usr/src/cvise $DIST pytest

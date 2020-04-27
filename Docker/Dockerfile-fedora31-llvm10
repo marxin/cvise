@@ -1,0 +1,7 @@
+FROM fedora:31
+
+RUN dnf install -y python3-pip llvm-devel clang-devel
+RUN pip3 install Pebble
+
+WORKDIR /usr/src/cvise
+VOLUME /usr/src/cvise
