@@ -55,6 +55,10 @@ manager:
 
 * [CMake](https://cmake.org/)
 
+* [unifdef](http://dotat.at/prog/unifdef/)
+
+* [topformflat](http://delta.tigris.org/)
+
 ## Building and installing C-Vise
 
 You can configure, build, and install C-Vise with the CMake.

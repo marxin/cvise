@@ -62,6 +62,16 @@ endif()
 #
 find_package(FLEX REQUIRED)
 
+find_program(UNIFDEF unifdef)
+if(NOT UNIFDEF)
+  message(SEND_ERROR "unifdef not available")
+endif()
+
+find_program(TOPFORMFLAT topformflat)
+if(NOT TOPFORMFLAT)
+  message(SEND_ERROR "topformflat not available")
+endif()
+
 ###############################################################################
 
 # Determine the short git hash for the source tree.
