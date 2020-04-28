@@ -44,16 +44,16 @@ message(STATUS "Using ClangConfig.cmake in ${Clang_DIR}")
 find_package(PythonInterp 3.6 REQUIRED)
 
 # Locate pytest
-execute_process(COMMAND python3 -m pytest --version
+execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pytest --version
   OUTPUT_VARIABLE PYTEST_output
   ERROR_VARIABLE  PYTEST_error
   RESULT_VARIABLE PYTEST_result)
 if(NOT ${PYTEST_result} EQUAL 0)
-  message(SEND_ERROR "Pytest package not available: ${PYTEST_error}")
+  message(WARNING "Pytest package not available: ${PYTEST_error}")
 endif()
 
 # Locate Pebble
-execute_process(COMMAND python3 -c "import pebble"
+execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import pebble"
   OUTPUT_VARIABLE PEBBLE_output
   ERROR_VARIABLE  PEBBLE_error
   RESULT_VARIABLE PEBBLE_result)

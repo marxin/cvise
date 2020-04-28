@@ -51,13 +51,15 @@ manager:
 
 * [Pebble](https://pypi.org/project/Pebble/)
 
-* [pytest](https://docs.pytest.org/en/latest/)
-
 * [CMake](https://cmake.org/)
 
 * [unifdef](http://dotat.at/prog/unifdef/)
 
 * [topformflat](http://delta.tigris.org/)
+
+Optional packages:
+
+* [pytest](https://docs.pytest.org/en/latest/)
 
 ## Building and installing C-Vise
 
