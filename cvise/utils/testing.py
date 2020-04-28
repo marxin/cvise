@@ -110,10 +110,8 @@ class TestEnvironment:
             print('Should not happen: ' + str(e))
 
     def run_test(self):
+        os.chdir(self.folder)
         cmd = [self.test_script]
-        if self.test_case is not None:
-            cmd.append(self.test_case_path)
-        cmd.extend(self.additional_files_paths)
         _, _, returncode = ProcessEventNotifier(self.pid_queue).run_process(cmd)
         return returncode
 
@@ -263,7 +261,7 @@ class TestManager:
         if returncode == 0:
             logging.debug("sanity check successful")
         else:
-            raise InsaneTestCaseError(self.test_cases, [])
+            raise InsaneTestCaseError(self.test_cases, self.test_script)
 
     def release_folder(self, future):
         name = self.temporary_folders.pop(future)
