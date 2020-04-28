@@ -67,9 +67,7 @@ before_install:
 
 script:
   - podman build -t $DIST -f Docker/Dockerfile-$DIST .
-  - podman run -v $(pwd):/usr/src/cvise $DIST cmake . -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-  - podman run -v $(pwd):/usr/src/cvise $DIST make -j2 VERBOSE=1
-  - podman run -v $(pwd):/usr/src/cvise $DIST pytest
+  - podman run -v $(pwd):/usr/src/cvise $DIST 'cmake . -DCMAKE_BUILD_TYPE=$BUILD_TYPE && make -j2 VERBOSE=1 && pytest'
 
 ###############################################################################
 
