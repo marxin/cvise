@@ -18,6 +18,10 @@ include(GetGitRevisionDescription)
 
 project(cvise)
 
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
+  message(FATAL_ERROR "CMAKE_SOURCE_DIR should be different from PROJECT_BINARY_DIR")
+endif()
+
 ###############################################################################
 
 # Locate LLVM and check its version.  Do this here because we need the LLVM
