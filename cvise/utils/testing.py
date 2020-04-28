@@ -155,7 +155,7 @@ class TestManager:
         self.root = None
 
         if not self.is_valid_test(self.test_script):
-            raise InvalidInterestingnessTestError(test)
+            raise InvalidInterestingnessTestError(self.test_script)
 
     def create_root(self):
         self.root = tempfile.mkdtemp(prefix=self.TEMP_PREFIX)
