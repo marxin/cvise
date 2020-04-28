@@ -52,6 +52,7 @@ class TestEnvironment:
         self.transform = transform
         self.pid_queue = pid_queue
         self.copy_files(test_case, additional_files)
+        self.pwd = os.getcwd()
 
     def copy_files(self, test_case, additional_files):
         if test_case is not None:
@@ -112,9 +113,12 @@ class TestEnvironment:
             return self
 
     def run_test(self):
-        os.chdir(self.folder)
-        cmd = [self.test_script]
-        _, _, returncode = ProcessEventNotifier(self.pid_queue).run_process(cmd)
+        try:
+            os.chdir(self.folder)
+            cmd = [self.test_script]
+            _, _, returncode = ProcessEventNotifier(self.pid_queue).run_process(cmd)
+        finally:
+            os.chdir(self.pwd)
         return returncode
 
 class TestManager:
