@@ -27,7 +27,7 @@ like this:
 
 ```
 sudo apt-get install \
-  flex build-essential
+  flex build-essential unifdef delta
 ```
 
 On FreeBSD 12.1, the prerequisites can be installed like this:
