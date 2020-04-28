@@ -180,7 +180,7 @@ class TestManager:
 
     def backup_test_cases(self):
         for f in self.test_cases:
-            orig_file = "{}.orig".format(os.path.splitext(f)[0])
+            orig_file = "{}.orig".format(f)
 
             if not os.path.exists(orig_file):
                 # Copy file and preserve attributes
