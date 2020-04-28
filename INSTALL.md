@@ -3,11 +3,12 @@
 ## Using a Package Manager
 
 Before compiling C-Vise yourself, you might want to see if your OS
-comes with a precompiled package for C-Vise.  Ubuntu, Debian, Gentoo,
-and Mac OS X (Homebrew) all do.  For example, on OS X:
+comes with a precompiled package for C-Vise.
+
+### openSUSE Tumbleweed
 
 ```
-$ brew install creduce
+zypper in cvise
 ```
 
 ## From Source
