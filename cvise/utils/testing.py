@@ -108,6 +108,8 @@ class TestEnvironment:
             pass
         except Exception as e:
             print('Should not happen: ' + str(e))
+        finally:
+            return self
 
     def run_test(self):
         os.chdir(self.folder)
