@@ -226,11 +226,6 @@ configure_file(
   COPYONLY
 )
 configure_file(
-  "${cvise_python_SOURCE_DIR}/utils/info.py"
-  "${cvise_python_BINARY_DIR}/utils/info.py"
-  COPYONLY
-)
-configure_file(
   "${cvise_python_SOURCE_DIR}/utils/nestedmatcher.py"
   "${cvise_python_BINARY_DIR}/utils/nestedmatcher.py"
   COPYONLY

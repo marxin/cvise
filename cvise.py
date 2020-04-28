@@ -22,7 +22,6 @@ from cvise import CVise
 from cvise.passes.abstract import AbstractPass
 from cvise.utils.error import CViseError
 from cvise.utils.error import MissingPassGroupsError
-from cvise.utils.info import ExternalPrograms
 from cvise.utils import testing
 from cvise.utils import statistics
 
@@ -47,36 +46,26 @@ def get_share_dir():
 
     raise CViseError("Cannot find cvise module directory!")
 
-def get_libexec_dir():
-    script_path = os.path.dirname(os.path.realpath(__file__))
 
-    # Test all known locations for the cvise directory
-    libexec_dirs = [
-            os.path.join(script_path, "..", "libexec"),
-            #FIXME: The programs are in sub directories
-            os.path.join(script_path)
-            ]
-
-    for d in libexec_dirs:
-        if os.path.isdir(d):
-            return d
-
-    raise CViseError("Cannot find libexec directory!")
+programs = {
+    "clang_delta" : "clang_delta",
+    "clex" : "clex",
+    "topformflat" : None,
+    "unifdef" : None,
+    "clang-format" : None,
+    }
 
 def find_external_programs():
-    programs = ExternalPrograms()
-    libexec_dir = get_libexec_dir()
+    for prog, local_folder in programs.items():
+        path = None
+        if local_folder:
+            path = shutil.which(prog, path=local_folder)
 
-    for prog_key in ExternalPrograms.programs:
-        prog = programs[prog_key]
-
-        path = shutil.which(prog)
-
-        if path is None:
-            path = shutil.which(prog, path=libexec_dir)
+        if not path:
+            path = shutil.which(prog)
 
         if path is not None:
-            programs[prog_key] = path
+            programs[prog] = path
 
     return programs
 
