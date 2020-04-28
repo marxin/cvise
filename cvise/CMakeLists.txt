@@ -50,201 +50,59 @@ configure_file("${cvise_python_SOURCE_DIR}/cvise.py"
 
 # Copy the Python modules into the build tree so that we can run C-Vise there.
 #
-configure_file(
-  "${cvise_python_SOURCE_DIR}/__init__.py"
-  "${cvise_python_BINARY_DIR}/__init__.py"
-  COPYONLY
+function(configure_one_file path)
+  configure_file(
+    "${cvise_python_SOURCE_DIR}/${path}"
+    "${cvise_python_BINARY_DIR}/${path}"
+    COPYONLY
+  )
+endfunction(configure_one_file)
+
+set(SOURCE_FILES
+  "__init__.py"
+  "pass_groups/all.json"
+  "pass_groups/opencl-120.json"
+  "passes/__init__.py"
+  "passes/abstract.py"
+  "passes/balanced.py"
+  "passes/blank.py"
+  "passes/clang.py"
+  "passes/clangbinarysearch.py"
+  "passes/clex.py"
+  "passes/comments.py"
+  "passes/ifs.py"
+  "passes/includeincludes.py"
+  "passes/includes.py"
+  "passes/indent.py"
+  "passes/ints.py"
+  "passes/line_markers.py"
+  "passes/lines.py"
+  "passes/peep.py"
+  "passes/special.py"
+  "passes/ternary.py"
+  "passes/unifdef.py"
+  "tests/__init__.py"
+  "tests/testabstract.py"
+  "tests/test_balanced.py"
+  "tests/test_comments.py"
+  "tests/test_ifs.py"
+  "tests/test_ints.py"
+  "tests/test_line_markers.py"
+  "tests/test_nestedmatcher.py"
+  "tests/test_peep.py"
+  "tests/test_special.py"
+  "tests/test_ternary.py"
+  "utils/__init__.py"
+  "utils/error.py"
+  "utils/nestedmatcher.py"
+  "utils/readkey.py"
+  "utils/statistics.py"
+  "utils/testing.py"
 )
-configure_file(
-  "${cvise_python_SOURCE_DIR}/pass_groups/all.json"
-  "${cvise_python_BINARY_DIR}/pass_groups/all.json"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/pass_groups/opencl-120.json"
-  "${cvise_python_BINARY_DIR}/pass_groups/opencl-120.json"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/__init__.py"
-  "${cvise_python_BINARY_DIR}/passes/__init__.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/abstract.py"
-  "${cvise_python_BINARY_DIR}/passes/abstract.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/balanced.py"
-  "${cvise_python_BINARY_DIR}/passes/balanced.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/blank.py"
-  "${cvise_python_BINARY_DIR}/passes/blank.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/clang.py"
-  "${cvise_python_BINARY_DIR}/passes/clang.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/clangbinarysearch.py"
-  "${cvise_python_BINARY_DIR}/passes/clangbinarysearch.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/clex.py"
-  "${cvise_python_BINARY_DIR}/passes/clex.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/comments.py"
-  "${cvise_python_BINARY_DIR}/passes/comments.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/ifs.py"
-  "${cvise_python_BINARY_DIR}/passes/ifs.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/includeincludes.py"
-  "${cvise_python_BINARY_DIR}/passes/includeincludes.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/includes.py"
-  "${cvise_python_BINARY_DIR}/passes/includes.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/indent.py"
-  "${cvise_python_BINARY_DIR}/passes/indent.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/ints.py"
-  "${cvise_python_BINARY_DIR}/passes/ints.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/line_markers.py"
-  "${cvise_python_BINARY_DIR}/passes/line_markers.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/lines.py"
-  "${cvise_python_BINARY_DIR}/passes/lines.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/peep.py"
-  "${cvise_python_BINARY_DIR}/passes/peep.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/special.py"
-  "${cvise_python_BINARY_DIR}/passes/special.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/ternary.py"
-  "${cvise_python_BINARY_DIR}/passes/ternary.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/passes/unifdef.py"
-  "${cvise_python_BINARY_DIR}/passes/unifdef.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/tests/__init__.py"
-  "${cvise_python_BINARY_DIR}/tests/__init__.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/tests/testabstract.py"
-  "${cvise_python_BINARY_DIR}/tests/testabstract.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/tests/test_balanced.py"
-  "${cvise_python_BINARY_DIR}/tests/test_balanced.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/tests/test_comments.py"
-  "${cvise_python_BINARY_DIR}/tests/test_comments.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/tests/test_ifs.py"
-  "${cvise_python_BINARY_DIR}/tests/test_ifs.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/tests/test_ints.py"
-  "${cvise_python_BINARY_DIR}/tests/test_ints.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/tests/test_line_markers.py"
-  "${cvise_python_BINARY_DIR}/tests/test_line_markers.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/tests/test_nestedmatcher.py"
-  "${cvise_python_BINARY_DIR}/tests/test_nestedmatcher.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/tests/test_peep.py"
-  "${cvise_python_BINARY_DIR}/tests/test_peep.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/tests/test_special.py"
-  "${cvise_python_BINARY_DIR}/tests/test_special.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/tests/test_ternary.py"
-  "${cvise_python_BINARY_DIR}/tests/test_ternary.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/utils/__init__.py"
-  "${cvise_python_BINARY_DIR}/utils/__init__.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/utils/error.py"
-  "${cvise_python_BINARY_DIR}/utils/error.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/utils/nestedmatcher.py"
-  "${cvise_python_BINARY_DIR}/utils/nestedmatcher.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/utils/readkey.py"
-  "${cvise_python_BINARY_DIR}/utils/readkey.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/utils/statistics.py"
-  "${cvise_python_BINARY_DIR}/utils/statistics.py"
-  COPYONLY
-)
-configure_file(
-  "${cvise_python_SOURCE_DIR}/utils/testing.py"
-  "${cvise_python_BINARY_DIR}/utils/testing.py"
-  COPYONLY
-)
+
+foreach(file IN LISTS SOURCE_FILES)
+  configure_one_file(${file})
+endforeach()
 
 ###############################################################################
 
