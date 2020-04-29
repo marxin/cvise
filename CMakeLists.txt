@@ -71,11 +71,6 @@ if(NOT UNIFDEF)
   message(WARNING "unifdef not available")
 endif()
 
-find_program(TOPFORMFLAT topformflat)
-if(NOT TOPFORMFLAT)
-  message(WARNING "topformflat not available")
-endif()
-
 ###############################################################################
 
 # Determine the short git hash for the source tree.
@@ -161,6 +156,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Werror")
 add_subdirectory(clang_delta)
 add_subdirectory(clex)
 add_subdirectory(cvise)
+add_subdirectory(delta)
 
 # Copy top-level cvise script
 configure_file(

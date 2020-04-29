@@ -55,8 +55,6 @@ manager:
 
 * [unifdef](http://dotat.at/prog/unifdef/)
 
-* [topformflat](http://delta.tigris.org/)
-
 Optional packages:
 
 * [pytest](https://docs.pytest.org/en/latest/)

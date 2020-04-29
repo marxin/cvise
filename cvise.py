@@ -50,7 +50,7 @@ def get_share_dir():
 programs = {
     "clang_delta" : "clang_delta",
     "clex" : "clex",
-    "topformflat" : None,
+    "topformflat" : "delta" ,
     "unifdef" : None,
     "clang-format" : None,
     }
