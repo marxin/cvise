@@ -49,8 +49,11 @@ add_executable(strlex
   driver.c
   )
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+    OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 set_source_files_properties(clex.c PROPERTIES COMPILE_FLAGS -Wno-unused-function)
 set_source_files_properties(strlex.c PROPERTIES COMPILE_FLAGS -Wno-unused-function)
+endif()
 
 ###############################################################################
 
