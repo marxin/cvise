@@ -336,7 +336,7 @@ class TestManager:
                             quit_loop = True
                             new_futures.add(future)
                 else:
-                    self.pass_statistic.update(self.current_pass, success=False)
+                    self.pass_statistic.add_failure(self.current_pass)
                     if test_env.result == PassResult.OK:
                         assert test_env.exitcode
                         if (self.also_interesting is not None and
@@ -403,6 +403,7 @@ class TestManager:
                 future = pool.schedule(test_env.run, timeout=self.timeout)
                 self.temporary_folders[future] = folder
                 self.futures.append(future)
+                self.pass_statistic.add_executed(self.current_pass)
                 order += 1
                 state = self.current_pass.advance(self.current_test_case, self.state)
                 # we are at the end of enumeration
@@ -427,6 +428,7 @@ class TestManager:
         if self.total_file_size == 0:
             raise ZeroSizeError(self.test_cases)
 
+        self.pass_statistic.start(self.current_pass)
         if not self.skip_key_off:
             logger = readkey.KeyLogger()
 
@@ -482,6 +484,7 @@ class TestManager:
                     self.cache[pass_key][test_case_before_pass] = tmp_file.read()
 
         self.remove_root()
+        self.pass_statistic.stop(self.current_pass)
 
     def process_result(self, test_env):
         logging.debug("Process result")
@@ -493,7 +496,7 @@ class TestManager:
         shutil.copy(test_env.test_case_path, self.current_test_case)
 
         self.state = self.current_pass.advance_on_success(test_env.test_case_path, test_env.state)
-        self.pass_statistic.update(self.current_pass, success=True)
+        self.pass_statistic.add_success(self.current_pass)
 
         pct = 100 - (self.total_file_size * 100.0 / self.orig_total_file_size)
         logging.info("({}%, {} bytes)".format(round(pct, 1), self.total_file_size))

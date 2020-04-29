@@ -219,25 +219,30 @@ if __name__ == "__main__":
     reducer.tidy = args.tidy
 
     # Track runtime
-    if args.timing:
-        time_start = time.monotonic()
+    time_start = time.monotonic()
 
     try:
         reducer.reduce(pass_group, skip_initial=args.skip_initial_passes)
     except CViseError as err:
+        time_stop = time.monotonic()
         print(err)
     else:
-        print("pass statistics:")
+        time_stop = time.monotonic()
+        print("===< PASS statistics >===")
+        print("  %-54s %8s %8s %8s %8s %15s" % ("pass name", "time (s)", "time (%)", "worked",
+            "failed", "total executed"))
 
-        for item in pass_statistic.sorted_results:
-            print("method {pass} worked {worked} times and failed {failed} times".format(**item))
+        for pass_name, pass_data in pass_statistic.sorted_results:
+            print("  %-54s %8.2f %8.2f %8d %8d %15d" % (pass_name, pass_data.total_seconds,
+                100.0 * pass_data.total_seconds / (time_stop - time_start),
+                pass_data.worked, pass_data.failed, pass_data.totally_executed))
+        print()
 
         for test_case in test_manager.sorted_test_cases:
             with open(test_case) as test_case_file:
                 print(test_case_file.read())
 
     if args.timing:
-        time_stop = time.monotonic()
         print("Runtime: {} seconds".format(round((time_stop - time_start))))
 
     logging.shutdown()
