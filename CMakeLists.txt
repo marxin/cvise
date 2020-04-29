@@ -155,7 +155,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Werror")
 
 # Enable tests
 enable_testing()
-add_test(NAME all COMMAND pytest)
+add_test(NAME all COMMAND ${PYTHON_EXECUTABLE} -m pytest)
 
 ###############################################################################
 
