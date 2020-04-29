@@ -153,6 +153,12 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Werror")
 
 ###############################################################################
 
+# Enable tests
+enable_testing()
+add_test(NAME all COMMAND pytest)
+
+###############################################################################
+
 add_subdirectory(clang_delta)
 add_subdirectory(clex)
 add_subdirectory(cvise)

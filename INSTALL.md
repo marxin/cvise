@@ -102,3 +102,11 @@ Note that assertions are enabled by default. To disable assertions:
 ```
 cmake ... -DENABLE_TRANS_ASSERT=OFF
 ```
+
+## Testing
+
+You can test the project with:
+
+```
+make test
+```
