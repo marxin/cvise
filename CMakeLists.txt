@@ -159,6 +159,9 @@ add_test(NAME all COMMAND pytest)
 
 ###############################################################################
 
+# Needs to be sourced after we have a compiler tested
+include(GNUInstallDirs)
+
 add_subdirectory(clang_delta)
 add_subdirectory(clex)
 add_subdirectory(cvise)
@@ -168,11 +171,11 @@ add_subdirectory(delta)
 configure_file(
   "${PROJECT_SOURCE_DIR}/cvise.py"
   "${PROJECT_BINARY_DIR}/cvise.py"
-  COPYONLY
+  @ONLY
 )
 
 install(PROGRAMS "${PROJECT_BINARY_DIR}/cvise.py"
-  DESTINATION "bin"
+  DESTINATION "${CMAKE_INSTALL_BINDIR}"
   RENAME "cvise"
 )
 

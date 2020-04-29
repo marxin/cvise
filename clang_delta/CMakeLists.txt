@@ -512,7 +512,7 @@ set(CMAKE_CXX_FLAGS_ASAN
     FORCE)
 
 install(TARGETS clang_delta
-  RUNTIME DESTINATION
+  DESTINATION "${CMAKE_INSTALL_BINDIR}"
 )
 # If binary is read-only, then installing may fail with an error:
 # CMake Error at cmake_install.cmake:45 (FILE):
