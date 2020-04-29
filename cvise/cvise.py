@@ -24,7 +24,7 @@ class CVise:
 
         VERSION = "@cvise_VERSION@"
         GIT_VERSION = "@GIT_HASH@"
-        CLANG_FORMAT = '@CLANG_FORMAT@'
+        CLANG_FORMAT = '@CLANG_FORMAT_PATH@'
 
     pass_name_mapping = {
         "balanced": passes.BalancedPass,

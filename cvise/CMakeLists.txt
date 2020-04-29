@@ -22,20 +22,24 @@ project(cvise_python)
 # these are not found at configure time.  Let the user install the dependencies
 # later.
 #
-find_program(CLANG_FORMAT
-  "clang-format${CMAKE_EXECUTABLE_SUFFIX}"
-  PATHS "${LLVM_TOOLS_BINARY_DIR}"
+if(CLANG_FORMAT)
+  find_program(CLANG_FORMAT_PATH
+    "${CLANG_FORMAT}"
+    PATHS "${LLVM_TOOLS_BINARY_DIR}"
   )
-if(NOT CLANG_FORMAT)
-  message(STATUS "`clang-format${CMAKE_EXECUTABLE_SUFFIX}' was not found")
-  set(missing_required_runtime_prereq "yes")
+else()
+  find_program(CLANG_FORMAT_PATH
+    "clang-format${CMAKE_EXECUTABLE_SUFFIX}"
+    PATHS "${LLVM_TOOLS_BINARY_DIR}"
+    )
 endif()
 
-
-if(NOT CLANG_FORMAT)
+if(NOT CLANG_FORMAT_PATH)
   message(STATUS "`clang-format${CMAKE_EXECUTABLE_SUFFIX}' was not found")
   message("You must install `clang-format' before running C-Vise.")
-  set(CLANG_FORMAT "clang-format")
+  set(CLANG_FORMAT_PATH "clang-format")
+else()
+  message(STATUS "Using clang-format in ${CLANG_FORMAT_PATH}")
 endif()
 
 ###############################################################################

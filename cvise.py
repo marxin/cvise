@@ -52,7 +52,6 @@ programs = {
     "clex" : "clex",
     "topformflat" : "delta" ,
     "unifdef" : None,
-    "clang-format" : None,
     }
 
 def find_external_programs():
@@ -68,6 +67,9 @@ def find_external_programs():
 
         if path is not None:
             programs[prog] = path
+
+    # Special case for clang-format
+    programs["clang-format"] = CVise.Info.CLANG_FORMAT
 
     return programs
 
