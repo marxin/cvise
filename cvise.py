@@ -56,9 +56,11 @@ programs = {
     }
 
 def find_external_programs():
+    script_path = os.path.dirname(os.path.realpath(__file__))
     for prog, local_folder in programs.items():
         path = None
         if local_folder:
+            local_folder = os.path.join(script_path, local_folder)
             path = shutil.which(prog, path=local_folder)
 
         if not path:
