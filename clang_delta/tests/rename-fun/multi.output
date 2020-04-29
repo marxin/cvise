@@ -1,11 +1,18 @@
-void foo();
+void fn1();
 
-int bar()
+void fn2()
 {
+}
+
+void fn3();
+
+int fn4()
+{
+  fn2 ();
   return 2;
 }
 
-const char *baz {}
+const char *fn5()
 {
   return "baz";
 }

@@ -12,7 +12,7 @@ int bar()
   return 2;
 }
 
-const char *baz {}
+const char *baz()
 {
   return "baz";
 }

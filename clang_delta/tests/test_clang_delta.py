@@ -287,14 +287,12 @@ class TestClangDelta(unittest.TestCase):
     def test_rename_fun_templ(self):
         self.check_clang_delta('rename-fun/func_templ.cc', '--transformation=rename-fun --counter=1')
 
-    @unittest.skip(reason='Missing rename for last function')
     def test_rename_fun_multi(self):
         self.check_clang_delta('rename-fun/multi.c', '--transformation=rename-fun --counter=1')
 
     def test_rename_fun_overloaded(self):
         self.check_clang_delta('rename-fun/overloaded.cc', '--transformation=rename-fun --counter=1')
 
-    @unittest.skip(reason='Missing rename for last function')
     def test_rename_fun_test1(self):
         self.check_clang_delta('rename-fun/test1.c', '--transformation=rename-fun --counter=1')
 
