@@ -15,8 +15,8 @@ import importlib.util
 # If the cvise modules cannot be found
 # add the known install location to the path
 if importlib.util.find_spec("cvise") is None:
-    script_path = os.path.dirname(os.path.realpath(__file__))
-    sys.path.append(os.path.join(script_path, "..", "share"))
+    sharedir = "@CMAKE_INSTALL_FULL_DATADIR@/@cvise_PACKAGE@"
+    sys.path.append(sharedir)
 
 from cvise import CVise
 from cvise.passes.abstract import AbstractPass
@@ -36,7 +36,7 @@ def get_share_dir():
 
     # Test all known locations for the cvise directory
     share_dirs = [
-            os.path.join(script_path, "..", "share", "cvise"),
+            "@CMAKE_INSTALL_FULL_DATADIR@/@cvise_PACKAGE@",
             os.path.join(script_path, "cvise")
             ]
 

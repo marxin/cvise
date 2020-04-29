@@ -111,7 +111,7 @@ endforeach()
 ###############################################################################
 
 install(DIRECTORY "${cvise_python_BINARY_DIR}/"
-  DESTINATION "${CMAKE_INSTALL_PREFIX}/share/${cvise_PACKAGE}"
+  DESTINATION "${CMAKE_INSTALL_DATADIR}/${cvise_PACKAGE}"
   FILES_MATCHING
   PATTERN "*.py"
   PATTERN "*.json"
