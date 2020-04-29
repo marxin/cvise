@@ -31,8 +31,9 @@ class DeltaTimeFormatter(logging.Formatter):
         record.delta = duration.strftime("%H:%M:%S")
         return super().format(record)
 
+script_path = os.path.dirname(os.path.realpath(__file__))
+
 def get_share_dir():
-    script_path = os.path.dirname(os.path.realpath(__file__))
 
     # Test all known locations for the cvise directory
     share_dirs = [
@@ -46,16 +47,14 @@ def get_share_dir():
 
     raise CViseError("Cannot find cvise module directory!")
 
-
-programs = {
-    "clang_delta" : "clang_delta",
-    "clex" : "clex",
-    "topformflat" : "delta" ,
-    "unifdef" : None,
-    }
-
 def find_external_programs():
-    script_path = os.path.dirname(os.path.realpath(__file__))
+    programs = {
+        "clang_delta" : "clang_delta",
+        "clex" : "clex",
+        "topformflat" : "delta" ,
+        "unifdef" : None,
+        }
+
     for prog, local_folder in programs.items():
         path = None
         if local_folder:
