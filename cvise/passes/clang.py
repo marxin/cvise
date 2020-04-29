@@ -24,7 +24,7 @@ class ClangPass(AbstractPass):
         with tempfile.NamedTemporaryFile(mode="w", delete=False, dir=tmp) as tmp_file:
             args = [self.external_programs["clang_delta"], "--transformation={}".format(self.arg), "--counter={}".format(state)]
             if self.clang_delta_std:
-                args.apend('--std={}'.format(self.clang_delta_std))
+                args.append('--std={}'.format(self.clang_delta_std))
             cmd = args + [test_case]
 
             logging.debug(" ".join(cmd))
