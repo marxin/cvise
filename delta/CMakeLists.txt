@@ -34,7 +34,7 @@ set_source_files_properties(topformflat.c PROPERTIES COMPILE_FLAGS "-Wno-unused-
 ###############################################################################
 
 install(TARGETS topformflat
-  RUNTIME DESTINATION
+  DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}/${cvise_PACKAGE}/"
   )
 
 ###############################################################################

@@ -15,7 +15,7 @@ import importlib.util
 # If the cvise modules cannot be found
 # add the known install location to the path
 if importlib.util.find_spec("cvise") is None:
-    sharedir = "@CMAKE_INSTALL_FULL_DATADIR@/@cvise_PACKAGE@"
+    sharedir = "@CMAKE_INSTALL_FULL_DATADIR@"
     sys.path.append(sharedir)
 
 from cvise import CVise
@@ -62,6 +62,9 @@ def find_external_programs():
             local_folder = os.path.join(script_path, local_folder)
             path = shutil.which(prog, path=local_folder)
 
+            if not path:
+                path = shutil.which(prog, path="@CMAKE_INSTALL_FULL_LIBEXECDIR@/@cvise_PACKAGE@/")
+
         if not path:
             path = shutil.which(prog)
 
@@ -69,7 +72,7 @@ def find_external_programs():
             programs[prog] = path
 
     # Special case for clang-format
-    programs["clang-format"] = CVise.Info.CLANG_FORMAT
+    programs["clang-format"] = "@CLANG_FORMAT_PATH@"
 
     return programs
 

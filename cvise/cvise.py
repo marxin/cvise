@@ -13,9 +13,6 @@ from .utils.error import PrerequisitesNotFoundError
 
 class CVise:
     class Info:
-        BINDIR = '@bindir@'
-        LIBEXECDIR = '@libexecdir@'
-
         PACKAGE_BUGREPORT = "@cvise_PACKAGE_BUGREPORT@"
         PACKAGE_NAME = "@cvise_PACKAGE_NAME@"
         PACKAGE_STRING = "@cvise_PACKAGE_STRING@"
@@ -24,7 +21,6 @@ class CVise:
 
         VERSION = "@cvise_VERSION@"
         GIT_VERSION = "@GIT_HASH@"
-        CLANG_FORMAT = '@CLANG_FORMAT_PATH@'
 
     pass_name_mapping = {
         "balanced": passes.BalancedPass,

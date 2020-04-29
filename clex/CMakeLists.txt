@@ -55,7 +55,7 @@ set_source_files_properties(strlex.c PROPERTIES COMPILE_FLAGS -Wno-unused-functi
 ###############################################################################
 
 install(TARGETS clex strlex
-  DESTINATION "${CMAKE_INSTALL_BINDIR}"
+  DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}/${cvise_PACKAGE}/"
   )
 
 ###############################################################################
