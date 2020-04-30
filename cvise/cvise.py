@@ -134,27 +134,28 @@ class CVise:
     @staticmethod
     def _check_prerequisites(pass_group):
         passes = set()
-        missing = set()
 
         for category in pass_group:
             for p in pass_group[category]:
                 if not p.check_prerequisites():
                     logging.error("Prereqs not found for pass {}".format(p))
-                    missing.add(str(p))
-
-        if missing:
-            raise PrerequisitesNotFoundError(missing)
 
     def _run_additional_passes(self, passes):
         for p in passes:
-            self.test_manager.run_pass(p)
+            if not p.check_prerequisites():
+                logging.error("Skipping {}".format(p))
+            else:
+                self.test_manager.run_pass(p)
 
     def _run_main_passes(self, passes):
         while True:
             total_file_size = self.test_manager.total_file_size
 
             for p in passes:
-                self.test_manager.run_pass(p)
+                if not p.check_prerequisites():
+                    logging.error("Skipping pass {}".format(p))
+                else:
+                    self.test_manager.run_pass(p)
 
             logging.info("Termination check: size was {}; now {}".format(total_file_size, self.test_manager.total_file_size))
 
