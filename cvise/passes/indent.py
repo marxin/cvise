@@ -6,7 +6,7 @@ from cvise.utils.error import UnknownArgumentError
 
 class IndentPass(AbstractPass):
     def check_prerequisites(self):
-        return shutil.which(self.external_programs["clang-format"]) is not None
+        return self.check_external_program("clang-format")
 
     def new(self, test_case):
         return 0

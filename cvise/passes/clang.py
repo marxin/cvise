@@ -8,7 +8,7 @@ from cvise.passes.abstract import AbstractPass, PassResult
 
 class ClangPass(AbstractPass):
     def check_prerequisites(self):
-        return shutil.which(self.external_programs["clang_delta"]) is not None
+        return self.check_external_program("clang_delta")
 
     def new(self, test_case):
         return 1

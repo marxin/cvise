@@ -11,7 +11,7 @@ class IfPass(AbstractPass):
     line_regex = re.compile('^\\s*#\\s*if')
 
     def check_prerequisites(self):
-        return shutil.which(self.external_programs["unifdef"]) is not None
+        return self.check_external_program("unifdef")
 
     @staticmethod
     def __macro_continues(line):

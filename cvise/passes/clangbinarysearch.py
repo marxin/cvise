@@ -10,7 +10,7 @@ from cvise.passes.abstract import *
 
 class ClangBinarySearchPass(AbstractPass):
     def check_prerequisites(self):
-        return shutil.which(self.external_programs["clang_delta"]) is not None
+        return self.check_external_program("clang_delta")
 
     def new(self, test_case):
         return BinaryState.create(self.__count_instances(test_case))

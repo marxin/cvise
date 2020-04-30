@@ -8,7 +8,7 @@ from cvise.passes.abstract import AbstractPass, PassResult
 
 class UnIfDefPass(AbstractPass):
     def check_prerequisites(self):
-        return shutil.which(self.external_programs["unifdef"]) is not None
+        return self.check_external_program("unifdef")
 
     def new(self, test_case):
         return 0

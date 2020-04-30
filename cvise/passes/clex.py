@@ -7,7 +7,7 @@ from cvise.passes.abstract import AbstractPass, PassResult
 
 class ClexPass(AbstractPass):
     def check_prerequisites(self):
-        return shutil.which(self.external_programs["clex"]) is not None
+        return self.check_external_program("clex")
 
     def new(self, test_case):
         return 0

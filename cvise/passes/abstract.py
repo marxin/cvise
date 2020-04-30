@@ -2,6 +2,7 @@ import re
 import enum
 import logging
 import copy
+import shutil
 import subprocess
 
 from enum import Enum, auto
@@ -74,6 +75,12 @@ class AbstractPass:
             return "{}::{}".format(type(self).__name__, self.arg)
         else:
             return "{}".format(type(self).__name__)
+
+    def check_external_program(self, name):
+        program = self.external_programs[name]
+        if not program:
+            return False
+        return shutil.which(program) is not None
 
     def check_prerequisites(self):
         raise NotImplementedError("Class {} has not implemented 'check_prerequisites'!".format(type(self).__name__))

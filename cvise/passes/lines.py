@@ -8,7 +8,7 @@ from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
 class LinesPass(AbstractPass):
     def check_prerequisites(self):
-        return shutil.which(self.external_programs["topformflat"]) is not None
+        return self.check_external_program("topformflat")
 
     def __format(self, test_case):
         tmp = os.path.dirname(test_case)
