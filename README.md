@@ -27,7 +27,7 @@ See [INSTALL.md](INSTALL.md).
 ## Usage example
 
 The C-Vise can be used for a reduction of a compiler crash. In this case,
-let's consider an existing [PR9453](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=94534):
+let's consider an existing [PR94534](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=94534):
 
 Original test-case (`pr94534.C` file):
 ```c++
@@ -91,23 +91,10 @@ void c() { a<int> d; }
 
 ## Notes
 
-1. When set to use more than one core, C-Vise can cause space in
-`/tmp` to be leaked. This happens because sometimes C-Vise will kill
-a compiler invocation when a result that is computed in parallel makes
-it clear that that compiler invocation is no longer useful. If the
-compiler leaves files in `/tmp` when it is killed, C-Vise has no way
-to discover and remove the files. You will need to do this manually
-from time to time if temporary file space is limited. The leakage is
-typically pretty slow. If you need to avoid this problem altogether,
-you can run C-Vise on a single core (using `--n 1`) in which case
-C-Vise will never kill a running compiler instance. Alternatively, a
-command line option such as `-pipe` (supported by GCC) may suppress
-the creation of temporary files altogether. Another possibility is to
-set the `TMPDIR` environment variable to something like
-`/tmp/cvise-stuff` before invoking C-Vise -- assuming that the
-tools you are invoking respect this variable.
+1. C-Vise creates temporary directories in `$TMPDIR` and so usage
+of a `tmpfs` directory is recommended.
 
-2. Each invocation of the interestingness test is performed in a fresh
+1. Each invocation of the interestingness test is performed in a fresh
 temporary directory containing a copy of the file that is being
 reduced. If your interestingness test requires access to other files,
 you should either copy them into the current working directory or else
