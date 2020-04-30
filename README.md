@@ -48,7 +48,7 @@ int main()
 ```
 
 The program crashes in GCC, but is accepted with Clang:
-```
+```console
 $ g++ pr94534.C -c
 pr94534.C: In instantiation of ‘class Demo<int>’:
 pr94534.C:13:13:   required from here
@@ -75,7 +75,7 @@ g++ pr94534.C -c 2>&1 | grep 'instantiate_class_template_1' && clang++ -c pr9453
 ```
 
 The reduction can be then run with:
-```shell
+```console
 $ cvise ./reduce-ice.sh pr94534.C
 INFO ===< 30356 >===
 INFO running 16 interestingness tests in parallel
