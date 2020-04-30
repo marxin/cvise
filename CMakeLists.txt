@@ -119,9 +119,6 @@ set(cvise_PACKAGE_URL         "https://github.com/marxin/cvise/")
 set(cvise_PACKAGE_VERSION     "1.0.0")
 set(cvise_VERSION             "1.0.0")
 
-# FIXME: Should be determined automatically.
-set(YYTEXT_POINTER 1)
-
 configure_file("cmake_config.h.in" "${PROJECT_BINARY_DIR}/config.h")
 add_definitions("-DHAVE_CONFIG_H")
 
