@@ -12,11 +12,13 @@ import datetime
 
 import importlib.util
 
+destdir = os.getenv("DESTDIR", "")
+
 # If the cvise modules cannot be found
 # add the known install location to the path
 if importlib.util.find_spec("cvise") is None:
-    sharedir = "@CMAKE_INSTALL_FULL_DATADIR@"
-    sys.path.append(sharedir)
+    sys.path.append("@CMAKE_INSTALL_FULL_DATADIR@")
+    sys.path.append(destdir + "@CMAKE_INSTALL_FULL_DATADIR@")
 
 from cvise import CVise
 from cvise.passes.abstract import AbstractPass
@@ -37,7 +39,8 @@ def get_share_dir():
 
     # Test all known locations for the cvise directory
     share_dirs = [
-            "@CMAKE_INSTALL_FULL_DATADIR@/@cvise_PACKAGE@",
+            os.path.join("@CMAKE_INSTALL_FULL_DATADIR@", "@cvise_PACKAGE@"),
+            destdir + os.path.join("@CMAKE_INSTALL_FULL_DATADIR@", "@cvise_PACKAGE@"),
             os.path.join(script_path, "cvise")
             ]
 
@@ -62,7 +65,11 @@ def find_external_programs():
             path = shutil.which(prog, path=local_folder)
 
             if not path:
-                path = shutil.which(prog, path="@CMAKE_INSTALL_FULL_LIBEXECDIR@/@cvise_PACKAGE@/")
+                search = os.path.join("@CMAKE_INSTALL_FULL_LIBEXECDIR@", "@cvise_PACKAGE@")
+                path = shutil.which(prog, path=search)
+            if not path:
+                search = destdir + os.path.join("@CMAKE_INSTALL_FULL_LIBEXECDIR@", "@cvise_PACKAGE@")
+                path = shutil.which(prog, path=search)
 
         if not path:
             path = shutil.which(prog)
