@@ -58,7 +58,7 @@ execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import pebble"
   ERROR_VARIABLE  PEBBLE_error
   RESULT_VARIABLE PEBBLE_result)
 if(NOT ${PEBBLE_result} EQUAL 0)
-  message(SEND_ERROR "Pebble package not available: ${PEBBLE_error}")
+  message(WARNING "Pebble package not available: ${PEBBLE_error}")
 endif()
 
 # Locate flex.  Do this here because we need the package definitions in the
