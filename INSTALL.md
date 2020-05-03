@@ -7,17 +7,17 @@ comes with a precompiled package for C-Vise.
 
 ### openSUSE Tumbleweed
 
-## Using Docker (or Podman)
+```shell
+zypper in cvise
+```
+
+### Using Docker (or Podman)
 
 ```shell
 $ podman run -it opensuse/tumbleweed bash
 714d543633e1 $ zypper -n install cvise
 714d543633e1 $ cvise --version
 cvise 1.1.0 (unknown)
-```
-
-```
-zypper in cvise
 ```
 
 ## From Source
