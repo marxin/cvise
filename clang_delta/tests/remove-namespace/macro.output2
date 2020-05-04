@@ -4,9 +4,9 @@ BEGIN_NAMESPACE
 int foo();
 END_NAMESPACE
 #define BEGIN_NAMESPACE2 namespace ns2 {
-BEGIN_NAMESPACE2
+
 int foo2();
-}
+
 #define END_NAMESPACE3 }
 namespace ns3 {
 int foo3();

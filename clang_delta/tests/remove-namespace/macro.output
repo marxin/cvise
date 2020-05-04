@@ -1,8 +1,8 @@
 #define BEGIN_NAMESPACE namespace ns {
 #define END_NAMESPACE }
-BEGIN_NAMESPACE
+
 int foo();
-END_NAMESPACE
+
 #define BEGIN_NAMESPACE2 namespace ns2 {
 BEGIN_NAMESPACE2
 int foo2();

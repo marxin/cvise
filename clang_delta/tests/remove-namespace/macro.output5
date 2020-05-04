@@ -13,6 +13,6 @@ int foo3();
 END_NAMESPACE3
 #define BEGIN_NAMESPACE4 namespace ns4 { namespace ns5 {
 #define END_NAMESPACE4  } }
-BEGIN_NAMESPACE4
+
 void foo4();
-END_NAMESPACE4
+
