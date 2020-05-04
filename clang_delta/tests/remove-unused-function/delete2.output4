@@ -14,5 +14,5 @@ struct S3 {
 
 template <typename T>
 struct S4 {
-  S4 foo();
+  
 };

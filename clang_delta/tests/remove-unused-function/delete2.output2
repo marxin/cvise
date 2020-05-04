@@ -3,8 +3,7 @@ struct S1 {
 };
 
 struct S2 {
-  template <typename T>
-  S2 foo() = delete;
+  ;
 };
 
 template <typename T>

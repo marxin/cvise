@@ -4,5 +4,5 @@ struct S1 {
 
 template <typename T>
 struct S2 {
-  S2() = default;
+  
 };

@@ -251,6 +251,28 @@ class TestClangDelta(unittest.TestCase):
     def test_remove_unused_function_class(self):
         self.check_clang_delta('remove-unused-function/class.cc', '--transformation=remove-unused-function --counter=1')
 
+    def test_remove_unused_function_const(self):
+        self.check_clang_delta('remove-unused-function/const.cc', '--transformation=remove-unused-function --counter=1')
+        self.check_clang_delta('remove-unused-function/const.cc', '--transformation=remove-unused-function --counter=2',
+                'remove-unused-function/const.output2')
+
+    def test_remove_unused_function_default(self):
+        self.check_clang_delta('remove-unused-function/default.cc', '--transformation=remove-unused-function --counter=1')
+        self.check_clang_delta('remove-unused-function/default.cc', '--transformation=remove-unused-function --counter=2',
+                'remove-unused-function/default.output2')
+
+    def test_remove_unused_function_delete(self):
+        self.check_clang_delta('remove-unused-function/delete.cc', '--transformation=remove-unused-function --counter=1')
+
+    def test_remove_unused_function_delete2(self):
+        self.check_clang_delta('remove-unused-function/delete2.cc', '--transformation=remove-unused-function --counter=1')
+        self.check_clang_delta('remove-unused-function/delete2.cc', '--transformation=remove-unused-function --counter=2',
+                'remove-unused-function/delete2.output2')
+        self.check_clang_delta('remove-unused-function/delete2.cc', '--transformation=remove-unused-function --counter=3',
+                'remove-unused-function/delete2.output3')
+        self.check_clang_delta('remove-unused-function/delete2.cc', '--transformation=remove-unused-function --counter=4',
+                'remove-unused-function/delete2.output4')
+
     def test_remove_unused_function_inline_ns(self):
         self.check_query_instances('remove-unused-function/inline_ns.cc', '--query-instances=remove-unused-function',
                 'Available transformation instances: 0')

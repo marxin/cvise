@@ -1,5 +1,5 @@
 struct S1 {
-  S1() = default;
+  
 };
 
 template <typename T>
