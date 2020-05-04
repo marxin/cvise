@@ -1,10 +1,10 @@
 namespace NS1 { }
 namespace NS2 {
-  namespace NS1 {
+  
     void foo() {}
-  } // NS1
+   // NS1
   namespace NS3 {
-    using namespace NS1;
+    
     void bar() {foo();}
   } // NS3
 } // NS2

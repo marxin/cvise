@@ -1,10 +1,10 @@
 namespace NS1 { }
-namespace NS2 {
-  namespace NS1 {
+
+  namespace Trans_NS_NS2_NS1 {
     void foo() {}
   }
   namespace NS3 {
-    using NS1::foo;
+    using Trans_NS_NS2_NS1::foo;
     void bar() { foo(); }
   }
-}
+

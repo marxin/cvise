@@ -1,15 +1,15 @@
-namespace NS1 {
+
 template <int> struct foo { operator long double() const; };
 namespace NS2 {
 typedef struct {
   int f;
 } S;
-S bar(int);
+NS2::S bar(int);
 }
-using namespace NS2;
+
 template <> foo<32>::operator long double() const {
   long double t;
-  *reinterpret_cast<S *>(&t) = bar(0);
+  *reinterpret_cast<NS2::S *>(&t) = NS2::bar(0);
   return t;
 }
-}
+

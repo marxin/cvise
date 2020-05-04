@@ -1,5 +1,7 @@
 namespace NS1 {
-  void foo();
-}
+  
+    void foo();
+   // NS2
+} // NS1
 namespace cl = NS1;
 void bar() {cl::foo(); }

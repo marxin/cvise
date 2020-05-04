@@ -8,12 +8,12 @@ namespace NS2 {
   int func();
 }
 }
-namespace NS3 {
+
   struct S {};
   S s1, s2;
-  using namespace NS1::NS2;
+  
   int bar() {
-    func();
+    NS1::NS2::func();
     return 0;
   }
-}
+

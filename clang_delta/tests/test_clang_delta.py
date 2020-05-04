@@ -5,12 +5,15 @@ import subprocess
 class TestClangDelta(unittest.TestCase):
 
     @classmethod
-    def check_clang_delta(cls, testcase, arguments):
+    def check_clang_delta(cls, testcase, arguments, output_file=None):
         current = os.path.dirname(__file__)
         binary = os.path.join(current, '../clang_delta')
         cmd = '%s %s %s' % (binary, os.path.join(current, testcase), arguments)
         output = subprocess.check_output(cmd, shell=True, encoding='utf8')
-        expected = open(os.path.join(current, os.path.splitext(testcase)[0] + '.output')).read()
+        if output_file:
+            expected = open(os.path.join(current, output_file)).read()
+        else:
+            expected = open(os.path.join(current, os.path.splitext(testcase)[0] + '.output')).read()
         assert output == expected
 
     @classmethod
@@ -117,6 +120,89 @@ class TestClangDelta(unittest.TestCase):
 
     def test_remove_enum_member_value_builtin_macro(self):
         self.check_clang_delta('remove-enum-member-value/builtin_macro.c', '--transformation=remove-enum-member-value --counter=1')
+
+    def test_remove_namespace(self):
+        self.check_clang_delta('remove-namespace/namespace.cpp', '--transformation=remove-namespace --counter=1')
+        self.check_clang_delta('remove-namespace/namespace.cpp', '--transformation=remove-namespace --counter=2',
+                'remove-namespace/namespace.output2')
+        self.check_clang_delta('remove-namespace/namespace.cpp', '--transformation=remove-namespace --counter=3',
+                'remove-namespace/namespace.output3')
+
+    def test_remove_namespace2(self):
+        self.check_clang_delta('remove-namespace/namespace2.cpp', '--transformation=remove-namespace --counter=1')
+        self.check_clang_delta('remove-namespace/namespace2.cpp', '--transformation=remove-namespace --counter=2',
+                'remove-namespace/namespace2.output2')
+
+    def test_remove_namespace3(self):
+        self.check_clang_delta('remove-namespace/namespace3.cpp', '--transformation=remove-namespace --counter=1')
+        self.check_clang_delta('remove-namespace/namespace3.cpp', '--transformation=remove-namespace --counter=2',
+                'remove-namespace/namespace3.output2')
+        self.check_clang_delta('remove-namespace/namespace3.cpp', '--transformation=remove-namespace --counter=3',
+                'remove-namespace/namespace3.output3')
+
+    def test_remove_namespace4(self):
+        self.check_clang_delta('remove-namespace/namespace4.cpp', '--transformation=remove-namespace --counter=1')
+
+    def test_remove_namespace5(self):
+        self.check_clang_delta('remove-namespace/namespace5.cpp', '--transformation=remove-namespace --counter=1')
+        self.check_clang_delta('remove-namespace/namespace5.cpp', '--transformation=remove-namespace --counter=2',
+                'remove-namespace/namespace5.output2')
+        self.check_clang_delta('remove-namespace/namespace5.cpp', '--transformation=remove-namespace --counter=3',
+                'remove-namespace/namespace5.output3')
+        self.check_clang_delta('remove-namespace/namespace5.cpp', '--transformation=remove-namespace --counter=4',
+                'remove-namespace/namespace5.output4')
+
+    def test_remove_namespace6(self):
+        self.check_clang_delta('remove-namespace/namespace6.cpp', '--transformation=remove-namespace --counter=1')
+        self.check_clang_delta('remove-namespace/namespace6.cpp', '--transformation=remove-namespace --counter=2',
+                'remove-namespace/namespace6.output2')
+
+    def test_remove_namespace7(self):
+        self.check_clang_delta('remove-namespace/namespace7.cpp', '--transformation=remove-namespace --counter=1')
+        self.check_clang_delta('remove-namespace/namespace7.cpp', '--transformation=remove-namespace --counter=2',
+                'remove-namespace/namespace7.output2')
+        self.check_clang_delta('remove-namespace/namespace7.cpp', '--transformation=remove-namespace --counter=3',
+                'remove-namespace/namespace7.output3')
+
+    def test_remove_namespace8(self):
+        self.check_clang_delta('remove-namespace/namespace8.cpp', '--transformation=remove-namespace --counter=1')
+        self.check_clang_delta('remove-namespace/namespace8.cpp', '--transformation=remove-namespace --counter=2',
+                'remove-namespace/namespace8.output2')
+
+    def test_remove_namespace9(self):
+        self.check_clang_delta('remove-namespace/namespace9.cpp', '--transformation=remove-namespace --counter=1')
+
+    def test_remove_namespace10(self):
+        self.check_clang_delta('remove-namespace/namespace10.cpp', '--transformation=remove-namespace --counter=1')
+        self.check_clang_delta('remove-namespace/namespace10.cpp', '--transformation=remove-namespace --counter=2',
+                'remove-namespace/namespace10.output2')
+
+    def test_remove_namespace11(self):
+        self.check_clang_delta('remove-namespace/namespace11.cpp', '--transformation=remove-namespace --counter=1')
+        self.check_clang_delta('remove-namespace/namespace11.cpp', '--transformation=remove-namespace --counter=2',
+                'remove-namespace/namespace11.output2')
+
+    def test_remove_namespace12(self):
+        self.check_clang_delta('remove-namespace/namespace12.cpp', '--transformation=remove-namespace --counter=1')
+        self.check_clang_delta('remove-namespace/namespace12.cpp', '--transformation=remove-namespace --counter=2',
+                'remove-namespace/namespace12.output2')
+        self.check_clang_delta('remove-namespace/namespace12.cpp', '--transformation=remove-namespace --counter=3',
+                'remove-namespace/namespace12.output3')
+
+    def test_remove_namespace13(self):
+        self.check_clang_delta('remove-namespace/namespace13.cpp', '--transformation=remove-namespace --counter=1')
+        self.check_clang_delta('remove-namespace/namespace13.cpp', '--transformation=remove-namespace --counter=2',
+                'remove-namespace/namespace13.output2')
+
+    def test_remove_namespace14(self):
+        self.check_clang_delta('remove-namespace/namespace14.cpp', '--transformation=remove-namespace --counter=1')
+
+    def test_remove_namespace15(self):
+        self.check_clang_delta('remove-namespace/namespace15.cpp', '--transformation=remove-namespace --counter=1')
+        self.check_clang_delta('remove-namespace/namespace15.cpp', '--transformation=remove-namespace --counter=2',
+                'remove-namespace/namespace15.output2')
+        self.check_clang_delta('remove-namespace/namespace15.cpp', '--transformation=remove-namespace --counter=3',
+                'remove-namespace/namespace15.output3')
 
     def test_remove_nested_function_remove_nested_func1(self):
         self.check_clang_delta('remove-nested-function/remove_nested_func1.cc', '--transformation=remove-nested-function --counter=1')

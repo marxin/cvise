@@ -1,0 +1,10 @@
+
+  template <class T> struct Trans_NS_NS1_Base {};
+  template <class T> struct Trans_NS_NS1_Derived: public Trans_NS_NS1_Base<T> {
+    typename Trans_NS_NS1_Derived::template Trans_NS_NS1_Base<double>* p1;
+  };
+
+template <class T> struct Base {};
+template <class T> struct Derived: public Base<T> {
+  typename Derived::template Trans_NS_NS1_Base<double>* p1;
+};
