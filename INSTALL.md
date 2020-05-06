@@ -60,6 +60,8 @@ manager:
 
 * [Pebble](https://pypi.org/project/Pebble/)
 
+* [psutil](https://pypi.org/project/psutil/)
+
 * [CMake](https://cmake.org/)
 
 * [unifdef](http://dotat.at/prog/unifdef/)

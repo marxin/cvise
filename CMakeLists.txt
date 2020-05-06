@@ -61,6 +61,15 @@ if(NOT ${PEBBLE_result} EQUAL 0)
   message(WARNING "Pebble package not available: ${PEBBLE_error}")
 endif()
 
+# Locate psutil
+execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import psutil"
+  OUTPUT_VARIABLE PSUTIL_output
+  ERROR_VARIABLE  PSUTIL_error
+  RESULT_VARIABLE PSUTIL_result)
+if(NOT ${PSUTIL_result} EQUAL 0)
+  message(WARNING "psutil package not available: ${PSUTIL_error}")
+endif()
+
 # Locate flex.  Do this here because we need the package definitions in the
 # "CMakeLists.txt" files for multiple subdirs.
 #

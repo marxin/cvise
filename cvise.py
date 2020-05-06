@@ -2,13 +2,13 @@
 
 import argparse
 import logging
-import multiprocessing
 import os
 import os.path
 import shutil
 import sys
 import time
 import datetime
+import psutil
 
 import importlib.util
 
@@ -121,7 +121,14 @@ For bug reporting instructions, please use:
 
 if __name__ == "__main__":
     try:
-        core_count = multiprocessing.cpu_count()
+        # try to detect only physical cores, ignore HyperThreading
+        # in order to speed up parallel execution
+        core_count = psutil.cpu_count(logical=False)
+        if not core_count:
+            psutil.cpu_count(logical=True)
+        # respect affinity
+        affinity = len(psutil.Process().cpu_affinity())
+        core_count = min(core_count, affinity)
     except NotImplementedError:
         core_count = 1
 
