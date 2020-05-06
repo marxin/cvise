@@ -140,8 +140,8 @@ if __name__ == "__main__":
     parser.add_argument("--save-temps", action="store_true", default=False, help="Don't delete /tmp/cvise-xxxxxx directories on termination")
     parser.add_argument("--skip-initial-passes", action="store_true", default=False, help="Skip initial passes (useful if input is already partially reduced)")
     parser.add_argument("--remove-pass", help="Remove all instances of the specified passes from the schedule (comma-separated)")
-    parser.add_argument("--timing", action="store_true", default=False, help="Print timestamps about reduction progress")
-    parser.add_argument("--timing-since-start", action="store_true", default=False, help="Print timestamps since the start of a reduction")
+    parser.add_argument("--no-timing", action="store_true", default=False, help="Do not print timestamps about reduction progress")
+    parser.add_argument("--timestamp", action="store_true", default=False, help="Print timestamps instead of relative time from a reduction start")
     parser.add_argument("--timeout", type=int, nargs="?", const=300, help="Interestingness test timeout in seconds")
     parser.add_argument("--no-cache", action="store_true", default=False, help="Don't cache behavior of passes")
     parser.add_argument("--skip-key-off", action="store_true", default=False, help="Disable skipping the rest of the current pass when \"s\" is pressed")
@@ -161,11 +161,11 @@ if __name__ == "__main__":
     log_config = {}
 
     log_format = "%(levelname)s %(message)s"
-    if args.timing:
-        if args.timing_since_start:
-            log_format = "%(delta)s " + log_format
-        else:
+    if not args.no_timing:
+        if args.timestamp:
             log_format = "%(asctime)s " + log_format
+        else:
+            log_format = "%(delta)s " + log_format
 
     if args.debug:
         log_config["level"] = logging.DEBUG
