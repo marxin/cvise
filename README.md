@@ -16,7 +16,8 @@ report bugs in compilers and other tools that process C/C++ or OpenCL
 code.
 
 The project also contains a simple wrapper `cvise-delta` which simulates
-the same behavior as original [delta](http://delta.tigris.org/) tool.
+the same behavior as original [delta](http://delta.tigris.org/) tool
+(but in super-parallel way).
 
 *NOTE:* C-Vise happens to do a pretty good job reducing the size of
 programs in languages other than C/C++, such as JavaScript and Rust.
