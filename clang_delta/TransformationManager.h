@@ -98,9 +98,23 @@ public:
     SetCXXStandard = true;
   }
 
+  void setReportInstancesCount(bool Flag) {
+    ReportInstancesCount = Flag;
+  }
+
+  bool getReportInstancesCount() {
+    return ReportInstancesCount;
+  }
+
+  void setWarnOnCounterOutOfBounds(bool Flag) {
+    WarnOnCounterOutOfBounds = Flag;
+  }
+
   bool initializeCompilerInstance(std::string &ErrorMsg);
 
   void outputNumTransformationInstances();
+
+  void outputNumTransformationInstancesToStderr();
 
   void printTransformations();
 
@@ -149,6 +163,10 @@ private:
   bool SetCXXStandard;
 
   std::string CXXStandard;
+
+  bool WarnOnCounterOutOfBounds;
+
+  bool ReportInstancesCount;
 
   // Unimplemented
   TransformationManager(const TransformationManager &);

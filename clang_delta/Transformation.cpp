@@ -14,6 +14,7 @@
 
 #include "Transformation.h"
 
+#include <iostream>
 #include <sstream>
 
 #include "clang/AST/RecursiveASTVisitor.h"
@@ -23,6 +24,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/ADT/SmallString.h"
 
+using namespace std;
 using namespace clang;
 
 class TransNameQueryVisitor : public
@@ -149,6 +151,32 @@ void Transformation::getTransErrorMsg(std::string &ErrorMsg)
   else {
     TransAssert(0 && "Unknown transformation error!");
   }
+}
+
+bool Transformation::checkCounterValidity() {
+  if (TransformationCounter > ValidInstanceNum) {
+    if (WarnOnCounterOutOfBounds) {
+      TransformationCounter = ValidInstanceNum;
+      cerr << "Warning: number of transformation instances exceeded" << endl;
+    }
+    else {
+      TransError = TransMaxInstanceError;
+      return false;
+    }
+  }
+
+  if (ToCounter > ValidInstanceNum) {
+    if (WarnOnCounterOutOfBounds) {
+      ToCounter = ValidInstanceNum;
+      cerr << "Warning: number of transformation instances exceeded" << endl;
+    }
+    else {
+      TransError = TransMaxInstanceError;
+      return false;
+    }
+  }
+
+  return true;
 }
 
 const Expr *

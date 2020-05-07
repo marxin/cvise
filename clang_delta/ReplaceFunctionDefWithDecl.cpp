@@ -73,14 +73,8 @@ void ReplaceFunctionDefWithDecl::HandleTranslationUnit(ASTContext &Ctx)
   if (QueryInstanceOnly)
     return;
 
-  if (TransformationCounter > ValidInstanceNum) {
-    TransError = TransMaxInstanceError;
+  if (!checkCounterValidity())
     return;
-  }
-  if (ToCounter > ValidInstanceNum) {
-    TransError = TransToCounterTooBigError;
-    return;
-  }
 
   Ctx.getDiagnostics().setSuppressAllDiagnostics(false);
 

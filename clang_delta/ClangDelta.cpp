@@ -91,6 +91,15 @@ static void PrintHelpMessage()
   llvm::outs() << "  --std=<standard>: ";
   llvm::outs() << "specify C++ standard used (c++98, c++11, c++14, c++17, c++20) ";
   llvm::outs() << "\n";
+
+  llvm::outs() << "  --report-instances-count: ";
+  llvm::outs() << "report number of transformation instances on stderr ";
+  llvm::outs() << "\n";
+
+  llvm::outs() << "  --warn-on-counter-out-of-bounds: ";
+  llvm::outs() << "make only warning when a counter is out of bounds ";
+  llvm::outs() << "(replace-function-def-with-decl and remove-unused-function are supported)";
+  llvm::outs() << "\n";
 }
 
 static void DieOnBadCmdArg(const std::string &ArgStr)
@@ -189,6 +198,12 @@ static void HandleOneNoneValueArg(const std::string &ArgStr)
     TransMgr->printTransformations();
     exit(0);
   }
+  else if (!ArgStr.compare("report-instances-count")) {
+    TransMgr->setReportInstancesCount(true);
+  }
+  else if (!ArgStr.compare("warn-on-counter-out-of-bounds")) {
+    TransMgr->setWarnOnCounterOutOfBounds(true);
+  }
   else {
     DieOnBadCmdArg(ArgStr);
   }
@@ -238,6 +253,8 @@ int main(int argc, char **argv)
 
   if (TransMgr->getQueryInstanceFlag()) 
     TransMgr->outputNumTransformationInstances();
+  if (TransMgr->getReportInstancesCount())
+    TransMgr->outputNumTransformationInstancesToStderr();
 
   TransformationManager::Finalize();
   return 0;

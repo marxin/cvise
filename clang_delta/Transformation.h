@@ -84,7 +84,8 @@ public:
       MultipleRewrites(false),
       ToCounter(-1),
       DoReplacement(false),
-      CheckReference(false)
+      CheckReference(false),
+      WarnOnCounterOutOfBounds(false)
   {
     // Nothing to do
   }
@@ -105,7 +106,8 @@ public:
       MultipleRewrites(MultipleRewritesFlag),
       ToCounter(-1),
       DoReplacement(false),
-      CheckReference(false)
+      CheckReference(false),
+      WarnOnCounterOutOfBounds(false)
   {
     // Nothing to do
   }
@@ -123,6 +125,10 @@ public:
 
   void setToCounter(int Counter) {
     ToCounter = Counter;
+  }
+
+  void setWarnOnCounterOutOfBounds(bool Flag) {
+    WarnOnCounterOutOfBounds = Flag;
   }
 
   bool isMultipleRewritesEnabled() {
@@ -165,6 +171,8 @@ public:
   }
 
   void getTransErrorMsg(std::string &ErrorMsg);
+
+  bool checkCounterValidity();
 
   int getNumTransformationInstances() {
     return ValidInstanceNum;
@@ -338,6 +346,8 @@ protected:
   bool CheckReference;
 
   std::string ReferenceValue;
+
+  bool WarnOnCounterOutOfBounds;
 };
 
 class TransNameQueryVisitor;

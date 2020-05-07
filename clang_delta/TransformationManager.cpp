@@ -14,6 +14,7 @@
 
 #include "TransformationManager.h"
 
+#include <iostream>
 #include <sstream>
 
 #include "clang/Basic/Builtins.h"
@@ -26,6 +27,7 @@
 
 #include "Transformation.h"
 
+using namespace std;
 using namespace clang;
 
 int TransformationManager::ErrorInvalidCounter = 1;
@@ -286,6 +288,7 @@ bool TransformationManager::doTransformation(std::string &ErrorMsg, int &ErrorCo
   Diag.setSuppressAllDiagnostics(true);
   Diag.setIgnoreAllWarnings(true);
 
+  CurrentTransformationImpl->setWarnOnCounterOutOfBounds(WarnOnCounterOutOfBounds);
   CurrentTransformationImpl->setQueryInstanceFlag(QueryInstanceOnly);
   CurrentTransformationImpl->setTransformationCounter(TransformationCounter);
   if (ToCounter > 0) {
@@ -396,8 +399,16 @@ void TransformationManager::outputNumTransformationInstances()
 {
   int NumInstances = 
     CurrentTransformationImpl->getNumTransformationInstances();
-  llvm::outs() << "Available transformation instances: " 
+  llvm::outs() << "Available transformation instances: "
                << NumInstances << "\n";
+}
+
+void TransformationManager::outputNumTransformationInstancesToStderr()
+{
+  int NumInstances =
+    CurrentTransformationImpl->getNumTransformationInstances();
+  cerr  << "Available transformation instances: "
+        << NumInstances << "\n";
 }
 
 TransformationManager::TransformationManager()

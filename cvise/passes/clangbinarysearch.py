@@ -13,15 +13,18 @@ class ClangBinarySearchPass(AbstractPass):
         return self.check_external_program("clang_delta")
 
     def new(self, test_case):
-        return BinaryState.create(self.__count_instances(test_case))
+        return BinaryState.create(self.count_instances(test_case))
 
     def advance(self, test_case, state):
         return state.advance()
 
     def advance_on_success(self, test_case, state):
-        return state.advance_on_success(self.__count_instances(test_case))
+        instances = state.real_num_instances - state.real_chunk()
+        state = state.advance_on_success(instances)
+        state.real_num_instances = None
+        return state
 
-    def __count_instances(self, test_case):
+    def count_instances(self, test_case):
         args = [self.external_programs["clang_delta"], "--query-instances={}".format(self.arg)]
         if self.clang_delta_std:
             args.append('--std={}'.format(self.clang_delta_std))
@@ -39,18 +42,29 @@ class ClangBinarySearchPass(AbstractPass):
         else:
             return int(m.group(1))
 
+    def parse_stderr(self, state, stderr):
+        for line in stderr.split('\n'):
+            if line.startswith('Available transformation instances:'):
+                real_num_instances = int(line.split(':')[1])
+                state.real_num_instances = real_num_instances
+            elif line.startswith('Warning: number of transformation instances exceeded'):
+                # TODO: report?
+                pass
+
     def transform(self, test_case, state, process_event_notifier):
         logging.debug("TRANSFORM: index = {}, chunk = {}, instances = {}".format(state.index, state.chunk, state.instances))
 
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=tmp) as tmp_file:
-            args = ["--transformation={}".format(self.arg), "--counter={}".format(state.index + 1), "--to-counter={}".format(state.end())]
+            args = ["--transformation={}".format(self.arg), "--counter={}".format(state.index + 1), "--to-counter={}".format(state.end()),
+                    "--warn-on-counter-out-of-bounds", "--report-instances-count"]
             if self.clang_delta_std:
                 args.append('--std={}'.format(self.clang_delta_std))
             cmd = [self.external_programs["clang_delta"]] + args + [test_case]
             logging.debug(" ".join(cmd))
 
             stdout, stderr, returncode = process_event_notifier.run_process(cmd)
+            self.parse_stderr(state, stderr)
             tmp_file.write(stdout)
             if returncode == 0:
                 shutil.move(tmp_file.name, test_case)

@@ -37,6 +37,9 @@ class BinaryState:
     def end(self):
         return min(self.index + self.chunk, self.instances)
 
+    def real_chunk(self):
+        return self.end() - self.index
+
     def advance(self):
         self = self.copy()
         original_index = self.index
