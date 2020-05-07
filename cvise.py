@@ -254,11 +254,12 @@ if __name__ == "__main__":
                 pass_data.worked, pass_data.failed, pass_data.totally_executed))
         print()
 
+        if not args.no_timing:
+            print("Runtime: {} seconds".format(round((time_stop - time_start))))
+
+        print('Reduced test-cases:\n')
         for test_case in test_manager.sorted_test_cases:
             with open(test_case) as test_case_file:
                 print(test_case_file.read())
-
-    if args.timing:
-        print("Runtime: {} seconds".format(round((time_stop - time_start))))
 
     logging.shutdown()
