@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-import argparse
 import subprocess
+import sys
 
-parser = argparse.ArgumentParser(description='C-Vise implementation of delta tool')
-parser.add_argument('args', nargs='+', help='Arguments passed to cvise')
+if '--help' in sys.argv:
+    print('C-Vise implementation of delta tool: ./cvise-delta script '
+          'INTERESTINGNESS_TEST TEST_CASE [TEST_CASE ...] [--arguments]')
+    exit(0)
 
-args = parser.parse_args()
-subprocess.run(['cvise', '--pass-group=delta'] + args.args)
+subprocess.run(['cvise', '--pass-group=delta'] + sys.argv[1:])
