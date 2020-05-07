@@ -21,7 +21,8 @@ class ClangBinarySearchPass(AbstractPass):
     def advance_on_success(self, test_case, state):
         instances = state.real_num_instances - state.real_chunk()
         state = state.advance_on_success(instances)
-        state.real_num_instances = None
+        if state:
+            state.real_num_instances = None
         return state
 
     def count_instances(self, test_case):
