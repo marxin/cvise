@@ -480,3 +480,12 @@ class TestClangDelta(unittest.TestCase):
 
     def test_union_to_struct_union3(self):
         self.check_clang_delta('union-to-struct/union3.c', '--transformation=union-to-struct --counter=1')
+
+    def test_piggypacking(self):
+        current = os.path.dirname(__file__)
+        binary = os.path.join(current, '../clang_delta')
+        cmd = '%s %s %s' % (binary, os.path.join(current, 'remove-unused-function/macro2.cc'),
+                '--transformation=remove-unused-function --counter=111 --to-counter=222 --warn-on-counter-out-of-bounds --report-instances-count')
+        run = subprocess.run(cmd, shell=True, encoding='utf8', stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        assert 'Available transformation instances: 1' in run.stderr
+        assert 'Warning: number of transformation instances exceeded' in run.stderr
