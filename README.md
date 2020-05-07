@@ -15,6 +15,9 @@ the same property.  It is intended for use by people who discover and
 report bugs in compilers and other tools that process C/C++ or OpenCL
 code.
 
+The project also contains a simple wrapper `cvise-delta` which simulates
+the same behavior as original [delta](http://delta.tigris.org/) tool.
+
 *NOTE:* C-Vise happens to do a pretty good job reducing the size of
 programs in languages other than C/C++, such as JavaScript and Rust.
 If you need to reduce programs in some other language, please give it

@@ -180,9 +180,20 @@ configure_file(
   @ONLY
 )
 
+configure_file(
+  "${PROJECT_SOURCE_DIR}/cvise-delta.py"
+  "${PROJECT_BINARY_DIR}/cvise-delta.py"
+  @ONLY
+)
+
 install(PROGRAMS "${PROJECT_BINARY_DIR}/cvise.py"
   DESTINATION "${CMAKE_INSTALL_BINDIR}"
   RENAME "cvise"
+)
+
+install(PROGRAMS "${PROJECT_BINARY_DIR}/cvise-delta.py"
+  DESTINATION "${CMAKE_INSTALL_BINDIR}"
+  RENAME "cvise-delta"
 )
 
 ###############################################################################
