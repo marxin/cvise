@@ -46,7 +46,7 @@ class BinaryState:
         self.index += self.chunk
         if self.index >= self.instances:
             self.chunk = int(self.chunk / 2)
-            if self.chunk <= 1:
+            if self.chunk < 1:
                 return None
             logging.debug("granularity reduced to {}".format(self.chunk))
             self.index = 0

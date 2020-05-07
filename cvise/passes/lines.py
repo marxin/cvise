@@ -32,7 +32,9 @@ class LinesPass(AbstractPass):
             return len(lines)
 
     def new(self, test_case):
-        self.__format(test_case)
+        # None means no topformflat
+        if self.arg != 'None':
+            self.__format(test_case)
         instances = self.__count_instances(test_case)
         return BinaryState.create(instances)
 

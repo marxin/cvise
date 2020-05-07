@@ -66,6 +66,7 @@ set(SOURCE_FILES
   "__init__.py"
   "pass_groups/all.json"
   "pass_groups/opencl-120.json"
+  "pass_groups/delta.json"
   "passes/__init__.py"
   "passes/abstract.py"
   "passes/balanced.py"
