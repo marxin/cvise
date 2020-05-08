@@ -115,7 +115,7 @@ class ProcessEventNotifier:
         self.pid_queue = pid_queue
 
     def run_process(self, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
-        proc = subprocess.Popen(cmd, stdout=stdout, stderr=stderr, universal_newlines=True, encoding='utf8')
+        proc = subprocess.Popen(cmd, stdout=stdout, stderr=stderr, universal_newlines=True, encoding='utf8', shell=True)
         if self.pid_queue:
             self.pid_queue.put(ProcessEvent(proc.pid, ProcessEventType.STARTED))
         stdout, stderr = proc.communicate()

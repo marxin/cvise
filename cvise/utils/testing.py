@@ -10,7 +10,6 @@ import os.path
 import platform
 import shutil
 import signal
-import subprocess
 import sys
 import tempfile
 import weakref
