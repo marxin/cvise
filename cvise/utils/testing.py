@@ -114,8 +114,7 @@ class TestEnvironment:
     def run_test(self):
         try:
             os.chdir(self.folder)
-            cmd = [self.test_script]
-            _, _, returncode = ProcessEventNotifier(self.pid_queue).run_process(cmd)
+            _, _, returncode = ProcessEventNotifier(self.pid_queue).run_process(self.test_script, shell=True)
         finally:
             os.chdir(self.pwd)
         return returncode
