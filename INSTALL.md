@@ -17,7 +17,7 @@ zypper in cvise
 $ podman run -it opensuse/tumbleweed bash
 714d543633e1 $ zypper -n install cvise
 714d543633e1 $ cvise --version
-cvise 1.1.0 (unknown)
+cvise 1.2.0
 ```
 
 ## From Source
