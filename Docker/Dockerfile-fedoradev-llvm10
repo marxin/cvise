@@ -1,0 +1,7 @@
+FROM fedora:rawhide
+
+RUN dnf install -y python3-pip python3-pytest llvm-devel clang-devel cmake make flex unifdef
+RUN pip3 install Pebble
+
+WORKDIR /usr/src/cvise
+VOLUME /usr/src/cvise

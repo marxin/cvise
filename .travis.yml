@@ -51,11 +51,17 @@ matrix:
         - BUILD_TYPE=ASAN
         - DIST=opensusetw-llvm10
 
-    - name: Fedora 31 DEBUG build (LLVM 9)
+    - name: Fedora 32 DEBUG build (LLVM 9)
       stage: build
       env:
         - BUILD_TYPE=DEBUG
-        - DIST=fedora31-llvm9
+        - DIST=fedora32-llvm9
+
+    - name: Fedora dev DEBUG build (LLVM 10)
+      stage: build
+      env:
+        - BUILD_TYPE=DEBUG
+        - DIST=fedoradev-llvm10
 
 before_install:
   # podman needs a basic register set up (packaging bug in the ppa)
