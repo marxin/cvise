@@ -24,6 +24,15 @@ class TestClangDelta(unittest.TestCase):
         output = subprocess.check_output(cmd, shell=True, encoding='utf8')
         assert output.strip() == expected
 
+    @classmethod
+    def check_error_message(cls, testcase, arguments, error_message):
+        current = os.path.dirname(__file__)
+        binary = os.path.join(current, '../clang_delta')
+        cmd = '%s %s %s' % (binary, os.path.join(current, testcase), arguments)
+        proc = subprocess.run(cmd, shell=True, encoding='utf8', stdout=subprocess.PIPE)
+        assert proc.returncode == 255
+        assert proc.stdout.strip() == error_message
+
     def test_aggregate_to_scalar_cast(self):
         self.check_clang_delta('aggregate-to-scalar/cast.c', '--transformation=aggregate-to-scalar --counter=1')
 
@@ -417,6 +426,9 @@ class TestClangDelta(unittest.TestCase):
 
     def test_rename_param_invalid(self):
         self.check_clang_delta('rename-param/invalid.c', '--transformation=rename-param --counter=1')
+
+    def test_rename_param_stuck(self):
+        self.check_error_message('rename-param/stuck.ii', '--transformation=rename-param --counter=1', 'Error: No modification to the transformed program!')
 
     def test_rename_var_rename_var(self):
         self.check_clang_delta('rename-var/rename-var.c', '--transformation=rename-var --counter=1')

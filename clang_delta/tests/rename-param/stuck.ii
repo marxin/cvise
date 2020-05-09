@@ -1,0 +1,584 @@
+namespace std {
+template < unsigned long b > struct d {
+  typedef long e;
+  constexpr operator e() { return b; }
+};
+template < bool, typename > using aa = void;
+template < bool, typename g, typename > using ac = g;
+template < typename > using ad = int;
+template < typename a > a ae();
+template < typename > class af;
+template < class > class initializer_list {
+  int *b;
+  unsigned long c;
+};
+template < typename > struct ag;
+template < typename a > struct ag< af< a > > {
+  using e = a;
+  template < typename h > using ah = af< h >;
+};
+} template < typename ai > struct aj {
+  typedef std::ag< ai > ak;
+  typedef typename ak::e al;
+  template < typename a > struct am { typedef typename ak::ah< a > an; };
+};
+namespace std {
+template < typename > struct ao;
+template < long, typename a > using ap = typename ao< a >::ab;
+template < long, typename a > using j = typename ao< a >::ab;
+template < typename a, a > struct aq {};
+template < typename a, a ar > using as = aq< a, __integer_pack(ar)... >;
+template < long... at > using au = aq< unsigned long, at... >;
+template < long ar > using av = as< unsigned long, ar >;
+template < typename > class aw {};
+template < typename ax, typename... az > struct ao< aw< ax, az... > > {
+  typedef ax ab;
+};
+template < long ay, typename... ba > ap< ay, aw< ba... > > bb(aw< ba... >);
+template < typename a, typename ai > struct bc {
+  typedef typename aj< ai >::am< a >::an bd;
+};
+template < typename a, typename ai = af< a > > class be {
+public:
+  ~be();
+  typename aj< typename bc< a, ai >::bd >::al operator[](long);
+};
+template < typename a > class bf {
+public:
+  a operator*();
+};
+template < typename a > bf< a > bg();
+} namespace bh {
+template < class, class, class, class > class bi {
+public:
+  int operator*();
+  void operator++();
+};
+template < class bj, class bk, class bl, class bm, class bn, class bo,
+           class bq >
+int operator!=(bi< bj, bk, bl, bm >, bi< bn, bo, bq, bm >);
+template < template < class, class, class, class > class bp = bi >
+class bs : public bp< int, int, int, int > {};
+template < int br > struct bu : bu< br - 1 > {};
+template <> struct bu< 0 > {};
+template < long i > using bt = std::d< i >;
+namespace ca {
+namespace bv {
+template < class bw > auto bx(bw, bu< 1 >) -> decltype(std::d< 1 >());
+}
+template < class bw > auto bx(bw p1) { return bv::bx(p1, bu< 2 >()); }
+namespace bv {
+template < class bw > void by(std::initializer_list< bw >);
+template < class l, class m, class n, n... i >
+void bz(l, m p2, std::aq< n, i... >) {
+  by({(p2(std::d< i >()), 0)...});
+}
+template < class l, class m > void cb(l p1, m) {
+  auto bx = ca::bx(p1);
+  auto cc = std::av< bx >();
+  bz(std::ae< l >, std::ae< m >(), cc);
+}
+} template < class l, class m > void cb(l, m) {
+  bv::cb(std::ae< l >, std::ae< m >());
+}
+} } namespace ce {
+template < class > constexpr auto p() -> decltype(std::d< 1 >{}) { return {}; }
+template < class, template < class, class > class, class > struct cf;
+template < class, template < class, class > class, class, class > struct cg;
+template < class ch, template < class, class > class o, class q >
+struct cg< ch, o, std::aw< q >, std::aa< !q(), void > > {
+  using ab = int;
+};
+template < class ch, template < class, class > class o, class s, class... y >
+struct cf< ch, o, std::aw< s, y... > > {
+  using cp = o< ch, s >;
+  using ab =
+      std::ac< p< cp >(), cp, typename cg< ch, o, std::aw< s >, void >::ab >;
+};
+template < class, template < class, class > class o > struct cj {
+  using ab = typename cf< int, o, std::aw< int > >::ab;
+};
+} template < class ch, template < class, class > class o >
+using ck = typename ce::cj< ch, o >::ab::ab;
+namespace ce {
+template < class, class > struct cl;
+template < class, class > struct ct;
+template < class, class > struct cm;
+template < class, class > struct u;
+template < class, class > struct cn;
+template < class, class > struct co;
+template < class, class > struct w;
+template < class, class > struct x;
+template < class, class > struct cx;
+template < class, class > struct t;
+template < class, class > struct MolecularDiffusionType;
+template < class, class > struct cq;
+} namespace bh {
+template < typename > class cr {};
+} template < template < typename > class, template < long > class, class >
+struct cs;
+template < template < typename > class dd, template < long > class cu,
+           unsigned long... cv >
+struct cs< dd, cu, std::au< cv... > > {
+  using ab = dd< cu< cv >... >;
+};
+template < int > class bigunsignedint;
+namespace bh {
+class cw {
+public:
+  bs<> begin();
+  bs<> end();
+};
+enum cy { cz };
+} template < class ch > class da {
+  using db = typename ck< ch, ce::cn >::db;
+  using dc = typename ck< ch, ce::cn >::dl;
+  using de = typename ck< ch, ce::cx >::dl;
+  using dn = typename db::df< 0 >::v;
+
+public:
+  dn dg();
+  dc dh();
+  de di();
+};
+template < class db > struct dj { using z = typename db::dk::IndexType; };
+namespace bh {
+template < int > struct df {};
+template < typename dm > class IteratorRange {
+public:
+  typedef dm iterator;
+  iterator begin();
+  iterator end();
+};
+template < typename GV, int codim >
+auto entities(GV p1, df< codim >)
+    -> IteratorRange< decltype(p1.template begin< codim >()) >;
+template < typename GV >
+auto elements(GV p1) -> decltype(entities(p1, df< 0 >()));
+template < class ViewTraits > class db {
+public:
+  typedef ViewTraits Traits;
+  typedef typename Traits ::dk dk;
+  template < int cd > struct df {
+    typedef typename Traits ::df< cd >::dm dm;
+    typedef typename Traits ::df< cd >::v v;
+  };
+  template < int cd > typename df< cd >::dm begin();
+};
+template < class > struct DefaultLevelGridViewTraits;
+template < class GridImp > struct DefaultLeafGridViewTraits {
+  typedef GridImp ct;
+  typedef typename ct ::Traits ::LeafIndexSet dk;
+  template < int cd > struct df {
+    typedef typename ct ::Traits ::df< cd >::Partition< cz >::LeafIterator dm;
+    typedef typename ct ::df< cd > v;
+  };
+};
+template < int, class > class EntityIterator;
+class dk;
+template < class GridFamily > class ct {
+public:
+  typedef typename GridFamily::Traits::LeafGridView LeafGridView;
+  template < int > struct df {};
+};
+template < class GridFamily >
+class GridDefaultImplementation : public ct< GridFamily > {
+public:
+  typedef typename GridFamily::Traits Traits;
+};
+template <
+    int, int, class GridImp, template < int, int, class > class,
+    template < int, int, class > class, template < int, cy, class > class,
+    template < class > class, template < class > class,
+    template < class > class, template < class > class,
+    template < class > class, template < int, cy, class > class, class, class,
+    class, class, class, class, class, template < class > class,
+    template < class > class LeafGridViewTraits, template < int, class > class >
+struct GridTraits {
+  template < int cd > struct df {
+    template < int > struct Partition {
+      typedef EntityIterator< cd, GridImp > LeafIterator;
+    };
+  };
+  typedef db< LeafGridViewTraits< GridImp > > LeafGridView;
+  typedef dk LeafIndexSet;
+};
+template < int codim, class ct > class EntityIterator {
+public:
+  void operator++();
+  typename ct::df< codim > operator*();
+  bool operator!=(EntityIterator);
+};
+class dk {
+public:
+  typedef int IndexType;
+};
+template < int, class > class YaspGrid;
+template < int, class > class YaspEntitySeed;
+template < class > class YaspIntersectionIterator;
+template < class > class YaspHierarchicIterator;
+template < int, int, class > class YaspGeometry;
+template < int, int, class > class YaspEntity;
+template < class > class YaspIntersection;
+template < int, int, class > class YaspLevelIterator;
+template < class, int > class YaspIndexSet;
+template < class > class YaspGlobalIdSet;
+template < int dim, class Coordinates > struct YaspGridFamily {
+  typedef GridTraits<
+      dim, dim, YaspGrid< dim, Coordinates >, YaspGeometry, YaspEntity,
+      YaspLevelIterator, YaspIntersection, YaspIntersection,
+      YaspIntersectionIterator, YaspIntersectionIterator,
+      YaspHierarchicIterator, YaspLevelIterator,
+      YaspIndexSet< YaspGrid< dim, Coordinates >, false >,
+      YaspIndexSet< YaspGrid< dim, Coordinates >, true >,
+      YaspGlobalIdSet< YaspGrid< dim, Coordinates > >, bigunsignedint< dim >,
+      YaspGlobalIdSet< YaspGrid< dim, Coordinates > >, bigunsignedint< dim >,
+      int, DefaultLevelGridViewTraits, DefaultLeafGridViewTraits,
+      YaspEntitySeed >
+      Traits;
+};
+template < int dim, class = int >
+class YaspGrid
+    : public GridDefaultImplementation< YaspGridFamily< dim, int > > {};
+} template < template < long > class bw, class Indices >
+struct MultiDomainTupleSharedPtrConst {
+  template < long i > using PtrType = std::bf< bw< i > >;
+  using ab = typename cs< std::aw, PtrType, Indices >::ab;
+};
+template < template < long > class SubDomainTypeTag, int i >
+struct SubDomainFVGridGeometryImpl {
+  using ab = ck< SubDomainTypeTag< i >, ce::cn >;
+};
+template < template < long > class SubDomainTypeTag, int i >
+struct SubDomainSolutionVectorImpl {
+  using ab = ck< SubDomainTypeTag< i >, ce::u >;
+};
+template < typename... SubDomainTypeTags > struct StaggeredMultiDomainTraits {
+  static constexpr long numSubDomains = sizeof...(SubDomainTypeTags);
+  template < long id >
+  using SubDomainTypeTag = std::j< id, std::aw< SubDomainTypeTags... > >;
+  using Indices = std::av< numSubDomains >;
+  template < long id >
+  using SubDomainScalar = ck< SubDomainTypeTag< id >, ce::cl >;
+  template < long id >
+  using SubDomainSolutionVector =
+      typename SubDomainSolutionVectorImpl< SubDomainTypeTag, id >::ab;
+  template < int id > struct SubDomain {
+    using cn = typename SubDomainFVGridGeometryImpl< SubDomainTypeTag, id >::ab;
+  };
+  using cl = typename cs< std::ad, SubDomainScalar, Indices >::ab;
+  using u = typename cs< bh::cr, SubDomainSolutionVector, Indices >::ab;
+  template < template < long > class bw >
+  using TupleOfSharedPtrConst =
+      typename MultiDomainTupleSharedPtrConst< bw, Indices >::ab;
+};
+template < class ch, class Assembler >
+class SubDomainCCLocalAssemblerBase : da< ch > {
+  using u = typename Assembler::u;
+  using SubSolutionVector = ck< ch, ce::u >;
+  using t = ck< ch, ce::t >;
+  using cn = typename t::cn;
+  using db = typename cn::db;
+  using dn = typename db::df< 0 >::v;
+  using CouplingManager = typename Assembler::CouplingManager;
+
+public:
+  SubDomainCCLocalAssemblerBase(Assembler, dn, u, CouplingManager);
+  void assembleResidual(SubSolutionVector) {
+    auto dg = this->dg();
+    auto dh = this->dh();
+    auto di = this->di();
+    di.bind(dg, dh, 0);
+  }
+};
+template < class, class, bool > class SubDomainCCLocalAssembler;
+template < class ch, class Assembler >
+class SubDomainCCLocalAssembler< ch, Assembler, true >
+    : public SubDomainCCLocalAssemblerBase< ch, Assembler > {
+  using ParentType = SubDomainCCLocalAssemblerBase< ch, Assembler >;
+  ParentType::ParentType;
+};
+template < class MDTraits, bool useImplicitAssembly = true >
+class MultiDomainFVAssembler {
+  template < long id >
+  using SubDomainTypeTag = typename MDTraits::SubDomain< id >;
+
+public:
+  using cl = typename MDTraits::cl;
+  template < long id > using cn = typename MDTraits::SubDomain< id >::cn;
+  using u = typename MDTraits::u;
+  using ResidualType = u;
+  using CouplingManager = int;
+  static constexpr bool isImplicit() { return useImplicitAssembly; }
+  using GridGeometryTuple = typename MDTraits::TupleOfSharedPtrConst< cn >;
+  using ThisType = MultiDomainFVAssembler;
+  template < int id > struct SubDomainAssemblerType {
+    using ab = SubDomainCCLocalAssembler< SubDomainTypeTag< id >, ThisType,
+                                          isImplicit() >;
+  };
+  template < long id >
+  using SubDomainAssembler = typename SubDomainAssemblerType< id >::ab;
+  void assembleResidual(u p1) { assembleResidual(*residual_, p1); }
+  void assembleResidual(ResidualType p1, u p2) {
+    using namespace bh::ca;
+    auto __trans_tmp_1(p1);
+    cb(__trans_tmp_1,
+       [&](auto domainId) { assembleResidual_(domainId, domainId, p2); });
+  }
+  template < unsigned long i > auto gridGeometry(bh::bt< i > p1) {
+    return *std::bb< p1 >(gridGeometryTuple_);
+  }
+  template < unsigned long i > auto gridView(bh::bt< i > p1) {
+    return gridGeometry(p1).gridView();
+  }
+  std::bf< CouplingManager > couplingManager_;
+  template < unsigned long i, class SubRes >
+  void assembleResidual_(bh::bt< i > p1, SubRes p2, u p3) {
+    assemble_(p1, [&](auto dg) {
+      SubDomainAssembler< i > subDomainAssembler(*this, dg, p3,
+                                                 *couplingManager_);
+      subDomainAssembler.assembleResidual(p2);
+    });
+  }
+  template < unsigned long i, class AssembleElementFunc >
+  void assemble_(bh::bt< i > p1, AssembleElementFunc p2) {
+    auto __trans_tmp_2 = gridView(p1);
+    for (auto dg : elements(__trans_tmp_2))
+      p2(dg);
+  }
+  GridGeometryTuple gridGeometryTuple_;
+  std::bf< u > residual_;
+};
+template < class > class PDESolver {
+public:
+  MultiDomainFVAssembler< StaggeredMultiDomainTraits< int > > assembler();
+};
+template < class Assembler > class NewtonSolver : PDESolver< Assembler > {
+  using cl = typename Assembler::cl;
+  using u = typename Assembler::ResidualType;
+  u newtonBegin_u;
+  virtual void newtonBegin() {
+    this->assembler().assembleResidual(newtonBegin_u);
+  }
+  std::be< cl > distanceFromLastLinearization_;
+};
+template < class Assembler >
+class MultiDomainNewtonSolver : NewtonSolver< Assembler > {
+public:
+  MultiDomainNewtonSolver(std::bf< Assembler >, std::bf< int >, std::bf< int >);
+};
+template < class > class FicksLawImplementation;
+template < class GG > class FVGridVariables {
+public:
+  using cn = GG;
+};
+namespace ce {
+template < class ch > struct t< ch, int > {
+  using GG = ck< ch, cn >;
+  using ab = FVGridVariables< GG >;
+};
+template < class ch > struct u< ch, int > { using ab = int; };
+} template < class GV > class BaseGridGeometry {
+  using GridIndexType = typename dj< GV >::z;
+  using dn = typename GV::df< 0 >::v;
+
+public:
+  using db = GV;
+  db gridView();
+  dn dg(GridIndexType);
+};
+template < class cn > class CCSimpleConnectivityMap {
+  using db = typename cn::db;
+  using GridIndexType = typename dj< db >::z;
+  struct DataJ {
+    GridIndexType globalJ;
+    bh::cw scvfsJ;
+  };
+
+public:
+  std::be< DataJ > operator[](GridIndexType);
+};
+template < class GG > class CCTpfaFVElementGeometry {
+public:
+  using SubControlVolumeFace = typename GG::SubControlVolumeFace;
+  using cn = GG;
+  cn gridGeometry();
+};
+struct CCTpfaDefaultGridGeometryTraits {
+  using SubControlVolumeFace = int;
+  template < class cn > using ConnectivityMap = CCSimpleConnectivityMap< cn >;
+  template < class cn, bool > using dl = CCTpfaFVElementGeometry< cn >;
+};
+template < class, bool, class = CCTpfaDefaultGridGeometryTraits >
+class CCTpfaFVGridGeometry;
+template < class GV, class Traits >
+class CCTpfaFVGridGeometry< GV, false, Traits >
+    : public BaseGridGeometry< GV > {
+  using ThisType = CCTpfaFVGridGeometry;
+  using ConnectivityMap = typename Traits::ConnectivityMap< ThisType >;
+
+public:
+  using dl = typename Traits::dl< ThisType, false >;
+  using SubControlVolumeFace = typename Traits::SubControlVolumeFace;
+  ConnectivityMap connectivityMap();
+};
+template < class Traits > class CCGridVolumeVariables {
+  using ThisType = CCGridVolumeVariables;
+
+public:
+  static constexpr bool cachingEnabled = false;
+  using dl = typename Traits::dl< ThisType, cachingEnabled >;
+};
+struct CCTpfaDefaultGridVolumeVariablesTraits {
+  template < class, bool > using dl = int;
+};
+template < class GFVC > class CCTpfaElementFluxVariablesCache {
+  using x = typename GFVC::Traits::x;
+
+public:
+  using w = typename GFVC::w;
+  template < class dc, class ElementVolumeVariables >
+  void bind(typename dc::cn::db::df< 0 >::v, dc p2,
+            ElementVolumeVariables p3) {
+    auto gridGeometry = p2.gridGeometry();
+    auto connectivityMapI = gridGeometry.connectivityMap()[0];
+    x filler(0);
+    auto elementJ = gridGeometry.dg(connectivityMapI[0].globalJ);
+    for (auto scvfIdx : connectivityMapI[0].scvfsJ) {
+      auto scvfJ(scvfIdx);
+      filler.fill(this, fluxVarsCache_[0], elementJ, p2, p3, scvfJ);
+    }
+  }
+  std::be< w > fluxVarsCache_;
+};
+template < class FVC, class FVCF > struct CCTpfaDefaultGridFVCTraits {
+  using w = FVC;
+  using x = FVCF;
+  template < class cx, bool > using dl = CCTpfaElementFluxVariablesCache< cx >;
+};
+template < class w, class x, bool, class = CCTpfaDefaultGridFVCTraits< w, x > >
+class CCTpfaGridFluxVariablesCache;
+template < class FVC, class FVCF, class TheTraits >
+class CCTpfaGridFluxVariablesCache< FVC, FVCF, false, TheTraits > {
+  using ThisType = CCTpfaGridFluxVariablesCache;
+
+public:
+  using Traits = TheTraits;
+  using w = typename Traits::w;
+  static constexpr bool cachingEnabled = false;
+  using dl = typename Traits::dl< ThisType, cachingEnabled >;
+};
+namespace ce {
+template < class ch > struct cn< ch, int > {
+  using db = typename ck< ch, ct >::LeafGridView;
+  using ab = CCTpfaFVGridGeometry< db, 0 >;
+};
+template < class ch > struct co< ch, int > {
+  using ab = CCGridVolumeVariables< CCTpfaDefaultGridVolumeVariablesTraits >;
+};
+template < class ch > struct cx< ch, int > {
+  using w = ck< ch, w >;
+  using x = ck< ch, x >;
+  using ab = CCTpfaGridFluxVariablesCache< w, x, 0 >;
+};
+template < class ch > struct cl< ch, int > { using ab = double; };
+} template < class > class PorousMediumFluxVariablesCacheImplementation;
+template < class ch >
+using PorousMediumFluxVariablesCache =
+    PorousMediumFluxVariablesCacheImplementation< ch >;
+template < class ch >
+class DiffusionCacheChooser
+    : public ck< ch, ce::MolecularDiffusionType >::Cache {};
+template < class ch >
+class PorousMediumFluxVariablesCacheImplementation
+    : public DiffusionCacheChooser< ch > {};
+template < class > class PorousMediumFluxVariablesCacheFillerImplementation;
+template < class ch >
+using PorousMediumFluxVariablesCacheFiller =
+    PorousMediumFluxVariablesCacheFillerImplementation< ch >;
+template < class ch > class PorousMediumFluxVariablesCacheFillerImplementation {
+  using cm = ck< ch, ce::cm >;
+  using db = typename ck< ch, ce::cn >::db;
+  using dc = typename ck< ch, ce::cn >::dl;
+  using SubControlVolumeFace = typename dc::SubControlVolumeFace;
+  using ElementVolumeVariables = typename ck< ch, ce::co >::dl;
+  using dn = typename db::df< 0 >::v;
+
+public:
+  PorousMediumFluxVariablesCacheFillerImplementation(cm);
+  template < class FluxVariablesCacheContainer, class w >
+  void fill(FluxVariablesCacheContainer, w p2, dn p3, dc p4,
+            ElementVolumeVariables p5, SubControlVolumeFace p6) {
+    using DiffusionType = ck< ch, ce::MolecularDiffusionType >;
+    using DiffusionFiller = typename DiffusionType::Cache::Filler;
+    DiffusionFiller::fill(p2, 0, 0, 0, p3, p4, p5, p6,
+                          this);
+  }
+};
+template < class ch > using FicksLaw = FicksLawImplementation< ch >;
+template < class ch > class FicksLawImplementation {
+  using cl = ck< ch, ce::cl >;
+  using cm = ck< ch, ce::cm >;
+  using dc = typename ck< ch, ce::cn >::dl;
+  using SubControlVolumeFace = typename dc::SubControlVolumeFace;
+  using db = typename ck< ch, ce::cn >::db;
+  using ElementVolumeVariables = typename ck< ch, ce::co >::dl;
+  using dn = typename db::df< 0 >::v;
+  using w = ck< ch, ce::w >;
+  using cq = ck< ch, ce::cq >;
+  class TpfaFicksLawCacheFiller {
+  public:
+    template < class x >
+    static void fill(w p1, int p2, int p3, cm p4,
+                     dn p5, dc p6, ElementVolumeVariables p7,
+                     SubControlVolumeFace p8, x) {
+      p1.updateDiffusion(p4, p5, p6, p7, p8,
+                                        p2, p3);
+    }
+  };
+  class TpfaFicksLawCache {
+  public:
+    using Filler = TpfaFicksLawCacheFiller;
+    void updateDiffusion(cm, dn, dc, ElementVolumeVariables,
+                         SubControlVolumeFace, int, int) {
+      calculateTransmissibility;
+    }
+  };
+
+public:
+  using Cache = TpfaFicksLawCache;
+  static cl calculateTransmissibility() {
+    [](auto) {
+      if constexpr (cq::isTracerFluidSystem())
+        ;
+    };
+  }
+};
+namespace ce {
+template < class ch > struct w< ch, int > {
+  using ab = PorousMediumFluxVariablesCache< ch >;
+};
+template < class ch > struct x< ch, int > {
+  using ab = PorousMediumFluxVariablesCacheFiller< ch >;
+};
+template < class ch > struct MolecularDiffusionType< ch, int > {
+  using ab = FicksLaw< ch >;
+};
+} class Base {
+  static bool isTracerFluidSystem();
+};
+namespace ce {
+template < class ch > struct cm< ch, int > { using ab = int; };
+template < class ch > struct cq< ch, int > { using ab = Base; };
+template < class ch > struct ct< ch, int > { using ab = bh::YaspGrid< 2 >; };
+} main() {
+  using DarcyTypeTag = int;
+  using Traits = StaggeredMultiDomainTraits< DarcyTypeTag >;
+  using CouplingManager = int;
+  auto couplingManager = std::bg< CouplingManager >();
+  using Assembler = MultiDomainFVAssembler< Traits >;
+  auto assembler = std::bg< Assembler >();
+  auto linearSolver = std::bg< int >();
+  using NewtonSolver = MultiDomainNewtonSolver< Assembler >;
+  NewtonSolver(assembler, linearSolver, couplingManager);
+}

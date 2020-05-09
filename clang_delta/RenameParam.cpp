@@ -50,12 +50,14 @@ class RenameParamVisitor : public RecursiveASTVisitor<RenameParamVisitor> {
 public:
 
   explicit RenameParamVisitor(RenameParam *Instance)
-    : ConsumerInstance(Instance)
+    : Rewritten (false), ConsumerInstance(Instance)
   { }
 
   bool VisitFunctionDecl(FunctionDecl *FD);
 
   bool VisitDeclRefExpr(DeclRefExpr *DRE);
+
+  bool Rewritten;
 
 private:
 
@@ -107,6 +109,8 @@ bool RenameParamVisitor::VisitFunctionDecl(FunctionDecl *FD)
     CurrPostfix = ConsumerInstance->validatePostfix(CanonicalFD, CurrPostfix);
     std::stringstream TmpSS;
     TmpSS << ConsumerInstance->ParamNamePrefix << CurrPostfix;
+    if (PD->getNameAsString().compare(TmpSS.str()) != 0)
+      Rewritten = true;
 
     ConsumerInstance->RewriteHelper->replaceVarDeclName(PD, TmpSS.str());
 
@@ -167,6 +171,8 @@ void RenameParam::HandleTranslationUnit(ASTContext &Ctx)
   if (Ctx.getDiagnostics().hasErrorOccurred() ||
       Ctx.getDiagnostics().hasFatalErrorOccurred())
     TransError = TransInternalError;
+  else if (!RenameVisitor->Rewritten)
+    TransError = TransNoTextModificationError;
 }
 
 bool RenameParam::getPostfixValue(const std::string &Name, 
