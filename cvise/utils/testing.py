@@ -10,6 +10,7 @@ import os.path
 import platform
 import shutil
 import signal
+import subprocess
 import sys
 import tempfile
 import weakref
@@ -107,14 +108,15 @@ class TestEnvironment:
             # this can happen when we clean up temporary files for cancelled processes
             pass
         except Exception as e:
-            print('Should not happen: ' + str(e))
+            print('Unexpected TestEnvironment::run failure: ' + str(e))
         finally:
             return self
 
     def run_test(self):
         try:
             os.chdir(self.folder)
-            _, _, returncode = ProcessEventNotifier(self.pid_queue).run_process(self.test_script, shell=True)
+            _, _, returncode = ProcessEventNotifier(self.pid_queue).run_process(self.test_script, shell=True,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         finally:
             os.chdir(self.pwd)
         return returncode
