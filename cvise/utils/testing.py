@@ -7,6 +7,7 @@ import math
 import multiprocessing
 import os
 import os.path
+import pebble
 import platform
 import shutil
 import signal
@@ -17,7 +18,6 @@ import weakref
 
 import concurrent.futures
 from concurrent.futures import wait, FIRST_COMPLETED, TimeoutError
-from pebble import ProcessPool
 from multiprocessing import Queue, Manager
 
 from .. import CVise
@@ -29,6 +29,9 @@ from .error import InvalidInterestingnessTestError
 from .error import InvalidTestCaseError
 from .error import PassBugError
 from .error import ZeroSizeError
+
+# change default Pebble sleep unit for faster response
+pebble.common.SLEEP_UNIT = 0.01
 
 def rmfolder(name):
     assert 'cvise' in name
@@ -382,7 +385,7 @@ class TestManager:
     def run_parallel_tests(self):
         assert not self.futures
         assert not self.temporary_folders
-        with ProcessPool(max_workers=self.parallel_tests) as pool:
+        with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
             order = 1
             self.timeout_count = 0
             while self.state != None:
