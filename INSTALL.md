@@ -11,6 +11,13 @@ comes with a precompiled package for C-Vise.
 zypper in cvise
 ```
 
+### Gentoo Linux
+
+```shell
+emerge cvise
+```
+
+
 ### Using Docker (or Podman)
 
 ```shell
