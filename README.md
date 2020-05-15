@@ -24,6 +24,18 @@ programs in languages other than C/C++, such as JavaScript and Rust.
 If you need to reduce programs in some other language, please give it
 a try.
 
+## Speed Comparison
+
+I made a comparison for couple of GCC bug reports on my AMD Ryzen 7 2700X Eight-Core Processor
+machine with the following results:
+
+| Test-case | Size | C-Vise Reduction | C-Reduce Reduction | Speed Up |
+| --- | --- | --- | --- | --- |
+| [PR92516](http://gcc.gnu.org/PR92516) | 6.5 MB | 35m | 77m | 220% |
+| [PR94523](http://gcc.gnu.org/PR94523) | 2.1 MB | 15m | 33m | 220% |
+| [PR94632](http://gcc.gnu.org/PR94632) | 3.3 MB | 20m | 28m | 40% |
+| [PR94937](http://gcc.gnu.org/PR94937) | 8.5 MB | 242m | 303m | 125% |
+
 ## Installation
 
 See [INSTALL.md](INSTALL.md).
