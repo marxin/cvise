@@ -319,6 +319,8 @@ set(SOURCE_FILES
   "/tests/simplify-callexpr/test2.output"
   "/tests/simplify-if/macro.c"
   "/tests/simplify-if/macro.output"
+  "/tests/simplify-recursive-template-instantiation/test.cc"
+  "/tests/simplify-recursive-template-instantiation/test.output"
   "/tests/union-to-struct/union1.c"
   "/tests/union-to-struct/union1.output"
   "/tests/union-to-struct/union2.c"

@@ -484,6 +484,9 @@ class TestClangDelta(unittest.TestCase):
     def test_simplify_if_macro(self):
         self.check_clang_delta('simplify-if/macro.c', '--transformation=simplify-if --counter=1')
 
+    def test_simplify_simple_recursive_template(self):
+        self.check_clang_delta('simplify-recursive-template-instantiation/test.cc', '--transformation=simplify-recursive-template-instantiation --counter=1')
+
     def test_union_to_struct_union1(self):
         self.check_clang_delta('union-to-struct/union1.c', '--transformation=union-to-struct --counter=1')
 
