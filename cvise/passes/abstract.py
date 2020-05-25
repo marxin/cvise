@@ -83,7 +83,10 @@ class AbstractPass:
         program = self.external_programs[name]
         if not program:
             return False
-        return shutil.which(program) is not None
+        result = shutil.which(program) is not None
+        if not result:
+            logging.error("cannot find external program {}".format(name))
+        return result
 
     def check_prerequisites(self):
         raise NotImplementedError("Class {} has not implemented 'check_prerequisites'!".format(type(self).__name__))
