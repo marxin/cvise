@@ -115,8 +115,8 @@ words, running these commands:
   echo $?
 
 should result in "0" being echoed to the terminal.
-Please ensure the interestingness test accepts the test-case as the first argument,
-or expects the same test-case name.
+Please ensure that the test script takes no arguments; it should be hard-coded to refer
+to the same file that is passed as an argument to C-Vise.
 
 See "cvise.py --help" for more information.""".format(test_cases=" ".join(self.test_cases), test=self.test)
         return message
