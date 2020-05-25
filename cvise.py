@@ -9,6 +9,7 @@ import sys
 import time
 import datetime
 import psutil
+import platform
 
 import importlib.util
 
@@ -62,6 +63,13 @@ def find_external_programs():
         path = None
         if local_folder:
             local_folder = os.path.join(script_path, local_folder)
+            if platform.system() == "Windows":
+                for configuration in ["Debug", "Release"]:
+                    new_local_folder = os.path.join(local_folder, configuration)
+                    if os.path.exists(new_local_folder):
+                        local_folder = new_local_folder
+                        break
+
             path = shutil.which(prog, path=local_folder)
 
             if not path:
