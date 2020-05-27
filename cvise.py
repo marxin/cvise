@@ -10,6 +10,7 @@ import time
 import datetime
 import psutil
 import platform
+import tempfile
 
 import importlib.util
 
@@ -168,7 +169,8 @@ if __name__ == "__main__":
     parser.add_argument("--not-c", action="store_true", help="Don't run passes that are specific to C and C++, use this mode for reducing other languages")
     parser.add_argument("--list-passes", action="store_true", help="Print all available passes and exit")
     parser.add_argument("--version", action="version", version=CVise.Info.PACKAGE_STRING  + (' (%s)' % CVise.Info.GIT_VERSION if CVise.Info.GIT_VERSION != 'unknown' else ''))
-    parser.add_argument("interestingness_test", metavar="INTERESTINGNESS_TEST", help="Executable to check interestingness of test cases")
+    parser.add_argument("--commands", "-c", help="Use bash commands instead of an interestingness test case")
+    parser.add_argument("interestingness_test", metavar="INTERESTINGNESS_TEST", nargs="?", help="Executable to check interestingness of test cases")
     parser.add_argument("test_cases", metavar="TEST_CASE", nargs="+", help="Test cases")
 
     args = parser.parse_args()
@@ -234,6 +236,19 @@ if __name__ == "__main__":
 
     pass_statistic = statistics.PassStatistic()
 
+    if not args.interestingness_test and not args.commands:
+        print('Either INTERESTINGNESS_TEST or --commands must be used!')
+        exit(1)
+
+    script = None
+    if args.commands:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".sh") as script:
+            script.write('#!/usr/bin/bash\n\n')
+            script.write(args.commands + '\n')
+        os.chmod(script.name, 0o744)
+        logging.info('Using temporary interestingness test: %s' % script.name)
+        args.interestingness_test = script.name
+
     test_manager = testing.TestManager(pass_statistic, args.interestingness_test, args.timeout,
             args.save_temps, args.test_cases, args.n, args.no_cache, args.skip_key_off, args.shaddap,
             args.die_on_pass_bug, args.print_diff, args.max_improvement, args.no_give_up, args.also_interesting)
@@ -269,5 +284,8 @@ if __name__ == "__main__":
         for test_case in test_manager.sorted_test_cases:
             with open(test_case) as test_case_file:
                 print(test_case_file.read())
+
+    if script:
+        os.remove(script.name)
 
     logging.shutdown()
