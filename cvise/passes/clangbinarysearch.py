@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 
 from cvise.passes.abstract import *
 
@@ -12,7 +13,24 @@ class ClangBinarySearchPass(AbstractPass):
     def check_prerequisites(self):
         return self.check_external_program("clang_delta")
 
+    def detect_best_standard(self, test_case):
+        best = None
+        best_count = -1
+        for std in ('c++98', 'c++11', 'c++14', 'c++17', 'c++20'):
+            self.clang_delta_std = std
+            start = time.monotonic()
+            instances = self.count_instances(test_case)
+            took = time.monotonic() - start
+
+            if instances > best_count:
+                best = std
+                best_count = instances
+            logging.debug('available instances for %s: %d, took: %.2f s' % (std, instances, took))
+        logging.info('using C++ standard: %s with %d instances' % (best, best_count))
+        self.clang_delta_std = best
+
     def new(self, test_case):
+        self.detect_best_standard(test_case)
         return BinaryState.create(self.count_instances(test_case))
 
     def advance(self, test_case, state):
