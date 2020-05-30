@@ -490,8 +490,6 @@ class TestManager:
         self.pass_statistic.stop(self.current_pass)
 
     def process_result(self, test_env):
-        logging.debug("Process result")
-
         if self.print_diff:
             diff_str = self.diff_files(self.current_test_case, test_env.test_case_path)
             logging.info(diff_str)
