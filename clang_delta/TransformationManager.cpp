@@ -425,7 +425,9 @@ TransformationManager::TransformationManager()
     CheckReference(false),
     ReferenceValue(""),
     SetCXXStandard(false),
-    CXXStandard("")
+    CXXStandard(""),
+    WarnOnCounterOutOfBounds(false),
+    ReportInstancesCount(false)
 {
   // Nothing to do
 }
