@@ -127,6 +127,7 @@ set(cvise_PACKAGE_TARNAME     "cvise")
 set(cvise_PACKAGE_URL         "https://github.com/marxin/cvise/")
 set(cvise_PACKAGE_VERSION     "1.4.0")
 set(cvise_VERSION             "1.4.0")
+set(cvise_LLVM_VERSION        "${LLVM_PACKAGE_VERSION}")
 
 configure_file("cmake_config.h.in" "${PROJECT_BINARY_DIR}/config.h")
 add_definitions("-DHAVE_CONFIG_H")

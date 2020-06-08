@@ -238,9 +238,10 @@ class TestManager:
             logging.debug("Please consider tarring up {} and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.".format(crash_dir))
 
         with open(os.path.join(crash_dir, "PASS_BUG_INFO.TXT"), mode="w") as info_file:
-            info_file.write("{}\n".format(CVise.Info.PACKAGE_STRING))
-            info_file.write("{}\n".format(CVise.Info.GIT_VERSION))
-            info_file.write("{}\n".format(platform.uname()))
+            info_file.write("Package: %s\n" % CVise.Info.PACKAGE_STRING)
+            info_file.write("Git version: %s\n" % CVise.Info.GIT_VERSION)
+            info_file.write("LLVM version: %s\n" % CVise.Info.LLVM_VERSION)
+            info_file.write("System: %s\n" % str(platform.uname()))
             info_file.write(PassBugError.MSG.format(self.current_pass, problem, test_env.state, crash_dir))
 
         if self.die_on_pass_bug:
