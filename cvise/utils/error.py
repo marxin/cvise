@@ -111,7 +111,7 @@ words, running these commands:
   DIR=`mktemp -d`
   cp {test_cases} $DIR
   cd $DIR
-  {test} {test_cases}
+  {test}
   echo $?
 
 should result in "0" being echoed to the terminal.

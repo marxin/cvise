@@ -284,8 +284,7 @@ if __name__ == "__main__":
         for test_case in test_manager.sorted_test_cases:
             with open(test_case) as test_case_file:
                 print(test_case_file.read())
-
-    if script:
-        os.remove(script.name)
+        if script:
+            os.remove(script.name)
 
     logging.shutdown()
