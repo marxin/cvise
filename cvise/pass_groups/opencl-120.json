@@ -141,19 +141,19 @@
     {"pass": "ints", "arg": "d"},
     {"pass": "ints", "arg": "c"},
     {"pass": "balanced", "arg": "parens-only"},
-    {"pass": "clex", "arg": "rename-toks"},
+    {"pass": "clex", "arg": "rename-toks", "renaming": true},
     {"pass": "clex", "arg": "delete-string"},
     {"pass": "clex", "arg": "define"}
  ],
  "last": [
-    {"pass": "clang", "arg": "rename-fun", "c": true },
-    {"pass": "clang", "arg": "rename-param", "c": true },
-    {"pass": "clang", "arg": "rename-var", "c": true },
-    {"pass": "clang", "arg": "combine-local-var", "c": true },
-    {"pass": "clang", "arg": "simplify-struct-union-decl", "c": true },
-    {"pass": "clang", "arg": "unify-function-decl", "c": true },
+    {"pass": "clang", "arg": "rename-fun", "c": true, "renaming": true},
+    {"pass": "clang", "arg": "rename-param", "c": true, "renaming": true},
+    {"pass": "clang", "arg": "rename-var", "c": true, "renaming": true},
+    {"pass": "clang", "arg": "combine-local-var", "c": true},
+    {"pass": "clang", "arg": "simplify-struct-union-decl", "c": true},
+    {"pass": "clang", "arg": "unify-function-decl", "c": true},
     {"pass": "lines", "arg": "0"},
-    {"pass": "clex", "arg": "rename-toks"},
+    {"pass": "clex", "arg": "rename-toks", "renaming": true},
     {"pass": "clex", "arg": "delete-string"},
     {"pass": "indent", "arg": "final"}
  ]
