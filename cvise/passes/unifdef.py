@@ -37,7 +37,7 @@ class UnIfDefPass(AbstractPass):
         with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
             while True:
                 du = "-D" if state % 2 == 0 else "-U"
-                n_index = state / 2
+                n_index = int(state / 2)
 
                 if n_index >= len(deflist):
                     os.unlink(tmp_file.name)
