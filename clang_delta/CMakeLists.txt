@@ -149,6 +149,8 @@ set(SOURCE_FILES
   "/tests/remove-namespace/namespace15.output3"
   "/tests/remove-enum-member-value/builtin_macro.c"
   "/tests/remove-enum-member-value/builtin_macro.output"
+  "/tests/remove-unused-enum-member/range.c"
+  "/tests/remove-unused-enum-member/range.output"
   "/tests/remove-nested-function/remove_nested_func1.cc"
   "/tests/remove-nested-function/remove_nested_func1.output"
   "/tests/remove-try-catch/try-catch-1.cpp"

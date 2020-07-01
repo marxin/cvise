@@ -1,0 +1,16 @@
+enum processor_type
+{
+  PROCESSOR_I386,
+  PROCESSOR_I486,
+  PROCESSOR_PENTIUM,
+  
+  
+  
+  
+  
+};
+enum fpmath_unit
+{
+  
+  FPMATH_SSE = 2
+};

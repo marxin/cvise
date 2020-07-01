@@ -130,6 +130,9 @@ class TestClangDelta(unittest.TestCase):
     def test_remove_enum_member_value_builtin_macro(self):
         self.check_clang_delta('remove-enum-member-value/builtin_macro.c', '--transformation=remove-enum-member-value --counter=1')
 
+    def test_remove_unused_enum_member_value_range(self):
+        self.check_clang_delta('remove-unused-enum-member/range.c', '--transformation=remove-unused-enum-member --counter=4 --to-counter=9')
+
     def test_remove_namespace_macro(self):
         self.check_clang_delta('remove-namespace/macro.cpp', '--transformation=remove-namespace --counter=1')
         self.check_clang_delta('remove-namespace/macro.cpp', '--transformation=remove-namespace --counter=2',
