@@ -26,6 +26,7 @@ public:
 
   RemoveUnusedEnumMember(const char *TransName, const char *Desc)
     : Transformation(TransName, Desc, /*MultipleRewrites*/true),
+      AnalysisVisitor(0),
       EnumValues()
   { }
 
