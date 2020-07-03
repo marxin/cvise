@@ -63,10 +63,8 @@ bool RemoveUnusedEnumMemberAnalysisVisitor::VisitEnumDecl(EnumDecl *ED)
       if (ConsumerInstance->ValidInstanceNum >=
           ConsumerInstance->TransformationCounter
           && ConsumerInstance->ValidInstanceNum <=
-             ConsumerInstance->ToCounter) {
-        TransAssert(ED && "NULL TheEnumDecl!");
+             ConsumerInstance->ToCounter)
         ConsumerInstance->EnumValues.push_back (I);
-      }
     }
   }
   return true;
@@ -84,6 +82,15 @@ void RemoveUnusedEnumMember::HandleTranslationUnit(ASTContext &Ctx)
 
   if (QueryInstanceOnly)
     return;
+
+  if (TransformationCounter > ValidInstanceNum) {
+    TransError = TransMaxInstanceError;
+    return;
+  }
+  if (ToCounter != -1 && ToCounter > ValidInstanceNum) {
+    TransError = TransToCounterTooBigError;
+    return;
+  }
 
   Ctx.getDiagnostics().setSuppressAllDiagnostics(false);
 
