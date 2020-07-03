@@ -106,6 +106,19 @@ class TestClangDelta(unittest.TestCase):
     def test_empty_struct_to_int_test3(self):
         self.check_clang_delta('empty-struct-to-int/test3.c', '--transformation=empty-struct-to-int --counter=1')
 
+    def test_instantiate_template_param_default_param(self):
+        self.check_clang_delta('instantiate-template-param/default_param.cc', '--transformation=instantiate-template-param --counter=1')
+
+    def test_instantiate_template_param_default_test1(self):
+        self.check_clang_delta('instantiate-template-param/test1.cc', '--transformation=instantiate-template-param --counter=1')
+
+    def test_instantiate_template_param_default_test2(self):
+        self.check_clang_delta('instantiate-template-param/test2.cc', '--transformation=instantiate-template-param --counter=1')
+
+    def test_instantiate_template_param_default_test3(self):
+        self.check_query_instances('instantiate-template-param/test3.cc', '--query-instances=instantiate-template-param',
+                'Available transformation instances: 0')
+
     def test_local_to_global_macro(self):
         self.check_clang_delta('local-to-global/macro.c', '--transformation=local-to-global --counter=1')
 
