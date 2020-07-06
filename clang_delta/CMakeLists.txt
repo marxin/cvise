@@ -330,6 +330,7 @@ set(SOURCE_FILES
   "/tests/simplify-if/macro.output"
   "/tests/simplify-recursive-template-instantiation/test.cc"
   "/tests/simplify-recursive-template-instantiation/test.output"
+  "/tests/template-arg-to-int/not_valid5.cc"
   "/tests/union-to-struct/union1.c"
   "/tests/union-to-struct/union1.output"
   "/tests/union-to-struct/union2.c"

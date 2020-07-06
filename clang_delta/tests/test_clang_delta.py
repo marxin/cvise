@@ -503,6 +503,10 @@ class TestClangDelta(unittest.TestCase):
     def test_simplify_simple_recursive_template(self):
         self.check_clang_delta('simplify-recursive-template-instantiation/test.cc', '--transformation=simplify-recursive-template-instantiation --counter=1')
 
+    def test_template_arg_to_int_not_valid_5(self):
+        self.check_query_instances('template-arg-to-int/not_valid5.cc', '--query-instances=template-arg-to-int',
+                'Available transformation instances: 0')
+
     def test_union_to_struct_union1(self):
         self.check_clang_delta('union-to-struct/union1.c', '--transformation=union-to-struct --counter=1')
 
