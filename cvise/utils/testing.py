@@ -471,13 +471,13 @@ class TestManager:
 
                 success_env = self.run_parallel_tests()
                 self.kill_pid_queue()
-                if not success_env:
-                    self.remove_root()
-                    break
 
-                self.process_result(success_env)
+                if success_env:
+                    self.process_result(success_env)
                 self.release_folders()
                 self.futures.clear()
+                if not success_env:
+                    break
 
             # Cache result of this pass
             if not self.no_cache:
