@@ -70,7 +70,7 @@ manager:
 * [LLVM/Clang 9.0.0 or later](http://llvm.org/releases/download.html)
   (No need to compile it: the appropriate "pre-built binaries" package is
   all you need.  For example, the openSUSE Tumbleweed provides them
-  by llvm10-devel and clang10-devel packages.
+  by `llvm10-devel` and `clang10-devel` packages.
 
 * [Python 3.6+](https://www.python.org/downloads/)
 
