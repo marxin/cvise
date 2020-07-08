@@ -17,6 +17,15 @@ zypper in cvise
 emerge cvise
 ```
 
+### Fedora
+```shell
+yum install cvise
+```
+
+### Debian bullseye
+```shell
+apt install cvise
+```
 
 ### Using Docker (or Podman)
 
