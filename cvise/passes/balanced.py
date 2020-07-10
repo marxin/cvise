@@ -86,7 +86,7 @@ class BalancedPass(AbstractPass):
             config["search"] = nestedmatcher.BalancedExpr.squares
             config["replace_fn"] = replace_only
         else:
-            raise UnknownArgumentError()
+            raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
         return config
 

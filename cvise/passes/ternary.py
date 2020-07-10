@@ -49,7 +49,7 @@ class TernaryPass(AbstractPass):
                 return (PassResult.STOP, state)
             else:
                 if self.arg not in ["b", "c"]:
-                    raise UnknownArgumentError()
+                    raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
                 prog2 = prog2[0:state["del1"][1]] + prog2[state[self.arg][0]:state[self.arg][1]] + prog2[state["del2"][0]:]
 

@@ -137,7 +137,7 @@ class PeepPass(AbstractPass):
         elif self.arg == "c":
             lim = 1
         else:
-            raise UnknownArgumentError()
+            raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
         new_state["regex"] += 1
 
@@ -224,6 +224,6 @@ class PeepPass(AbstractPass):
 
                     return (PassResult.OK, state)
         else:
-            raise UnknownArgumentError()
+            raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
         return (PassResult.INVALID, state)

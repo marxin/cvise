@@ -39,7 +39,7 @@ class IntsPass(AbstractPass):
 
             config["search"] = r"(?P<pref>" + self.border_or_space + r")(?P<numpart>0[Xx][0-9a-fA-F]+)(?P<suf>[ULul]*" + self.border_or_space + r")"
         else:
-            raise UnknownArgumentError()
+            raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
         config["replace_fn"] = replace_fn
         return config

@@ -31,7 +31,7 @@ class IndentPass(AbstractPass):
         elif self.arg == "final":
             cmd.append(test_case)
         else:
-            raise UnknownArgumentError()
+            raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
         _, _, returncode = process_event_notifier.run_process(cmd)
         if returncode != 0:

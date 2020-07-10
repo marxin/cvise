@@ -28,7 +28,7 @@ class SpecialPass(AbstractPass):
             config["search"] = r'extern "C\+\+"'
             config["replace_fn"] = replace_empty
         else:
-            raise UnknownArgumentError()
+            raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
         return config
 
