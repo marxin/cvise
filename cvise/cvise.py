@@ -1,15 +1,11 @@
-import enum
 import json
 import logging
 import os
-import platform
-import sys
 
 from cvise.passes.abstract import AbstractPass
 from . import passes
 from .utils.error import CViseError
 from .utils.error import PassOptionError
-from .utils.error import PrerequisitesNotFoundError
 
 class CVise:
     class Info:
@@ -136,8 +132,6 @@ class CVise:
 
     @staticmethod
     def _check_prerequisites(pass_group):
-        passes = set()
-
         for category in pass_group:
             for p in pass_group[category]:
                 if not p.check_prerequisites():

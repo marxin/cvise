@@ -1,13 +1,12 @@
 import re
-import enum
 import logging
 import copy
 import shutil
 import subprocess
 
-from enum import Enum, auto
+from enum import Enum, auto, unique
 
-@enum.unique
+@unique
 class PassResult(Enum):
     OK = auto()
     INVALID = auto()
@@ -64,8 +63,8 @@ class BinaryState:
             return self
 
 class AbstractPass:
-    @enum.unique
-    class Option(enum.Enum):
+    @unique
+    class Option(Enum):
         slow = "slow"
         windows = "windows"
 
@@ -103,7 +102,7 @@ class AbstractPass:
     def transform(self, test_case, state, process_event_notifier):
         raise NotImplementedError("Class {} has not implemented 'transform'!".format(type(self).__name__))
 
-@enum.unique
+@unique
 class ProcessEventType(Enum):
     STARTED = auto()
     FINISHED = auto()

@@ -1,6 +1,3 @@
-import shutil
-import subprocess
-
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils.error import UnknownArgumentError
 

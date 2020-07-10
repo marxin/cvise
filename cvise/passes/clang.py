@@ -1,6 +1,5 @@
 import logging
 import os
-import subprocess
 import shutil
 import tempfile
 
