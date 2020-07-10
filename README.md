@@ -1,5 +1,7 @@
 # C-Vise
 
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/marxin/cvise.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/marxin/cvise/alerts/)
+
 [![Travis Build Status](https://travis-ci.com/marxin/cvise.svg?branch=master)](https://travis-ci.com/marxin/cvise)
 
 ## About 
