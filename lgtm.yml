@@ -2,4 +2,4 @@ extraction:
   cpp:
     prepare:    # Customizable step used by all languages.
       packages:
-        - llvm10-devel
+        - flex python3-pebble python3-psutil unifdef llvm-10-dev
