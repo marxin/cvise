@@ -42,7 +42,7 @@ class InvalidTestCaseError(InvalidFileError):
 
 class InvalidInterestingnessTestError(InvalidFileError):
     def __init__(self, path):
-        self.path = path
+        super().__init__(path, None)
 
     def __str__(self):
         return "The specified interestingness test '{}' cannot be executed!".format(self.path)
