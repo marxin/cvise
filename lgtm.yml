@@ -3,7 +3,6 @@ extraction:
     prepare:    # Customizable step used by all languages.
       packages:
         - flex
-        - python3-pebble
         - python3-psutil
         - unifdef
-        - llvm-10-dev
+        - llvm-9-dev
