@@ -1,7 +1,4 @@
-import filecmp
 import os
-import shutil
-import subprocess
 import tempfile
 import re
 
