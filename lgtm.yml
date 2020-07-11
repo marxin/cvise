@@ -7,4 +7,4 @@ extraction:
         - unifdef
         - llvm-9-dev
     configure:
-      command: cmake -DCMAKE_BUILD_TYPE=DEBUG .
+      command: mkdir objdir && cd objdir && cmake -DCMAKE_BUILD_TYPE=DEBUG ..
