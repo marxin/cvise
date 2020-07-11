@@ -9,5 +9,7 @@ extraction:
         - llvm-9
         - llvm-9-dev
         - llvm-9-runtime
+        - libclang-9-dev
+        - clang-format
     configure:
-      command: mkdir objdir && cd objdir && cmake -DCMAKE_BUILD_TYPE=DEBUG ..
+      command: pip3 install Pebble && mkdir objdir && cd objdir && cmake -DCMAKE_BUILD_TYPE=DEBUG ..
