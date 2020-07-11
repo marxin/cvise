@@ -6,3 +6,5 @@ extraction:
         - python3-psutil
         - unifdef
         - llvm-9-dev
+    configure:
+      command: cmake -DCMAKE_BUILD_TYPE=DEBUG .
