@@ -10,4 +10,4 @@ extraction:
         - llvm-9-dev
         - llvm-9-runtime
     configure:
-      command: pip3 install Pebble && mkdir objdir && cd objdir && cmake -DCMAKE_BUILD_TYPE=DEBUG -CMAKE_PREFIX_PATH=/usr/lib/llvm-9/ ..
+      command: pip3 install Pebble && mkdir objdir && cd objdir && cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_PREFIX_PATH=/usr/lib/llvm-9/ ..
