@@ -11,3 +11,6 @@ extraction:
         - llvm-9-runtime
     configure:
       command: mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_PREFIX_PATH=/usr/lib/llvm-9/ ..
+    index:
+        build_command:
+          - cd build && make -j4
