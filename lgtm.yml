@@ -5,6 +5,9 @@ extraction:
         - flex
         - python3-psutil
         - unifdef
+        - libllvm9
+        - llvm-9
         - llvm-9-dev
+        - llvm-9-runtime
     configure:
       command: mkdir objdir && cd objdir && cmake -DCMAKE_BUILD_TYPE=DEBUG ..
