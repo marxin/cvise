@@ -1,6 +1,5 @@
 import os
 import shutil
-import subprocess
 import tempfile
 
 from cvise.passes.abstract import AbstractPass, PassResult

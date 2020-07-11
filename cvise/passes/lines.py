@@ -1,4 +1,3 @@
-import logging
 import shutil
 import subprocess
 import tempfile

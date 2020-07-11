@@ -1,4 +1,3 @@
-import re
 import logging
 import copy
 import shutil
