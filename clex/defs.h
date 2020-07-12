@@ -6,6 +6,9 @@
  * License.  See the file COPYING for details.
  */
 
+#ifndef DEFS_H
+#define DEFS_H
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,3 +41,5 @@ void process_token(enum tok_kind);
 
 #define OK 51
 #define STOP 71
+
+#endif

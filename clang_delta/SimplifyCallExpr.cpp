@@ -188,5 +188,6 @@ void SimplifyCallExpr::replaceCallExpr(void)
 SimplifyCallExpr::~SimplifyCallExpr(void)
 {
   delete CollectionVisitor;
+  delete NameQueryWrap;
 }
 
