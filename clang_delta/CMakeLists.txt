@@ -592,6 +592,17 @@ set(CMAKE_CXX_FLAGS_ASAN
     CACHE STRING "Flags used by the C++ compiler during AddressSanitizer builds."
     FORCE)
 
+# Coverage builds
+set(CMAKE_C_FLAGS_COVERAGE
+    "--coverage"
+    CACHE STRING "Flags used by the C compiler during coverage builds."
+    FORCE)
+set(CMAKE_CXX_FLAGS_COVERAGE
+    "--coverage"
+    CACHE STRING "Flags used by the C++ compiler during coverage builds."
+    FORCE)
+
+
 install(TARGETS clang_delta
   DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}/${cvise_PACKAGE}/"
 )
