@@ -2,10 +2,11 @@ import logging
 import os
 import re
 import shutil
+import subprocess
 import tempfile
 import time
 
-from cvise.passes.abstract import AbstractPass
+from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
 class ClangBinarySearchPass(AbstractPass):
     def check_prerequisites(self):
