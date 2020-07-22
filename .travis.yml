@@ -71,9 +71,6 @@ before_install:
   - echo "travis:110000:65535" | sudo tee /etc/subuid
   - echo "travis:110000:65535" | sudo tee /etc/subgid
 
-install:
-  - pip install coveralls
-
 script:
   - podman build -t $DIST -f Docker/Dockerfile-$DIST .
   - podman run -v $(pwd):/usr/src/cvise $DIST ./build_and_test.sh
