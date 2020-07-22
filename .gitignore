@@ -37,6 +37,7 @@ install_manifest.txt
 [Rr]elease/
 x64/
 x86/
+objdir/
 
 # Visual Studio 2015 cache/options directory
 .vs/
