@@ -38,6 +38,7 @@ matrix:
       env:
         - BUILD_TYPE=DEBUG
         - DIST=opensusetw-llvm10
+        - COVERAGE=yes
 
     - name: UBSAN build (LLVM 10)
       stage: build
