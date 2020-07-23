@@ -1,8 +1,8 @@
 FROM opensuse/tumbleweed
 
 RUN zypper -n install \
-        binutils clang10-devel cmake flex gcc-c++ llvm10-devel python3-Pebble python3-pytest unifdef python3-pip sqlite3
-RUN pip install coveralls cpp-coveralls pysqlite3
+        binutils clang10-devel cmake flex gcc-c++ llvm10-devel python3-Pebble python3-pytest unifdef python3-pip sqlite-devel git python3
+RUN pip install coveralls cpp-coveralls
 ENV LSAN_OPTIONS="detect_leaks=0"
 
 WORKDIR /usr/src/cvise

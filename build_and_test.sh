@@ -2,10 +2,11 @@
 
 BUILD_TYPE=$1
 
+rm -rf objdir && \
 mkdir objdir && \
 cd objdir && \
 cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE && \
-make -j2 VERBOSE=1 && \
+make -j`nproc` VERBOSE=1 && \
 pytest
 
 if [ "$BUILD_TYPE" = "COVERAGE" ]; then
