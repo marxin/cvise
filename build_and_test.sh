@@ -11,5 +11,5 @@ pytest
 if [ "$BUILD_TYPE" = "COVERAGE" ]; then
 coverage run --source=cvise -m pytest cvise/tests/
 COVERALLS_REPO_TOKEN=hLV67xXTIENsuN4tmJoK0RpfgNZQW72sK coveralls
-COVERALLS_REPO_TOKEN=hLV67xXTIENsuN4tmJoK0RpfgNZQW72sK coveralls --gcov-options '\-lp'
+COVERALLS_REPO_TOKEN=hLV67xXTIENsuN4tmJoK0RpfgNZQW72sK coveralls --gcov-options '\-lp' --exclude-pattern '.*\.l'
 fi
