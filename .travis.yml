@@ -79,7 +79,7 @@ before_install:
 
 script:
   - podman build -t $DIST -f Docker/Dockerfile-$DIST .
-  - podman run -v $(pwd):/usr/src/cvise $DIST ./build_and_test.sh
+  - podman run -v $(pwd):/usr/src/cvise $DIST ./build_and_test.sh $BUILD_TYPE
 
 ###############################################################################
 
