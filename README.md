@@ -4,6 +4,7 @@
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/marxin/cvise.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/marxin/cvise/alerts/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/marxin/cvise.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/marxin/cvise/context:python)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/marxin/cvise.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/marxin/cvise/context:cpp)
+[![Coverage Status](https://coveralls.io/repos/github/marxin/cvise/badge.svg?branch=master)](https://coveralls.io/github/marxin/cvise?branch=master)
 
 ## About 
 
