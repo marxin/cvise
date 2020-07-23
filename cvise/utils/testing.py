@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import weakref
+import traceback
 
 import concurrent.futures
 from concurrent.futures import wait, FIRST_COMPLETED, TimeoutError
@@ -112,6 +113,7 @@ class TestEnvironment:
             pass
         except Exception as e:
             print('Unexpected TestEnvironment::run failure: ' + str(e))
+            traceback.print_exc()
         finally:
             return self
 
