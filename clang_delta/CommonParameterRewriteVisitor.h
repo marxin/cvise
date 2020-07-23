@@ -23,7 +23,7 @@ public:
     : ConsumerInstance(Instance)
   { }
 
-  bool VisitCallExpr(clang::CallExpr *E);
+  bool VisitCallExpr(clang::CallExpr *CallE);
 
   bool VisitFunctionDecl(clang::FunctionDecl *FD);
 

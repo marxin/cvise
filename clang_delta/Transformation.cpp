@@ -591,11 +591,11 @@ const FunctionDecl *Transformation::lookupFunctionDeclFromCtx(
     if (const UnresolvedUsingValueDecl *UUD =
         dyn_cast<UnresolvedUsingValueDecl>(*I)) {
       const NestedNameSpecifier *NNS = UUD->getQualifier();
-      const DeclContext *Ctx = getDeclContextFromSpecifier(NNS);
-      if (!Ctx)
+      const DeclContext *DeclCtx = getDeclContextFromSpecifier(NNS);
+      if (!DeclCtx)
         continue;
       if (const FunctionDecl *FD =
-          lookupFunctionDecl(DName, Ctx, VisitedCtxs))
+          lookupFunctionDecl(DName, DeclCtx, VisitedCtxs))
         return FD;
     }
   }
