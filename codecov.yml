@@ -1,2 +1,6 @@
 fixes:
+  - "/usr/src/cvise/objdir/usr/src/cvise/objdir::"
   - "/usr/src/cvise/objdir/usr/src/cvise::"
+ignore:
+  - "/usr/src/cvise/objdir/usr/include"
+  - "cvise/tests"
