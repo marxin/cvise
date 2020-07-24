@@ -9,10 +9,8 @@ cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 make -j`nproc` VERBOSE=1
 
 if [ "$BUILD_TYPE" = "COVERAGE" ]; then
-coverage run --source=. -m pytest cvise/tests/
-coverage report -m
-COVERALLS_REPO_TOKEN=hLV67xXTIENsuN4tmJoK0RpfgNZQW72sK coveralls -n
-COVERALLS_REPO_TOKEN=hLV67xXTIENsuN4tmJoK0RpfgNZQW72sK coveralls --gcov-options '\-lp' --exclude-pattern '.*\.l'
+pytest --cov=./
+CODECOV_TOKEN="7c181327-be77-41de-aa6e-ca7187b14376" codecov
 else
 pytest
 fi
