@@ -7,9 +7,6 @@ fixes:
 ignore:
   - "**/include"
   - "cvise/tests"
-  - "objdir/delta/topformflat.c"
   - "/usr/src/cvise/objdir/delta/topformflat.c"
-  - "objdir/clex/strlex.c"
   - "/usr/src/cvise/objdir/clex/strlex.c"
-  - "objdir/clex/clex.c"
   - "/usr/src/cvise/objdir/clex/clex.c"
