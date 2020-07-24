@@ -470,7 +470,10 @@ int main(int argc, char *argv[]) {
   assert(ret == 1);
   // printf ("file = '%s'\n", argv[3]);
   FILE *in = fopen(argv[3], "r");
-  assert(in);
+  if (!in) {
+    fprintf(stderr, "Cannot open file: %s\n", argv[3]);
+    exit(STOP);
+  }
   yyin = in;
 
   max_toks = initial_length;
