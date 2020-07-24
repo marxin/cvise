@@ -4,6 +4,6 @@ fixes:
 ignore:
   - "**/include"
   - "cvise/tests"
-  - "delta/topformflat.c"
-  - "clex/strlex.c"
-  - "clex/clex.c"
+  - "/usr/src/cvise/objdir/delta/topformflat.c"
+  - "/usr/src/cvise/objdir/clex/strlex.c"
+  - "/usr/src/cvise/objdir/clex/clex.c"
