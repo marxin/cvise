@@ -10,15 +10,19 @@ else:
 class KeyLogger:
     def __init__(self):
         if sys.platform != "win32":
-            fd = sys.stdin.fileno()
-            new_term = termios.tcgetattr(fd)
-            old_term = termios.tcgetattr(fd)
+            try:
+                fd = sys.stdin.fileno()
+                new_term = termios.tcgetattr(fd)
+                old_term = termios.tcgetattr(fd)
 
-            self._finalizer = weakref.finalize(self, termios.tcsetattr, fd, termios.TCSAFLUSH, old_term)
+                self._finalizer = weakref.finalize(self, termios.tcsetattr, fd, termios.TCSAFLUSH, old_term)
 
-            # New terminal setting unbuffered
-            new_term[3] = new_term[3] & ~termios.ICANON & ~termios.ECHO
-            termios.tcsetattr(fd, termios.TCSAFLUSH, new_term)
+                # New terminal setting unbuffered
+                new_term[3] = new_term[3] & ~termios.ICANON & ~termios.ECHO
+                termios.tcsetattr(fd, termios.TCSAFLUSH, new_term)
+            except:
+                # TODO
+                pass
 
     def _getch(self):
         if sys.platform == "win32":

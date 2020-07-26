@@ -187,6 +187,19 @@ configure_file(
   @ONLY
 )
 
+configure_file(
+  "${PROJECT_SOURCE_DIR}/tests/test_cvise.py"
+  "${PROJECT_BINARY_DIR}/tests/test_cvise.py"
+  @COPYONLY
+)
+
+configure_file(
+  "${PROJECT_SOURCE_DIR}/tests/sources/blocksort-part.c"
+  "${PROJECT_BINARY_DIR}/tests/sources/blocksort-part.c"
+  @COPYONLY
+)
+
+
 install(PROGRAMS "${PROJECT_BINARY_DIR}/cvise.py"
   DESTINATION "${CMAKE_INSTALL_BINDIR}"
   RENAME "cvise"
