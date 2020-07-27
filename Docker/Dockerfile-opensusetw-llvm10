@@ -1,7 +1,7 @@
 FROM opensuse/tumbleweed
 
 RUN zypper -n install \
-        binutils clang10-devel cmake flex gcc-c++ llvm10-devel python3-Pebble python3-pytest4 unifdef python3-pip sqlite-devel git python3
+        binutils clang10-devel cmake flex gcc-c++ llvm10-devel python3-Pebble python3-pytest4 unifdef python3-pip python3-psutil sqlite-devel git python3
 RUN pip install codecov pytest-cov
 ENV LSAN_OPTIONS="detect_leaks=0"
 
