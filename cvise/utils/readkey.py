@@ -20,8 +20,8 @@ class KeyLogger:
                 # New terminal setting unbuffered
                 new_term[3] = new_term[3] & ~termios.ICANON & ~termios.ECHO
                 termios.tcsetattr(fd, termios.TCSAFLUSH, new_term)
-            except:
-                # TODO
+            except termios.error:
+                # this happens when run in pytest
                 pass
 
     def _getch(self):
