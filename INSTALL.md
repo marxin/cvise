@@ -3,7 +3,7 @@
 ## Using a Package Manager
 
 Before compiling C-Vise yourself, you might want to see if your OS
-comes with a precompiled package for C-Vise.
+comes with a pre-compiled package for C-Vise.
 
 ### openSUSE Tumbleweed
 
