@@ -39,10 +39,12 @@ class IfPass(AbstractPass):
 
     def advance(self, test_case, state):
         if state.value == 0:
+            state = state.copy()
             state.value = 1
         else:
-            state.advance()
-            state.value = 0
+            state = state.advance()
+            if state:
+                state.value = 0
         return state
 
     def advance_on_success(self, test_case, state):
@@ -63,12 +65,11 @@ class IfPass(AbstractPass):
 
                     if self.line_regex.search(line):
                         if state.index <= i and i < state.end():
-                            tmp_file.write('#if {0}\n'.format(state.value))
+                            if self.__macro_continues(line):
+                                in_multiline = True
+                            line = '#if {0}\n'.format(state.value)
                         i += 1
-                        if self.__macro_continues(line):
-                            in_multiline = True
-                    else:
-                        tmp_file.write(line)
+                    tmp_file.write(line)
 
         cmd = [self.external_programs["unifdef"], "-B", "-x", "2", "-k", "-o", test_case, tmp_file.name]
         stdout, stderr, returncode = process_event_notifier.run_process(cmd)
