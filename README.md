@@ -6,7 +6,7 @@
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/marxin/cvise.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/marxin/cvise/context:cpp)
 [![codecov](https://codecov.io/gh/marxin/cvise/branch/master/graph/badge.svg)](https://codecov.io/gh/marxin/cvise)
 
-[OBS master](https://build.opensuse.org/package/show/home:marxin:cvise-github/cvise)
+[![OBS master](https://build.opensuse.org/assets/favicon-ac48595b97f38c2425d7ea77739a63d771fcda9f73cc8c474b66461c0836fc2a.ico)](https://build.opensuse.org/package/show/home:marxin:cvise-github/cvise)
 
 ## About 
 
