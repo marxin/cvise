@@ -6,6 +6,8 @@
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/marxin/cvise.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/marxin/cvise/context:cpp)
 [![codecov](https://codecov.io/gh/marxin/cvise/branch/master/graph/badge.svg)](https://codecov.io/gh/marxin/cvise)
 
+[OBS master](https://build.opensuse.org/package/show/home:marxin:cvise-github/cvise)
+
 ## About 
 
 C-Vise is a super-parallel Python port of the [C-Reduce](https://github.com/csmith-project/creduce/).
