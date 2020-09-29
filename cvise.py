@@ -134,10 +134,14 @@ if __name__ == "__main__":
         # in order to speed up parallel execution
         core_count = psutil.cpu_count(logical=False)
         if not core_count:
-            psutil.cpu_count(logical=True)
+            core_count = psutil.cpu_count(logical=True)
         # respect affinity
         affinity = len(psutil.Process().cpu_affinity())
-        core_count = min(core_count, affinity)
+        assert affinity >= 1
+        if core_count:
+            core_count = min(core_count, affinity)
+        else:
+            core_count = affinity
     except NotImplementedError:
         core_count = 1
 
