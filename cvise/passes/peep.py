@@ -124,7 +124,7 @@ class PeepPass(AbstractPass):
     def check_prerequisites(self):
         return True
 
-    def new(self, test_case):
+    def new(self, test_case, _=None):
         return {"pos" : 0, "regex" : 0}
 
     def advance(self, test_case, state):

@@ -10,7 +10,7 @@ class UnIfDefPass(AbstractPass):
     def check_prerequisites(self):
         return self.check_external_program("unifdef")
 
-    def new(self, test_case):
+    def new(self, test_case, _=None):
         return 0
 
     def advance(self, test_case, state):

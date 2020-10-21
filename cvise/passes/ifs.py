@@ -31,7 +31,7 @@ class IfPass(AbstractPass):
                         in_multiline = True
         return count
 
-    def new(self, test_case):
+    def new(self, test_case, _=None):
         bs = BinaryState.create(self.__count_instances(test_case))
         if bs:
             bs.value = 0

@@ -3,13 +3,16 @@ import subprocess
 import tempfile
 import os
 
+import logging
+
+from cvise.utils.error import InsaneTestCaseError
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
 class LinesPass(AbstractPass):
     def check_prerequisites(self):
         return self.check_external_program("topformflat")
 
-    def __format(self, test_case):
+    def __format(self, test_case, check_sanity):
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
             with open(test_case, "r") as in_file:
@@ -23,17 +26,34 @@ class LinesPass(AbstractPass):
                 if not l.isspace():
                     tmp_file.write(l)
 
-        shutil.move(tmp_file.name, test_case)
+        # we need to check that sanity check is still fine
+        if check_sanity:
+            backup = tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp)
+            shutil.copyfile(test_case, backup.name)
+            shutil.move(tmp_file.name, test_case)
+            try:
+                check_sanity()
+            except InsaneTestCaseError:
+                shutil.move(backup.name, test_case)
+                # if we are not the first lines pass, we should bail out
+                if self.arg != '0':
+                    self.bailout = True
+        else:
+            shutil.move(tmp_file.name, test_case)
 
     def __count_instances(self, test_case):
         with open(test_case, "r") as in_file:
             lines = in_file.readlines()
             return len(lines)
 
-    def new(self, test_case):
+    def new(self, test_case, check_sanity=None):
+        self.bailout = False
         # None means no topformflat
         if self.arg != 'None':
-            self.__format(test_case)
+            self.__format(test_case, check_sanity)
+            if self.bailout:
+                logging.info('Skipping pass as sanity check fails for topformflat output')
+                return None
         instances = self.__count_instances(test_case)
         return BinaryState.create(instances)
 

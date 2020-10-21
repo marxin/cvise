@@ -28,7 +28,7 @@ class ClangBinarySearchPass(AbstractPass):
         logging.info('using C++ standard: %s with %d instances' % (best, best_count))
         self.clang_delta_std = best
 
-    def new(self, test_case):
+    def new(self, test_case, _=None):
         self.detect_best_standard(test_case)
         return BinaryState.create(self.count_instances(test_case))
 

@@ -9,7 +9,7 @@ class IncludesPass(AbstractPass):
     def check_prerequisites(self):
         return True
 
-    def new(self, test_case):
+    def new(self, test_case, _=None):
         return 1
 
     def advance(self, test_case, state):

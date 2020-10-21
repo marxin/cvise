@@ -42,7 +42,7 @@ class SpecialPass(AbstractPass):
 
         return m
 
-    def new(self, test_case):
+    def new(self, test_case, _=None):
         config = self.__get_config()
         with open(test_case, "r") as in_file:
             prog = in_file.read()

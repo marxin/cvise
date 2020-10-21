@@ -89,7 +89,7 @@ class AbstractPass:
     def check_prerequisites(self):
         raise NotImplementedError("Class {} has not implemented 'check_prerequisites'!".format(type(self).__name__))
 
-    def new(self, test_case):
+    def new(self, test_case, check_sanity):
         raise NotImplementedError("Class {} has not implemented 'new'!".format(type(self).__name__))
 
     def advance(self, test_case, state):

@@ -44,7 +44,7 @@ class IntsPass(AbstractPass):
         config["replace_fn"] = replace_fn
         return config
 
-    def new(self, test_case):
+    def new(self, test_case, _=None):
         config = self.__get_config()
         with open(test_case, "r") as in_file:
             prog = in_file.read()

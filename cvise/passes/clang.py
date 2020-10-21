@@ -9,7 +9,7 @@ class ClangPass(AbstractPass):
     def check_prerequisites(self):
         return self.check_external_program("clang_delta")
 
-    def new(self, test_case):
+    def new(self, test_case, _=None):
         return 1
 
     def advance(self, test_case, state):
