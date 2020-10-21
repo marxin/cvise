@@ -171,7 +171,7 @@ if __name__ == "__main__":
     passes_group.add_argument("--pass-group-file", type=str, help="JSON file defining a custom pass group")
     parser.add_argument("--clang-delta-std", type=str, choices=["c++98", "c++11", "c++14", "c++17", "c++20"], help="Specify clang_delta C++ standard, it can rapidly speed up all clang_delta passes")
     parser.add_argument("--not-c", action="store_true", help="Don't run passes that are specific to C and C++, use this mode for reducing other languages")
-    parser.add_argument("--no-renaming", action="store_true", help="Skip all renaming passes")
+    parser.add_argument("--renaming", action="store_true", help="Enable all renaming passes (that are disabled by default)")
     parser.add_argument("--list-passes", action="store_true", help="Print all available passes and exit")
     parser.add_argument("--version", action="version", version=CVise.Info.PACKAGE_STRING  + (' (%s)' % CVise.Info.GIT_VERSION if CVise.Info.GIT_VERSION != 'unknown' else ''))
     parser.add_argument("--commands", "-c", help="Use bash commands instead of an interestingness test case")
@@ -223,7 +223,7 @@ if __name__ == "__main__":
 
     pass_group_dict = CVise.load_pass_group_file(pass_group_file)
     pass_group = CVise.parse_pass_group_dict(pass_group_dict, pass_options, external_programs,
-            args.remove_pass, args.clang_delta_std, args.not_c, args.no_renaming)
+            args.remove_pass, args.clang_delta_std, args.not_c, args.renaming)
     if args.list_passes:
         logging.info('Available passes:')
         logging.info('INITIAL PASSES')
