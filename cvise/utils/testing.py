@@ -106,7 +106,7 @@ class TestEnvironment:
                 return self
 
             # run test script
-            self.exitcode = self.run_test()
+            self.exitcode = self.run_test(False)
             return self
         except OSError as e:
             # this can happen when we clean up temporary files for cancelled processes
@@ -117,11 +117,11 @@ class TestEnvironment:
         finally:
             return self
 
-    def run_test(self, verbose=False):
+    def run_test(self, verbose):
         try:
             os.chdir(self.folder)
             stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(self.test_script, shell=True)
-            if verbose:
+            if verbose and returncode != 0:
                 logging.debug('stdout:\n' + stdout)
                 logging.debug('stderr:\n' + stderr)
         finally:
@@ -263,14 +263,14 @@ class TestManager:
 
         return "".join(diffed_lines)
 
-    def check_sanity(self):
+    def check_sanity(self, verbose=False):
         logging.debug("perform sanity check... ")
 
         folder = tempfile.mkdtemp(prefix=self.TEMP_PREFIX)
         test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, None)
         logging.debug("sanity check tmpdir = {}".format(test_env.folder))
 
-        returncode = test_env.run_test(True)
+        returncode = test_env.run_test(verbose)
         if returncode == 0:
             rmfolder(folder)
             logging.debug("sanity check successful")
