@@ -117,11 +117,13 @@ class TestEnvironment:
         finally:
             return self
 
-    def run_test(self):
+    def run_test(self, verbose=False):
         try:
             os.chdir(self.folder)
-            _, _, returncode = ProcessEventNotifier(self.pid_queue).run_process(self.test_script, shell=True,
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(self.test_script, shell=True)
+            if verbose:
+                logging.debug('stdout:\n' + stdout)
+                logging.debug('stderr:\n' + stderr)
         finally:
             os.chdir(self.pwd)
         return returncode
@@ -268,11 +270,13 @@ class TestManager:
         test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, None)
         logging.debug("sanity check tmpdir = {}".format(test_env.folder))
 
-        returncode = test_env.run_test()
-        rmfolder(folder)
+        returncode = test_env.run_test(True)
         if returncode == 0:
+            rmfolder(folder)
             logging.debug("sanity check successful")
         else:
+            if not self.save_temps:
+                rmfolder(folder)
             raise InsaneTestCaseError(self.test_cases, self.test_script)
 
     def release_folder(self, future):

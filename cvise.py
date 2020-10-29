@@ -152,7 +152,7 @@ if __name__ == "__main__":
     parser.add_argument("--die-on-pass-bug", action="store_true", default=False, help="Terminate C-Vise if a pass encounters an otherwise non-fatal problem")
     parser.add_argument("--sllooww", action="store_true", default=False, help="Try harder to reduce, but perhaps take a long time to do so")
     parser.add_argument("--also-interesting", metavar="EXIT_CODE", type=int, help="A process exit code (somewhere in the range 64-113 would be usual) that, when returned by the interestingness test, will cause C-Vise to save a copy of the variant")
-    parser.add_argument("--debug", action="store_true", default=False, help="Print debug information")
+    parser.add_argument("--debug", action="store_true", default=False, help="Print debug information (alias for --log-level=DEBUG)")
     parser.add_argument("--log-level", type=str, choices=["INFO", "DEBUG", "WARNING", "ERROR"], default="INFO", help="Define the verbosity of the logged events")
     parser.add_argument("--log-file", type=str, help="Log events into LOG_FILE instead of stderr. New events are appended to the end of the file")
     parser.add_argument("--no-give-up", action="store_true", default=False, help="Don't give up on a pass that hasn't made progress for {} iterations".format(testing.TestManager.GIVEUP_CONSTANT))
