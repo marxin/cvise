@@ -324,7 +324,7 @@ class TestManager:
                 if future.exception():
                     if type(future.exception()) is TimeoutError:
                         self.timeout_count += 1
-                        logging.debug("Test timed out!")
+                        logging.warning("Test timed out.")
                         if self.timeout_count >= self.MAX_TIMEOUTS:
                             logging.warning("Maximum number of timeout were reached: %d" % self.MAX_TIMEOUTS)
                             quit_loop = True
