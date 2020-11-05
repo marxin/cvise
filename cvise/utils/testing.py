@@ -311,6 +311,13 @@ class TestManager:
         self.futures.remove(future)
         self.release_folder(future)
 
+    def save_extra_dir(self, test_case_path):
+        extra_dir = self.get_extra_dir("cvise_extra_", self.MAX_EXTRA_DIRS)
+        if extra_dir != None:
+            os.mkdir(extra_dir)
+            shutil.move(test_case_path, extra_dir)
+            logging.info("Created extra directory {} for you to look at later".format(extra_dir))
+
     def process_done_futures(self):
         quit_loop = False
         new_futures = set()
@@ -325,6 +332,7 @@ class TestManager:
                     if type(future.exception()) is TimeoutError:
                         self.timeout_count += 1
                         logging.warning("Test timed out.")
+                        self.save_extra_dir(test_env.test_case_path)
                         if self.timeout_count >= self.MAX_TIMEOUTS:
                             logging.warning("Maximum number of timeout were reached: %d" % self.MAX_TIMEOUTS)
                             quit_loop = True
@@ -351,11 +359,7 @@ class TestManager:
                         assert test_env.exitcode
                         if (self.also_interesting is not None and
                             test_env.exitcode == self.also_interesting):
-                            extra_dir = self.get_extra_dir("cvise_extra_", self.MAX_EXTRA_DIRS)
-                            if extra_dir != None:
-                                os.mkdir(extra_dir)
-                                shutil.move(test_env.test_case_path, extra_dir)
-                                logging.info("Created extra directory {} for you to look at later".format(extra_dir))
+                            self.save_extra_dir(test_env.test_case_path)
                     elif test_env.result == PassResult.STOP:
                         quit_loop = True
                     elif test_env.result == PassResult.ERROR:
