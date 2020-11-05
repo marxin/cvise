@@ -31,8 +31,10 @@ from cvise.utils import statistics
 
 class DeltaTimeFormatter(logging.Formatter):
     def format(self, record):
-        duration = datetime.datetime.utcfromtimestamp(record.relativeCreated / 1000)
-        record.delta = duration.strftime("%H:%M:%S")
+        record.delta = str(datetime.timedelta(seconds=int(record.relativeCreated / 1000)))
+        # pad with one more zero
+        if record.delta[1] == ':':
+            record.delta = '0' + record.delta
         return super().format(record)
 
 script_path = os.path.dirname(os.path.realpath(__file__))
