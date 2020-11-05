@@ -164,7 +164,7 @@ if __name__ == "__main__":
     parser.add_argument("--remove-pass", help="Remove all instances of the specified passes from the schedule (comma-separated)")
     parser.add_argument("--no-timing", action="store_true", default=False, help="Do not print timestamps about reduction progress")
     parser.add_argument("--timestamp", action="store_true", default=False, help="Print timestamps instead of relative time from a reduction start")
-    parser.add_argument("--timeout", type=int, nargs="?", const=300, help="Interestingness test timeout in seconds")
+    parser.add_argument("--timeout", type=int, nargs="?", default=300, help="Interestingness test timeout in seconds")
     parser.add_argument("--no-cache", action="store_true", default=False, help="Don't cache behavior of passes")
     parser.add_argument("--skip-key-off", action="store_true", default=False, help="Disable skipping the rest of the current pass when \"s\" is pressed")
     parser.add_argument("--max-improvement", metavar="BYTES", type=int, help="Largest improvement in file size from a single transformation that C-Vise should accept (useful only to slow C-Vise down)")
