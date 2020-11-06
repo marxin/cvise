@@ -308,7 +308,6 @@ class TestManager:
                 children.append(process)
                 for child in children:
                     try:
-                        print(child)
                         child.terminate()
                     except psutil.NoSuchProcess:
                         pass
