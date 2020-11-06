@@ -199,6 +199,11 @@ configure_file(
   @COPYONLY
 )
 
+configure_file(
+  "${PROJECT_SOURCE_DIR}/setup.cfg"
+  "${PROJECT_BINARY_DIR}/setup.cfg"
+  @COPYONLY
+)
 
 install(PROGRAMS "${PROJECT_BINARY_DIR}/cvise.py"
   DESTINATION "${CMAKE_INSTALL_BINDIR}"
