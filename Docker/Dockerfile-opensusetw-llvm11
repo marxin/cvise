@@ -1,0 +1,9 @@
+FROM opensuse/tumbleweed
+
+RUN zypper -n install \
+        binutils clang11-devel cmake flex gcc-c++ llvm11-devel python3-Pebble python3-pytest unifdef python3-pip python3-psutil sqlite-devel git python3
+RUN pip install codecov pytest-cov
+ENV LSAN_OPTIONS="detect_leaks=0"
+
+WORKDIR /usr/src/cvise
+VOLUME /usr/src/cvise

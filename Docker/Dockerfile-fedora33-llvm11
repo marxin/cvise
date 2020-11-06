@@ -1,4 +1,4 @@
-FROM fedora:31
+FROM fedora:33
 
 RUN dnf install -y python3-pip python3-pytest python3-psutil llvm-devel clang-devel cmake make flex unifdef
 RUN pip3 install Pebble
