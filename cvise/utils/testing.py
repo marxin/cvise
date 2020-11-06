@@ -9,8 +9,8 @@ import os
 import os.path
 import pebble
 import platform
+import psutil
 import shutil
-import signal
 import subprocess
 import sys
 import tempfile
@@ -303,8 +303,16 @@ class TestManager:
                 active_pids.add(event.pid)
         for pid in active_pids:
             try:
-                os.kill(pid, signal.SIGTERM)
-            except ProcessLookupError:
+                process = psutil.Process(pid)
+                children = process.children(recursive=True)
+                children.append(process)
+                for child in children:
+                    try:
+                        print(child)
+                        child.terminate()
+                    except psutil.NoSuchProcess:
+                        pass
+            except psutil.NoSuchProcess:
                 pass
 
     def release_future(self, future):
@@ -332,7 +340,7 @@ class TestManager:
                     if type(future.exception()) is TimeoutError:
                         self.timeout_count += 1
                         logging.warning("Test timed out.")
-                        self.save_extra_dir(test_env.test_case_path)
+                        self.save_extra_dir(self.temporary_folders[future])
                         if self.timeout_count >= self.MAX_TIMEOUTS:
                             logging.warning("Maximum number of timeout were reached: %d" % self.MAX_TIMEOUTS)
                             quit_loop = True
