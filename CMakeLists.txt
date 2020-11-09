@@ -190,19 +190,19 @@ configure_file(
 configure_file(
   "${PROJECT_SOURCE_DIR}/tests/test_cvise.py"
   "${PROJECT_BINARY_DIR}/tests/test_cvise.py"
-  @COPYONLY
+  COPYONLY
 )
 
 configure_file(
   "${PROJECT_SOURCE_DIR}/tests/sources/blocksort-part.c"
   "${PROJECT_BINARY_DIR}/tests/sources/blocksort-part.c"
-  @COPYONLY
+  COPYONLY
 )
 
 configure_file(
   "${PROJECT_SOURCE_DIR}/setup.cfg"
   "${PROJECT_BINARY_DIR}/setup.cfg"
-  @COPYONLY
+  COPYONLY
 )
 
 install(PROGRAMS "${PROJECT_BINARY_DIR}/cvise.py"
