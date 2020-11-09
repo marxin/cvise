@@ -27,6 +27,24 @@ addons:
 
 matrix:
   - include:
+    - name: DEBUG build (LLVM 9)
+      stage: build
+      env:
+        - BUILD_TYPE=DEBUG
+        - DIST=opensusetw-llvm9
+
+    - name: DEBUG build (LLVM 10)
+      stage: build
+      env:
+        - BUILD_TYPE=DEBUG
+        - DIST=opensusetw-llvm10
+
+    - name: DEBUG build (LLVM 10)
+      stage: build
+      env:
+        - BUILD_TYPE=DEBUG
+        - DIST=opensusetw-llvm10
+
     - name: COVERAGE build (LLVM 11)
       stage: build
       env:
