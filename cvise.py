@@ -293,7 +293,8 @@ if __name__ == "__main__":
             print("Runtime: {} seconds".format(round((time_stop - time_start))))
 
         print('Reduced test-cases:\n')
-        for test_case in test_manager.sorted_test_cases:
+        for test_case in sorted(test_manager.test_cases):
+            print(f'--- {test_case} ---')
             with open(test_case) as test_case_file:
                 print(test_case_file.read())
         if script:
