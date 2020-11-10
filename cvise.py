@@ -247,6 +247,11 @@ if __name__ == "__main__":
         print('Either INTERESTINGNESS_TEST or --commands must be used!')
         exit(1)
 
+    # shift interestingness_test if --commands is used
+    if args.interestingness_test and args.commands:
+        args.test_cases.insert(0, args.interestingness_test)
+        args.interestingness_test = None
+
     script = None
     if args.commands:
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".sh") as script:
