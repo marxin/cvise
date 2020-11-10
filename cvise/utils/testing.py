@@ -185,7 +185,7 @@ class TestManager:
 
     @property
     def sorted_test_cases(self):
-        return sorted(self.test_cases, key=os.path.getsize)
+        return sorted(self.test_cases, key=os.path.getsize, reverse=True)
 
     @staticmethod
     def get_file_size(files):
@@ -453,7 +453,7 @@ class TestManager:
         if not self.skip_key_off:
             logger = readkey.KeyLogger()
 
-        for test_case in self.test_cases:
+        for test_case in self.sorted_test_cases:
             self.current_test_case = test_case
 
             if self.get_file_size([test_case]) == 0:
