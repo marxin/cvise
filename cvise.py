@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 import argparse
 import logging
@@ -255,7 +255,7 @@ if __name__ == "__main__":
     script = None
     if args.commands:
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".sh") as script:
-            script.write('#!/bin/bash\n\n')
+            script.write('#!/usr/bin/bash\n\n')
             script.write(args.commands + '\n')
         os.chmod(script.name, 0o744)
         logging.info('Using temporary interestingness test: %s' % script.name)
