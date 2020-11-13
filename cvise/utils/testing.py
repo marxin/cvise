@@ -191,6 +191,18 @@ class TestManager:
     def get_file_size(files):
         return sum(os.path.getsize(f) for f in files)
 
+    @property
+    def total_line_count(self):
+        return self.get_line_count(self.test_cases)
+
+    @staticmethod
+    def get_line_count(files):
+        lines = 0
+        for file in files:
+            with open(file) as f:
+                lines += len(f.readlines())
+        return lines
+
     def backup_test_cases(self):
         for f in self.test_cases:
             orig_file = "{}.orig".format(f)
@@ -518,4 +530,4 @@ class TestManager:
         self.pass_statistic.add_success(self.current_pass)
 
         pct = 100 - (self.total_file_size * 100.0 / self.orig_total_file_size)
-        logging.info("({}%, {} bytes)".format(round(pct, 1), self.total_file_size))
+        logging.info("({}%, {} bytes, {} lines)".format(round(pct, 1), self.total_file_size, self.total_line_count))
