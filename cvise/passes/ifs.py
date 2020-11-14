@@ -1,6 +1,6 @@
 import os
-import tempfile
 import re
+import tempfile
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 

@@ -1,10 +1,9 @@
 struct S {
-  int **f1;
-};
+  int f1;
+} a, b[1];
+int a_0;
 
-void foo() {
-  int *a[16];
-  struct S s = { a };
-  int *s_0_0;
-  s_0_0 = 0;
+int foo()
+{
+  return a_0 + b[0].f1;
 }

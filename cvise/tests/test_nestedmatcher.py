@@ -51,7 +51,7 @@ class ComplexParensTest(unittest.TestCase):
     def test_1(self):
         parts = [RegExPattern(r"This\s"), (BalancedPattern(BalancedExpr.parens), "nested")]
         m = search(parts, "(This (string) contains) two nested matches!")
-        self.assertEqual(m, {"all" : (1, 14), "nested" : (6, 14)})
+        self.assertEqual(m, {"all": (1, 14), "nested": (6, 14)})
 
     def test_2(self):
         parts = [RegExPattern(r"This\s"),
@@ -59,7 +59,7 @@ class ComplexParensTest(unittest.TestCase):
                  RegExPattern(r"[^(]*"),
                  (BalancedPattern(BalancedExpr.parens), "nested2")]
         m = search(parts, "(This (string) contains) two (nested) matches!")
-        self.assertEqual(m, {"all" : (1, 37), "nested" : (6, 14), "nested2" : (29, 37)})
+        self.assertEqual(m, {"all": (1, 37), "nested": (6, 14), "nested2": (29, 37)})
 
     def test_3(self):
         parts = [RegExPattern(r"[Tt]his\s"),
@@ -67,15 +67,15 @@ class ComplexParensTest(unittest.TestCase):
                  RegExPattern(r"[^(]*"),
                  (BalancedPattern(BalancedExpr.parens), "nested2")]
         m = search(parts, "(This string this (contains)) two (nested) matches!")
-        self.assertEqual(m, {"all" : (13, 42), "nested" : (18, 28), "nested2" : (34, 42)})
+        self.assertEqual(m, {"all": (13, 42), "nested": (18, 28), "nested2": (34, 42)})
 
     def test_4(self):
         parts = [RegExPattern(r"[Tt]his\s"),
                  (BalancedPattern(BalancedExpr.parens), "nested"),
-                 RegExPattern(r"[^(]*"), # consumes also "two"
+                 RegExPattern(r"[^(]*"),  # consumes also "two"
                  (OrPattern(BalancedPattern(BalancedExpr.parens), RegExPattern("two")), "nested2")]
         m = search(parts, "(This string this (contains)) two (nested) matches!")
-        self.assertEqual(m, {"all" : (13, 42), "nested" : (18, 28), "nested2" : (34, 42)})
+        self.assertEqual(m, {"all": (13, 42), "nested": (18, 28), "nested2": (34, 42)})
 
     def test_5(self):
         parts = [RegExPattern(r"[Tt]his\s"),
@@ -83,4 +83,4 @@ class ComplexParensTest(unittest.TestCase):
                  RegExPattern(r"[^(t]*"),
                  (OrPattern(BalancedPattern(BalancedExpr.parens), RegExPattern("two")), "nested2")]
         m = search(parts, "(This string this (contains)) two (nested) matches!")
-        self.assertEqual(m, {"all" : (13, 33), "nested" : (18, 28), "nested2" : (30, 33)})
+        self.assertEqual(m, {"all": (13, 33), "nested": (18, 28), "nested2": (30, 33)})

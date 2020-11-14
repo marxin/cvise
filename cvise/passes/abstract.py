@@ -1,5 +1,5 @@
-import logging
 import copy
+import logging
 import shutil
 import subprocess
 

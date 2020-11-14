@@ -2,6 +2,7 @@ import re
 
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils import nestedmatcher
+from cvise.utils.error import UnknownArgumentError
 
 class PeepPass(AbstractPass):
     border = r"[*{([:,})\];]"
@@ -95,8 +96,7 @@ class PeepPass(AbstractPass):
         (call_parts + [nestedmatcher.RegExPattern(r",")], "0"),
         (call_parts + [nestedmatcher.RegExPattern(r",")], ""),
         (call_parts, "0"),
-        (call_parts, ""),
-        ]
+        (call_parts, "")]
 
     __subexprs = [
         fullvar + [nestedmatcher.RegExPattern(r"\s*")] + binop + [nestedmatcher.RegExPattern(r"\s*")] + fullvar,
@@ -125,7 +125,7 @@ class PeepPass(AbstractPass):
         return True
 
     def new(self, test_case, _=None):
-        return {"pos" : 0, "regex" : 0}
+        return {"pos": 0, "regex": 0}
 
     def advance(self, test_case, state):
         new_state = state.copy()
@@ -133,7 +133,7 @@ class PeepPass(AbstractPass):
         if self.arg == "a":
             lim = len(self.regexes_to_replace)
         elif self.arg == "b":
-            lim = len(self.delimited_regexes_to_replace);
+            lim = len(self.delimited_regexes_to_replace)
         elif self.arg == "c":
             lim = 1
         else:
@@ -164,9 +164,9 @@ class PeepPass(AbstractPass):
             return (PassResult.STOP, state)
 
         if self.arg == "a":
-            l = self.regexes_to_replace[state["regex"]]
-            search = l[0];
-            replace = l[1];
+            item = self.regexes_to_replace[state["regex"]]
+            search = item[0]
+            replace = item[1]
 
             m = nestedmatcher.search(search, prog2, pos=state["pos"], search=False)
 
@@ -179,9 +179,9 @@ class PeepPass(AbstractPass):
 
                     return (PassResult.OK, state)
         elif self.arg == "b":
-            l = self.delimited_regexes_to_replace[state["regex"]]
-            search = l[0]
-            replace = l[1]
+            item = self.delimited_regexes_to_replace[state["regex"]]
+            search = item[0]
+            replace = item[1]
 
             if prog2.startswith(","):
                 front = (self.border_or_space_optional_pattern, "delim1")

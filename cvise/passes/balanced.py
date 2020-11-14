@@ -28,7 +28,7 @@ class BalancedPass(AbstractPass):
         config = {"search": None,
                   "replace_fn": None,
                   "prefix": "",
-                 }
+                  }
 
         def replace_all(string, match):
             return string[0:match[0]] + string[match[1]:]

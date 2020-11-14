@@ -12,7 +12,7 @@ class IntsPass(AbstractPass):
     def __get_config(self):
         config = {"search": None,
                   "replace_fn": None,
-                 }
+                  }
 
         if self.arg == "a":
             # Delete first digit

@@ -1,25 +1,18 @@
-import asyncio
 import difflib
 import filecmp
-import importlib.util
 import logging
 import math
-import multiprocessing
 import os
 import os.path
 import pebble
 import platform
 import psutil
 import shutil
-import subprocess
-import sys
 import tempfile
-import weakref
 import traceback
 
-import concurrent.futures
 from concurrent.futures import wait, FIRST_COMPLETED, TimeoutError
-from multiprocessing import Queue, Manager
+from multiprocessing import Manager
 
 from .. import CVise
 from cvise.passes.abstract import *
@@ -108,7 +101,7 @@ class TestEnvironment:
             # run test script
             self.exitcode = self.run_test(False)
             return self
-        except OSError as e:
+        except OSError:
             # this can happen when we clean up temporary files for cancelled processes
             pass
         except Exception as e:
@@ -244,7 +237,7 @@ class TestManager:
 
         crash_dir = self.get_extra_dir("cvise_bug_", self.MAX_CRASH_DIRS)
 
-        if crash_dir == None:
+        if crash_dir is None:
             return
 
         os.mkdir(crash_dir)
@@ -332,7 +325,7 @@ class TestManager:
 
     def save_extra_dir(self, test_case_path):
         extra_dir = self.get_extra_dir("cvise_extra_", self.MAX_EXTRA_DIRS)
-        if extra_dir != None:
+        if extra_dir is not None:
             os.mkdir(extra_dir)
             shutil.move(test_case_path, extra_dir)
             logging.info("Created extra directory {} for you to look at later".format(extra_dir))
@@ -362,7 +355,7 @@ class TestManager:
                 test_env = future.result()
                 if test_env.success:
                     if (self.max_improvement is not None and
-                        test_env.size_improvement > self.max_improvement):
+                            test_env.size_improvement > self.max_improvement):
                         logging.debug("Too large improvement: {} B".format(test_env.size_improvement))
                     else:
                         # Report bug if transform did not change the file
@@ -377,7 +370,7 @@ class TestManager:
                     if test_env.result == PassResult.OK:
                         assert test_env.exitcode
                         if (self.also_interesting is not None and
-                            test_env.exitcode == self.also_interesting):
+                                test_env.exitcode == self.also_interesting):
                             self.save_extra_dir(test_env.test_case_path)
                     elif test_env.result == PassResult.STOP:
                         quit_loop = True
@@ -391,14 +384,14 @@ class TestManager:
             else:
                 new_futures.add(future)
 
-        removed_futures = [f for f in self.futures if not f in new_futures]
+        removed_futures = [f for f in self.futures if f not in new_futures]
         for f in removed_futures:
             self.release_future(f)
 
         return quit_loop
 
     def wait_for_first_success(self):
-        for i, future in enumerate(self.futures):
+        for future in self.futures:
             try:
                 test_env = future.result()
                 if test_env.success:
@@ -418,7 +411,7 @@ class TestManager:
         with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
             order = 1
             self.timeout_count = 0
-            while self.state != None:
+            while self.state is not None:
                 # do not create too many states
                 if len(self.futures) >= self.parallel_tests:
                     wait(self.futures, return_when=FIRST_COMPLETED)
@@ -440,7 +433,7 @@ class TestManager:
                 order += 1
                 state = self.current_pass.advance(self.current_test_case, self.state)
                 # we are at the end of enumeration
-                if state == None:
+                if state is None:
                     success = self.wait_for_first_success()
                     self.terminate_all(pool)
                     return success
@@ -476,7 +469,7 @@ class TestManager:
                     test_case_before_pass = tmp_file.read()
 
                     if (pass_key in self.cache and
-                        test_case_before_pass in self.cache[pass_key]):
+                            test_case_before_pass in self.cache[pass_key]):
                         tmp_file.seek(0)
                         tmp_file.truncate(0)
                         tmp_file.write(self.cache[pass_key][test_case_before_pass])
@@ -487,7 +480,7 @@ class TestManager:
             self.state = self.current_pass.new(self.current_test_case, self.check_sanity)
             self.skip = False
 
-            while self.state != None and not self.skip:
+            while self.state is not None and not self.skip:
                 # Ignore more key presses after skip has been detected
                 if not self.skip_key_off and not self.skip:
                     key = logger.pressed_key()

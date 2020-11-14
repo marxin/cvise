@@ -89,7 +89,7 @@ class CVise:
 
                 try:
                     pass_class = cls.pass_name_mapping[pass_dict["pass"]]
-                except KeyValueError:
+                except KeyError:
                     raise CViseError("Unkown pass {}".format(pass_dict["pass"]))
 
                 pass_instance = pass_class(pass_dict.get("arg"), external_programs)
@@ -156,5 +156,5 @@ class CVise:
 
             logging.info("Termination check: size was {}; now {}".format(total_file_size, self.test_manager.total_file_size))
 
-            if  self.test_manager.total_file_size >= total_file_size:
+            if self.test_manager.total_file_size >= total_file_size:
                 break

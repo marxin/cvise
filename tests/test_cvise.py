@@ -1,7 +1,7 @@
 import os
-import unittest
-import subprocess
 import shutil
+import subprocess
+import unittest
 
 class TestCvise(unittest.TestCase):
 
@@ -11,7 +11,7 @@ class TestCvise(unittest.TestCase):
         binary = os.path.join(current, '../cvise.py')
         shutil.copy(os.path.join(current, 'sources', testcase), '.')
         cmd = '%s %s %s' % (binary, testcase, arguments)
-        output = subprocess.check_output(cmd, shell=True, encoding='utf8')
+        subprocess.check_output(cmd, shell=True, encoding='utf8')
         assert open(testcase).read() == expected
 
     def test_simple_reduction(self):

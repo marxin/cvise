@@ -25,11 +25,11 @@ class BlankPass(AbstractPass):
             with open(test_case, "r") as in_file:
                 matched = False
 
-                for l in in_file:
-                    if re.match(pattern, l) is not None:
+                for line in in_file:
+                    if re.match(pattern, line) is not None:
                         matched = True
                     else:
-                        tmp_file.write(l)
+                        tmp_file.write(line)
 
         if matched:
             shutil.move(tmp_file.name, test_case)

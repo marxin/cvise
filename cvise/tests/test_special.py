@@ -3,7 +3,6 @@ import tempfile
 import unittest
 
 from cvise.tests.testabstract import iterate_pass
-from cvise.passes.abstract import PassResult
 from ..passes import SpecialPass
 
 class SpecialATestCase(unittest.TestCase):

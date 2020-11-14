@@ -1,7 +1,7 @@
+import os
+import re
 import shutil
 import tempfile
-import re
-import os
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 

@@ -1,9 +1,8 @@
+import logging
+import os
 import shutil
 import subprocess
 import tempfile
-import os
-
-import logging
 
 from cvise.utils.error import InsaneTestCaseError
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
@@ -20,11 +19,11 @@ class LinesPass(AbstractPass):
                     cmd = [self.external_programs["topformflat"], self.arg]
                     proc = subprocess.run(cmd, stdin=in_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                 except subprocess.SubprocessError:
-                    return (PassResult.ERROR, new_state)
+                    return
 
-            for l in proc.stdout.splitlines(keepends=True):
-                if not l.isspace():
-                    tmp_file.write(l)
+            for line in proc.stdout.splitlines(keepends=True):
+                if not line.isspace():
+                    tmp_file.write(line)
 
         # we need to check that sanity check is still fine
         if check_sanity:

@@ -21,7 +21,7 @@ class CommentsPass(AbstractPass):
             prog2 = prog
 
         while True:
-            #TODO: remove only the nth comment
+            # TODO: remove only the nth comment
             if state == -2:
                 # Remove all multiline comments
                 # Replace /* any number of * if not followed by / or anything but * */

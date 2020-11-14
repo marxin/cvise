@@ -1,0 +1,8 @@
+extern "C" extern "C"
+
+void  foo ();
+
+int main_res;
+main () {
+  foo ();
+}

@@ -1,6 +1,6 @@
 import os
-import unittest
 import subprocess
+import unittest
 
 class TestClangDelta(unittest.TestCase):
 
@@ -39,20 +39,20 @@ class TestClangDelta(unittest.TestCase):
     def test_aggregate_to_scalar_test1(self):
         self.check_clang_delta('aggregate-to-scalar/test1.c', '--transformation=aggregate-to-scalar --counter=1')
 
-    def test_aggregate_to_scalar_test1(self):
-        self.check_clang_delta('aggregate-to-scalar/test1.cc', '--transformation=aggregate-to-scalar --counter=1')
-
     def test_aggregate_to_scalar_test2(self):
         self.check_clang_delta('aggregate-to-scalar/test2.c', '--transformation=aggregate-to-scalar --counter=1')
-
-    def test_aggregate_to_scalar_test2(self):
-        self.check_clang_delta('aggregate-to-scalar/test2.cc', '--transformation=aggregate-to-scalar --counter=1')
 
     def test_aggregate_to_scalar_test3(self):
         self.check_clang_delta('aggregate-to-scalar/test3.c', '--transformation=aggregate-to-scalar --counter=1')
 
     def test_aggregate_to_scalar_test4(self):
         self.check_clang_delta('aggregate-to-scalar/test4.c', '--transformation=aggregate-to-scalar --counter=1')
+
+    def test_aggregate_to_scalar_test5(self):
+        self.check_clang_delta('aggregate-to-scalar/test5.cc', '--transformation=aggregate-to-scalar --counter=1')
+
+    def test_aggregate_to_scalar_test6(self):
+        self.check_clang_delta('aggregate-to-scalar/test6.cc', '--transformation=aggregate-to-scalar --counter=1')
 
     def test_callexpr_to_value_macro1(self):
         self.check_clang_delta('callexpr-to-value/macro1.c', '--transformation=callexpr-to-value --counter=1')
@@ -470,9 +470,6 @@ class TestClangDelta(unittest.TestCase):
     def test_return_void_test1(self):
         self.check_clang_delta('return-void/test1.c', '--transformation=return-void --counter=1')
 
-    def test_return_void_test1(self):
-        self.check_clang_delta('return-void/test1.cc', '--transformation=return-void --counter=1')
-
     def test_return_void_test2(self):
         self.check_clang_delta('return-void/test2.c', '--transformation=return-void --counter=1')
 
@@ -487,6 +484,9 @@ class TestClangDelta(unittest.TestCase):
 
     def test_return_void_test6(self):
         self.check_clang_delta('return-void/test6.c', '--transformation=return-void --counter=1')
+
+    def test_return_void_test7(self):
+        self.check_clang_delta('return-void/test7.cc', '--transformation=return-void --counter=1')
 
     def test_simplify_callexpr_macro(self):
         self.check_clang_delta('simplify-callexpr/macro.c', '--transformation=simplify-callexpr --counter=1')

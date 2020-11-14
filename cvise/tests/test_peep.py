@@ -3,7 +3,6 @@ import tempfile
 import unittest
 
 from cvise.tests.testabstract import iterate_pass
-from cvise.passes.abstract import PassResult
 from ..passes import PeepPass
 
 class PeepATestCase(unittest.TestCase):
@@ -157,4 +156,3 @@ class PeepCTestCase(unittest.TestCase):
         os.unlink(tmp_file.name)
 
         self.assertEqual(variant, "{\n    int a = 4;\n    short b = 5;\n    \n}\n\nulong c = 18;\n")
-

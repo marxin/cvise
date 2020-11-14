@@ -14,6 +14,13 @@ import tempfile
 
 import importlib.util
 
+from cvise import CVise
+from cvise.passes.abstract import AbstractPass
+from cvise.utils.error import CViseError
+from cvise.utils.error import MissingPassGroupsError
+from cvise.utils import testing
+from cvise.utils import statistics
+
 destdir = os.getenv("DESTDIR", "")
 
 # If the cvise modules cannot be found
@@ -21,13 +28,6 @@ destdir = os.getenv("DESTDIR", "")
 if importlib.util.find_spec("cvise") is None:
     sys.path.append("@CMAKE_INSTALL_FULL_DATADIR@")
     sys.path.append(destdir + "@CMAKE_INSTALL_FULL_DATADIR@")
-
-from cvise import CVise
-from cvise.passes.abstract import AbstractPass
-from cvise.utils.error import CViseError
-from cvise.utils.error import MissingPassGroupsError
-from cvise.utils import testing
-from cvise.utils import statistics
 
 class DeltaTimeFormatter(logging.Formatter):
     def format(self, record):
@@ -37,16 +37,17 @@ class DeltaTimeFormatter(logging.Formatter):
             record.delta = '0' + record.delta
         return super().format(record)
 
+
 script_path = os.path.dirname(os.path.realpath(__file__))
 
 def get_share_dir():
 
     # Test all known locations for the cvise directory
     share_dirs = [
-            os.path.join("@CMAKE_INSTALL_FULL_DATADIR@", "@cvise_PACKAGE@"),
-            destdir + os.path.join("@CMAKE_INSTALL_FULL_DATADIR@", "@cvise_PACKAGE@"),
-            os.path.join(script_path, "cvise")
-            ]
+        os.path.join("@CMAKE_INSTALL_FULL_DATADIR@", "@cvise_PACKAGE@"),
+        destdir + os.path.join("@CMAKE_INSTALL_FULL_DATADIR@", "@cvise_PACKAGE@"),
+        os.path.join(script_path, "cvise")
+    ]
 
     for d in share_dirs:
         if os.path.isdir(d):
@@ -56,11 +57,11 @@ def get_share_dir():
 
 def find_external_programs():
     programs = {
-        "clang_delta" : "clang_delta",
-        "clex" : "clex",
-        "topformflat" : "delta" ,
-        "unifdef" : None,
-        }
+        "clang_delta": "clang_delta",
+        "clex": "clex",
+        "topformflat": "delta",
+        "unifdef": None,
+    }
 
     for prog, local_folder in programs.items():
         path = None
@@ -121,6 +122,7 @@ def get_available_pass_groups():
 
     return group_names
 
+
 EPILOG_TEXT = """
 available shortcuts:
   S - skip execution of the current pass
@@ -175,7 +177,7 @@ if __name__ == "__main__":
     parser.add_argument("--not-c", action="store_true", help="Don't run passes that are specific to C and C++, use this mode for reducing other languages")
     parser.add_argument("--renaming", action="store_true", help="Enable all renaming passes (that are disabled by default)")
     parser.add_argument("--list-passes", action="store_true", help="Print all available passes and exit")
-    parser.add_argument("--version", action="version", version=CVise.Info.PACKAGE_STRING  + (' (%s)' % CVise.Info.GIT_VERSION if CVise.Info.GIT_VERSION != 'unknown' else ''))
+    parser.add_argument("--version", action="version", version=CVise.Info.PACKAGE_STRING + (' (%s)' % CVise.Info.GIT_VERSION if CVise.Info.GIT_VERSION != 'unknown' else ''))
     parser.add_argument("--commands", "-c", help="Use bash commands instead of an interestingness test case")
     parser.add_argument("interestingness_test", metavar="INTERESTINGNESS_TEST", nargs="?", help="Executable to check interestingness of test cases")
     parser.add_argument("test_cases", metavar="TEST_CASE", nargs="+", help="Test cases")

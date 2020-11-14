@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from cvise.passes.abstract import PassResult, ProcessEventNotifier
+from cvise.passes.abstract import PassResult
 from ..passes import IntsPass
 
 class IntsATestCase(unittest.TestCase):
@@ -33,7 +33,7 @@ class IntsATestCase(unittest.TestCase):
         iteration = 1
         while result == PassResult.OK and iteration < 10:
             state = self.pass_.advance_on_success(tmp_file.name, state)
-            if state == None:
+            if state is None:
                 break
             (result, state) = self.pass_.transform(tmp_file.name, state, None)
             iteration += 1
@@ -60,7 +60,7 @@ class IntsATestCase(unittest.TestCase):
                 tmp_file.write("Compute 123L + 0x456 + 0789!\n")
 
             state = self.pass_.advance(tmp_file.name, state)
-            if state == None:
+            if state is None:
                 break
             (result, state) = self.pass_.transform(tmp_file.name, state, None)
             iteration += 1

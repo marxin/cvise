@@ -7,8 +7,8 @@ from ..passes import IfPass
 
 class LineMarkersTestCase(unittest.TestCase):
     def setUp(self):
-        self.pass_ = IfPass(external_programs = {'unifdef': 'unifdef'})
-        self.process_event_notifier = ProcessEventNotifier(None) 
+        self.pass_ = IfPass(external_programs={'unifdef': 'unifdef'})
+        self.process_event_notifier = ProcessEventNotifier(None)
 
     def test_all(self):
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
@@ -35,22 +35,22 @@ class LineMarkersTestCase(unittest.TestCase):
         expected_outs = [
             # ix val chunk contents
             # FOO=0 BAR=0
-            (0,  0,  2,    'int foo = 0;\nint bar = 0;\n'),
+            (0, 0, 2, 'int foo = 0;\nint bar = 0;\n'),
             # FOO=1 BAR=1
-            (0,  1,  2,    'int foo = 1;\nint bar = 1;\n'),
+            (0, 1, 2, 'int foo = 1;\nint bar = 1;\n'),
 
             # FOO=0
-            (0,  0,  1,     ('int foo = 0;\n' +
-                             '#if BAR\nint bar = 1;\n#else\nint bar = 0;\n#endif\n')),
+            (0, 0, 1, ('int foo = 0;\n' +
+                       '#if BAR\nint bar = 1;\n#else\nint bar = 0;\n#endif\n')),
             # FOO=1
-            (0,  1,  1,     ('int foo = 1;\n' +
-                             '#if BAR\nint bar = 1;\n#else\nint bar = 0;\n#endif\n')),
+            (0, 1, 1, ('int foo = 1;\n' +
+                       '#if BAR\nint bar = 1;\n#else\nint bar = 0;\n#endif\n')),
             # BAR=0
-            (1,  0,  1,     ('#if FOO\nint foo = 1;\n#else\nint foo = 0;\n#endif\n' +
-                             'int bar = 0;\n')),
+            (1, 0, 1, ('#if FOO\nint foo = 1;\n#else\nint foo = 0;\n#endif\n' +
+                       'int bar = 0;\n')),
             # BAR=1
-            (1,  1,  1,     ('#if FOO\nint foo = 1;\n#else\nint foo = 0;\n#endif\n' +
-                             'int bar = 1;\n')),
+            (1, 1, 1, ('#if FOO\nint foo = 1;\n#else\nint foo = 0;\n#endif\n' +
+                       'int bar = 1;\n')),
         ]
 
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as tf:

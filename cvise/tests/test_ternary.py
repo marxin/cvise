@@ -57,7 +57,7 @@ class TernaryBTestCase(unittest.TestCase):
 
     def test_all_b_2(self):
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-           tmp_file.write("// no ? match :!\nint res = a ? (ba ? bb : bc) : c\nint sec = t ? u : v\n")
+            tmp_file.write("// no ? match :!\nint res = a ? (ba ? bb : bc) : c\nint sec = t ? u : v\n")
 
         state = self.pass_.new(tmp_file.name)
         (result, state) = self.pass_.transform(tmp_file.name, state, None)

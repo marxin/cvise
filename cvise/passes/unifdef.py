@@ -28,10 +28,10 @@ class UnIfDefPass(AbstractPass):
 
         defs = {}
 
-        for l in proc.stdout.splitlines():
-            defs[l] = 1
+        for line in proc.stdout.splitlines():
+            defs[line] = 1
 
-        deflist = list(sorted(defs.keys()))
+        deflist = sorted(defs.keys())
 
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
