@@ -36,7 +36,7 @@ def rmfolder(name):
 
 class TestEnvironment:
     def __init__(self, state, order, test_script, folder, test_case,
-            additional_files, transform, pid_queue=None):
+                 additional_files, transform, pid_queue=None):
         self.test_case = None
         self.additional_files = set()
         self.state = state
@@ -93,7 +93,7 @@ class TestEnvironment:
         try:
             # transform by state
             (result, self.state) = self.transform(self.test_case_path, self.state,
-                    ProcessEventNotifier(self.pid_queue))
+                                                  ProcessEventNotifier(self.pid_queue))
             self.result = result
             if self.result != PassResult.OK:
                 return self
@@ -129,8 +129,8 @@ class TestManager:
     TEMP_PREFIX = 'cvise-'
 
     def __init__(self, pass_statistic, test_script, timeout, save_temps, test_cases, parallel_tests,
-            no_cache, skip_key_off, silent_pass_bug, die_on_pass_bug, print_diff, max_improvement,
-            no_give_up, also_interesting):
+                 no_cache, skip_key_off, silent_pass_bug, die_on_pass_bug, print_diff, max_improvement,
+                 no_give_up, also_interesting):
         self.test_script = os.path.abspath(test_script)
         self.timeout = timeout
         self.save_temps = save_temps
@@ -424,8 +424,8 @@ class TestManager:
 
                 folder = tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=self.root)
                 test_env = TestEnvironment(self.state, order, self.test_script, folder,
-                        self.current_test_case, self.test_cases ^ {self.current_test_case},
-                        self.current_pass.transform, self.pid_queue)
+                                           self.current_test_case, self.test_cases ^ {self.current_test_case},
+                                           self.current_pass.transform, self.pid_queue)
                 future = pool.schedule(test_env.run, timeout=self.timeout)
                 self.temporary_folders[future] = folder
                 self.futures.append(future)

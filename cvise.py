@@ -230,7 +230,7 @@ if __name__ == '__main__':
 
     pass_group_dict = CVise.load_pass_group_file(pass_group_file)
     pass_group = CVise.parse_pass_group_dict(pass_group_dict, pass_options, external_programs,
-            args.remove_pass, args.clang_delta_std, args.not_c, args.renaming)
+                                             args.remove_pass, args.clang_delta_std, args.not_c, args.renaming)
     if args.list_passes:
         logging.info('Available passes:')
         logging.info('INITIAL PASSES')
@@ -267,8 +267,8 @@ if __name__ == '__main__':
         args.interestingness_test = script.name
 
     test_manager = testing.TestManager(pass_statistic, args.interestingness_test, args.timeout,
-            args.save_temps, args.test_cases, args.n, args.no_cache, args.skip_key_off, args.shaddap,
-            args.die_on_pass_bug, args.print_diff, args.max_improvement, args.no_give_up, args.also_interesting)
+                                       args.save_temps, args.test_cases, args.n, args.no_cache, args.skip_key_off, args.shaddap,
+                                       args.die_on_pass_bug, args.print_diff, args.max_improvement, args.no_give_up, args.also_interesting)
 
     reducer = CVise(test_manager)
 
@@ -286,11 +286,11 @@ if __name__ == '__main__':
         time_stop = time.monotonic()
         print('===< PASS statistics >===')
         print('  %-54s %8s %8s %8s %8s %15s' % ('pass name', 'time (s)', 'time (%)', 'worked',
-            'failed', 'total executed'))
+              'failed', 'total executed'))
 
         for pass_name, pass_data in pass_statistic.sorted_results:
             print('  %-54s %8.2f %8.2f %8d %8d %15d' % (pass_name, pass_data.total_seconds,
-                100.0 * pass_data.total_seconds / (time_stop - time_start),
+                  100.0 * pass_data.total_seconds / (time_stop - time_start),
                 pass_data.worked, pass_data.failed, pass_data.totally_executed))
         print()
 
