@@ -19,17 +19,17 @@ if importlib.util.find_spec('cvise') is None:
     sys.path.append('@CMAKE_INSTALL_FULL_DATADIR@')
     sys.path.append(destdir + '@CMAKE_INSTALL_FULL_DATADIR@')
 
-from cvise.cvise import CVise
-from cvise.passes.abstract import AbstractPass
-from cvise.utils import statistics
-from cvise.utils import testing
-from cvise.utils.error import CViseError
-from cvise.utils.error import MissingPassGroupsError
-import psutil
+from cvise.cvise import CVise  # noqa: E402
+from cvise.passes.abstract import AbstractPass  # noqa: E402
+from cvise.utils import statistics  # noqa: E402
+from cvise.utils import testing  # noqa: E402
+from cvise.utils.error import CViseError  # noqa: E402
+from cvise.utils.error import MissingPassGroupsError  # noqa: E402
+import psutil  # noqa: E402
 
 
 class DeltaTimeFormatter(logging.Formatter):
-    def format(self, record):
+    def format(self, record):  # noqa: A003
         record.delta = str(datetime.timedelta(seconds=int(record.relativeCreated / 1000)))
         # pad with one more zero
         if record.delta[1] == ':':
