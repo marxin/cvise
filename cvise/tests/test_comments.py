@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 from cvise.passes.abstract import PassResult
-from ..passes import CommentsPass
+from cvise.passes.comments import CommentsPass
 
 class CommentsTestCase(unittest.TestCase):
     def setUp(self):

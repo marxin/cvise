@@ -14,8 +14,8 @@ import traceback
 from concurrent.futures import wait, FIRST_COMPLETED, TimeoutError
 from multiprocessing import Manager
 
-from .. import CVise
-from cvise.passes.abstract import *
+from cvise.cvise import CVise
+from cvise.passes.abstract import PassResult, ProcessEventNotifier, ProcessEventType
 
 from . import readkey
 from .error import InsaneTestCaseError

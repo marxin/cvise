@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 from cvise.passes.abstract import ProcessEventNotifier
-from ..passes import IfPass
+from cvise.passes.ifs import IfPass
 
 class LineMarkersTestCase(unittest.TestCase):
     def setUp(self):

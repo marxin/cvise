@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 from cvise.tests.testabstract import iterate_pass
-from ..passes import SpecialPass
+from cvise.passes.special import SpecialPass
 
 class SpecialATestCase(unittest.TestCase):
     def setUp(self):

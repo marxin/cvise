@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from ..passes import LineMarkersPass
+from cvise.passes.line_markers import LineMarkersPass
 
 class LineMarkersTestCase(unittest.TestCase):
     def setUp(self):

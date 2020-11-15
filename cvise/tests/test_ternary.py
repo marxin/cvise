@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 from cvise.passes.abstract import PassResult
-from ..passes import TernaryPass
+from cvise.passes.ternary import TernaryPass
 
 class TernaryBTestCase(unittest.TestCase):
     def setUp(self):

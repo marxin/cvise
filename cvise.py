@@ -14,7 +14,7 @@ import tempfile
 
 import importlib.util
 
-from cvise import CVise
+from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass
 from cvise.utils.error import CViseError
 from cvise.utils.error import MissingPassGroupsError

@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 from cvise.tests.testabstract import iterate_pass
-from ..passes import PeepPass
+from cvise.passes.peep import PeepPass
 
 class PeepATestCase(unittest.TestCase):
     def setUp(self):

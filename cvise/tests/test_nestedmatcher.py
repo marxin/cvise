@@ -1,6 +1,6 @@
 import unittest
 
-from ..utils.nestedmatcher import find, search, BalancedExpr, RegExPattern, BalancedPattern, OrPattern
+from cvise.utils.nestedmatcher import find, search, BalancedExpr, RegExPattern, BalancedPattern, OrPattern
 
 class SimpleParensTest(unittest.TestCase):
     def test_1(self):

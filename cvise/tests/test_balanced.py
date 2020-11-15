@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 from cvise.passes.abstract import PassResult
-from ..passes import BalancedPass
+from cvise.passes.balanced import BalancedPass
 
 class BalancedParensTestCase(unittest.TestCase):
     def setUp(self):

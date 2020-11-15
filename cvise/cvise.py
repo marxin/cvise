@@ -3,9 +3,26 @@ import logging
 import os
 
 from cvise.passes.abstract import AbstractPass
-from . import passes
 from .utils.error import CViseError
 from .utils.error import PassOptionError
+
+from cvise.passes.balanced import BalancedPass
+from cvise.passes.blank import BlankPass
+from cvise.passes.clang import ClangPass
+from cvise.passes.clangbinarysearch import ClangBinarySearchPass
+from cvise.passes.clex import ClexPass
+from cvise.passes.comments import CommentsPass
+from cvise.passes.ifs import IfPass
+from cvise.passes.includeincludes import IncludeIncludesPass
+from cvise.passes.includes import IncludesPass
+from cvise.passes.indent import IndentPass
+from cvise.passes.ints import IntsPass
+from cvise.passes.line_markers import LineMarkersPass
+from cvise.passes.lines import LinesPass
+from cvise.passes.peep import PeepPass
+from cvise.passes.special import SpecialPass
+from cvise.passes.ternary import TernaryPass
+from cvise.passes.unifdef import UnIfDefPass
 
 class CVise:
     class Info:
@@ -20,23 +37,23 @@ class CVise:
         LLVM_VERSION = "@LLVM_VERSION@"
 
     pass_name_mapping = {
-        "balanced": passes.BalancedPass,
-        "blank": passes.BlankPass,
-        "clang": passes.ClangPass,
-        "clangbinarysearch": passes.ClangBinarySearchPass,
-        "clex": passes.ClexPass,
-        "comments": passes.CommentsPass,
-        "ifs": passes.IfPass,
-        "includeincludes": passes.IncludeIncludesPass,
-        "includes": passes.IncludesPass,
-        "indent": passes.IndentPass,
-        "ints": passes.IntsPass,
-        "line_markers": passes.LineMarkersPass,
-        "lines": passes.LinesPass,
-        "peep": passes.PeepPass,
-        "special": passes.SpecialPass,
-        "ternary": passes.TernaryPass,
-        "unifdef": passes.UnIfDefPass,
+        "balanced": BalancedPass,
+        "blank": BlankPass,
+        "clang": ClangPass,
+        "clangbinarysearch": ClangBinarySearchPass,
+        "clex": ClexPass,
+        "comments": CommentsPass,
+        "ifs": IfPass,
+        "includeincludes": IncludeIncludesPass,
+        "includes": IncludesPass,
+        "indent": IndentPass,
+        "ints": IntsPass,
+        "line_markers": LineMarkersPass,
+        "lines": LinesPass,
+        "peep": PeepPass,
+        "special": SpecialPass,
+        "ternary": TernaryPass,
+        "unifdef": UnIfDefPass,
     }
 
     def __init__(self, test_manager):

@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 from cvise.passes.abstract import PassResult
-from ..passes import IntsPass
+from cvise.passes.ints import IntsPass
 
 class IntsATestCase(unittest.TestCase):
     def setUp(self):
