@@ -8,7 +8,7 @@ class PrerequisitesNotFoundError(CViseError):
         self.missing = missing
 
     def __str__(self):
-        return "Missing prerequisites for passes {}!".format(", ".join(self.missing))
+        return 'Missing prerequisites for passes {}!'.format(', '.join(self.missing))
 
 class UnknownArgumentError(CViseError):
     def __init__(self, pass_, arg):
@@ -25,13 +25,13 @@ class InvalidFileError(CViseError):
 
     def _get_error_name(self):
         if self.error == os.R_OK:
-            return "read"
+            return 'read'
         elif self.error == os.W_OK:
-            return "written"
+            return 'written'
         elif self.error == os.X_OK:
-            return "executed"
+            return 'executed'
         elif self.error == os.F_OK:
-            return "accessed"
+            return 'accessed'
 
     def __str__(self):
         return "The specified file '{}' cannot be {}!".format(self.path, self._get_error_name())
@@ -54,9 +54,9 @@ class ZeroSizeError(CViseError):
 
     def __str__(self):
         if len(self.test_cases) == 1:
-            message = "The file being reduced has reached zero size; "
+            message = 'The file being reduced has reached zero size; '
         else:
-            message = "All files being reduced have reached zero size; "
+            message = 'All files being reduced have reached zero size; '
 
         message += """our work here is done.
 
@@ -70,7 +70,7 @@ class PassOptionError(CViseError):
 
 class MissingPassGroupsError(CViseError):
     def __str__(self):
-        return "Could not find a directory with definitions for pass groups!"
+        return 'Could not find a directory with definitions for pass groups!'
 
 class PassBugError(CViseError):
     MSG = """***************************************************
@@ -114,9 +114,9 @@ words, running these commands:
   {test}
   echo $?
 
-should result in "0" being echoed to the terminal.
+should result in '0' being echoed to the terminal.
 Please ensure that the test script takes no arguments; it should be hard-coded to refer
 to the same file that is passed as an argument to C-Vise.
 
-See "cvise.py --help" for more information.""".format(test_cases=" ".join(self.test_cases), test=self.test)
+See 'cvise.py --help' for more information.""".format(test_cases=' '.join(self.test_cases), test=self.test)
         return message

@@ -20,13 +20,13 @@ class IncludesPass(AbstractPass):
 
     def transform(self, test_case, state, process_event_notifier):
         tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
-            with open(test_case, "r") as in_file:
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
+            with open(test_case, 'r') as in_file:
                 includes = 0
                 matched = False
 
                 for line in in_file:
-                    include_match = re.match(r"\s*#\s*include", line)
+                    include_match = re.match(r'\s*#\s*include', line)
 
                     if include_match is not None:
                         includes += 1

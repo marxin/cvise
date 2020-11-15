@@ -3,27 +3,27 @@ from cvise.utils import nestedmatcher
 from cvise.utils.error import UnknownArgumentError
 
 class TernaryPass(AbstractPass):
-    varnum = r"(?:[-+]?[0-9a-zA-Z\_]+)"
-    border = r"[*{([:,})\];]"
-    border_or_space = r"(?:(?:" + border + r")|\s)"
+    varnum = r'(?:[-+]?[0-9a-zA-Z\_]+)'
+    border = r'[*{([:,})\];]'
+    border_or_space = r'(?:(?:' + border + r')|\s)'
     border_or_space_pattern = nestedmatcher.RegExPattern(border_or_space)
     varnum_pattern = nestedmatcher.RegExPattern(varnum)
     balanced_parens_pattern = nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.parens)
     varnumexp_pattern = nestedmatcher.OrPattern(varnum_pattern, balanced_parens_pattern)
 
-    parts = [(border_or_space_pattern, "del1"),
+    parts = [(border_or_space_pattern, 'del1'),
              varnumexp_pattern,
-             nestedmatcher.RegExPattern(r"\s*\?\s*"),
-             (varnumexp_pattern, "b"),
-             nestedmatcher.RegExPattern(r"\s*:\s*"),
-             (varnumexp_pattern, "c"),
-             (border_or_space_pattern, "del2")]
+             nestedmatcher.RegExPattern(r'\s*\?\s*'),
+             (varnumexp_pattern, 'b'),
+             nestedmatcher.RegExPattern(r'\s*:\s*'),
+             (varnumexp_pattern, 'c'),
+             (border_or_space_pattern, 'del2')]
 
     def check_prerequisites(self):
         return True
 
     def __get_next_match(self, test_case, pos):
-        with open(test_case, "r") as in_file:
+        with open(test_case, 'r') as in_file:
             prog = in_file.read()
 
         m = nestedmatcher.search(self.parts, prog, pos=pos)
@@ -34,13 +34,13 @@ class TernaryPass(AbstractPass):
         return self.__get_next_match(test_case, pos=0)
 
     def advance(self, test_case, state):
-        return self.__get_next_match(test_case, pos=state["all"][0] + 1)
+        return self.__get_next_match(test_case, pos=state['all'][0] + 1)
 
     def advance_on_success(self, test_case, state):
-        return self.__get_next_match(test_case, pos=state["all"][0])
+        return self.__get_next_match(test_case, pos=state['all'][0])
 
     def transform(self, test_case, state, process_event_notifier):
-        with open(test_case, "r") as in_file:
+        with open(test_case, 'r') as in_file:
             prog = in_file.read()
             prog2 = prog
 
@@ -48,13 +48,13 @@ class TernaryPass(AbstractPass):
             if state is None:
                 return (PassResult.STOP, state)
             else:
-                if self.arg not in ["b", "c"]:
+                if self.arg not in ['b', 'c']:
                     raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
-                prog2 = prog2[0:state["del1"][1]] + prog2[state[self.arg][0]:state[self.arg][1]] + prog2[state["del2"][0]:]
+                prog2 = prog2[0:state['del1'][1]] + prog2[state[self.arg][0]:state[self.arg][1]] + prog2[state['del2'][0]:]
 
                 if prog != prog2:
-                    with open(test_case, "w") as out_file:
+                    with open(test_case, 'w') as out_file:
                         out_file.write(prog2)
 
                     return (PassResult.OK, state)

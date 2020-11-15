@@ -3,10 +3,10 @@ import re
 
 @enum.unique
 class BalancedExpr(enum.Enum):
-    angles = ("<", ">")
-    curlies = ("{", "}")
-    parens = ("(", ")")
-    squares = ("[", "]")
+    angles = ('<', '>')
+    curlies = ('{', '}')
+    parens = ('(', ')')
+    squares = ('[', ']')
 
 class Pattern:
     pass
@@ -16,7 +16,7 @@ class RegExPattern(Pattern):
         self.expr = expr
 
     def __repr__(self):
-        return "(expr={})".format(self.expr)
+        return '(expr={})'.format(self.expr)
 
 class BalancedPattern(Pattern):
     def __init__(self, expr):
@@ -24,7 +24,7 @@ class BalancedPattern(Pattern):
         self.end = expr.value[1]
 
     def __repr__(self):
-        return "(start={}, end={})".format(self.start, self.end)
+        return '(start={}, end={})'.format(self.start, self.end)
 
 class OrPattern(Pattern):
     def __init__(self, left, right):
@@ -32,7 +32,7 @@ class OrPattern(Pattern):
         self.right = right
 
     def __repr__(self):
-        return "(left={}, right={})".format(self.left, self.right)
+        return '(left={}, right={})'.format(self.left, self.right)
 
 def __get_regex_match(pattern, string, pos=0, search=False):
     regex = re.compile(pattern.expr, flags=re.DOTALL)
@@ -125,7 +125,7 @@ def __unify_part(part):
 
     return part
 
-def find(expr, string, pos=0, prefix=""):
+def find(expr, string, pos=0, prefix=''):
     parts = []
 
     if prefix:
@@ -136,7 +136,7 @@ def find(expr, string, pos=0, prefix=""):
     matches = search(parts, string, pos)
 
     if matches:
-        return matches["all"]
+        return matches['all']
     else:
         return None
 
@@ -177,7 +177,7 @@ def search(parts, string, pos=0, search=True):
             pos += match[1] - match[0]
 
     if found_complete_match:
-        matches["all"] = (start_pos, pos)
+        matches['all'] = (start_pos, pos)
         return matches
     else:
         return None

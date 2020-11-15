@@ -45,10 +45,10 @@ class BinaryState:
             self.chunk = int(self.chunk / 2)
             if self.chunk < 1:
                 return None
-            logging.debug("granularity reduced to {}".format(self.chunk))
+            logging.debug('granularity reduced to {}'.format(self.chunk))
             self.index = 0
         else:
-            logging.debug("***ADVANCE*** from {} to {} with chunk {}".format(original_index, self.index, self.chunk))
+            logging.debug('***ADVANCE*** from {} to {} with chunk {}'.format(original_index, self.index, self.chunk))
         return self
 
     def advance_on_success(self, instances):
@@ -63,8 +63,8 @@ class BinaryState:
 class AbstractPass:
     @unique
     class Option(Enum):
-        slow = "slow"
-        windows = "windows"
+        slow = 'slow'
+        windows = 'windows'
 
     def __init__(self, arg=None, external_programs=None):
         self.external_programs = external_programs
@@ -72,9 +72,9 @@ class AbstractPass:
 
     def __repr__(self):
         if self.arg is not None:
-            return "{}::{}".format(type(self).__name__, self.arg)
+            return '{}::{}'.format(type(self).__name__, self.arg)
         else:
-            return "{}".format(type(self).__name__)
+            return '{}'.format(type(self).__name__)
 
     def check_external_program(self, name):
         program = self.external_programs[name]
@@ -82,7 +82,7 @@ class AbstractPass:
             return False
         result = shutil.which(program) is not None
         if not result:
-            logging.error("cannot find external program {}".format(name))
+            logging.error('cannot find external program {}'.format(name))
         return result
 
     def check_prerequisites(self):

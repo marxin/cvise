@@ -123,7 +123,7 @@ class TestManager:
     MAX_TIMEOUTS = 20
     MAX_CRASH_DIRS = 10
     MAX_EXTRA_DIRS = 25000
-    TEMP_PREFIX = "cvise-"
+    TEMP_PREFIX = 'cvise-'
 
     def __init__(self, pass_statistic, test_script, timeout, save_temps, test_cases, parallel_tests,
             no_cache, skip_key_off, silent_pass_bug, die_on_pass_bug, print_diff, max_improvement,
@@ -195,7 +195,7 @@ class TestManager:
 
     def backup_test_cases(self):
         for f in self.test_cases:
-            orig_file = "{}.orig".format(f)
+            orig_file = '{}.orig'.format(f)
 
             if not os.path.exists(orig_file):
                 # Copy file and preserve attributes
@@ -216,7 +216,7 @@ class TestManager:
     def get_extra_dir(prefix, max_number):
         for i in range(0, max_number + 1):
             digits = int(round(math.log10(max_number), 0))
-            extra_dir = ("{0}{1:0" + str(digits) + "d}").format(prefix, i)
+            extra_dir = ('{0}{1:0' + str(digits) + 'd}').format(prefix, i)
 
             if not os.path.exists(extra_dir):
                 break
@@ -230,9 +230,9 @@ class TestManager:
 
     def report_pass_bug(self, test_env, problem):
         if not self.die_on_pass_bug:
-            logging.warning("{} has encountered a non fatal bug: {}".format(self.current_pass, problem))
+            logging.warning('{} has encountered a non fatal bug: {}'.format(self.current_pass, problem))
 
-        crash_dir = self.get_extra_dir("cvise_bug_", self.MAX_CRASH_DIRS)
+        crash_dir = self.get_extra_dir('cvise_bug_', self.MAX_CRASH_DIRS)
 
         if crash_dir is None:
             return
@@ -241,13 +241,13 @@ class TestManager:
         test_env.dump(crash_dir)
 
         if not self.die_on_pass_bug:
-            logging.debug("Please consider tarring up {} and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.".format(crash_dir))
+            logging.debug('Please consider tarring up {} and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.'.format(crash_dir))
 
-        with open(os.path.join(crash_dir, "PASS_BUG_INFO.TXT"), mode="w") as info_file:
-            info_file.write("Package: %s\n" % CVise.Info.PACKAGE_STRING)
-            info_file.write("Git version: %s\n" % CVise.Info.GIT_VERSION)
-            info_file.write("LLVM version: %s\n" % CVise.Info.LLVM_VERSION)
-            info_file.write("System: %s\n" % str(platform.uname()))
+        with open(os.path.join(crash_dir, 'PASS_BUG_INFO.TXT'), mode='w') as info_file:
+            info_file.write('Package: %s\n' % CVise.Info.PACKAGE_STRING)
+            info_file.write('Git version: %s\n' % CVise.Info.GIT_VERSION)
+            info_file.write('LLVM version: %s\n' % CVise.Info.LLVM_VERSION)
+            info_file.write('System: %s\n' % str(platform.uname()))
             info_file.write(PassBugError.MSG.format(self.current_pass, problem, test_env.state, crash_dir))
 
         if self.die_on_pass_bug:
@@ -263,19 +263,19 @@ class TestManager:
 
         diffed_lines = difflib.unified_diff(orig_file_lines, changed_file_lines, orig_file, changed_file)
 
-        return "".join(diffed_lines)
+        return ''.join(diffed_lines)
 
     def check_sanity(self, verbose=False):
-        logging.debug("perform sanity check... ")
+        logging.debug('perform sanity check... ')
 
         folder = tempfile.mkdtemp(prefix=self.TEMP_PREFIX)
         test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, None)
-        logging.debug("sanity check tmpdir = {}".format(test_env.folder))
+        logging.debug('sanity check tmpdir = {}'.format(test_env.folder))
 
         returncode = test_env.run_test(verbose)
         if returncode == 0:
             rmfolder(folder)
-            logging.debug("sanity check successful")
+            logging.debug('sanity check successful')
         else:
             if not self.save_temps:
                 rmfolder(folder)
@@ -293,7 +293,7 @@ class TestManager:
 
     @classmethod
     def log_key_event(cls, event):
-        logging.info("****** %s  ******" % event)
+        logging.info('****** %s  ******' % event)
 
     def kill_pid_queue(self):
         active_pids = set()
@@ -321,11 +321,11 @@ class TestManager:
         self.release_folder(future)
 
     def save_extra_dir(self, test_case_path):
-        extra_dir = self.get_extra_dir("cvise_extra_", self.MAX_EXTRA_DIRS)
+        extra_dir = self.get_extra_dir('cvise_extra_', self.MAX_EXTRA_DIRS)
         if extra_dir is not None:
             os.mkdir(extra_dir)
             shutil.move(test_case_path, extra_dir)
-            logging.info("Created extra directory {} for you to look at later".format(extra_dir))
+            logging.info('Created extra directory {} for you to look at later'.format(extra_dir))
 
     def process_done_futures(self):
         quit_loop = False
@@ -340,10 +340,10 @@ class TestManager:
                 if future.exception():
                     if type(future.exception()) is TimeoutError:
                         self.timeout_count += 1
-                        logging.warning("Test timed out.")
+                        logging.warning('Test timed out.')
                         self.save_extra_dir(self.temporary_folders[future])
                         if self.timeout_count >= self.MAX_TIMEOUTS:
-                            logging.warning("Maximum number of timeout were reached: %d" % self.MAX_TIMEOUTS)
+                            logging.warning('Maximum number of timeout were reached: %d' % self.MAX_TIMEOUTS)
                             quit_loop = True
                         continue
                     else:
@@ -353,12 +353,12 @@ class TestManager:
                 if test_env.success:
                     if (self.max_improvement is not None and
                             test_env.size_improvement > self.max_improvement):
-                        logging.debug("Too large improvement: {} B".format(test_env.size_improvement))
+                        logging.debug('Too large improvement: {} B'.format(test_env.size_improvement))
                     else:
                         # Report bug if transform did not change the file
                         if filecmp.cmp(self.current_test_case, test_env.test_case_path):
                             if not self.silent_pass_bug:
-                                self.report_pass_bug(test_env, "pass failed to modify the variant")
+                                self.report_pass_bug(test_env, 'pass failed to modify the variant')
                         else:
                             quit_loop = True
                             new_futures.add(future)
@@ -373,10 +373,10 @@ class TestManager:
                         quit_loop = True
                     elif test_env.result == PassResult.ERROR:
                         if not self.silent_pass_bug:
-                            self.report_pass_bug(test_env, "pass error")
+                            self.report_pass_bug(test_env, 'pass error')
                             quit_loop = True
                     if not self.no_give_up and test_env.order > self.GIVEUP_CONSTANT:
-                        self.report_pass_bug(test_env, "pass got stuck")
+                        self.report_pass_bug(test_env, 'pass got stuck')
                         quit_loop = True
             else:
                 new_futures.add(future)
@@ -446,7 +446,7 @@ class TestManager:
         self.create_root()
         pass_key = repr(self.current_pass)
 
-        logging.info("===< {} >===".format(self.current_pass))
+        logging.info('===< {} >==='.format(self.current_pass))
 
         if self.total_file_size == 0:
             raise ZeroSizeError(self.test_cases)
@@ -462,7 +462,7 @@ class TestManager:
                 continue
 
             if not self.no_cache:
-                with open(test_case, mode="r+") as tmp_file:
+                with open(test_case, mode='r+') as tmp_file:
                     test_case_before_pass = tmp_file.read()
 
                     if (pass_key in self.cache and
@@ -470,7 +470,7 @@ class TestManager:
                         tmp_file.seek(0)
                         tmp_file.truncate(0)
                         tmp_file.write(self.cache[pass_key][test_case_before_pass])
-                        logging.info("cache hit for {}".format(test_case))
+                        logging.info('cache hit for {}'.format(test_case))
                         continue
 
             # create initial state
@@ -481,11 +481,11 @@ class TestManager:
                 # Ignore more key presses after skip has been detected
                 if not self.skip_key_off and not self.skip:
                     key = logger.pressed_key()
-                    if key == "s":
+                    if key == 's':
                         self.skip = True
-                        self.log_key_event("skipping the rest of this pass")
-                    elif key == "d":
-                        self.log_key_event("toggle print diff")
+                        self.log_key_event('skipping the rest of this pass')
+                    elif key == 'd':
+                        self.log_key_event('toggle print diff')
                         self.print_diff = not self.print_diff
 
                 success_env = self.run_parallel_tests()
@@ -500,7 +500,7 @@ class TestManager:
 
             # Cache result of this pass
             if not self.no_cache:
-                with open(test_case, mode="r") as tmp_file:
+                with open(test_case, mode='r') as tmp_file:
                     if pass_key not in self.cache:
                         self.cache[pass_key] = {}
 
@@ -520,4 +520,4 @@ class TestManager:
         self.pass_statistic.add_success(self.current_pass)
 
         pct = 100 - (self.total_file_size * 100.0 / self.orig_total_file_size)
-        logging.info("({}%, {} bytes, {} lines)".format(round(pct, 1), self.total_file_size, self.total_line_count))
+        logging.info('({}%, {} bytes, {} lines)'.format(round(pct, 1), self.total_file_size, self.total_line_count))

@@ -9,14 +9,14 @@ from cvise.utils.error import InsaneTestCaseError
 
 class LinesPass(AbstractPass):
     def check_prerequisites(self):
-        return self.check_external_program("topformflat")
+        return self.check_external_program('topformflat')
 
     def __format(self, test_case, check_sanity):
         tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
-            with open(test_case, "r") as in_file:
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
+            with open(test_case, 'r') as in_file:
                 try:
-                    cmd = [self.external_programs["topformflat"], self.arg]
+                    cmd = [self.external_programs['topformflat'], self.arg]
                     proc = subprocess.run(cmd, stdin=in_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                 except subprocess.SubprocessError:
                     return
@@ -27,7 +27,7 @@ class LinesPass(AbstractPass):
 
         # we need to check that sanity check is still fine
         if check_sanity:
-            backup = tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp)
+            backup = tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp)
             shutil.copyfile(test_case, backup.name)
             shutil.move(tmp_file.name, test_case)
             try:
@@ -41,7 +41,7 @@ class LinesPass(AbstractPass):
             shutil.move(tmp_file.name, test_case)
 
     def __count_instances(self, test_case):
-        with open(test_case, "r") as in_file:
+        with open(test_case, 'r') as in_file:
             lines = in_file.readlines()
             return len(lines)
 
@@ -63,7 +63,7 @@ class LinesPass(AbstractPass):
         return state.advance_on_success(self.__count_instances(test_case))
 
     def transform(self, test_case, state, process_event_notifier):
-        with open(test_case, "r") as in_file:
+        with open(test_case, 'r') as in_file:
             data = in_file.readlines()
 
         old_len = len(data)
@@ -71,7 +71,7 @@ class LinesPass(AbstractPass):
         assert len(data) < old_len
 
         tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
             tmp_file.writelines(data)
 
         shutil.move(tmp_file.name, test_case)

@@ -8,7 +8,7 @@ from cvise.passes.abstract import AbstractPass, PassResult
 
 class UnIfDefPass(AbstractPass):
     def check_prerequisites(self):
-        return self.check_external_program("unifdef")
+        return self.check_external_program('unifdef')
 
     def new(self, test_case, _=None):
         return 0
@@ -21,7 +21,7 @@ class UnIfDefPass(AbstractPass):
 
     def transform(self, test_case, state, process_event_notifier):
         try:
-            cmd = [self.external_programs["unifdef"], "-s", test_case]
+            cmd = [self.external_programs['unifdef'], '-s', test_case]
             proc = subprocess.run(cmd, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except subprocess.SubprocessError:
             return (PassResult.ERROR, state)
@@ -34,9 +34,9 @@ class UnIfDefPass(AbstractPass):
         deflist = sorted(defs.keys())
 
         tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
             while True:
-                du = "-D" if state % 2 == 0 else "-U"
+                du = '-D' if state % 2 == 0 else '-U'
                 n_index = int(state / 2)
 
                 if n_index >= len(deflist):
@@ -45,7 +45,7 @@ class UnIfDefPass(AbstractPass):
 
                 def_ = deflist[n_index]
 
-                cmd = [self.external_programs["unifdef"], "-B", "-x", "2", "{}{}".format(du, def_), "-o", tmp_file.name, test_case]
+                cmd = [self.external_programs['unifdef'], '-B', '-x', '2', '{}{}'.format(du, def_), '-o', tmp_file.name, test_case]
                 stdout, stderr, returncode = process_event_notifier.run_process(cmd)
                 if returncode != 0:
                     return (PassResult.ERROR, state)

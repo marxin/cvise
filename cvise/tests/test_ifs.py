@@ -11,7 +11,7 @@ class LineMarkersTestCase(unittest.TestCase):
         self.process_event_notifier = ProcessEventNotifier(None)
 
     def test_all(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
             tmp_file.write('#if FOO\nint a = 2;\n#endif')
 
         state = self.pass_.new(tmp_file.name)
@@ -24,13 +24,13 @@ class LineMarkersTestCase(unittest.TestCase):
             variant = variant_file.read()
 
         os.unlink(tmp_file.name)
-        self.assertEqual(variant, "int a = 2;\n")
+        self.assertEqual(variant, 'int a = 2;\n')
 
     def test_two_steps(self):
         self.maxDiff = None
         in_contents = (
-            "#if FOO\nint foo = 1;\n#else\nint foo = 0;\n#endif\n" +
-            "#if BAR\nint bar = 1;\n#else\nint bar = 0;\n#endif\n"
+            '#if FOO\nint foo = 1;\n#else\nint foo = 0;\n#endif\n' +
+            '#if BAR\nint bar = 1;\n#else\nint bar = 0;\n#endif\n'
         )
         expected_outs = [
             # ix val chunk contents
@@ -53,7 +53,7 @@ class LineMarkersTestCase(unittest.TestCase):
                        'int bar = 1;\n')),
         ]
 
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tf:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tf:
             tf.write(in_contents)
 
         outs = []
@@ -61,7 +61,7 @@ class LineMarkersTestCase(unittest.TestCase):
         # perform all iterations. They should iterate through FOO/!FOO x BAR/!BAR.
         state = self.pass_.new(tf.name)
         while state:
-            with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
+            with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
                 tmp_file.write(in_contents)
 
             (_, state) = self.pass_.transform(tmp_file.name, state, self.process_event_notifier)

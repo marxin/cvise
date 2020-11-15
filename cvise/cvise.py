@@ -24,34 +24,34 @@ from cvise.utils.error import CViseError, PassOptionError
 
 class CVise:
     class Info:
-        PACKAGE_BUGREPORT = "@cvise_PACKAGE_BUGREPORT@"
-        PACKAGE_NAME = "@cvise_PACKAGE_NAME@"
-        PACKAGE_STRING = "@cvise_PACKAGE_STRING@"
-        PACKAGE_URL = "@cvise_PACKAGE_URL@"
-        PACKAGE_VERSION = "@cvise_PACKAGE_VERSION@"
+        PACKAGE_BUGREPORT = '@cvise_PACKAGE_BUGREPORT@'
+        PACKAGE_NAME = '@cvise_PACKAGE_NAME@'
+        PACKAGE_STRING = '@cvise_PACKAGE_STRING@'
+        PACKAGE_URL = '@cvise_PACKAGE_URL@'
+        PACKAGE_VERSION = '@cvise_PACKAGE_VERSION@'
 
-        VERSION = "@cvise_VERSION@"
-        GIT_VERSION = "@GIT_HASH@"
-        LLVM_VERSION = "@LLVM_VERSION@"
+        VERSION = '@cvise_VERSION@'
+        GIT_VERSION = '@GIT_HASH@'
+        LLVM_VERSION = '@LLVM_VERSION@'
 
     pass_name_mapping = {
-        "balanced": BalancedPass,
-        "blank": BlankPass,
-        "clang": ClangPass,
-        "clangbinarysearch": ClangBinarySearchPass,
-        "clex": ClexPass,
-        "comments": CommentsPass,
-        "ifs": IfPass,
-        "includeincludes": IncludeIncludesPass,
-        "includes": IncludesPass,
-        "indent": IndentPass,
-        "ints": IntsPass,
-        "line_markers": LineMarkersPass,
-        "lines": LinesPass,
-        "peep": PeepPass,
-        "special": SpecialPass,
-        "ternary": TernaryPass,
-        "unifdef": UnIfDefPass,
+        'balanced': BalancedPass,
+        'blank': BlankPass,
+        'clang': ClangPass,
+        'clangbinarysearch': ClangBinarySearchPass,
+        'clex': ClexPass,
+        'comments': CommentsPass,
+        'ifs': IfPass,
+        'includeincludes': IncludeIncludesPass,
+        'includes': IncludesPass,
+        'indent': IndentPass,
+        'ints': IntsPass,
+        'line_markers': LineMarkersPass,
+        'lines': LinesPass,
+        'peep': PeepPass,
+        'special': SpecialPass,
+        'ternary': TernaryPass,
+        'unifdef': UnIfDefPass,
     }
 
     def __init__(self, test_manager):
@@ -64,7 +64,7 @@ class CVise:
             try:
                 pass_group_dict = json.load(pass_group_file)
             except json.JSONDecodeError:
-                raise CViseError("Not valid JSON.")
+                raise CViseError('Not valid JSON.')
 
         return pass_group_dict
 
@@ -72,7 +72,7 @@ class CVise:
     def parse_pass_group_dict(cls, pass_group_dict, pass_options, external_programs, remove_pass,
             clang_delta_std, not_c, renaming):
         pass_group = {}
-        removed_passes = set(remove_pass.split(",")) if remove_pass else set()
+        removed_passes = set(remove_pass.split(',')) if remove_pass else set()
 
         def parse_options(options):
             valid_options = set()
@@ -86,12 +86,12 @@ class CVise:
             return valid_options
 
         def include_pass(pass_dict, options):
-            return ((("include" not in pass_dict) or bool(parse_options(pass_dict["include"]) & options)) and
-                    (("exclude" not in pass_dict) or not bool(parse_options(pass_dict["exclude"]) & options)))
+            return ((('include' not in pass_dict) or bool(parse_options(pass_dict['include']) & options)) and
+                    (('exclude' not in pass_dict) or not bool(parse_options(pass_dict['exclude']) & options)))
 
-        for category in ["first", "main", "last"]:
+        for category in ['first', 'main', 'last']:
             if category not in pass_group_dict:
-                raise CViseError("Missing category {}".format(category))
+                raise CViseError('Missing category {}'.format(category))
 
             pass_group[category] = []
 
@@ -99,21 +99,21 @@ class CVise:
                 if not include_pass(pass_dict, pass_options):
                     continue
 
-                if "pass" not in pass_dict:
-                    raise CViseError("Invalid pass in category {}".format(category))
+                if 'pass' not in pass_dict:
+                    raise CViseError('Invalid pass in category {}'.format(category))
 
                 try:
-                    pass_class = cls.pass_name_mapping[pass_dict["pass"]]
+                    pass_class = cls.pass_name_mapping[pass_dict['pass']]
                 except KeyError:
-                    raise CViseError("Unkown pass {}".format(pass_dict["pass"]))
+                    raise CViseError('Unkown pass {}'.format(pass_dict['pass']))
 
-                pass_instance = pass_class(pass_dict.get("arg"), external_programs)
+                pass_instance = pass_class(pass_dict.get('arg'), external_programs)
                 if str(pass_instance) in removed_passes:
                     continue
 
-                if not_c and "c" in pass_dict and pass_dict["c"]:
+                if not_c and 'c' in pass_dict and pass_dict['c']:
                     continue
-                elif not renaming and "renaming" in pass_dict and pass_dict["renaming"]:
+                elif not renaming and 'renaming' in pass_dict and pass_dict['renaming']:
                     continue
 
                 pass_instance.clang_delta_std = clang_delta_std
@@ -125,24 +125,24 @@ class CVise:
         self._check_prerequisites(pass_group)
         self.test_manager.check_sanity(True)
 
-        logging.info("===< {} >===".format(os.getpid()))
-        logging.info("running {} interestingness test{} in parallel".format(self.test_manager.parallel_tests,
-                                                                            "" if self.test_manager.parallel_tests == 1 else "s"))
+        logging.info('===< {} >==='.format(os.getpid()))
+        logging.info('running {} interestingness test{} in parallel'.format(self.test_manager.parallel_tests,
+                                                                            '' if self.test_manager.parallel_tests == 1 else 's'))
 
         if not self.tidy:
             self.test_manager.backup_test_cases()
 
         if not skip_initial:
-            logging.info("INITIAL PASSES")
-            self._run_additional_passes(pass_group["first"])
+            logging.info('INITIAL PASSES')
+            self._run_additional_passes(pass_group['first'])
 
-        logging.info("MAIN PASSES")
-        self._run_main_passes(pass_group["main"])
+        logging.info('MAIN PASSES')
+        self._run_main_passes(pass_group['main'])
 
-        logging.info("CLEANUP PASSES")
-        self._run_additional_passes(pass_group["last"])
+        logging.info('CLEANUP PASSES')
+        self._run_additional_passes(pass_group['last'])
 
-        logging.info("===================== done ====================")
+        logging.info('===================== done ====================')
         return True
 
     @staticmethod
@@ -150,12 +150,12 @@ class CVise:
         for category in pass_group:
             for p in pass_group[category]:
                 if not p.check_prerequisites():
-                    logging.error("Prereqs not found for pass {}".format(p))
+                    logging.error('Prereqs not found for pass {}'.format(p))
 
     def _run_additional_passes(self, passes):
         for p in passes:
             if not p.check_prerequisites():
-                logging.error("Skipping {}".format(p))
+                logging.error('Skipping {}'.format(p))
             else:
                 self.test_manager.run_pass(p)
 
@@ -165,11 +165,11 @@ class CVise:
 
             for p in passes:
                 if not p.check_prerequisites():
-                    logging.error("Skipping pass {}".format(p))
+                    logging.error('Skipping pass {}'.format(p))
                 else:
                     self.test_manager.run_pass(p)
 
-            logging.info("Termination check: size was {}; now {}".format(total_file_size, self.test_manager.total_file_size))
+            logging.info('Termination check: size was {}; now {}'.format(total_file_size, self.test_manager.total_file_size))
 
             if self.test_manager.total_file_size >= total_file_size:
                 break

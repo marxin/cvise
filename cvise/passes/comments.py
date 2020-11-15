@@ -16,7 +16,7 @@ class CommentsPass(AbstractPass):
         return state
 
     def transform(self, test_case, state, process_event_notifier):
-        with open(test_case, "r") as in_file:
+        with open(test_case, 'r') as in_file:
             prog = in_file.read()
             prog2 = prog
 
@@ -25,15 +25,15 @@ class CommentsPass(AbstractPass):
             if state == -2:
                 # Remove all multiline comments
                 # Replace /* any number of * if not followed by / or anything but * */
-                prog2 = re.sub(r"/\*(?:\*(?!/)|[^*])*\*/", "", prog2, flags=re.DOTALL)
+                prog2 = re.sub(r'/\*(?:\*(?!/)|[^*])*\*/', '', prog2, flags=re.DOTALL)
             elif state == -1:
                 # Remove all single line comments
-                prog2 = re.sub(r"//.*$", "", prog2, flags=re.MULTILINE)
+                prog2 = re.sub(r'//.*$', '', prog2, flags=re.MULTILINE)
             else:
                 return (PassResult.STOP, state)
 
             if prog != prog2:
-                with open(test_case, "w") as out_file:
+                with open(test_case, 'w') as out_file:
                     out_file.write(prog2)
 
                 return (PassResult.OK, state)

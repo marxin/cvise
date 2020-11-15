@@ -7,11 +7,11 @@ class BalancedPass(AbstractPass):
         return True
 
     def __get_next_match(self, test_case, pos):
-        with open(test_case, "r") as in_file:
+        with open(test_case, 'r') as in_file:
             prog = in_file.read()
 
         config = self.__get_config()
-        m = nestedmatcher.find(config["search"], prog, pos=pos, prefix=config["prefix"])
+        m = nestedmatcher.find(config['search'], prog, pos=pos, prefix=config['prefix'])
 
         return m
 
@@ -25,9 +25,9 @@ class BalancedPass(AbstractPass):
         return self.__get_next_match(test_case, pos=state[0])
 
     def __get_config(self):
-        config = {"search": None,
-                  "replace_fn": None,
-                  "prefix": "",
+        config = {'search': None,
+                  'replace_fn': None,
+                  'prefix': '',
                   }
 
         def replace_all(string, match):
@@ -39,59 +39,59 @@ class BalancedPass(AbstractPass):
         def replace_inside(string, match):
             return string[0:(match[0] + 1)] + string[(match[1] - 1):]
 
-        if self.arg == "square-inside":
-            config["search"] = nestedmatcher.BalancedExpr.squares
-            config["replace_fn"] = replace_inside
-        elif self.arg == "angles-inside":
-            config["search"] = nestedmatcher.BalancedExpr.angles
-            config["replace_fn"] = replace_inside
-        elif self.arg == "parens-inside":
-            config["search"] = nestedmatcher.BalancedExpr.parens
-            config["replace_fn"] = replace_inside
-        elif self.arg == "curly-inside":
-            config["search"] = nestedmatcher.BalancedExpr.curlies
-            config["replace_fn"] = replace_inside
-        elif self.arg == "square":
-            config["search"] = nestedmatcher.BalancedExpr.squares
-            config["replace_fn"] = replace_all
-        elif self.arg == "angles":
-            config["search"] = nestedmatcher.BalancedExpr.angles
-            config["replace_fn"] = replace_all
-        elif self.arg == "parens-to-zero":
-            config["search"] = nestedmatcher.BalancedExpr.parens
-            config["replace_fn"] = lambda string, match: string[0:match[0]] + "0" + string[match[1]:]
-        elif self.arg == "parens":
-            config["search"] = nestedmatcher.BalancedExpr.parens
-            config["replace_fn"] = replace_all
-        elif self.arg == "curly":
-            config["search"] = nestedmatcher.BalancedExpr.curlies
-            config["replace_fn"] = replace_all
-        elif self.arg == "curly2":
-            config["search"] = nestedmatcher.BalancedExpr.curlies
-            config["replace_fn"] = lambda string, match: string[0:match[0]] + ";" + string[match[1]:]
-        elif self.arg == "curly3":
-            config["search"] = nestedmatcher.BalancedExpr.curlies
-            config["replace_fn"] = replace_all
-            config["prefix"] = "=\\s*"
-        elif self.arg == "parens-only":
-            config["search"] = nestedmatcher.BalancedExpr.parens
-            config["replace_fn"] = replace_only
-        elif self.arg == "curly-only":
-            config["search"] = nestedmatcher.BalancedExpr.curlies
-            config["replace_fn"] = replace_only
-        elif self.arg == "angles-only":
-            config["search"] = nestedmatcher.BalancedExpr.angles
-            config["replace_fn"] = replace_only
-        elif self.arg == "square-only":
-            config["search"] = nestedmatcher.BalancedExpr.squares
-            config["replace_fn"] = replace_only
+        if self.arg == 'square-inside':
+            config['search'] = nestedmatcher.BalancedExpr.squares
+            config['replace_fn'] = replace_inside
+        elif self.arg == 'angles-inside':
+            config['search'] = nestedmatcher.BalancedExpr.angles
+            config['replace_fn'] = replace_inside
+        elif self.arg == 'parens-inside':
+            config['search'] = nestedmatcher.BalancedExpr.parens
+            config['replace_fn'] = replace_inside
+        elif self.arg == 'curly-inside':
+            config['search'] = nestedmatcher.BalancedExpr.curlies
+            config['replace_fn'] = replace_inside
+        elif self.arg == 'square':
+            config['search'] = nestedmatcher.BalancedExpr.squares
+            config['replace_fn'] = replace_all
+        elif self.arg == 'angles':
+            config['search'] = nestedmatcher.BalancedExpr.angles
+            config['replace_fn'] = replace_all
+        elif self.arg == 'parens-to-zero':
+            config['search'] = nestedmatcher.BalancedExpr.parens
+            config['replace_fn'] = lambda string, match: string[0:match[0]] + '0' + string[match[1]:]
+        elif self.arg == 'parens':
+            config['search'] = nestedmatcher.BalancedExpr.parens
+            config['replace_fn'] = replace_all
+        elif self.arg == 'curly':
+            config['search'] = nestedmatcher.BalancedExpr.curlies
+            config['replace_fn'] = replace_all
+        elif self.arg == 'curly2':
+            config['search'] = nestedmatcher.BalancedExpr.curlies
+            config['replace_fn'] = lambda string, match: string[0:match[0]] + ';' + string[match[1]:]
+        elif self.arg == 'curly3':
+            config['search'] = nestedmatcher.BalancedExpr.curlies
+            config['replace_fn'] = replace_all
+            config['prefix'] = '=\\s*'
+        elif self.arg == 'parens-only':
+            config['search'] = nestedmatcher.BalancedExpr.parens
+            config['replace_fn'] = replace_only
+        elif self.arg == 'curly-only':
+            config['search'] = nestedmatcher.BalancedExpr.curlies
+            config['replace_fn'] = replace_only
+        elif self.arg == 'angles-only':
+            config['search'] = nestedmatcher.BalancedExpr.angles
+            config['replace_fn'] = replace_only
+        elif self.arg == 'square-only':
+            config['search'] = nestedmatcher.BalancedExpr.squares
+            config['replace_fn'] = replace_only
         else:
             raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
         return config
 
     def transform(self, test_case, state, process_event_notifier):
-        with open(test_case, "r") as in_file:
+        with open(test_case, 'r') as in_file:
             prog = in_file.read()
             prog2 = prog
 
@@ -101,10 +101,10 @@ class BalancedPass(AbstractPass):
             if state is None:
                 return (PassResult.STOP, state)
             else:
-                prog2 = config["replace_fn"](prog2, state)
+                prog2 = config['replace_fn'](prog2, state)
 
                 if prog != prog2:
-                    with open(test_case, "w") as out_file:
+                    with open(test_case, 'w') as out_file:
                         out_file.write(prog2)
 
                     return (PassResult.OK, state)

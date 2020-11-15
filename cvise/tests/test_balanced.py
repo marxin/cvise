@@ -7,11 +7,11 @@ from cvise.passes.balanced import BalancedPass
 
 class BalancedParensTestCase(unittest.TestCase):
     def setUp(self):
-        self.pass_ = BalancedPass("parens")
+        self.pass_ = BalancedPass('parens')
 
     def test_parens_no_match(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This is a simple test!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This is a simple test!\n')
 
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -21,11 +21,11 @@ class BalancedParensTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This is a simple test!\n")
+        self.assertEqual(variant, 'This is a simple test!\n')
 
     def test_parens_simple(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This is a (simple) test!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This is a (simple) test!\n')
 
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -35,11 +35,11 @@ class BalancedParensTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This is a  test!\n")
+        self.assertEqual(variant, 'This is a  test!\n')
 
     def test_parens_nested_outer(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This (is a (simple) test)!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This (is a (simple) test)!\n')
 
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -49,11 +49,11 @@ class BalancedParensTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This !\n")
+        self.assertEqual(variant, 'This !\n')
 
     def test_parens_nested_inner(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This (is a (simple) test)!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This (is a (simple) test)!\n')
 
         state = self.pass_.new(tmp_file.name)
         # Transform failed
@@ -65,15 +65,15 @@ class BalancedParensTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This (is a  test)!\n")
+        self.assertEqual(variant, 'This (is a  test)!\n')
 
 class BalancedParensOnlyTestCase(unittest.TestCase):
     def setUp(self):
-        self.pass_ = BalancedPass("parens-only")
+        self.pass_ = BalancedPass('parens-only')
 
     def test_parens_no_match(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This is a simple test!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This is a simple test!\n')
 
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -83,11 +83,11 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This is a simple test!\n")
+        self.assertEqual(variant, 'This is a simple test!\n')
 
     def test_parens_simple(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This is a (simple) test!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This is a (simple) test!\n')
 
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -97,11 +97,11 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This is a simple test!\n")
+        self.assertEqual(variant, 'This is a simple test!\n')
 
     def test_parens_nested_outer(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This (is a (simple) test)!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This (is a (simple) test)!\n')
 
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -111,11 +111,11 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This is a (simple) test!\n")
+        self.assertEqual(variant, 'This is a (simple) test!\n')
 
     def test_parens_nested_inner(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This (is a (simple) test)!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This (is a (simple) test)!\n')
 
         state = self.pass_.new(tmp_file.name)
         # Transform failed
@@ -127,11 +127,11 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This (is a simple test)!\n")
+        self.assertEqual(variant, 'This (is a simple test)!\n')
 
     def test_parens_nested_both(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This (is a (simple) test)!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This (is a (simple) test)!\n')
 
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -143,11 +143,11 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This is a simple test!\n")
+        self.assertEqual(variant, 'This is a simple test!\n')
 
     def test_parens_nested_all(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("(This) (is a (((more)) complex) test)!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('(This) (is a (((more)) complex) test)!\n')
 
         state = self.pass_.new(tmp_file.name)
         (result, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -165,11 +165,11 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         os.unlink(tmp_file.name)
 
         self.assertEqual(iteration, 5)
-        self.assertEqual(variant, "This is a more complex test!\n")
+        self.assertEqual(variant, 'This is a more complex test!\n')
 
     def test_parens_nested_no_success(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("(This) (is a (((more)) complex) test)!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('(This) (is a (((more)) complex) test)!\n')
 
         state = self.pass_.new(tmp_file.name)
         (result, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -177,8 +177,8 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         iteration = 0
 
         while result == PassResult.OK and iteration < 7:
-            with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-                tmp_file.write("(This) (is a (((more)) complex) test)!\n")
+            with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+                tmp_file.write('(This) (is a (((more)) complex) test)!\n')
 
             state = self.pass_.advance(tmp_file.name, state)
             (result, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -190,11 +190,11 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
 
 class BalancedParensInsideTestCase(unittest.TestCase):
     def setUp(self):
-        self.pass_ = BalancedPass("parens-inside")
+        self.pass_ = BalancedPass('parens-inside')
 
     def test_parens_no_match(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This is a simple test!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This is a simple test!\n')
 
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -204,11 +204,11 @@ class BalancedParensInsideTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This is a simple test!\n")
+        self.assertEqual(variant, 'This is a simple test!\n')
 
     def test_parens_simple(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This is a (simple) test!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This is a (simple) test!\n')
 
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -218,11 +218,11 @@ class BalancedParensInsideTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This is a () test!\n")
+        self.assertEqual(variant, 'This is a () test!\n')
 
     def test_parens_nested_outer(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This (is a (simple) test)!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This (is a (simple) test)!\n')
 
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -232,11 +232,11 @@ class BalancedParensInsideTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This ()!\n")
+        self.assertEqual(variant, 'This ()!\n')
 
     def test_parens_nested_inner(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This (is a (simple) test)!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This (is a (simple) test)!\n')
 
         state = self.pass_.new(tmp_file.name)
         # Transform failed
@@ -248,11 +248,11 @@ class BalancedParensInsideTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This (is a () test)!\n")
+        self.assertEqual(variant, 'This (is a () test)!\n')
 
     def test_parens_nested_both(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("This (is a (simple) test)!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This (is a (simple) test)!\n')
 
         state = self.pass_.new(tmp_file.name)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -264,11 +264,11 @@ class BalancedParensInsideTestCase(unittest.TestCase):
 
         os.unlink(tmp_file.name)
 
-        self.assertEqual(variant, "This ()!\n")
+        self.assertEqual(variant, 'This ()!\n')
 
     def test_parens_nested_all(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("(This) (is a (((more)) complex) test)!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('(This) (is a (((more)) complex) test)!\n')
 
         state = self.pass_.new(tmp_file.name)
         (result, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -286,11 +286,11 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         os.unlink(tmp_file.name)
 
         self.assertEqual(iteration, 2)
-        self.assertEqual(variant, "() ()!\n")
+        self.assertEqual(variant, '() ()!\n')
 
     def test_parens_nested_no_success(self):
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            tmp_file.write("(This) (is a (((more)) complex) test)!\n")
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('(This) (is a (((more)) complex) test)!\n')
 
         state = self.pass_.new(tmp_file.name)
         (result, state) = self.pass_.transform(tmp_file.name, state, None)
@@ -298,8 +298,8 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         iteration = 0
 
         while result == PassResult.OK and iteration < 7:
-            with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-                tmp_file.write("(This) (is a (((more)) complex) test)!\n")
+            with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+                tmp_file.write('(This) (is a (((more)) complex) test)!\n')
 
             state = self.pass_.advance(tmp_file.name, state)
             (result, state) = self.pass_.transform(tmp_file.name, state, None)

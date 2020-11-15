@@ -1,6 +1,6 @@
 import sys
 
-if sys.platform == "win32":
+if sys.platform == 'win32':
     import msvcrt
 else:
     import termios
@@ -9,7 +9,7 @@ else:
 
 class KeyLogger:
     def __init__(self):
-        if sys.platform != "win32":
+        if sys.platform != 'win32':
             try:
                 fd = sys.stdin.fileno()
                 new_term = termios.tcgetattr(fd)
@@ -25,13 +25,13 @@ class KeyLogger:
                 pass
 
     def _getch(self):
-        if sys.platform == "win32":
-            return msvcrt.getch().decode("utf-8")
+        if sys.platform == 'win32':
+            return msvcrt.getch().decode('utf-8')
         else:
             return sys.stdin.read(1)
 
     def _kbhit(self):
-        if sys.platform == "win32":
+        if sys.platform == 'win32':
             return msvcrt.kbhit()
         else:
             (dr, dw, de) = select.select([sys.stdin], [], [], 0)

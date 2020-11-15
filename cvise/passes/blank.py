@@ -21,8 +21,8 @@ class BlankPass(AbstractPass):
     @staticmethod
     def __transform(test_case, pattern):
         tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False, dir=tmp) as tmp_file:
-            with open(test_case, "r") as in_file:
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
+            with open(test_case, 'r') as in_file:
                 matched = False
 
                 for line in in_file:
@@ -39,7 +39,7 @@ class BlankPass(AbstractPass):
         return matched
 
     def transform(self, test_case, state, process_event_notifier):
-        patterns = [r"^\s*$", r"^#"]
+        patterns = [r'^\s*$', r'^#']
 
         if state >= len(patterns):
             return (PassResult.STOP, state)
