@@ -39,6 +39,12 @@ matrix:
         - BUILD_TYPE=UBSAN
         - DIST=opensusetw-llvm11
 
+    - name: Leap 15 (LLVM 9)
+      stage: build
+      env:
+        - BUILD_TYPE=DEBUG
+        - DIST=opensuselp15-llvm9
+
     - name: ASAN build (LLVM 11)
       stage: build
       env:
