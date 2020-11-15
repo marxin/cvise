@@ -2,8 +2,8 @@ import os
 import tempfile
 import unittest
 
-from cvise.tests.testabstract import iterate_pass
 from cvise.passes.peep import PeepPass
+from cvise.tests.testabstract import iterate_pass
 
 class PeepATestCase(unittest.TestCase):
     def setUp(self):

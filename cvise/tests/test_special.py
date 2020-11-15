@@ -2,8 +2,8 @@ import os
 import tempfile
 import unittest
 
-from cvise.tests.testabstract import iterate_pass
 from cvise.passes.special import SpecialPass
+from cvise.tests.testabstract import iterate_pass
 
 class SpecialATestCase(unittest.TestCase):
     def setUp(self):

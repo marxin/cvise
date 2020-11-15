@@ -1,28 +1,26 @@
+from concurrent.futures import FIRST_COMPLETED, TimeoutError, wait
 import difflib
 import filecmp
 import logging
 import math
+from multiprocessing import Manager
 import os
 import os.path
-import pebble
 import platform
-import psutil
 import shutil
 import tempfile
 import traceback
 
-from concurrent.futures import wait, FIRST_COMPLETED, TimeoutError
-from multiprocessing import Manager
-
 from cvise.cvise import CVise
 from cvise.passes.abstract import PassResult, ProcessEventNotifier, ProcessEventType
-
-from . import readkey
-from .error import InsaneTestCaseError
-from .error import InvalidInterestingnessTestError
-from .error import InvalidTestCaseError
-from .error import PassBugError
-from .error import ZeroSizeError
+from cvise.utils.error import InsaneTestCaseError
+from cvise.utils.error import InvalidInterestingnessTestError
+from cvise.utils.error import InvalidTestCaseError
+from cvise.utils.error import PassBugError
+from cvise.utils.error import ZeroSizeError
+from cvise.utils.readkey import KeyLogger
+import pebble
+import psutil
 
 # change default Pebble sleep unit for faster response
 pebble.common.SLEEP_UNIT = 0.01
@@ -103,11 +101,10 @@ class TestEnvironment:
             return self
         except OSError:
             # this can happen when we clean up temporary files for cancelled processes
-            pass
+            return self
         except Exception as e:
             print('Unexpected TestEnvironment::run failure: ' + str(e))
             traceback.print_exc()
-        finally:
             return self
 
     def run_test(self, verbose):
@@ -456,7 +453,7 @@ class TestManager:
 
         self.pass_statistic.start(self.current_pass)
         if not self.skip_key_off:
-            logger = readkey.KeyLogger()
+            logger = KeyLogger()
 
         for test_case in self.sorted_test_cases:
             self.current_test_case = test_case

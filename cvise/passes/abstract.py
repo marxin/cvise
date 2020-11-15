@@ -1,9 +1,8 @@
 import copy
+from enum import auto, Enum, unique
 import logging
 import shutil
 import subprocess
-
-from enum import Enum, auto, unique
 
 @unique
 class PassResult(Enum):

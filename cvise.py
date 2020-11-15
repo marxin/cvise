@@ -1,25 +1,24 @@
 #!/usr/bin/python3
 
 import argparse
+import datetime
+import importlib.util
 import logging
 import os
 import os.path
+import platform
 import shutil
 import sys
-import time
-import datetime
-import psutil
-import platform
 import tempfile
-
-import importlib.util
+import time
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass
+from cvise.utils import statistics
+from cvise.utils import testing
 from cvise.utils.error import CViseError
 from cvise.utils.error import MissingPassGroupsError
-from cvise.utils import testing
-from cvise.utils import statistics
+import psutil
 
 destdir = os.getenv("DESTDIR", "")
 

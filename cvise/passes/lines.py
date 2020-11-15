@@ -4,8 +4,8 @@ import shutil
 import subprocess
 import tempfile
 
-from cvise.utils.error import InsaneTestCaseError
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
+from cvise.utils.error import InsaneTestCaseError
 
 class LinesPass(AbstractPass):
     def check_prerequisites(self):

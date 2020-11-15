@@ -3,9 +3,6 @@ import logging
 import os
 
 from cvise.passes.abstract import AbstractPass
-from .utils.error import CViseError
-from .utils.error import PassOptionError
-
 from cvise.passes.balanced import BalancedPass
 from cvise.passes.blank import BlankPass
 from cvise.passes.clang import ClangPass
@@ -23,6 +20,7 @@ from cvise.passes.peep import PeepPass
 from cvise.passes.special import SpecialPass
 from cvise.passes.ternary import TernaryPass
 from cvise.passes.unifdef import UnIfDefPass
+from cvise.utils.error import CViseError, PassOptionError
 
 class CVise:
     class Info:

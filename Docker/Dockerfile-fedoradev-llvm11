@@ -1,6 +1,9 @@
 FROM fedora:rawhide
 
-RUN dnf install -y python3-pip python3-pytest python3-psutil llvm-devel clang-devel cmake make flex unifdef
+RUN dnf install -y python3-pip python3-pytest python3-psutil llvm-devel clang-devel cmake make flex unifdef \
+        python3-pytest-flake8 \
+        python3-flake8 \
+        python3-flake8-import-order \
 RUN pip3 install Pebble
 
 WORKDIR /usr/src/cvise

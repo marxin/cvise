@@ -67,7 +67,7 @@ class LineMarkersTestCase(unittest.TestCase):
             (_, state) = self.pass_.transform(tmp_file.name, state, self.process_event_notifier)
             with open(tmp_file.name) as variant_file:
                 variant = variant_file.read()
-                outs.append(tuple([state.index, state.value, state.chunk, variant]))
+                outs.append((state.index, state.value, state.chunk, variant))
             os.unlink(tmp_file.name)
             state = self.pass_.advance(tmp_file.name, state)
 
