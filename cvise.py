@@ -12,6 +12,13 @@ import sys
 import tempfile
 import time
 
+# If the cvise modules cannot be found
+# add the known install location to the path
+destdir = os.getenv("DESTDIR", "")
+if importlib.util.find_spec("cvise") is None:
+    sys.path.append("@CMAKE_INSTALL_FULL_DATADIR@")
+    sys.path.append(destdir + "@CMAKE_INSTALL_FULL_DATADIR@")
+
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass
 from cvise.utils import statistics
@@ -20,13 +27,6 @@ from cvise.utils.error import CViseError
 from cvise.utils.error import MissingPassGroupsError
 import psutil
 
-destdir = os.getenv("DESTDIR", "")
-
-# If the cvise modules cannot be found
-# add the known install location to the path
-if importlib.util.find_spec("cvise") is None:
-    sys.path.append("@CMAKE_INSTALL_FULL_DATADIR@")
-    sys.path.append(destdir + "@CMAKE_INSTALL_FULL_DATADIR@")
 
 class DeltaTimeFormatter(logging.Formatter):
     def format(self, record):
