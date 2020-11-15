@@ -39,6 +39,7 @@ class DeltaTimeFormatter(logging.Formatter):
 
 script_path = os.path.dirname(os.path.realpath(__file__))
 
+
 def get_share_dir():
 
     # Test all known locations for the cvise directory
@@ -53,6 +54,7 @@ def get_share_dir():
             return d
 
     raise CViseError('Cannot find cvise module directory!')
+
 
 def find_external_programs():
     programs = {
@@ -93,8 +95,10 @@ def find_external_programs():
 
     return programs
 
+
 def get_pass_group_path(name):
     return os.path.join(get_share_dir(), 'pass_groups', name + '.json')
+
 
 def get_available_pass_groups():
     pass_group_dir = os.path.join(get_share_dir(), 'pass_groups')

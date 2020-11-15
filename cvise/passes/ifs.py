@@ -4,6 +4,7 @@ import tempfile
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
+
 class IfPass(AbstractPass):
     line_regex = re.compile('^\\s*#\\s*if')
 

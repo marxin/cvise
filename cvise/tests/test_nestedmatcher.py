@@ -2,6 +2,7 @@ import unittest
 
 from cvise.utils.nestedmatcher import BalancedExpr, BalancedPattern, find, OrPattern, RegExPattern, search
 
+
 class SimpleParensTest(unittest.TestCase):
     def test_1(self):
         m = find(BalancedExpr.parens, 'No match in this string!')
@@ -46,6 +47,7 @@ class SimpleParensTest(unittest.TestCase):
     def test_11(self):
         m = find(BalancedExpr.parens, '(This (string) contains) two nested matches!', prefix='This ')
         self.assertEqual(m, (1, 14))
+
 
 class ComplexParensTest(unittest.TestCase):
     def test_1(self):

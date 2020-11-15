@@ -2,6 +2,7 @@ from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils import nestedmatcher
 from cvise.utils.error import UnknownArgumentError
 
+
 class BalancedPass(AbstractPass):
     def check_prerequisites(self):
         return True

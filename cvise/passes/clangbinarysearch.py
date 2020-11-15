@@ -8,6 +8,7 @@ import time
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
+
 class ClangBinarySearchPass(AbstractPass):
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')

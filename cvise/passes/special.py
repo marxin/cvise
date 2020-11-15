@@ -3,6 +3,7 @@ import re
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils.error import UnknownArgumentError
 
+
 class SpecialPass(AbstractPass):
     def check_prerequisites(self):
         return True

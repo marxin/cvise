@@ -5,6 +5,7 @@ import unittest
 from cvise.passes.abstract import PassResult
 from cvise.passes.comments import CommentsPass
 
+
 class CommentsTestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = CommentsPass('0')

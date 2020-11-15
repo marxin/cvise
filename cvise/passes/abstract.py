@@ -4,12 +4,14 @@ import logging
 import shutil
 import subprocess
 
+
 @unique
 class PassResult(Enum):
     OK = auto()
     INVALID = auto()
     STOP = auto()
     ERROR = auto()
+
 
 class BinaryState:
     def __init__(self):
@@ -60,6 +62,7 @@ class BinaryState:
         else:
             return self
 
+
 class AbstractPass:
     @unique
     class Option(Enum):
@@ -100,15 +103,18 @@ class AbstractPass:
     def transform(self, test_case, state, process_event_notifier):
         raise NotImplementedError("Class {} has not implemented 'transform'!".format(type(self).__name__))
 
+
 @unique
 class ProcessEventType(Enum):
     STARTED = auto()
     FINISHED = auto()
 
+
 class ProcessEvent:
     def __init__(self, pid, event_type):
         self.pid = pid
         self.type = event_type
+
 
 class ProcessEventNotifier:
     def __init__(self, pid_queue):

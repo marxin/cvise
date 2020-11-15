@@ -5,6 +5,7 @@ import tempfile
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
+
 class LineMarkersPass(AbstractPass):
     line_regex = re.compile('^\\s*#\\s*[0-9]+')
 

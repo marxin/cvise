@@ -1,5 +1,6 @@
 from cvise.passes.abstract import PassResult, ProcessEventNotifier
 
+
 def iterate_pass(current_pass, path):
     state = current_pass.new(path)
     while state is not None:

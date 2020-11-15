@@ -5,6 +5,7 @@ import tempfile
 
 from cvise.passes.abstract import AbstractPass, PassResult
 
+
 class IncludeIncludesPass(AbstractPass):
     def check_prerequisites(self):
         return True

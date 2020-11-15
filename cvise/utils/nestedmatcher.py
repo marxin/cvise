@@ -1,6 +1,7 @@
 import enum
 import re
 
+
 @enum.unique
 class BalancedExpr(enum.Enum):
     angles = ('<', '>')
@@ -8,8 +9,10 @@ class BalancedExpr(enum.Enum):
     parens = ('(', ')')
     squares = ('[', ']')
 
+
 class Pattern:
     pass
+
 
 class RegExPattern(Pattern):
     def __init__(self, expr):
@@ -17,6 +20,7 @@ class RegExPattern(Pattern):
 
     def __repr__(self):
         return '(expr={})'.format(self.expr)
+
 
 class BalancedPattern(Pattern):
     def __init__(self, expr):
@@ -26,6 +30,7 @@ class BalancedPattern(Pattern):
     def __repr__(self):
         return '(start={}, end={})'.format(self.start, self.end)
 
+
 class OrPattern(Pattern):
     def __init__(self, left, right):
         self.left = left
@@ -33,6 +38,7 @@ class OrPattern(Pattern):
 
     def __repr__(self):
         return '(left={}, right={})'.format(self.left, self.right)
+
 
 def __get_regex_match(pattern, string, pos=0, search=False):
     regex = re.compile(pattern.expr, flags=re.DOTALL)
@@ -46,6 +52,7 @@ def __get_regex_match(pattern, string, pos=0, search=False):
         return (m.start(), m.end())
     else:
         return None
+
 
 def __get_balanced_match(pattern, string, pos=0, search=False):
     if pos < 0 or pos >= len(string):
@@ -92,6 +99,7 @@ def __get_balanced_match(pattern, string, pos=0, search=False):
 
         return __match_helper(pattern, string, pos)
 
+
 def __get_leftmost_match(matches):
     matches = filter(lambda m: m is not None, matches)
 
@@ -103,6 +111,7 @@ def __get_leftmost_match(matches):
                 leftmost = m
 
         return leftmost
+
 
 def __match_pattern(pattern, string, pos=0, search=False):
     if isinstance(pattern, OrPattern):
@@ -119,11 +128,13 @@ def __match_pattern(pattern, string, pos=0, search=False):
 
     return match
 
+
 def __unify_part(part):
     if not isinstance(part, tuple):
         part = (part, None)
 
     return part
+
 
 def find(expr, string, pos=0, prefix=''):
     parts = []
@@ -139,6 +150,7 @@ def find(expr, string, pos=0, prefix=''):
         return matches['all']
     else:
         return None
+
 
 def search(parts, string, pos=0, search=True):
     if not parts or pos < 0 or pos >= len(string):

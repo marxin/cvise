@@ -2,6 +2,7 @@ import os
 import subprocess
 import unittest
 
+
 class TestClangDelta(unittest.TestCase):
 
     @classmethod

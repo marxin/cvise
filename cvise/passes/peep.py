@@ -4,6 +4,7 @@ from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils import nestedmatcher
 from cvise.utils.error import UnknownArgumentError
 
+
 class PeepPass(AbstractPass):
     border = r'[*{([:,})\];]'
     border_or_space = r'(?:(?:' + border + r')|\s)'

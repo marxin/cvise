@@ -5,6 +5,7 @@ import unittest
 from cvise.passes.abstract import PassResult
 from cvise.passes.ternary import TernaryPass
 
+
 class TernaryBTestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = TernaryPass('b')
@@ -97,6 +98,7 @@ class TernaryBTestCase(unittest.TestCase):
         os.unlink(tmp_file.name)
 
         self.assertEqual(iteration, 4)
+
 
 class TernaryCTestCase(unittest.TestCase):
     def setUp(self):

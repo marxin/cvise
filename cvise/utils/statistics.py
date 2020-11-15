@@ -1,5 +1,6 @@
 import time
 
+
 class SinglePassStatistic:
     def __init__(self, pass_name):
         self.pass_name = pass_name
@@ -7,6 +8,7 @@ class SinglePassStatistic:
         self.worked = 0
         self.failed = 0
         self.totally_executed = 0
+
 
 class PassStatistic:
     def __init__(self):

@@ -7,6 +7,7 @@ else:
     import select
     import weakref
 
+
 class KeyLogger:
     def __init__(self):
         if sys.platform != 'win32':

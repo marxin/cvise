@@ -25,12 +25,14 @@ import psutil
 # change default Pebble sleep unit for faster response
 pebble.common.SLEEP_UNIT = 0.01
 
+
 def rmfolder(name):
     assert 'cvise' in name
     try:
         shutil.rmtree(name)
     except OSError:
         pass
+
 
 class TestEnvironment:
     def __init__(self, state, order, test_script, folder, test_case,
@@ -117,6 +119,7 @@ class TestEnvironment:
         finally:
             os.chdir(self.pwd)
         return returncode
+
 
 class TestManager:
     GIVEUP_CONSTANT = 50000

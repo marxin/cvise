@@ -2,6 +2,7 @@ import re
 
 from cvise.passes.abstract import AbstractPass, PassResult
 
+
 class CommentsPass(AbstractPass):
     def check_prerequisites(self):
         return True

@@ -4,6 +4,7 @@ import unittest
 
 from cvise.passes.line_markers import LineMarkersPass
 
+
 class LineMarkersTestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = LineMarkersPass()

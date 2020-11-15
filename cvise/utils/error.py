@@ -1,7 +1,9 @@
 import os
 
+
 class CViseError(Exception):
     pass
+
 
 class PrerequisitesNotFoundError(CViseError):
     def __init__(self, missing):
@@ -10,6 +12,7 @@ class PrerequisitesNotFoundError(CViseError):
     def __str__(self):
         return 'Missing prerequisites for passes {}!'.format(', '.join(self.missing))
 
+
 class UnknownArgumentError(CViseError):
     def __init__(self, pass_, arg):
         self.pass_ = pass_
@@ -17,6 +20,7 @@ class UnknownArgumentError(CViseError):
 
     def __str__(self):
         return "The argument '{}' is not valid for pass '{}'!".format(self.arg, self.pass_.__name__)
+
 
 class InvalidFileError(CViseError):
     def __init__(self, path, error):
@@ -36,9 +40,11 @@ class InvalidFileError(CViseError):
     def __str__(self):
         return "The specified file '{}' cannot be {}!".format(self.path, self._get_error_name())
 
+
 class InvalidTestCaseError(InvalidFileError):
     def __str__(self):
         return "The specified test case '{}' cannot be {}!".format(self.path, self._get_error_name())
+
 
 class InvalidInterestingnessTestError(InvalidFileError):
     def __init__(self, path):
@@ -46,6 +52,7 @@ class InvalidInterestingnessTestError(InvalidFileError):
 
     def __str__(self):
         return "The specified interestingness test '{}' cannot be executed!".format(self.path)
+
 
 class ZeroSizeError(CViseError):
     def __init__(self, test_cases):
@@ -65,12 +72,15 @@ making sure that your interestingness test does not find files like
 this to be interesting."""
         return message
 
+
 class PassOptionError(CViseError):
     pass
+
 
 class MissingPassGroupsError(CViseError):
     def __str__(self):
         return 'Could not find a directory with definitions for pass groups!'
+
 
 class PassBugError(CViseError):
     MSG = """***************************************************
@@ -94,6 +104,7 @@ and creating an issue at https://github.com/marxin/cvise/issues and we will try 
 
     def __str__(self):
         return self.MSG.format(self.current_pass, self.problem, self.state, self.crash_dir)
+
 
 class InsaneTestCaseError(CViseError):
     def __init__(self, test_cases, test):

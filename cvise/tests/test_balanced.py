@@ -5,6 +5,7 @@ import unittest
 from cvise.passes.abstract import PassResult
 from cvise.passes.balanced import BalancedPass
 
+
 class BalancedParensTestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = BalancedPass('parens')
@@ -66,6 +67,7 @@ class BalancedParensTestCase(unittest.TestCase):
         os.unlink(tmp_file.name)
 
         self.assertEqual(variant, 'This (is a  test)!\n')
+
 
 class BalancedParensOnlyTestCase(unittest.TestCase):
     def setUp(self):
@@ -187,6 +189,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         os.unlink(tmp_file.name)
 
         self.assertEqual(iteration, 5)
+
 
 class BalancedParensInsideTestCase(unittest.TestCase):
     def setUp(self):

@@ -22,6 +22,7 @@ from cvise.passes.ternary import TernaryPass
 from cvise.passes.unifdef import UnIfDefPass
 from cvise.utils.error import CViseError, PassOptionError
 
+
 class CVise:
     class Info:
         PACKAGE_BUGREPORT = '@cvise_PACKAGE_BUGREPORT@'

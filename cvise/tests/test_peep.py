@@ -5,6 +5,7 @@ import unittest
 from cvise.passes.peep import PeepPass
 from cvise.tests.testabstract import iterate_pass
 
+
 class PeepATestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = PeepPass('a')
@@ -90,6 +91,7 @@ class PeepATestCase(unittest.TestCase):
 
         self.assertEqual(variant, ' foo \n')
 
+
 class PeepBTestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = PeepPass('b')
@@ -138,6 +140,7 @@ class PeepBTestCase(unittest.TestCase):
         os.unlink(tmp_file.name)
 
         self.assertEqual(variant, ',,')
+
 
 class PeepCTestCase(unittest.TestCase):
     def setUp(self):

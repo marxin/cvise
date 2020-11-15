@@ -2,6 +2,7 @@ from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils import nestedmatcher
 from cvise.utils.error import UnknownArgumentError
 
+
 class TernaryPass(AbstractPass):
     varnum = r'(?:[-+]?[0-9a-zA-Z\_]+)'
     border = r'[*{([:,})\];]'

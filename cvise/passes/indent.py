@@ -1,6 +1,7 @@
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils.error import UnknownArgumentError
 
+
 class IndentPass(AbstractPass):
     def check_prerequisites(self):
         return self.check_external_program('clang-format')

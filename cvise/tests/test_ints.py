@@ -5,6 +5,7 @@ import unittest
 from cvise.passes.abstract import PassResult
 from cvise.passes.ints import IntsPass
 
+
 class IntsATestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = IntsPass('a')
@@ -69,6 +70,7 @@ class IntsATestCase(unittest.TestCase):
 
         self.assertEqual(iteration, 2)
 
+
 class IntsBTestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = IntsPass('b')
@@ -87,6 +89,7 @@ class IntsBTestCase(unittest.TestCase):
 
         self.assertEqual(variant, 'Compute 123L + 456 + 0789!\n')
 
+
 class IntsCTestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = IntsPass('c')
@@ -104,6 +107,7 @@ class IntsCTestCase(unittest.TestCase):
         os.unlink(tmp_file.name)
 
         self.assertEqual(variant, 'Compute 123 + 0x456 + 0789!\n')
+
 
 class IntsDTestCase(unittest.TestCase):
     def setUp(self):

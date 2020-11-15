@@ -5,6 +5,7 @@ import unittest
 from cvise.passes.special import SpecialPass
 from cvise.tests.testabstract import iterate_pass
 
+
 class SpecialATestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = SpecialPass('a')
@@ -38,6 +39,7 @@ class SpecialATestCase(unittest.TestCase):
 
         self.assertEqual(variant, "// Useless comment\nprintf('%d\\n', (int)g_376.f0);\nprintf('%d\\n', (int)g_1194[i].f0);\nint a = 9;")
 
+
 class SpecialBTestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = SpecialPass('b')
@@ -55,6 +57,7 @@ class SpecialBTestCase(unittest.TestCase):
         os.unlink(tmp_file.name)
 
         self.assertEqual(variant, 'void foo(){}  {int a;}; a = 9;\n')
+
 
 class SpecialCTestCase(unittest.TestCase):
     def setUp(self):

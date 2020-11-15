@@ -5,6 +5,7 @@ import unittest
 from cvise.passes.abstract import ProcessEventNotifier
 from cvise.passes.ifs import IfPass
 
+
 class LineMarkersTestCase(unittest.TestCase):
     def setUp(self):
         self.pass_ = IfPass(external_programs={'unifdef': 'unifdef'})
