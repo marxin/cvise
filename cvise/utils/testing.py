@@ -193,7 +193,7 @@ class TestManager:
         lines = 0
         for file in files:
             with open(file) as f:
-                lines += len(f.readlines())
+                lines += len([l for l in f.readlines() if l and not l.isspace()])
         return lines
 
     def backup_test_cases(self):
