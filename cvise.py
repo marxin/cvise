@@ -167,6 +167,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-temps', action='store_true', default=False, help="Don't delete /tmp/cvise-xxxxxx directories on termination")
     parser.add_argument('--skip-initial-passes', action='store_true', default=False, help='Skip initial passes (useful if input is already partially reduced)')
     parser.add_argument('--remove-pass', help='Remove all instances of the specified passes from the schedule (comma-separated)')
+    parser.add_argument('--start-with-pass', help='Start with the specified pass')
     parser.add_argument('--no-timing', action='store_true', default=False, help='Do not print timestamps about reduction progress')
     parser.add_argument('--timestamp', action='store_true', default=False, help='Print timestamps instead of relative time from a reduction start')
     parser.add_argument('--timeout', type=int, nargs='?', default=300, help='Interestingness test timeout in seconds')
@@ -268,7 +269,8 @@ if __name__ == '__main__':
 
     test_manager = testing.TestManager(pass_statistic, args.interestingness_test, args.timeout,
                                        args.save_temps, args.test_cases, args.n, args.no_cache, args.skip_key_off, args.shaddap,
-                                       args.die_on_pass_bug, args.print_diff, args.max_improvement, args.no_give_up, args.also_interesting)
+                                       args.die_on_pass_bug, args.print_diff, args.max_improvement, args.no_give_up, args.also_interesting,
+                                       args.start_with_pass)
 
     reducer = CVise(test_manager)
 

@@ -130,7 +130,7 @@ class TestManager:
 
     def __init__(self, pass_statistic, test_script, timeout, save_temps, test_cases, parallel_tests,
                  no_cache, skip_key_off, silent_pass_bug, die_on_pass_bug, print_diff, max_improvement,
-                 no_give_up, also_interesting):
+                 no_give_up, also_interesting, start_with_pass):
         self.test_script = os.path.abspath(test_script)
         self.timeout = timeout
         self.save_temps = save_temps
@@ -145,6 +145,7 @@ class TestManager:
         self.max_improvement = max_improvement
         self.no_give_up = no_give_up
         self.also_interesting = also_interesting
+        self.start_with_pass = start_with_pass
 
         for test_case in test_cases:
             self.check_file_permissions(test_case, [os.F_OK, os.R_OK, os.W_OK], InvalidTestCaseError)
@@ -441,6 +442,12 @@ class TestManager:
                     self.state = state
 
     def run_pass(self, pass_):
+        if self.start_with_pass:
+            if self.start_with_pass == str(pass_):
+                self.start_with_pass = None
+            else:
+                return
+
         self.current_pass = pass_
         self.futures = []
         self.temporary_folders = {}
