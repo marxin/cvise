@@ -122,7 +122,7 @@ class CVise:
 
         return pass_group
 
-    def reduce(self, pass_group, skip_initial=False):
+    def reduce(self, pass_group, skip_initial):
         self._check_prerequisites(pass_group)
         self.test_manager.check_sanity(True)
 
