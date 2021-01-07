@@ -34,6 +34,7 @@ class LinesPass(AbstractPass):
             try:
                 check_sanity()
             except InsaneTestCaseError:
+
                 shutil.move(backup.name, test_case)
                 # if we are not the first lines pass, we should bail out
                 if self.arg != '0':
@@ -52,7 +53,7 @@ class LinesPass(AbstractPass):
         if self.arg != 'None':
             self.__format(test_case, check_sanity)
             if self.bailout:
-                logging.info('Skipping pass as sanity check fails for topformflat output')
+                logging.warning('Skipping pass as sanity check fails for topformflat output')
                 return None
         instances = self.__count_instances(test_case)
         return BinaryState.create(instances)
