@@ -108,7 +108,8 @@ void Transformation::outputTransformedSource(llvm::raw_ostream &OutStream)
 void Transformation::outputOriginalSource(llvm::raw_ostream &OutStream)
 {
   FileID MainFileID = SrcManager->getMainFileID();
-  const llvm::MemoryBuffer *MainBuf = SrcManager->getBuffer(MainFileID);
+  llvm::Optional<llvm::MemoryBufferRef> MainBuf =
+      SrcManager->getBufferOrNone(MainFileID);
   TransAssert(MainBuf && "Empty MainBuf!");
   OutStream << MainBuf->getBufferStart();
   OutStream.flush();
