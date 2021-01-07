@@ -51,8 +51,12 @@ class ClangBinarySearchPass(AbstractPass):
 
         try:
             proc = subprocess.run(cmd, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except subprocess.SubprocessError:
+        except subprocess.SubprocessError as e:
+            logging.warning(f'clang_delta --query-instances failed: {e}')
             return 0
+
+        if proc.returncode != 0:
+            logging.warning(f'clang_delta --query-instances failed with exit code {proc.returncode}: {proc.stderr.strip()}')
 
         m = re.match('Available transformation instances: ([0-9]+)$', proc.stdout)
 
