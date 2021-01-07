@@ -1,4 +1,4 @@
-FROM opensuse/leap:15
+FROM opensuse/leap
 
 RUN zypper -n install \
         binutils clang9-devel cmake flex gcc-c++ llvm9-devel python3-Pebble python3-pytest python3-psutil unifdef \
