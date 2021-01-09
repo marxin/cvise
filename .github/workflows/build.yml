@@ -12,6 +12,7 @@ jobs:
     container: opensuse/tumbleweed   
 
     steps:
+    - run: zypper in gcc llvm11
     - uses: actions/checkout@v2
     - name: configure
       run: ./configure
