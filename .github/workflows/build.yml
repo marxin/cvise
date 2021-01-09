@@ -16,7 +16,6 @@ jobs:
         llvm: [9, 10, 11]
 
     steps:
-    - uses: actions/checkout@v2
     - run: zypper -n install
         binutils clang11-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel python3-Pebble python3-pytest unifdef python3-pip python3-psutil sqlite-devel git python3
         python3-pytest-flake8
@@ -27,6 +26,7 @@ jobs:
         python3-flake8-import-order
         python3-flake8-quotes
     - run: pip install codecov pytest-cov
+    - uses: actions/checkout@v2
     - run: |
             mkdir objdir
             cd objdir
