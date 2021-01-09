@@ -12,13 +12,18 @@ jobs:
     container: opensuse/tumbleweed   
 
     steps:
-    - run: zypper in gcc llvm11
+    - run: zypper -n install \
+        binutils clang11-devel cmake flex gcc-c++ llvm11-devel python3-Pebble python3-pytest unifdef python3-pip python3-psutil sqlite-devel git python3 \
+        python3-pytest-flake8 \
+        python3-flake8 \
+        python3-flake8-builtins \
+        python3-flake8-bugbear \
+        python3-flake8-comprehensions\
+        python3-flake8-import-order \
+        python3-flake8-quotes
+    - run: pip install codecov pytest-cov
     - uses: actions/checkout@v2
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+    - run: mkdir objdir
+    - run: cd objdir
+    - run: cmake ..
+    - run: make
