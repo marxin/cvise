@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  Build and Test:
+  build_and_test:
     runs-on: ubuntu-latest
     container: opensuse/tumbleweed
 
