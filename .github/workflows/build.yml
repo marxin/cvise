@@ -15,11 +15,11 @@ jobs:
       matrix:
         llvm: [9, 10, 11]
         build-type: [DEBUG]
-      include:
-        - llvm: 11
-          build-type: ASAN
-        - llvm: 11
-          build-type: UBSAN
+        include:
+          - llvm: 11
+            build-type: ASAN
+          - llvm: 11
+            build-type: UBSAN
 
     steps:
     - run: zypper -n install
