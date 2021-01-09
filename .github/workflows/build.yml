@@ -23,7 +23,5 @@ jobs:
         python3-flake8-quotes
     - run: pip install codecov pytest-cov
     - uses: actions/checkout@v2
-    - run: mkdir cvise/objdir
-    - run: cd cvise/objdir
-    - run: cmake ..
+    - run: cmake .
     - run: make -j`nproc`
