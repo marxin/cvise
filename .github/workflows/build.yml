@@ -17,7 +17,7 @@ jobs:
 
     steps:
     - run: zypper -n install
-        binutils clang11-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel python3-Pebble python3-pytest unifdef python3-pip python3-psutil sqlite-devel git python3
+        binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel python3-Pebble python3-pytest unifdef python3-pip python3-psutil sqlite-devel git python3
         python3-pytest-flake8
         python3-flake8
         python3-flake8-builtins
