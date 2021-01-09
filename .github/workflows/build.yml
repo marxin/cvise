@@ -40,6 +40,6 @@ jobs:
             cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
             make -j`nproc` VERBOSE=1
     - name: test
-    - run: |
+      run: |
             cd objdir
             pytest
