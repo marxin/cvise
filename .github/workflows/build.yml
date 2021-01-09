@@ -14,6 +14,12 @@ jobs:
     strategy:
       matrix:
         llvm: [9, 10, 11]
+        build-type: [DEBUG]
+      include:
+        - llvm: 11
+          build-type: ASAN
+        - llvm: 11
+          build-type: UBSAN
 
     steps:
     - run: zypper -n install
@@ -27,8 +33,13 @@ jobs:
         python3-flake8-quotes
     - run: pip install codecov pytest-cov
     - uses: actions/checkout@v2
-    - run: |
+    - name: build
+      run: |
             mkdir objdir
             cd objdir
-            cmake ..
-            make -j`nproc`
+            cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+            make -j`nproc` VERBOSE=1
+    - name: test
+    - run: |
+            cd objdir
+            pytest
