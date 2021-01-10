@@ -38,9 +38,10 @@ jobs:
         python3-flake8
         python3-flake8-builtins
         python3-flake8-bugbear
-        python3-flake8-comprehensions
         python3-flake8-import-order
         python3-flake8-quotes
+    - run: zypper -n install python3-flake8-comprehensions
+      if: matrix.docker == 'opensuse/tumbleweed'
     - run: pip install codecov pytest-cov
     - uses: actions/checkout@v2
     - run: nproc
