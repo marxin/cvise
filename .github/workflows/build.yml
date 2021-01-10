@@ -20,6 +20,8 @@ jobs:
             build-type: ASAN
           - llvm: 11
             build-type: UBSAN
+          - llvm: 11
+            build-type: COVERAGE
 
     steps:
     - run: zypper -n install
@@ -43,3 +45,10 @@ jobs:
       run: |
             cd objdir
             pytest
+      if: ${{ matrix.llvm != 'COVERAGE' }}
+    - name: test
+      run: |
+            cd objdir
+            pytest --cov=./
+            codecov
+      if: ${{ matrix.llvm == 'COVERAGE' }}
