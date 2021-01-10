@@ -25,7 +25,7 @@ jobs:
           - llvm: 11
             build-type: COVERAGE
             docker: opensuse/tumbleweed
-          - llvm: 11
+          - llvm: 9
             build-type: DEBUG
             docker: opensuse/leap
 
