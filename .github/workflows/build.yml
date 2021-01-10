@@ -46,10 +46,10 @@ jobs:
       run: |
             cd objdir
             pytest
-      if: matrix.llvm != 'COVERAGE'
+      if: matrix.build-type != 'COVERAGE'
     - name: test with coverage
       run: |
             cd objdir
             pytest --cov=./
             codecov
-      if: matrix.llvm == 'COVERAGE'
+      if: matrix.build-type == 'COVERAGE'
