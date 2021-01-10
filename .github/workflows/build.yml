@@ -33,7 +33,7 @@ jobs:
 
     steps:
     - run: zypper -n install
-        binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel python3-Pebble python3-pytest unifdef python3-pip python3-psutil sqlite-devel git python3 curl
+        binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel python3-Pebble python3-pytest unifdef python3-pip python3-psutil git python3 curl
         python3-pytest-flake8
         python3-flake8
         python3-flake8-builtins
