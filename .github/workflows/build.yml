@@ -62,3 +62,4 @@ jobs:
             cd objdir
             pytest --cov=./
             codecov
+      if: matrix.build-type == 'COVERAGE'
