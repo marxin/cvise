@@ -40,7 +40,7 @@ jobs:
         python3-flake8-bugbear
         python3-flake8-import-order
         python3-flake8-quotes
-    - run: zypper -n install python3-pip python3-flake8-comprehensions
+    - run: zypper -n install python3-pip python3-flake8-comprehensions sqlite-devel
       if: matrix.docker == 'opensuse/tumbleweed'
     - run: pip install codecov pytest-cov
       if: matrix.docker == 'opensuse/tumbleweed'
