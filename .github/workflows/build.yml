@@ -18,10 +18,13 @@ jobs:
         include:
           - llvm: 11
             build-type: ASAN
+            docker: opensuse/tumbleweed
           - llvm: 11
             build-type: UBSAN
+            docker: opensuse/tumbleweed
           - llvm: 11
             build-type: COVERAGE
+            docker: opensuse/tumbleweed
           - llvm: 11
             build-type: DEBUG
             docker: opensuse/leap
