@@ -35,6 +35,7 @@ jobs:
         python3-flake8-quotes
     - run: pip install codecov pytest-cov
     - uses: actions/checkout@v2
+    - run: nproc
     - name: build
       run: |
             mkdir objdir
