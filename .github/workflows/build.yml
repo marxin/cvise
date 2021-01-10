@@ -22,7 +22,6 @@ jobs:
             build-type: UBSAN
           - llvm: 11
             build-type: COVERAGE
-        include:
           - llvm: 11
             build-type: DEBUG
             docker: opensuse/leap
