@@ -2,11 +2,11 @@ codecov:
   disable_default_path_fixes: no
 
 fixes:
-  - "/usr/src/cvise/objdir/usr/src/cvise/objdir::"
-  - "/usr/src/cvise/objdir/usr/src/cvise::"
+  - "/__w/cvise/cvise/objdir::"
+  - "/__w/cvise/cvise/::"
 ignore:
   - "**/include"
   - "cvise/tests"
-  - "/usr/src/cvise/objdir/delta/topformflat.c"
-  - "/usr/src/cvise/objdir/clex/strlex.c"
-  - "/usr/src/cvise/objdir/clex/clex.c"
+  - "/__w/cvise/cvise/objdir/delta/topformflat.c"
+  - "/__w/cvise/cvise/objdir/clex/strlex.c"
+  - "/__w/cvise/cvise/objdir/clex/clex.c"
