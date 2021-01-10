@@ -9,12 +9,12 @@ on:
 jobs:
   build_and_test:
     runs-on: ubuntu-latest
-    container: opensuse/tumbleweed
 
     strategy:
       matrix:
         llvm: [9, 10, 11]
         build-type: [DEBUG]
+        docker: [opensuse/tumbleweed]
         include:
           - llvm: 11
             build-type: ASAN
@@ -22,6 +22,12 @@ jobs:
             build-type: UBSAN
           - llvm: 11
             build-type: COVERAGE
+        include:
+          - llvm: 11
+            build-type: DEBUG
+            docker: opensuse/leap
+
+    container: ${{ matrix.docker }}
 
     steps:
     - run: zypper -n install
