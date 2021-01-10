@@ -46,7 +46,7 @@ jobs:
             cd objdir
             pytest
       if: ${{ matrix.llvm != 'COVERAGE' }}
-    - name: test
+    - name: test with coverage
       run: |
             cd objdir
             pytest --cov=./
