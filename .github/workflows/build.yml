@@ -56,4 +56,6 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         directory: objdir
+        fail_ci_if_error: true
+        verbose: true
       if: matrix.build-type == 'COVERAGE'
