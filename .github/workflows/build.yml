@@ -33,16 +33,17 @@ jobs:
 
     steps:
     - run: zypper -n install
-        binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel python3-Pebble python3-pytest unifdef python3-pip python3-psutil git python3 curl
+        binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel python3-Pebble python3-pytest unifdef python3-psutil curl
         python3-pytest-flake8
         python3-flake8
         python3-flake8-builtins
         python3-flake8-bugbear
         python3-flake8-import-order
         python3-flake8-quotes
-    - run: zypper -n install python3-flake8-comprehensions
+    - run: zypper -n install python3-pip python3-flake8-comprehensions
       if: matrix.docker == 'opensuse/tumbleweed'
     - run: pip install codecov pytest-cov
+      if: matrix.docker == 'opensuse/tumbleweed'
     - uses: actions/checkout@v2
     - run: nproc
     - name: build
