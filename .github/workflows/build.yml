@@ -28,6 +28,7 @@ jobs:
           - llvm: 9
             build-type: DEBUG
             docker: opensuse/leap
+      fail-fast: false
 
     container: ${{ matrix.docker }}
 
