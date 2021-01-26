@@ -78,6 +78,11 @@ static void PrintHelpMessage()
   llvm::outs() << "\"string\". Currently, this option works only with ";
   llvm::outs() << "transformation expression-detector.\n";
 
+  llvm::outs() << "  --preserve-routine=<string>: ";
+  llvm::outs() << "only modify routines that do not match \"string\". ";
+  llvm::outs() << "Note that currently only replace-function-def-with-decl";
+  llvm::outs() << "supports this feature.\n";
+
   llvm::outs() << "  --check-reference=<value>: ";
   llvm::outs() << "insert code to check if the candidate designated by the ";
   llvm::outs() << "counter equals to the reference value or not. Currently, ";
@@ -168,6 +173,9 @@ static void HandleOneArgValue(const std::string &ArgValueStr, size_t SepPos)
   }
   else if (!ArgName.compare("replacement")) {
     TransMgr->setReplacement(ArgValue);
+  }
+  else if (!ArgName.compare("preserve-routine")) {
+    TransMgr->setPreserveRoutine(ArgValue);
   }
   else if (!ArgName.compare("check-reference")) {
     TransMgr->setReferenceValue(ArgValue);

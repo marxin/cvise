@@ -468,6 +468,15 @@ class TestClangDelta(unittest.TestCase):
     def test_replace_function_def_with_decl_macro2(self):
         self.check_clang_delta('replace-function-def-with-decl/macro2.c', '--transformation=replace-function-def-with-decl --counter=1 --to-counter=2')
 
+    def test_replace_function_def_with_decl_simple_preserve_missing(self):
+        self.check_clang_delta('replace-function-def-with-decl/simple.cpp', '--transformation=replace-function-def-with-decl --preserve-routine=blahblahblah', output_file='replace-function-def-with-decl/simple.cpp.preserve_missing.output')
+
+    def test_replace_function_def_with_decl_simple_preserve_quack(self):
+        self.check_clang_delta('replace-function-def-with-decl/simple.cpp', '--transformation=replace-function-def-with-decl --preserve-routine=quack', output_file='replace-function-def-with-decl/simple.cpp.preserve_quack.output')
+
+    def test_replace_function_def_with_decl_simple_preserve_foo(self):
+        self.check_clang_delta('replace-function-def-with-decl/simple.cpp', '--transformation=replace-function-def-with-decl --preserve-routine=Moo::foo', output_file='replace-function-def-with-decl/simple.cpp.preserve_foo.output')
+
     def test_return_void_test1(self):
         self.check_clang_delta('return-void/test1.c', '--transformation=return-void --counter=1')
 

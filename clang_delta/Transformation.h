@@ -84,6 +84,7 @@ public:
       MultipleRewrites(false),
       ToCounter(-1),
       DoReplacement(false),
+      DoPreserveRoutine(false),
       CheckReference(false),
       WarnOnCounterOutOfBounds(false)
   {
@@ -106,6 +107,7 @@ public:
       MultipleRewrites(MultipleRewritesFlag),
       ToCounter(-1),
       DoReplacement(false),
+      DoPreserveRoutine(false),
       CheckReference(false),
       WarnOnCounterOutOfBounds(false)
   {
@@ -142,6 +144,11 @@ public:
   void setReplacement(const std::string &Str) {
     Replacement = Str;
     DoReplacement = true;
+  }
+
+  void setPreserveRoutine(const std::string &Str) {
+    PreserveRoutine = Str;
+    DoPreserveRoutine = true;
   }
 
   void setReferenceValue(const std::string &Str) {
@@ -342,6 +349,10 @@ protected:
   bool DoReplacement;
 
   std::string Replacement;
+
+  bool DoPreserveRoutine;
+
+  std::string PreserveRoutine;
 
   bool CheckReference;
 

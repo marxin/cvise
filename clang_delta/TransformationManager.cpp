@@ -225,6 +225,8 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
   // is invoked through ClangInstance->setASTConsumer.
   if (DoReplacement)
     CurrentTransformationImpl->setReplacement(Replacement);
+  if (DoPreserveRoutine)
+    CurrentTransformationImpl->setPreserveRoutine(PreserveRoutine);
   if (CheckReference)
     CurrentTransformationImpl->setReferenceValue(ReferenceValue);
 
@@ -341,6 +343,9 @@ bool TransformationManager::verify(std::string &ErrorMsg, int &ErrorCode)
   if (CurrentTransformationImpl->skipCounter())
     return true;
 
+  if (DoPreserveRoutine)
+    return true;
+
   if (TransformationCounter <= 0) {
     ErrorMsg = "Invalid transformation counter!";
     ErrorCode = ErrorInvalidCounter;
@@ -422,6 +427,8 @@ TransformationManager::TransformationManager()
     QueryInstanceOnly(false),
     DoReplacement(false),
     Replacement(""),
+    DoPreserveRoutine(false),
+    PreserveRoutine(""),
     CheckReference(false),
     ReferenceValue(""),
     SetCXXStandard(false),

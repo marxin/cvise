@@ -1,0 +1,7 @@
+class Moo {
+public:
+  static int foo() { return 10; }
+  static int bar() ;
+};
+
+void quack(void) ;

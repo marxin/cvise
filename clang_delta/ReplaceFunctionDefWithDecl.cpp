@@ -78,6 +78,13 @@ void ReplaceFunctionDefWithDecl::HandleTranslationUnit(ASTContext &Ctx)
 
   Ctx.getDiagnostics().setSuppressAllDiagnostics(false);
 
+  // if DoPreserveRoutine is set, then we want to transform all the functions
+  // in the TU
+  if (DoPreserveRoutine) {
+    TransformationCounter = 1;
+    ToCounter = AllValidFunctionDefs.size();
+  }
+
   doRewriting();
 
   if (Ctx.getDiagnostics().hasErrorOccurred() ||
@@ -308,6 +315,12 @@ void ReplaceFunctionDefWithDecl::doRewriting()
     TransAssert((I >= 1) && "Invalid Index!");
     const FunctionDecl *FD = AllValidFunctionDefs[I-1];
     TransAssert(FD && "NULL FunctionDecl!");
+
+    // If DoPreserveRoutine is set, and our current routine is the one we're
+    // preserving, then we skip rewriting
+    if (DoPreserveRoutine && FD->getQualifiedNameAsString() == PreserveRoutine)
+      continue;
+
     rewriteOneFunctionDef(FD);
   }
 }
@@ -315,7 +328,9 @@ void ReplaceFunctionDefWithDecl::doRewriting()
 void ReplaceFunctionDefWithDecl::addOneFunctionDef(const FunctionDecl *FD)
 {
   ValidInstanceNum++;
-  if (ToCounter > 0) {
+  // If DoPreserveRoutine is set, then we store all routines
+  bool StoreFunction = DoPreserveRoutine || ToCounter > 0;
+  if (StoreFunction) {
     AllValidFunctionDefs.push_back(FD);
     return;
   }
