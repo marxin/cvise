@@ -343,9 +343,6 @@ bool TransformationManager::verify(std::string &ErrorMsg, int &ErrorCode)
   if (CurrentTransformationImpl->skipCounter())
     return true;
 
-  if (DoPreserveRoutine)
-    return true;
-
   if (TransformationCounter <= 0) {
     ErrorMsg = "Invalid transformation counter!";
     ErrorCode = ErrorInvalidCounter;

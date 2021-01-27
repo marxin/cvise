@@ -116,7 +116,7 @@ def get_available_pass_groups():
 
         try:
             pass_group_dict = CVise.load_pass_group_file(path)
-            CVise.parse_pass_group_dict(pass_group_dict, set(), None, None, None, None, None)
+            CVise.parse_pass_group_dict(pass_group_dict, set(), None, None, None, None, None, None)
         except MissingPassGroupsError:
             logging.warning('Skipping file {}. Not valid pass group.'.format(path))
         else:
@@ -178,6 +178,7 @@ if __name__ == '__main__':
     passes_group.add_argument('--pass-group', type=str, choices=get_available_pass_groups(), help='Set of passes used during the reduction')
     passes_group.add_argument('--pass-group-file', type=str, help='JSON file defining a custom pass group')
     parser.add_argument('--clang-delta-std', type=str, choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20'], help='Specify clang_delta C++ standard, it can rapidly speed up all clang_delta passes')
+    parser.add_argument('--clang-delta-preserve-routine', type=str, help='Preserve the given function in replace-function-def-with-decl clang delta pass')
     parser.add_argument('--not-c', action='store_true', help="Don't run passes that are specific to C and C++, use this mode for reducing other languages")
     parser.add_argument('--renaming', action='store_true', help='Enable all renaming passes (that are disabled by default)')
     parser.add_argument('--list-passes', action='store_true', help='Print all available passes and exit')
@@ -231,7 +232,8 @@ if __name__ == '__main__':
 
     pass_group_dict = CVise.load_pass_group_file(pass_group_file)
     pass_group = CVise.parse_pass_group_dict(pass_group_dict, pass_options, external_programs,
-                                             args.remove_pass, args.clang_delta_std, args.not_c, args.renaming)
+                                             args.remove_pass, args.clang_delta_std,
+                                             args.clang_delta_preserve_routine, args.not_c, args.renaming)
     if args.list_passes:
         logging.info('Available passes:')
         logging.info('INITIAL PASSES')
