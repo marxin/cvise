@@ -314,6 +314,11 @@ void ReplaceFunctionDefWithDecl::doRewriting()
 
 void ReplaceFunctionDefWithDecl::addOneFunctionDef(const FunctionDecl *FD)
 {
+  // If DoPreserveRoutine is set, and our current routine is the one we're
+  // preserving, then skip it
+  if (DoPreserveRoutine && FD->getQualifiedNameAsString() == PreserveRoutine)
+    return;
+
   ValidInstanceNum++;
   if (ToCounter > 0) {
     AllValidFunctionDefs.push_back(FD);

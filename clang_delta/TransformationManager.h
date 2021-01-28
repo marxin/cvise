@@ -80,6 +80,11 @@ public:
     DoReplacement = true;
   }
 
+  void setPreserveRoutine(const std::string &Str) {
+    PreserveRoutine = Str;
+    DoPreserveRoutine = true;
+  }
+
   void setReferenceValue(const std::string &Str) {
     ReferenceValue = Str;
     CheckReference = true;
@@ -155,6 +160,10 @@ private:
   bool DoReplacement;
 
   std::string Replacement;
+
+  bool DoPreserveRoutine;
+
+  std::string PreserveRoutine;
 
   bool CheckReference;
 

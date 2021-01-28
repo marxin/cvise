@@ -71,7 +71,7 @@ class CVise:
 
     @classmethod
     def parse_pass_group_dict(cls, pass_group_dict, pass_options, external_programs, remove_pass,
-                              clang_delta_std, not_c, renaming):
+                              clang_delta_std, clang_delta_preserve_routine, not_c, renaming):
         pass_group = {}
         removed_passes = set(remove_pass.split(',')) if remove_pass else set()
 
@@ -118,6 +118,7 @@ class CVise:
                     continue
 
                 pass_instance.clang_delta_std = clang_delta_std
+                pass_instance.clang_delta_preserve_routine = clang_delta_preserve_routine
                 pass_group[category].append(pass_instance)
 
         return pass_group

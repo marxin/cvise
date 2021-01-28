@@ -225,6 +225,8 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
   // is invoked through ClangInstance->setASTConsumer.
   if (DoReplacement)
     CurrentTransformationImpl->setReplacement(Replacement);
+  if (DoPreserveRoutine)
+    CurrentTransformationImpl->setPreserveRoutine(PreserveRoutine);
   if (CheckReference)
     CurrentTransformationImpl->setReferenceValue(ReferenceValue);
 
@@ -422,6 +424,8 @@ TransformationManager::TransformationManager()
     QueryInstanceOnly(false),
     DoReplacement(false),
     Replacement(""),
+    DoPreserveRoutine(false),
+    PreserveRoutine(""),
     CheckReference(false),
     ReferenceValue(""),
     SetCXXStandard(false),
