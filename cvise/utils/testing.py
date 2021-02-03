@@ -13,6 +13,7 @@ import traceback
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import PassResult, ProcessEventNotifier, ProcessEventType
+from cvise.utils.error import FolderInPathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
 from cvise.utils.error import InvalidTestCaseError
@@ -150,6 +151,8 @@ class TestManager:
 
         for test_case in test_cases:
             self.check_file_permissions(test_case, [os.F_OK, os.R_OK, os.W_OK], InvalidTestCaseError)
+            if os.path.split(test_case)[0]:
+                raise FolderInPathTestCaseError(test_case)
             fullpath = os.path.abspath(test_case)
             self.test_cases.add(fullpath)
             self.test_cases_modes[fullpath] = os.stat(fullpath).st_mode

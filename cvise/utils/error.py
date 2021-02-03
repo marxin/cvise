@@ -46,6 +46,14 @@ class InvalidTestCaseError(InvalidFileError):
         return "The specified test case '{}' cannot be {}!".format(self.path, self._get_error_name())
 
 
+class FolderInPathTestCaseError(CViseError):
+    def __init__(self, path):
+        self.path = path
+
+    def __str__(self):
+        return f"Test case cannot contain a folder in path: '{self.path}'!"
+
+
 class InvalidInterestingnessTestError(InvalidFileError):
     def __init__(self, path):
         super().__init__(path, None)
