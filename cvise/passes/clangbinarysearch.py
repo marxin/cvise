@@ -30,7 +30,8 @@ class ClangBinarySearchPass(AbstractPass):
         self.clang_delta_std = best
 
     def new(self, test_case, _=None):
-        self.detect_best_standard(test_case)
+        if not self.clang_delta_std:
+            self.detect_best_standard(test_case)
         return BinaryState.create(self.count_instances(test_case))
 
     def advance(self, test_case, state):
