@@ -307,6 +307,6 @@ if __name__ == '__main__':
             with open(test_case) as test_case_file:
                 print(test_case_file.read())
         if script:
-            os.remove(script.name)
+            os.unlink(script.name)
 
     logging.shutdown()

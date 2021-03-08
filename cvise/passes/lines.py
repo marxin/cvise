@@ -33,8 +33,8 @@ class LinesPass(AbstractPass):
             shutil.move(tmp_file.name, test_case)
             try:
                 check_sanity()
+                os.unlink(backup.name)
             except InsaneTestCaseError:
-
                 shutil.move(backup.name, test_case)
                 # if we are not the first lines pass, we should bail out
                 if self.arg != '0':
