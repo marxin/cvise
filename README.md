@@ -29,7 +29,7 @@ programs in languages other than C/C++, such as JavaScript and Rust.
 If you need to reduce programs in some other language, please give it
 a try.
 
-*NOTE:*: Binary passes (`--pass-group=binary`) contains an experimental pass
+*NOTE:*: Binary pass group (`--pass-group=binary`) contains an experimental pass
 that can reduce GCC's `.gcda` files.
 
 ## Speed Comparison
