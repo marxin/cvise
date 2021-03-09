@@ -29,6 +29,9 @@ programs in languages other than C/C++, such as JavaScript and Rust.
 If you need to reduce programs in some other language, please give it
 a try.
 
+*NOTE:*: Binary passes (`--pass-group=binary`) contains an experimental pass
+that can reduce GCC's `.gcda` files.
+
 ## Speed Comparison
 
 I made a comparison for couple of GCC bug reports on my AMD Ryzen 7 2700X Eight-Core Processor
