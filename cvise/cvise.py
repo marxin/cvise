@@ -9,6 +9,7 @@ from cvise.passes.clang import ClangPass
 from cvise.passes.clangbinarysearch import ClangBinarySearchPass
 from cvise.passes.clex import ClexPass
 from cvise.passes.comments import CommentsPass
+from cvise.passes.gcdabinary import GCDABinaryPass
 from cvise.passes.ifs import IfPass
 from cvise.passes.includeincludes import IncludeIncludesPass
 from cvise.passes.includes import IncludesPass
@@ -42,6 +43,7 @@ class CVise:
         'clangbinarysearch': ClangBinarySearchPass,
         'clex': ClexPass,
         'comments': CommentsPass,
+        'gcda-binary': GCDABinaryPass,
         'ifs': IfPass,
         'includeincludes': IncludeIncludesPass,
         'includes': IncludesPass,

@@ -19,6 +19,7 @@ from cvise.utils.error import InvalidInterestingnessTestError
 from cvise.utils.error import InvalidTestCaseError
 from cvise.utils.error import PassBugError
 from cvise.utils.error import ZeroSizeError
+from cvise.utils.misc import is_readable_file
 from cvise.utils.readkey import KeyLogger
 import pebble
 import psutil
@@ -203,8 +204,9 @@ class TestManager:
     def get_line_count(files):
         lines = 0
         for file in files:
-            with open(file) as f:
-                lines += len([line for line in f.readlines() if line and not line.isspace()])
+            if is_readable_file(file):
+                with open(file) as f:
+                    lines += len([line for line in f.readlines() if line and not line.isspace()])
         return lines
 
     def backup_test_cases(self):
@@ -482,7 +484,7 @@ class TestManager:
                 continue
 
             if not self.no_cache:
-                with open(test_case, mode='r+') as tmp_file:
+                with open(test_case, mode='rb+') as tmp_file:
                     test_case_before_pass = tmp_file.read()
 
                     if (pass_key in self.cache and
@@ -520,7 +522,7 @@ class TestManager:
 
             # Cache result of this pass
             if not self.no_cache:
-                with open(test_case, mode='r') as tmp_file:
+                with open(test_case, mode='rb') as tmp_file:
                     if pass_key not in self.cache:
                         self.cache[pass_key] = {}
 
@@ -541,4 +543,6 @@ class TestManager:
         self.pass_statistic.add_success(self.current_pass)
 
         pct = 100 - (self.total_file_size * 100.0 / self.orig_total_file_size)
-        logging.info('({}%, {} bytes, {} lines)'.format(round(pct, 1), self.total_file_size, self.total_line_count))
+        msg = f'({round(pct, 1)}%, {self.total_file_size} bytes'
+        msg += f', {self.total_line_count} lines)' if self.total_line_count else ')'
+        logging.info(msg)

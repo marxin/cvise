@@ -21,8 +21,7 @@ if importlib.util.find_spec('cvise') is None:
 
 from cvise.cvise import CVise  # noqa: E402
 from cvise.passes.abstract import AbstractPass  # noqa: E402
-from cvise.utils import statistics  # noqa: E402
-from cvise.utils import testing  # noqa: E402
+from cvise.utils import misc, statistics, testing  # noqa: E402
 from cvise.utils.error import CViseError  # noqa: E402
 from cvise.utils.error import MissingPassGroupsError  # noqa: E402
 import psutil  # noqa: E402
@@ -62,6 +61,7 @@ def find_external_programs():
         'clex': 'clex',
         'topformflat': 'delta',
         'unifdef': None,
+        'gcov-dump': None
     }
 
     for prog, local_folder in programs.items():
@@ -303,9 +303,10 @@ if __name__ == '__main__':
 
         print('Reduced test-cases:\n')
         for test_case in sorted(test_manager.test_cases):
-            print(f'--- {test_case} ---')
-            with open(test_case) as test_case_file:
-                print(test_case_file.read())
+            if misc.is_readable_file(test_case):
+                print(f'--- {test_case} ---')
+                with open(test_case) as test_case_file:
+                    print(test_case_file.read())
         if script:
             os.unlink(script.name)
 
