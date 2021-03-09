@@ -341,6 +341,8 @@ set(SOURCE_FILES
   "/tests/union-to-struct/union2.output"
   "/tests/union-to-struct/union3.c"
   "/tests/union-to-struct/union3.output"
+  "/tests/simple-inliner/alias-crash.c"
+  "/tests/simple-inliner/alias-crash.output"
 )
 
 foreach(file IN LISTS SOURCE_FILES)

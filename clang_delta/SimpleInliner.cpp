@@ -211,7 +211,8 @@ bool SimpleInlinerFunctionVisitor::VisitDeclRefExpr(DeclRefExpr *DRE)
 bool SimpleInlinerFunctionStmtVisitor::VisitFunctionDecl(FunctionDecl *FD)
 {
   if (ConsumerInstance->isInIncludedFile(FD) ||
-      !FD->isThisDeclarationADefinition())
+      !FD->isThisDeclarationADefinition() ||
+      FD->hasDefiningAttr ())
     return true;
 
   if (FD->getBeginLoc().isInvalid() || FD->getEndLoc().isInvalid())

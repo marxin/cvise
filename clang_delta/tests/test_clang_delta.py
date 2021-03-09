@@ -540,3 +540,6 @@ class TestClangDelta(unittest.TestCase):
         run = subprocess.run(cmd, shell=True, encoding='utf8', stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         assert 'Available transformation instances: 1' in run.stderr
         assert 'Warning: number of transformation instances exceeded' in run.stderr
+
+    def test_simple_inliner_alias(self):
+        self.check_clang_delta('simple-inliner/alias-crash.c', '--transformation=simple-inliner --counter=1')

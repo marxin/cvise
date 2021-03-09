@@ -1,0 +1,12 @@
+a[6];
+b;
+c() __attribute__((alias("func_53")));
+
+func_53() {
+  for (;; b--) return;
+}
+e;
+main() {
+int __trans_tmp_1; { c(); }
+
+__trans_tmp_1; }
