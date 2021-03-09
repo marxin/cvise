@@ -95,7 +95,9 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
   ClangInstance->createDiagnostics();
 
   TargetOptions &TargetOpts = ClangInstance->getTargetOpts();
+#if LLVM_VERSION_MAJOR < 12
   PreprocessorOptions &PPOpts = ClangInstance->getPreprocessorOpts();
+#endif
   if (const char *env = getenv("CVISE_TARGET_TRIPLE")) {
     TargetOpts.Triple = std::string(env);
   } else {
@@ -138,7 +140,7 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind::CXX, T, PPOpts, LSTD);
   }
   else if(IK.getLanguage() == InputKind::OpenCL) {
-#else
+#elif LLVM_VERSION_MAJOR < 12
   if (IK.getLanguage() == Language::C) {
     Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::C), T, PPOpts);
   }
@@ -147,6 +149,18 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     // for a function which has a non-declared callee, e.g.,
     // It results an empty AST for the caller.
     Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::CXX), T, PPOpts, LSTD);
+  }
+  else if(IK.getLanguage() == Language::OpenCL) {
+#else
+  vector<string> includes;
+  if (IK.getLanguage() == Language::C) {
+    Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::C), T, includes);
+  }
+  else if (IK.getLanguage() == Language::CXX) {
+    // ISSUE: it might cause some problems when building AST
+    // for a function which has a non-declared callee, e.g.,
+    // It results an empty AST for the caller.
+    Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::CXX), T, includes, LSTD);
   }
   else if(IK.getLanguage() == Language::OpenCL) {
 #endif
@@ -183,7 +197,12 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
 #else
                                InputKind::OpenCL,
 #endif
+
+#if LLVM_VERSION_MAJOR < 12
 			       T, PPOpts);
+#else
+			       T, includes);
+#endif
   }
   else {
     ErrorMsg = "Unsupported file type!";
