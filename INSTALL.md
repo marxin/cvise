@@ -11,6 +11,12 @@ comes with a pre-compiled package for C-Vise.
 zypper in cvise
 ```
 
+### Ubuntu
+
+```shell
+apt-get install cvise
+```
+
 ### Gentoo Linux
 
 ```shell
