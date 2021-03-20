@@ -8,6 +8,8 @@ import os
 import os.path
 import platform
 import shutil
+import subprocess
+import sys
 import tempfile
 import traceback
 
@@ -161,9 +163,11 @@ class TestManager:
         self.orig_total_file_size = self.total_file_size
         self.cache = {}
         self.root = None
-
         if not self.is_valid_test(self.test_script):
             raise InvalidInterestingnessTestError(self.test_script)
+
+        self.use_colordiff = (sys.stdout.isatty() and
+                              subprocess.run('colordiff --version', shell=True, stdout=subprocess.DEVNULL).returncode == 0)
 
     def create_root(self):
         self.root = tempfile.mkdtemp(prefix=self.TEMP_PREFIX)
@@ -535,6 +539,8 @@ class TestManager:
     def process_result(self, test_env):
         if self.print_diff:
             diff_str = self.diff_files(self.current_test_case, test_env.test_case_path)
+            if self.use_colordiff:
+                diff_str = subprocess.check_output('colordiff', shell=True, encoding='utf8', input=diff_str)
             logging.info(diff_str)
 
         shutil.copy(test_env.test_case_path, self.current_test_case)
