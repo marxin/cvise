@@ -52,6 +52,8 @@ set(SOURCE_FILES
   "/tests/callexpr-to-value/test1.output"
   "/tests/callexpr-to-value/test2.c"
   "/tests/callexpr-to-value/test2.output"
+  "/tests/class-to-struct/class-to-struct1.C"
+  "/tests/class-to-struct/class-to-struct1.output"
   "/tests/copy-propagation/copy1.cpp"
   "/tests/copy-propagation/copy1.output"
   "/tests/copy-propagation/copy2.cpp"
@@ -417,6 +419,8 @@ add_executable(clang_delta
   ClangDelta.cpp
   ClassTemplateToClass.cpp
   ClassTemplateToClass.h
+  ClassToStruct.cpp
+  ClassToStruct.h
   CombineGlobalVarDecl.cpp
   CombineGlobalVarDecl.h
   CombineLocalVarDecl.cpp

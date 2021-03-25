@@ -543,3 +543,6 @@ class TestClangDelta(unittest.TestCase):
 
     def test_simple_inliner_alias(self):
         self.check_clang_delta('simple-inliner/alias-crash.c', '--transformation=simple-inliner --counter=1')
+
+    def test_class_to_struct(self):
+        self.check_clang_delta('class-to-struct/class-to-struct1.C', '--transformation=class-to-struct --counter=1')

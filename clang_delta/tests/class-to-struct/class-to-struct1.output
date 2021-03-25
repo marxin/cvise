@@ -1,0 +1,12 @@
+template <typename T>
+struct MyName
+{
+  public:
+    T a;
+};
+
+int main()
+{
+  MyName<int> a;
+  return a.a;
+}
