@@ -119,7 +119,7 @@ class CVise:
                 elif not renaming and 'renaming' in pass_dict and pass_dict['renaming']:
                     continue
 
-                pass_instance.clang_delta_std = clang_delta_std
+                pass_instance.user_clang_delta_std = clang_delta_std
                 pass_instance.clang_delta_preserve_routine = clang_delta_preserve_routine
                 pass_group[category].append(pass_instance)
 
