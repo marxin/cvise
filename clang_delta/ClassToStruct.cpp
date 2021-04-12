@@ -47,9 +47,12 @@ private:
 bool ClassToStructVisitor::VisitCXXRecordDecl(
        CXXRecordDecl *CXXRD)
 {
-  if (!CXXRD->isClass())
+  CXXRecordDecl *definition = CXXRD->getDefinition();
+  if (!definition
+      || !definition->isClass())
     return true;
-  ConsumerInstance->CXXRDDefSet.insert(CXXRD->getDefinition());
+
+  ConsumerInstance->CXXRDDefSet.insert(definition);
   return true;
 }
 
