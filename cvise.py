@@ -166,6 +166,7 @@ if __name__ == '__main__':
     parser.add_argument('--print-diff', action='store_true', default=False, help='Show changes made by transformations, for debugging')
     parser.add_argument('--save-temps', action='store_true', default=False, help="Don't delete /tmp/cvise-xxxxxx directories on termination")
     parser.add_argument('--skip-initial-passes', action='store_true', default=False, help='Skip initial passes (useful if input is already partially reduced)')
+    parser.add_argument('--skip-interestingness-test-check', '-s', action='store_true', default=False, help='Skip initial interestingness test check')
     parser.add_argument('--remove-pass', help='Remove all instances of the specified passes from the schedule (comma-separated)')
     parser.add_argument('--start-with-pass', help='Start with the specified pass')
     parser.add_argument('--no-timing', action='store_true', default=False, help='Do not print timestamps about reduction progress')
@@ -274,7 +275,7 @@ if __name__ == '__main__':
                                        args.die_on_pass_bug, args.print_diff, args.max_improvement, args.no_give_up, args.also_interesting,
                                        args.start_with_pass)
 
-    reducer = CVise(test_manager)
+    reducer = CVise(test_manager, args.skip_interestingness_test_check)
 
     reducer.tidy = args.tidy
 

@@ -57,8 +57,9 @@ class CVise:
         'unifdef': UnIfDefPass,
     }
 
-    def __init__(self, test_manager):
+    def __init__(self, test_manager, skip_interestingness_test_check):
         self.test_manager = test_manager
+        self.skip_interestingness_test_check = skip_interestingness_test_check
         self.tidy = False
 
     @classmethod
@@ -127,7 +128,8 @@ class CVise:
 
     def reduce(self, pass_group, skip_initial):
         self._check_prerequisites(pass_group)
-        self.test_manager.check_sanity(True)
+        if not self.skip_interestingness_test_check:
+            self.test_manager.check_sanity(True)
 
         logging.info('===< {} >==='.format(os.getpid()))
         logging.info('running {} interestingness test{} in parallel'.format(self.test_manager.parallel_tests,
