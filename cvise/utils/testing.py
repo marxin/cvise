@@ -543,7 +543,10 @@ class TestManager:
                 diff_str = subprocess.check_output('colordiff', shell=True, encoding='utf8', input=diff_str)
             logging.info(diff_str)
 
-        shutil.copy(test_env.test_case_path, self.current_test_case)
+        try:
+            shutil.copy(test_env.test_case_path, self.current_test_case)
+        except FileNotFoundError:
+            raise RuntimeError(f"Can't find {self.current_test_case} -- did your interestingness test move it?")
 
         self.state = self.current_pass.advance_on_success(test_env.test_case_path, test_env.state)
         self.pass_statistic.add_success(self.current_pass)
