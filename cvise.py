@@ -126,6 +126,29 @@ def get_available_pass_groups():
     return group_names
 
 
+def get_available_cores():
+    try:
+        # try to detect only physical cores, ignore HyperThreading
+        # in order to speed up parallel execution
+        core_count = psutil.cpu_count(logical=False)
+        if not core_count:
+            core_count = psutil.cpu_count(logical=True)
+        # respect affinity
+        try:
+            affinity = len(psutil.Process().cpu_affinity())
+            assert affinity >= 1
+        except AttributeError:
+            return core_count
+
+        if core_count:
+            core_count = min(core_count, affinity)
+        else:
+            core_count = affinity
+        return core_count
+    except NotImplementedError:
+        return 1
+
+
 EPILOG_TEXT = """
 available shortcuts:
   S - skip execution of the current pass
@@ -136,24 +159,8 @@ For bug reporting instructions, please use:
 """ % CVise.Info.PACKAGE_URL
 
 if __name__ == '__main__':
-    try:
-        # try to detect only physical cores, ignore HyperThreading
-        # in order to speed up parallel execution
-        core_count = psutil.cpu_count(logical=False)
-        if not core_count:
-            core_count = psutil.cpu_count(logical=True)
-        # respect affinity
-        affinity = len(psutil.Process().cpu_affinity())
-        assert affinity >= 1
-        if core_count:
-            core_count = min(core_count, affinity)
-        else:
-            core_count = affinity
-    except NotImplementedError:
-        core_count = 1
-
     parser = argparse.ArgumentParser(description='C-Vise', formatter_class=argparse.RawDescriptionHelpFormatter, epilog=EPILOG_TEXT)
-    parser.add_argument('--n', '-n', type=int, default=core_count, help='Number of cores to use; C-Vise tries to automatically pick a good setting but its choice may be too low or high for your situation')
+    parser.add_argument('--n', '-n', type=int, default=get_available_cores(), help='Number of cores to use; C-Vise tries to automatically pick a good setting but its choice may be too low or high for your situation')
     parser.add_argument('--tidy', action='store_true', help='Do not make a backup copy of each file to reduce as file.orig')
     parser.add_argument('--shaddap', action='store_true', help='Suppress output about non-fatal internal errors')
     parser.add_argument('--die-on-pass-bug', action='store_true', help='Terminate C-Vise if a pass encounters an otherwise non-fatal problem')
