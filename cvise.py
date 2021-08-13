@@ -19,6 +19,7 @@ if importlib.util.find_spec('cvise') is None:
     sys.path.append('@CMAKE_INSTALL_FULL_DATADIR@')
     sys.path.append(destdir + '@CMAKE_INSTALL_FULL_DATADIR@')
 
+import chardet  # noqa: E402
 from cvise.cvise import CVise  # noqa: E402
 from cvise.passes.abstract import AbstractPass  # noqa: E402
 from cvise.utils import misc, statistics, testing  # noqa: E402
@@ -192,6 +193,7 @@ if __name__ == '__main__':
     parser.add_argument('--list-passes', action='store_true', help='Print all available passes and exit')
     parser.add_argument('--version', action='version', version=CVise.Info.PACKAGE_STRING + (' (%s)' % CVise.Info.GIT_VERSION if CVise.Info.GIT_VERSION != 'unknown' else ''))
     parser.add_argument('--commands', '-c', help='Use bash commands instead of an interestingness test case')
+    parser.add_argument('--to-utf8', action='store_true', help='Convert any non-UTF-8 encoded input file to UTF-8')
     parser.add_argument('interestingness_test', metavar='INTERESTINGNESS_TEST', nargs='?', help='Executable to check interestingness of test cases')
     parser.add_argument('test_cases', metavar='TEST_CASE', nargs='+', help='Test cases')
 
@@ -267,6 +269,16 @@ if __name__ == '__main__':
     if args.interestingness_test and args.commands:
         args.test_cases.insert(0, args.interestingness_test)
         args.interestingness_test = None
+
+    if args.to_utf8:
+        for test_case in args.test_cases:
+            with open(test_case, 'rb') as fd:
+                encoding = chardet.detect(fd.read())['encoding']
+                if encoding not in ('ascii', 'utf-8'):
+                    logging.info(f'Converting {test_case} file ({encoding} encoding) to UTF-8')
+                    data = open(test_case, 'r', encoding=encoding).read()
+                    with open(test_case, 'w') as w:
+                        w.write(data)
 
     script = None
     if args.commands:

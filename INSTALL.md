@@ -82,6 +82,8 @@ manager:
 
 * [Pebble](https://pypi.org/project/Pebble/)
 
+* [chardet](https://pypi.org/project/chardet/)
+
 * [psutil](https://pypi.org/project/psutil/)
 
 * [CMake](https://cmake.org/)
