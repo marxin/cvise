@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build_and_test:
+  CI:
     runs-on: ubuntu-latest
 
     strategy:
@@ -34,7 +34,7 @@ jobs:
 
     steps:
     - run: zypper -n install
-        binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel python3-Pebble python3-pytest unifdef python3-psutil curl git
+        binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel python3-Pebble python3-pytest unifdef python3-psutil curl git python3-chardet
         python3-pytest-flake8
         python3-flake8
         python3-flake8-builtins
