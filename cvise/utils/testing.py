@@ -170,7 +170,8 @@ class TestManager:
                               subprocess.run('colordiff --version', shell=True, stdout=subprocess.DEVNULL).returncode == 0)
 
     def create_root(self):
-        self.root = tempfile.mkdtemp(prefix=self.TEMP_PREFIX)
+        pass_name = str(self.current_pass).replace('::', '-')
+        self.root = tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}{pass_name}-')
         logging.debug('Creating pass root folder: %s' % self.root)
 
     def remove_root(self):
@@ -288,7 +289,7 @@ class TestManager:
     def check_sanity(self, verbose=False):
         logging.debug('perform sanity check... ')
 
-        folder = tempfile.mkdtemp(prefix=self.TEMP_PREFIX)
+        folder = tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}sanity-')
         test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, None)
         logging.debug('sanity check tmpdir = {}'.format(test_env.folder))
 
