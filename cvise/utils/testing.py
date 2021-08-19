@@ -482,60 +482,65 @@ class TestManager:
         if not self.skip_key_off:
             logger = KeyLogger()
 
-        for test_case in self.sorted_test_cases:
-            self.current_test_case = test_case
+        try:
+            for test_case in self.sorted_test_cases:
+                self.current_test_case = test_case
 
-            if self.get_file_size([test_case]) == 0:
-                continue
+                if self.get_file_size([test_case]) == 0:
+                    continue
 
-            if not self.no_cache:
-                with open(test_case, mode='rb+') as tmp_file:
-                    test_case_before_pass = tmp_file.read()
+                if not self.no_cache:
+                    with open(test_case, mode='rb+') as tmp_file:
+                        test_case_before_pass = tmp_file.read()
 
-                    if (pass_key in self.cache and
-                            test_case_before_pass in self.cache[pass_key]):
-                        tmp_file.seek(0)
-                        tmp_file.truncate(0)
-                        tmp_file.write(self.cache[pass_key][test_case_before_pass])
-                        logging.info('cache hit for {}'.format(test_case))
-                        continue
+                        if (pass_key in self.cache and
+                                test_case_before_pass in self.cache[pass_key]):
+                            tmp_file.seek(0)
+                            tmp_file.truncate(0)
+                            tmp_file.write(self.cache[pass_key][test_case_before_pass])
+                            logging.info('cache hit for {}'.format(test_case))
+                            continue
 
-            # create initial state
-            self.state = self.current_pass.new(self.current_test_case, self.check_sanity)
-            self.skip = False
+                # create initial state
+                self.state = self.current_pass.new(self.current_test_case, self.check_sanity)
+                self.skip = False
 
-            while self.state is not None and not self.skip:
-                # Ignore more key presses after skip has been detected
-                if not self.skip_key_off and not self.skip:
-                    key = logger.pressed_key()
-                    if key == 's':
-                        self.skip = True
-                        self.log_key_event('skipping the rest of this pass')
-                    elif key == 'd':
-                        self.log_key_event('toggle print diff')
-                        self.print_diff = not self.print_diff
+                while self.state is not None and not self.skip:
+                    # Ignore more key presses after skip has been detected
+                    if not self.skip_key_off and not self.skip:
+                        key = logger.pressed_key()
+                        if key == 's':
+                            self.skip = True
+                            self.log_key_event('skipping the rest of this pass')
+                        elif key == 'd':
+                            self.log_key_event('toggle print diff')
+                            self.print_diff = not self.print_diff
 
-                success_env = self.run_parallel_tests()
-                self.kill_pid_queue()
+                    success_env = self.run_parallel_tests()
+                    self.kill_pid_queue()
 
-                if success_env:
-                    self.process_result(success_env)
-                self.release_folders()
-                self.futures.clear()
-                if not success_env:
-                    break
+                    if success_env:
+                        self.process_result(success_env)
+                    self.release_folders()
+                    self.futures.clear()
+                    if not success_env:
+                        break
 
-            # Cache result of this pass
-            if not self.no_cache:
-                with open(test_case, mode='rb') as tmp_file:
-                    if pass_key not in self.cache:
-                        self.cache[pass_key] = {}
+                # Cache result of this pass
+                if not self.no_cache:
+                    with open(test_case, mode='rb') as tmp_file:
+                        if pass_key not in self.cache:
+                            self.cache[pass_key] = {}
 
-                    self.cache[pass_key][test_case_before_pass] = tmp_file.read()
+                        self.cache[pass_key][test_case_before_pass] = tmp_file.read()
 
-        self.restore_mode()
-        self.remove_root()
-        self.pass_statistic.stop(self.current_pass)
+            self.restore_mode()
+            self.pass_statistic.stop(self.current_pass)
+            self.remove_root()
+        except KeyboardInterrupt:
+            logging.info('Exiting now ...')
+            self.remove_root()
+            sys.exit(1)
 
     def process_result(self, test_env):
         if self.print_diff:
