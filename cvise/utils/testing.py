@@ -558,6 +558,12 @@ class TestManager:
         self.pass_statistic.add_success(self.current_pass)
 
         pct = 100 - (self.total_file_size * 100.0 / self.orig_total_file_size)
-        msg = f'({round(pct, 1)}%, {self.total_file_size} bytes'
-        msg += f', {self.total_line_count} lines)' if self.total_line_count else ')'
-        logging.info(msg)
+        notes = []
+        notes.append(f'{round(pct, 1)}%')
+        notes.append(f'{self.total_file_size} bytes')
+        if self.total_line_count:
+            notes.append(f'{self.total_line_count} lines')
+        if len(self.test_cases) > 1:
+            notes.append(test_env.test_case)
+
+        logging.info('(' + ', '.join(notes) + ')')
