@@ -428,7 +428,11 @@ const Expr *Transformation::getBaseExprAndIdxs(const Expr *E,
       // If we cannot have an integeral index, use 0.
       if (IdxE && IdxE->EvaluateAsInt(Result, *Context)) {
         llvm::APSInt IVal = Result.Val.getInt();
+#if LLVM_VERSION_MAJOR >= 13
+        std::string IntStr = toString(IVal, 10);
+#else
         std::string IntStr = IVal.toString(10);
+#endif
         std::stringstream TmpSS(IntStr);
         if (!(TmpSS >> Idx))
           TransAssert(0 && "Non-integer value!");

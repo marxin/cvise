@@ -787,7 +787,11 @@ void RemoveNamespace::handleOneUsingShadowDecl(const UsingShadowDecl *UD,
     return;
 
   std::string NewName;
+#if LLVM_VERSION_MAJOR < 13
   const UsingDecl *D = UD->getUsingDecl();
+#else
+  const UsingDecl *D = UD->getIntroducer();
+#endif
 
   NestedNameSpecifierLoc QualifierLoc = D->getQualifierLoc();
   NestedNameSpecifier *NNS = QualifierLoc.getNestedNameSpecifier();
