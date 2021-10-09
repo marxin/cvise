@@ -17,6 +17,7 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/SourceManager.h"
+#include "llvm/ADT/StringExtras.h"
 
 #include "TransformationManager.h"
 #include "CommonTemplateArgumentVisitor.h"
@@ -167,7 +168,11 @@ void TemplateNonTypeArgToInt::handleOneTemplateArgumentLoc(
     if (!TheExpr->isValueDependent() &&
         TheExpr->EvaluateAsInt(Result, *Context)) {
       llvm::APSInt IVal = Result.Val.getInt();
+#if LLVM_VERSION_MAJOR >= 13
+      IntString = toString(IVal, 10);
+#else
       IntString = IVal.toString(10);
+#endif
     }
   }
 }
