@@ -646,8 +646,8 @@ void RemoveUnusedFunction::removeOneFunctionDeclGroup(const FunctionDecl *FD)
 {
   for (FunctionDecl::redecl_iterator RI = FD->redecls_begin(),
        RE = FD->redecls_end(); RI != RE; ++RI) {
-    const FunctionDecl *FD = (*RI);
-    if (!FD->hasBody() && !FD->getTypeSourceInfo()) {
+    const FunctionDecl *FDecl = (*RI);
+    if (!FDecl->hasBody() && !FDecl->getTypeSourceInfo()) {
       continue;
     }
     removeOneFunctionDecl(FD);
