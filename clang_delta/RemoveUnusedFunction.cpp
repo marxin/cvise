@@ -650,7 +650,7 @@ void RemoveUnusedFunction::removeOneFunctionDeclGroup(const FunctionDecl *FD)
     if (!FDecl->hasBody() && !FDecl->getTypeSourceInfo()) {
       continue;
     }
-    removeOneFunctionDecl(FD);
+    removeOneFunctionDecl(FDecl);
   }
 
   removeMemberSpecializations(FD);
