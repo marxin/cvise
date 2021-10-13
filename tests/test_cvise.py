@@ -15,8 +15,10 @@ class TestCvise(unittest.TestCase):
         os.chmod(testcase, 0o644)
         cmd = '%s %s %s' % (binary, testcase, arguments)
         subprocess.check_output(cmd, shell=True, encoding='utf8')
-        assert open(testcase).read() == expected
+        content = open(testcase).read()
+        assert content in expected
         assert stat.filemode(os.stat(testcase).st_mode) == '-rw-r--r--'
 
     def test_simple_reduction(self):
-        self.check_cvise('blocksort-part.c', '-c "gcc -c blocksort-part.c && grep nextHi blocksort-part.c"', '#define nextHi')
+        self.check_cvise('blocksort-part.c', '-c "gcc -c blocksort-part.c && grep nextHi blocksort-part.c"',
+                         ['#define nextHi', '#define  nextHi '])
