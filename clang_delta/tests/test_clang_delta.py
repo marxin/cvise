@@ -11,10 +11,10 @@ class TestClangDelta(unittest.TestCase):
         binary = os.path.join(current, '../clang_delta')
         cmd = '%s %s %s' % (binary, os.path.join(current, testcase), arguments)
         output = subprocess.check_output(cmd, shell=True, encoding='utf8')
-        if output_file:
-            expected = open(os.path.join(current, output_file)).read()
-        else:
-            expected = open(os.path.join(current, os.path.splitext(testcase)[0] + '.output')).read()
+        if not output_file:
+            output_file = os.path.splitext(testcase)[0] + '.output'
+        with open(os.path.join(current, output_file)) as f:
+            expected = f.read()
         assert output == expected
 
     @classmethod
