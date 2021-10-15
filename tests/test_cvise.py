@@ -15,7 +15,8 @@ class TestCvise(unittest.TestCase):
         os.chmod(testcase, 0o644)
         cmd = '%s %s %s' % (binary, testcase, arguments)
         subprocess.check_output(cmd, shell=True, encoding='utf8')
-        content = open(testcase).read()
+        with open(testcase) as f:
+            content = f.read()
         assert content in expected
         assert stat.filemode(os.stat(testcase).st_mode) == '-rw-r--r--'
 
