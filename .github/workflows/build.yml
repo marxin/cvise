@@ -43,7 +43,7 @@ jobs:
         python3-flake8-quotes
     - run: zypper -n install python3-pip python3-flake8-comprehensions python3 sqlite-devel
       if: matrix.docker == 'opensuse/tumbleweed'
-    - run: pip install codecov pytest-cov
+    - run: pip install pytest-cov
       if: matrix.docker == 'opensuse/tumbleweed'
     - uses: actions/checkout@v2
     - run: nproc
@@ -62,5 +62,10 @@ jobs:
       run: |
             cd objdir
             pytest --cov=./
-            codecov
       if: matrix.build-type == 'COVERAGE'
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        directory: objdir
+        verbose: true
+      if:  matrix.build-type == 'COVERAGE'
