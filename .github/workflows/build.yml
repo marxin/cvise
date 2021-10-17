@@ -12,17 +12,17 @@ jobs:
 
     strategy:
       matrix:
-        llvm: [9, 10, 11, 12]
+        llvm: [9, 10, 11, 12, 13]
         build-type: [DEBUG]
         docker: [opensuse/tumbleweed]
         include:
-          - llvm: 12
+          - llvm: 13
             build-type: ASAN
             docker: opensuse/tumbleweed
-          - llvm: 12
+          - llvm: 13
             build-type: UBSAN
             docker: opensuse/tumbleweed
-          - llvm: 12
+          - llvm: 13
             build-type: COVERAGE
             docker: opensuse/tumbleweed
           - llvm: 9
