@@ -30,7 +30,9 @@ jobs:
             docker: opensuse/leap
       fail-fast: false
 
-    container: ${{ matrix.docker }}
+    container:
+      image: ${{ matrix.docker }}
+      options: --privileged
 
     steps:
     - run: zypper -n install
