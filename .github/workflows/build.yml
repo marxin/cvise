@@ -22,9 +22,6 @@ jobs:
           - llvm: 13
             build-type: UBSAN
             docker: opensuse/tumbleweed
-          - llvm: 13
-            build-type: COVERAGE
-            docker: opensuse/tumbleweed
           - llvm: 9
             build-type: DEBUG
             docker: opensuse/leap
@@ -59,15 +56,3 @@ jobs:
       run: |
             cd objdir
             pytest
-      if: matrix.build-type != 'COVERAGE'
-    - name: test with coverage
-      run: |
-            cd objdir
-            pytest --cov=./
-      if: matrix.build-type == 'COVERAGE'
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        directory: objdir
-        verbose: true
-      if:  matrix.build-type == 'COVERAGE'
