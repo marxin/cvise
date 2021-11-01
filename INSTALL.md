@@ -94,6 +94,8 @@ Optional packages:
 
 * [pytest](https://docs.pytest.org/en/latest/)
 
+* [colordiff](https://www.colordiff.org/)
+
 ## Building and installing C-Vise
 
 You can configure, build, and install C-Vise with the CMake.
