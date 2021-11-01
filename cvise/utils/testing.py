@@ -167,7 +167,8 @@ class TestManager:
             raise InvalidInterestingnessTestError(self.test_script)
 
         self.use_colordiff = (sys.stdout.isatty() and
-                              subprocess.run('colordiff --version', shell=True, stdout=subprocess.DEVNULL).returncode == 0)
+                              subprocess.run('colordiff --version', shell=True,
+                                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0)
 
     def create_root(self):
         pass_name = str(self.current_pass).replace('::', '-')
