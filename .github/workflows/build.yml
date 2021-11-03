@@ -29,7 +29,6 @@ jobs:
 
     container:
       image: ${{ matrix.docker }}
-      options: --privileged
 
     steps:
     - run: zypper -n install
