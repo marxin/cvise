@@ -122,3 +122,7 @@ temporary directory containing a copy of the file that is being
 reduced. If your interestingness test requires access to other files,
 you should either copy them into the current working directory or else
 refer to them using an absolute path.
+
+1. If you copy the compiler invocation line from your build tool, remove
+-Werror if present. Some C-Vise passes introduce warnings, so -Werror
+will make those passes ineffective.
