@@ -10,6 +10,9 @@
 #  include <config.h>
 #endif
 
+// always enabled asserts in this file
+#undef NDEBUG
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -486,29 +489,29 @@ int main(int argc, char *argv[]) {
   switch (mode) {
   case MODE_PRINT:
     print_toks();
-    assert(0);
+    __builtin_unreachable();
   case MODE_RENAME:
     rename_toks(tok_index);
-    assert(0);
+    __builtin_unreachable();
   case MODE_DELETE_STRING:
     delete_string(tok_index);
-    assert(0);
+    __builtin_unreachable();
   case MODE_SHORTEN_STRING:
     shorten_string(tok_index);
-    assert(0);
+    __builtin_unreachable();
   case MODE_X_STRING:
     x_string(tok_index);
-    assert(0);
+    __builtin_unreachable();
   case MODE_RM_TOKS:
     rm_toks(tok_index);
-    assert(0);
+    __builtin_unreachable();
   case MODE_RM_TOK_PATTERN:
     rm_tok_pattern(tok_index);
-    assert(0);
+    __builtin_unreachable();
   case MODE_DEFINE:
     define(tok_index);
-    assert(0);
+    __builtin_unreachable();
   default:
-    assert(0);
+    __builtin_unreachable();
   }
 }
