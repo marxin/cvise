@@ -22,6 +22,9 @@ jobs:
           - llvm: 13
             build-type: UBSAN
             docker: opensuse/tumbleweed
+          - llmv: 13
+            build-type: RelWithDebInfo
+            extra-flags: -flto=auto
           - llvm: 9
             build-type: DEBUG
             docker: opensuse/leap
@@ -49,7 +52,7 @@ jobs:
       run: |
             mkdir objdir
             cd objdir
-            cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+            cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
             make -j`nproc` VERBOSE=1
     - name: test
       run: |
