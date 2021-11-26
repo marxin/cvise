@@ -25,6 +25,7 @@ jobs:
           - llmv: 13
             build-type: RelWithDebInfo
             extra-flags: -flto=auto
+            docker: opensuse/tumbleweed
           - llvm: 9
             build-type: DEBUG
             docker: opensuse/leap
