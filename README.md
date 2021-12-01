@@ -126,3 +126,7 @@ refer to them using an absolute path.
 1. If you copy the compiler invocation line from your build tool, remove
 -Werror if present. Some C-Vise passes introduce warnings, so -Werror
 will make those passes ineffective.
+
+Doing that, a reduction will typically end up faster, however,
+one may end up with a code snippet full of warnings that needs
+to be addresses after the reduction.
