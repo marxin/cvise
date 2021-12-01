@@ -127,6 +127,6 @@ refer to them using an absolute path.
 -Werror if present. Some C-Vise passes introduce warnings, so -Werror
 will make those passes ineffective.
 
-Doing that, a reduction will typically end up faster, however,
-one may end up with a code snippet full of warnings that needs
-to be addresses after the reduction.
+  Doing that, a reduction will typically end up faster, however,
+  one may end up with a code snippet full of warnings that needs
+  to be addresses after the reduction.
