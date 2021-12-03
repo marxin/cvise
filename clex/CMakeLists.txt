@@ -54,6 +54,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
 set_source_files_properties(clex.c PROPERTIES COMPILE_FLAGS -Wno-unused-function)
 set_source_files_properties(strlex.c PROPERTIES COMPILE_FLAGS -Wno-unused-function)
 endif()
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+set_source_files_properties(clex.c PROPERTIES COMPILE_FLAGS -DYY_NO_UNISTD_H)
+set_source_files_properties(strlex.c PROPERTIES COMPILE_FLAGS -DYY_NO_UNISTD_H)
+endif()
 
 ###############################################################################
 
