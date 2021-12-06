@@ -20,6 +20,14 @@
 
 #include "defs.h"
 
+#ifdef _MSC_VER
+// MSVC lacks this compiler builtin
+__declspec(noreturn) void __builtin_unreachable()
+{
+    abort();
+}
+#endif
+
 struct tok_t {
   char *str;
   enum tok_kind kind;

@@ -140,6 +140,31 @@ Note that assertions are enabled by default. To disable assertions:
 cmake ... -DENABLE_TRANS_ASSERT=OFF
 ```
 
+## Building on windows
+
+Build LLVM according to https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm
+I used these LLVM build options:
+```
+@call "%PROGRAMFILES(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+mkdir build
+cd build
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -S ..\llvm -DLLVM_ENABLE_PROJECTS=clang -DLLVM_TARGETS_TO_BUILD=X86 -DCMAKE_BUILD_TYPE=Release -Thost=x64
+msbuild ALL_BUILD.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m
+```
+
+Download flex from https://github.com/lexxmark/winflexbison/releases/download/v2.5.24/win_flex_bison-2.5.24.zip
+
+```
+pip install pytest psutil pebble
+@call "%PROGRAMFILES(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+set LLVM_DIR=D:\src\llvm-project\build\lib\cmake\llvm
+set CLANG_DIR=D:\src\llvm-project\build\lib\cmake\clang
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"  -A x64 -Thost=x64  c:\src\cvise -DCMAKE_INSTALL_PREFIX=c:\tools\cvise\
+msbuild INSTALL.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m
+```
+
+Run with: `python C:\tools\cvise\bin\cvise`
+
 ## Testing
 
 You can test the project with:
