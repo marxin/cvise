@@ -14,7 +14,8 @@ class LinesPass(AbstractPass):
 
     def __format(self, test_case, check_sanity):
         tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
+
+        with tempfile.NamedTemporaryFile(mode='w+', dir=tmp) as backup, tempfile.NamedTemporaryFile(mode='w+', dir=tmp) as tmp_file:
             with open(test_case, 'r') as in_file:
                 try:
                     cmd = [self.external_programs['topformflat'], self.arg]
@@ -26,21 +27,19 @@ class LinesPass(AbstractPass):
                 if not line.isspace():
                     tmp_file.write(line)
 
-        # we need to check that sanity check is still fine
-        if check_sanity:
-            backup = tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp)
-            shutil.copyfile(test_case, backup.name)
-            shutil.move(tmp_file.name, test_case)
-            try:
-                check_sanity()
-                os.unlink(backup.name)
-            except InsaneTestCaseError:
-                shutil.move(backup.name, test_case)
-                # if we are not the first lines pass, we should bail out
-                if self.arg != '0':
-                    self.bailout = True
-        else:
-            shutil.move(tmp_file.name, test_case)
+            # we need to check that sanity check is still fine
+            if check_sanity:
+                shutil.copy(test_case, backup.name)
+                shutil.copy(tmp_file.name, test_case)
+                try:
+                    check_sanity()
+                except InsaneTestCaseError:
+                    shutil.copy(backup.name, test_case)
+                    # if we are not the first lines pass, we should bail out
+                    if self.arg != '0':
+                        self.bailout = True
+            else:
+                shutil.copy(tmp_file.name, test_case)
 
     def __count_instances(self, test_case):
         with open(test_case, 'r') as in_file:
