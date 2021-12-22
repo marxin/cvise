@@ -5,6 +5,8 @@
 Before compiling C-Vise yourself, you might want to see if your OS
 comes with a pre-compiled package for C-Vise.
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/cvise.svg)](https://repology.org/project/cvise/versions)
+
 ### openSUSE Tumbleweed
 
 ```shell
