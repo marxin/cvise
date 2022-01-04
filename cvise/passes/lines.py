@@ -26,6 +26,7 @@ class LinesPass(AbstractPass):
             for line in proc.stdout.splitlines(keepends=True):
                 if not line.isspace():
                     tmp_file.write(line)
+            tmp_file.flush()
 
             # we need to check that sanity check is still fine
             if check_sanity:
