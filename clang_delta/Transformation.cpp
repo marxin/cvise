@@ -395,7 +395,7 @@ unsigned int Transformation::getConstArraySize(
   std::stringstream TmpSS(IntStr.str().str());
 
   if (!(TmpSS >> Sz)) {
-    TransAssert(0 && "Non-integer value!");
+    return UINT_MAX;
   }
   return Sz;
 }
