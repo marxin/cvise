@@ -130,3 +130,8 @@ will make those passes ineffective.
    Doing that, a reduction will typically end up faster, however,
    one may end up with a code snippet full of warnings that needs
    to be addresses after the reduction.
+
+1. Adding `-Wfatal-errors` to the interestingness test can speed up
+   large reductions by causing the compiler to bail out quickly on errors,
+   rather than trying to soldier on producing a result that is eventually
+   discarded.
