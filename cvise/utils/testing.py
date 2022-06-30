@@ -28,6 +28,7 @@ import psutil
 
 # change default Pebble sleep unit for faster response
 pebble.common.SLEEP_UNIT = 0.01
+MAX_PASS_INCREASEMENT_THRESHOLD = 5
 
 
 def rmfolder(name):
@@ -486,6 +487,7 @@ class TestManager:
         try:
             for test_case in self.sorted_test_cases:
                 self.current_test_case = test_case
+                starting_test_case_size = os.path.getsize(test_case)
 
                 if self.get_file_size([test_case]) == 0:
                     continue
@@ -522,6 +524,14 @@ class TestManager:
 
                     if success_env:
                         self.process_result(success_env)
+
+                    # if the file increases significantly, bail out the current pass
+                    test_case_size = os.path.getsize(self.current_test_case)
+                    if test_case_size >= MAX_PASS_INCREASEMENT_THRESHOLD * starting_test_case_size:
+                        logging.info(f'skipping the rest of the pass (huge file increasement '
+                                     f'{MAX_PASS_INCREASEMENT_THRESHOLD * 100}%)')
+                        break
+
                     self.release_folders()
                     self.futures.clear()
                     if not success_env:
