@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        llvm: [9, 10, 11, 12, 13, 14]
+        llvm: [11, 12, 13, 14]
         build-type: [DEBUG]
         docker: [opensuse/tumbleweed]
         include:
