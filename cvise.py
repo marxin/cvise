@@ -194,6 +194,7 @@ if __name__ == '__main__':
     parser.add_argument('--version', action='version', version=CVise.Info.PACKAGE_STRING + (' (%s)' % CVise.Info.GIT_VERSION if CVise.Info.GIT_VERSION != 'unknown' else ''))
     parser.add_argument('--commands', '-c', help='Use bash commands instead of an interestingness test case')
     parser.add_argument('--to-utf8', action='store_true', help='Convert any non-UTF-8 encoded input file to UTF-8')
+    parser.add_argument('--skip-after-n-transforms', type=int, help='Skip each pass after N successful transformations')
     parser.add_argument('interestingness_test', metavar='INTERESTINGNESS_TEST', nargs='?', help='Executable to check interestingness of test cases')
     parser.add_argument('test_cases', metavar='TEST_CASE', nargs='+', help='Test cases')
 
@@ -292,7 +293,7 @@ if __name__ == '__main__':
     test_manager = testing.TestManager(pass_statistic, args.interestingness_test, args.timeout,
                                        args.save_temps, args.test_cases, args.n, args.no_cache, args.skip_key_off, args.shaddap,
                                        args.die_on_pass_bug, args.print_diff, args.max_improvement, args.no_give_up, args.also_interesting,
-                                       args.start_with_pass)
+                                       args.start_with_pass, args.skip_after_n_transforms)
 
     reducer = CVise(test_manager, args.skip_interestingness_test_check)
 

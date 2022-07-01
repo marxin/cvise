@@ -135,7 +135,7 @@ class TestManager:
 
     def __init__(self, pass_statistic, test_script, timeout, save_temps, test_cases, parallel_tests,
                  no_cache, skip_key_off, silent_pass_bug, die_on_pass_bug, print_diff, max_improvement,
-                 no_give_up, also_interesting, start_with_pass):
+                 no_give_up, also_interesting, start_with_pass, skip_after_n_transforms):
         self.test_script = os.path.abspath(test_script)
         self.timeout = timeout
         self.save_temps = save_temps
@@ -152,6 +152,7 @@ class TestManager:
         self.no_give_up = no_give_up
         self.also_interesting = also_interesting
         self.start_with_pass = start_with_pass
+        self.skip_after_n_transforms = skip_after_n_transforms
 
         for test_case in test_cases:
             self.check_file_permissions(test_case, [os.F_OK, os.R_OK, os.W_OK], InvalidTestCaseError)
@@ -488,6 +489,7 @@ class TestManager:
             for test_case in self.sorted_test_cases:
                 self.current_test_case = test_case
                 starting_test_case_size = os.path.getsize(test_case)
+                success_count = 0
 
                 if self.get_file_size([test_case]) == 0:
                     continue
@@ -524,12 +526,18 @@ class TestManager:
 
                     if success_env:
                         self.process_result(success_env)
+                        success_count += 1
 
                     # if the file increases significantly, bail out the current pass
                     test_case_size = os.path.getsize(self.current_test_case)
                     if test_case_size >= MAX_PASS_INCREASEMENT_THRESHOLD * starting_test_case_size:
                         logging.info(f'skipping the rest of the pass (huge file increasement '
                                      f'{MAX_PASS_INCREASEMENT_THRESHOLD * 100}%)')
+                        break
+
+                    # skip after N transformations if requested
+                    if self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms:
+                        logging.info(f'skipping after {success_count} successful transformations')
                         break
 
                     self.release_folders()
