@@ -317,7 +317,7 @@ class TestManager:
 
     @classmethod
     def log_key_event(cls, event):
-        logging.info('****** %s  ******' % event)
+        logging.info('****** %s ******' % event)
 
     def kill_pid_queue(self):
         active_pids = set()
