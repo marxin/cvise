@@ -16,6 +16,7 @@
 
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
+#include "clang/Basic/FileEntry.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Lex/Preprocessor.h"
 
@@ -62,7 +63,8 @@ public:
   virtual void InclusionDirective(SourceLocation HashLoc,
                           const Token &IncludeTok,
                           StringRef FileName, bool IsAngled,
-                          CharSourceRange FilenameRange, const FileEntry *File,
+                          CharSourceRange FilenameRange,
+                          Optional<FileEntryRef> File,
                           StringRef SearchPath, StringRef RelativePath,
                           const Module *Imported,
                           SrcMgr::CharacteristicKind FileType) override;
@@ -82,7 +84,7 @@ void IncludesPPCallbacks::InclusionDirective(SourceLocation HashLoc,
                                              StringRef FileName,
                                             bool /*IsAngled*/,
                                              CharSourceRange /*FilenameRange*/,
-                                             const FileEntry * /*File*/,
+                                             Optional<FileEntryRef> /*File*/,
                                              StringRef /*SearchPath*/,
                                              StringRef /*RelativePath*/,
                                              const Module * /*Imported*/,
@@ -144,7 +146,7 @@ bool LocalUOBOVisitor::VisitUnaryOperator(UnaryOperator *UO)
 {
   if (!UO->isIncrementDecrementOp() && UO->getOpcode() != UO_AddrOf)
     return true;
-  
+
   const Expr *E = UO->getSubExpr();
   InvalidExprs.insert(E->IgnoreParenImpCasts());
   return true;
@@ -272,7 +274,7 @@ bool ExprDetectorStmtVisitor::VisitExpr(Expr *E)
   return true;
 }
 
-void ExpressionDetector::Initialize(ASTContext &context) 
+void ExpressionDetector::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new ExprDetectorCollectionVisitor(this);
@@ -289,7 +291,7 @@ void ExpressionDetector::Initialize(ASTContext &context)
     HFInfo.FunctionDeclStr = "int printf(const char *format, ...)";
   }
 
-  ControlVarNameQueryWrap = 
+  ControlVarNameQueryWrap =
     new TransNameQueryWrap(ControlVarNamePrefix);
   TmpVarNameQueryWrap =
     new TransNameQueryWrap(TmpVarNamePrefix);
@@ -302,7 +304,7 @@ void ExpressionDetector::Initialize(ASTContext &context)
   PP.addPPCallbacks(std::unique_ptr<PPCallbacks>(C));
 }
 
-bool ExpressionDetector::HandleTopLevelDecl(DeclGroupRef D) 
+bool ExpressionDetector::HandleTopLevelDecl(DeclGroupRef D)
 {
   // Skip C++ programs for now.
   if (TransformationManager::isCXXLangOpt()) {
@@ -315,7 +317,7 @@ bool ExpressionDetector::HandleTopLevelDecl(DeclGroupRef D)
   }
   return true;
 }
- 
+
 void ExpressionDetector::HandleTranslationUnit(ASTContext &Ctx)
 {
   if (QueryInstanceOnly)
@@ -396,7 +398,7 @@ bool ExpressionDetector::isIdenticalExpr(const Expr *E1, const Expr *E2)
   // expressions.
   if (E1->HasSideEffects(*Context) || E2->HasSideEffects(*Context))
     return false;
-  
+
   Expr::const_child_iterator I1 = E1->child_begin(), I2 = E2->child_begin();
   while (I1 != E1->child_end() && I2 != E2->child_end()) {
     if (!isIdenticalExpr(dyn_cast<Expr>(*I1), dyn_cast<Expr>(*I2)))
@@ -564,7 +566,7 @@ bool ExpressionDetector::isValidExpr(Stmt *S, const Expr *E)
   // need to process it, e.g., given
   //   a = x + y;
   // we don't need to replace "a" with "__cvise_expr_tmp_xxx"
-  // 
+  //
   // We also skip x++, --x and &x, because we don't want to make
   // the following transformation:
   //   x++;
