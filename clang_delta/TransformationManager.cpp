@@ -20,6 +20,10 @@
 #include "clang/Basic/Builtins.h"
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/FileManager.h"
+#if LLVM_VERSION_MAJOR >= 15
+#include "clang/Basic/LangOptions.h"
+#include "clang/Basic/LangStandard.h"
+#endif
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Frontend/CompilerInstance.h"
@@ -151,7 +155,7 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::CXX), T, PPOpts, LSTD);
   }
   else if(IK.getLanguage() == Language::OpenCL) {
-#else
+#elif LLVM_VERSION_MAJOR < 15
   vector<string> includes;
   if (IK.getLanguage() == Language::C) {
     Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::C), T, includes);
@@ -161,6 +165,18 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     // for a function which has a non-declared callee, e.g.,
     // It results an empty AST for the caller.
     Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::CXX), T, includes, LSTD);
+  }
+  else if(IK.getLanguage() == Language::OpenCL) {
+#else
+  vector<string> includes;
+  if (IK.getLanguage() == Language::C) {
+    LangOptions::setLangDefaults(ClangInstance->getLangOpts(), Language::C, T, includes);
+  }
+  else if (IK.getLanguage() == Language::CXX) {
+    // ISSUE: it might cause some problems when building AST
+    // for a function which has a non-declared callee, e.g.,
+    // It results an empty AST for the caller.
+    LangOptions::setLangDefaults(ClangInstance->getLangOpts(), Language::CXX, T, includes, LSTD);
   }
   else if(IK.getLanguage() == Language::OpenCL) {
 #endif
@@ -191,11 +207,18 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
                                        &Args[0], &Args[0] + Args.size(),
 #endif
                                        ClangInstance->getDiagnostics());
+#if LLVM_VERSION_MAJOR < 15
     Invocation.setLangDefaults(ClangInstance->getLangOpts(),
-#if LLVM_VERSION_MAJOR >= 10
+#else
+    LangOptions::setLangDefaults(ClangInstance->getLangOpts(),
+#endif
+
+#if LLVM_VERSION_MAJOR < 10
+                               InputKind::OpenCL,
+#elif LLVM_VERSION_MAJOR < 15
                                InputKind(Language::OpenCL),
 #else
-                               InputKind::OpenCL,
+                               Language::OpenCL,
 #endif
 
 #if LLVM_VERSION_MAJOR < 12

@@ -16,6 +16,9 @@
 
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
+#if LLVM_VERSION_MAJOR >= 15
+#include "clang/Basic/FileEntry.h"
+#endif
 #include "clang/Basic/SourceManager.h"
 #include "clang/Lex/Preprocessor.h"
 
@@ -62,7 +65,12 @@ public:
   virtual void InclusionDirective(SourceLocation HashLoc,
                           const Token &IncludeTok,
                           StringRef FileName, bool IsAngled,
-                          CharSourceRange FilenameRange, const FileEntry *File,
+                          CharSourceRange FilenameRange,
+#if LLVM_VERSION_MAJOR < 15
+                          const FileEntry *File,
+#else
+                          Optional<FileEntryRef> File,
+#endif
                           StringRef SearchPath, StringRef RelativePath,
                           const Module *Imported,
                           SrcMgr::CharacteristicKind FileType) override;
@@ -80,9 +88,13 @@ private:
 void IncludesPPCallbacks::InclusionDirective(SourceLocation HashLoc,
                                              const Token &/*IncludeTok*/,
                                              StringRef FileName,
-                                            bool /*IsAngled*/,
+                                             bool /*IsAngled*/,
                                              CharSourceRange /*FilenameRange*/,
+#if LLVM_VERSION_MAJOR < 15
                                              const FileEntry * /*File*/,
+#else
+                                             Optional<FileEntryRef> /*File*/,
+#endif
                                              StringRef /*SearchPath*/,
                                              StringRef /*RelativePath*/,
                                              const Module * /*Imported*/,
