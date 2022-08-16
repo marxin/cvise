@@ -79,6 +79,7 @@ manager:
   (No need to compile it: the appropriate "pre-built binaries" package is
   all you need).  For example, the openSUSE Tumbleweed provides them
   by `llvm-devel` and `clang-devel` packages.
+
   Tested LLVM versions: ``9.0.0`` - ``15.0.0``
 
 * [Python 3.6+](https://www.python.org/downloads/)
