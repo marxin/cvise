@@ -37,7 +37,6 @@ jobs:
     steps:
     - run: zypper -n install
         binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel python3-Pebble python3-pytest unifdef python3-psutil curl git python3-chardet
-        python3-pytest-flake8
         python3-flake8
         python3-flake8-builtins
         python3-flake8-bugbear
@@ -55,6 +54,8 @@ jobs:
             cd objdir
             cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
             make -j`nproc` VERBOSE=1
+    - name: flake8
+      run: flake8
     - name: test
       run: |
             cd objdir
