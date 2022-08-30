@@ -28,7 +28,7 @@ import psutil
 
 # change default Pebble sleep unit for faster response
 pebble.common.SLEEP_UNIT = 0.01
-MAX_PASS_INCREASEMENT_THRESHOLD = 5
+MAX_PASS_INCREASEMENT_THRESHOLD = 3
 
 
 def rmfolder(name):
