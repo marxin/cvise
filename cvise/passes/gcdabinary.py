@@ -22,7 +22,7 @@ class GCDABinaryPass(AbstractPass):
             for line in proc.stdout.splitlines():
                 parts = line.split(':')
                 if 'FUNCTION' in line and len(parts) >= 5:
-                    functions.append(4 * int(parts[1]))
+                    functions.append(int(parts[1]))
 
             state = BinaryState.create(len(functions))
             state.functions = functions
