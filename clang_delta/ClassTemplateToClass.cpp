@@ -55,6 +55,7 @@ public:
   { }
 
   bool VisitTemplateSpecializationTypeLoc(TemplateSpecializationTypeLoc Loc);
+  bool VisitCXXMethodDecl(CXXMethodDecl* MD);
 
 private:
 
@@ -194,6 +195,21 @@ bool ClassTemplateToClassSpecializationTypeRewriteVisitor::
                                                        RAngleLoc));
   return true;
 }
+
+bool ClassTemplateToClassSpecializationTypeRewriteVisitor::VisitCXXMethodDecl(CXXMethodDecl* MD) {
+  if (auto DCT = MD->getParent()->getDescribedClassTemplate()) {
+    if (MD->isOutOfLine() && DCT->getCanonicalDecl() == ConsumerInstance->TheClassTemplateDecl) {
+      if (MD->getNumTemplateParameterLists() == 1) {
+        const TemplateParameterList* TPList = MD->getTemplateParameterList(0);
+        SourceLocation LocStart = MD->getBeginLoc();
+        ConsumerInstance->removeTemplateAndParameter(LocStart, TPList);
+      }
+    }
+  }
+
+  return true;
+}
+
 
 void ClassTemplateToClass::Initialize(ASTContext &context) 
 {
