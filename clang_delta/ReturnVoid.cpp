@@ -381,8 +381,12 @@ SourceRange ReturnVoid::findReturnTypeAndCVSourceRange(
 
 bool RVASTVisitor::rewriteFuncDecl(FunctionDecl *FD)
 {
+  const TypeSourceInfo* TSI = FD->getTypeSourceInfo();
+  if (TSI == nullptr)
+    return true;
+
   // It is unbelievably difficult to determine the location of the return type including the const/volatile qualifiers
-  SourceRange ReturnRange = ConsumerInstance->findReturnTypeAndCVSourceRange(*FD, FD->getFunctionTypeLoc(), *ConsumerInstance->Context, *ConsumerInstance->SrcManager, ConsumerInstance->Context->getLangOpts());
+  SourceRange ReturnRange = ConsumerInstance->findReturnTypeAndCVSourceRange(*FD, TSI->getTypeLoc().IgnoreParens().getAs<FunctionTypeLoc>(), *ConsumerInstance->Context, *ConsumerInstance->SrcManager, ConsumerInstance->Context->getLangOpts());
   if (ReturnRange.isInvalid()) {
     ConsumerInstance->Rewritten = true;
     return !(ConsumerInstance->TheRewriter.InsertText(FD->getSourceRange().getBegin(), "void "));
