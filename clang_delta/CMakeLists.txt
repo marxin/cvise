@@ -55,6 +55,8 @@ set(SOURCE_FILES
   "/tests/class-to-struct/class-to-struct1.C"
   "/tests/class-to-struct/class-to-struct1.output"
   "/tests/class-to-struct/class-to-struct-forward.C"
+  "/tests/class-template-to-class/test1.cc"
+  "/tests/class-template-to-class/test1.output"
   "/tests/copy-propagation/copy1.cpp"
   "/tests/copy-propagation/copy1.output"
   "/tests/copy-propagation/copy2.cpp"

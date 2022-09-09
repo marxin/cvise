@@ -550,3 +550,6 @@ class TestClangDelta(unittest.TestCase):
     def test_class_to_struct_forward(self):
         self.check_query_instances('class-to-struct/class-to-struct-forward.C', '--query-instances=class-to-struct',
                                    'Available transformation instances: 0')
+
+    def test_class_template_to_class(self):
+        self.check_clang_delta('class-template-to-class/test1.cc', '--transformation=class-template-to-class --counter=1')
