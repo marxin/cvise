@@ -129,7 +129,7 @@ void CallExprToValue::replaceCallExpr(void)
     NamePostfix++;
 
     CommaStr = RVStr;
-    RVQualType.getAsStringInternal(RVStr, Context->getPrintingPolicy());
+    RVQualType.getAsStringInternal(RVStr, getPrintingPolicy());
     RVStr += ";\n";
     if (CurrentFD) {
       RewriteHelper->insertStringBeforeFunc(CurrentFD, RVStr);

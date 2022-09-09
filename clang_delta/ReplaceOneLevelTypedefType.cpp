@@ -100,7 +100,7 @@ void ReplaceOneLevelTypedefType::rewriteTypedefType()
 {
   std::string NewTyStr;
   TheTypedefDecl->getUnderlyingType().getAsStringInternal(NewTyStr, 
-                                        Context->getPrintingPolicy());
+                                        getPrintingPolicy());
   SourceRange Range = TheTypeLoc.getSourceRange();
   TheRewriter.ReplaceText(Range, NewTyStr);
 }

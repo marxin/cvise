@@ -16,6 +16,7 @@
 #include <cassert>
 #include "llvm/ADT/SmallPtrSet.h"
 #include "clang/AST/ASTConsumer.h"
+#include "clang/AST/PrettyPrinter.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "RewriteUtils.h"
 
@@ -315,6 +316,8 @@ protected:
   bool isInIncludedFile(const clang::Stmt *S) const;
 
   bool isDeclaringRecordDecl(const clang::RecordDecl *RD);
+
+  clang::PrintingPolicy getPrintingPolicy() const;
 
   // If the location is a MacroID, get its expansion location.
   // Otherwise, just return the location.

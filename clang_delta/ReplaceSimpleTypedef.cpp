@@ -218,7 +218,7 @@ void ReplaceSimpleTypedef::handleOneTypedefDecl(const TypedefDecl *CanonicalD)
   if (ValidInstanceNum == TransformationCounter) {
     TheTypedefDecl = CanonicalD;
     CanonicalD->getUnderlyingType().getAsStringInternal(TyName, 
-                                      Context->getPrintingPolicy());
+                                      getPrintingPolicy());
   }
 }
 

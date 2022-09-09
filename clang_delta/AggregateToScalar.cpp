@@ -150,7 +150,7 @@ bool AggregateToScalar::addTmpVar(const Expr *RefE,
 {
   std::string VarStr(VarName);
   QualType QT = RefE->getType();
-  QT.getAsStringInternal(VarStr, Context->getPrintingPolicy());
+  QT.getAsStringInternal(VarStr, getPrintingPolicy());
 
   if (InitStr) {
     VarStr += " = ";

@@ -695,7 +695,7 @@ void ExpressionDetector::doRewrite()
   RewriteHelper->getExprString(TheExpr, ExprStr);
 
   std::string TyStr;
-  TheExpr->getType().getAsStringInternal(TyStr, Context->getPrintingPolicy());
+  TheExpr->getType().getAsStringInternal(TyStr, getPrintingPolicy());
   TmpVarName = TmpVarNamePrefix +
                std::to_string(TmpVarNameQueryWrap->getMaxNamePostfix()+1);
   Str += TyStr + " " + TmpVarName + " = " + ExprStr + ";\n";

@@ -200,7 +200,7 @@ bool LToGASTVisitor::makeLocalAsGlobalVar(FunctionDecl *FD, VarDecl *VD,
   else {
     QualType T = VD->getType();
     T.getAsStringInternal(NewName,
-                          ConsumerInstance->Context->getPrintingPolicy());
+                          ConsumerInstance->getPrintingPolicy());
 
     GlobalVarStr = NewName;
 
