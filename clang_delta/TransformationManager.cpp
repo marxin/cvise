@@ -335,6 +335,7 @@ bool TransformationManager::doTransformation(std::string &ErrorMsg, int &ErrorCo
   CurrentTransformationImpl->setWarnOnCounterOutOfBounds(WarnOnCounterOutOfBounds);
   CurrentTransformationImpl->setQueryInstanceFlag(QueryInstanceOnly);
   CurrentTransformationImpl->setTransformationCounter(TransformationCounter);
+  CurrentTransformationImpl->setPreprocessor(&ClangInstance->getPreprocessor());
   if (ToCounter > 0) {
     if (CurrentTransformationImpl->isMultipleRewritesEnabled()) {
       CurrentTransformationImpl->setToCounter(ToCounter);

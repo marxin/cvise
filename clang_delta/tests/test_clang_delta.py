@@ -504,6 +504,12 @@ class TestClangDelta(unittest.TestCase):
     def test_return_void_test7(self):
         self.check_clang_delta('return-void/test7.cc', '--transformation=return-void --counter=1')
 
+    def test_return_void_test8(self):
+        self.check_clang_delta('return-void/test8.cc', '--transformation=return-void --counter=1')
+
+    def test_return_void_test9(self):
+        self.check_clang_delta('return-void/test9.c', '--transformation=return-void --counter=1')
+
     def test_simplify_callexpr_macro(self):
         self.check_clang_delta('simplify-callexpr/macro.c', '--transformation=simplify-callexpr --counter=1')
 

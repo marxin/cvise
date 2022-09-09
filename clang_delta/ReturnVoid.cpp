@@ -17,6 +17,8 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/SourceManager.h"
+#include "clang/Lex/Lexer.h"
+#include "clang/Lex/Preprocessor.h"
 
 #include "TransformationManager.h"
 
@@ -203,40 +205,202 @@ void ReturnVoid::HandleTranslationUnit(ASTContext &Ctx)
     TransError = TransInternalError;
 }
 
+// Copied from https://github.com/llvm/llvm-project/blob/main/clang-tools-extra/clang-tidy/modernize/UseTrailingReturnTypeCheck.cpp
+struct ClassifiedToken {
+  Token T;
+  bool IsQualifier;
+  bool IsSpecifier;
+};
+
+// Copied from https://github.com/llvm/llvm-project/blob/main/clang-tools-extra/clang-tidy/modernize/UseTrailingReturnTypeCheck.cpp
+static bool hasAnyNestedLocalQualifiers(QualType Type) {
+  bool Result = Type.hasLocalQualifiers();
+  if (Type->isPointerType())
+    Result = Result || hasAnyNestedLocalQualifiers(
+      Type->castAs<PointerType>()->getPointeeType());
+  if (Type->isReferenceType())
+    Result = Result || hasAnyNestedLocalQualifiers(
+      Type->castAs<ReferenceType>()->getPointeeType());
+  return Result;
+}
+
+// Copied from https://github.com/llvm/llvm-project/blob/main/clang-tools-extra/clang-tidy/modernize/UseTrailingReturnTypeCheck.cpp
+static SourceLocation expandIfMacroId(SourceLocation Loc,
+  const SourceManager& SM) {
+  if (Loc.isMacroID())
+    Loc = expandIfMacroId(SM.getImmediateExpansionRange(Loc).getBegin(), SM);
+  assert(!Loc.isMacroID() &&
+    "SourceLocation must not be a macro ID after recursive expansion");
+  return Loc;
+}
+
+// Copied from https://github.com/llvm/llvm-project/blob/main/clang-tools-extra/clang-tidy/modernize/UseTrailingReturnTypeCheck.cpp
+static bool isCvr(Token T) {
+  return T.isOneOf(tok::kw_const, tok::kw_volatile, tok::kw_restrict);
+}
+
+// Copied from https://github.com/llvm/llvm-project/blob/main/clang-tools-extra/clang-tidy/modernize/UseTrailingReturnTypeCheck.cpp
+static bool isSpecifier(Token T) {
+  return T.isOneOf(tok::kw_constexpr, tok::kw_inline, tok::kw_extern,
+	tok::kw_static, tok::kw_friend, tok::kw_virtual);
+}
+
+// Copied from https://github.com/llvm/llvm-project/blob/main/clang-tools-extra/clang-tidy/modernize/UseTrailingReturnTypeCheck.cpp
+static llvm::Optional<ClassifiedToken>
+classifyToken(const FunctionDecl& F, Preprocessor& PP, Token Tok) {
+  ClassifiedToken CT;
+  CT.T = Tok;
+  CT.IsQualifier = true;
+  CT.IsSpecifier = true;
+  bool ContainsQualifiers = false;
+  bool ContainsSpecifiers = false;
+  bool ContainsSomethingElse = false;
+
+  Token End;
+  End.startToken();
+  End.setKind(tok::eof);
+  SmallVector<Token, 2> Stream{ Tok, End };
+
+  // FIXME: do not report these token to Preprocessor.TokenWatcher.
+  PP.EnterTokenStream(Stream, false, /*IsReinject=*/false);
+  while (true) {
+    Token T;
+    PP.Lex(T);
+    if (T.is(tok::eof))
+      break;
+
+    bool Qual = isCvr(T);
+    bool Spec = isSpecifier(T);
+    CT.IsQualifier &= Qual;
+    CT.IsSpecifier &= Spec;
+    ContainsQualifiers |= Qual;
+    ContainsSpecifiers |= Spec;
+    ContainsSomethingElse |= !Qual && !Spec;
+  }
+
+  // If the Token/Macro contains more than one type of tokens, we would need
+  // to split the macro in order to move parts to the trailing return type.
+  if (ContainsQualifiers + ContainsSpecifiers + ContainsSomethingElse > 1)
+    return llvm::None;
+
+  return CT;
+}
+
+// Copied from https://github.com/llvm/llvm-project/blob/main/clang-tools-extra/clang-tidy/modernize/UseTrailingReturnTypeCheck.cpp
+llvm::Optional<SmallVector<ClassifiedToken, 8>>
+ReturnVoid::classifyTokensBeforeFunctionName(
+  const FunctionDecl& F, const ASTContext& Ctx, const SourceManager& SM,
+  const LangOptions& LangOpts) {
+  SourceLocation BeginF = expandIfMacroId(F.getBeginLoc(), SM);
+  SourceLocation BeginNameF = expandIfMacroId(F.getLocation(), SM);
+  // Create tokens for everything before the name of the function.
+  std::pair<FileID, unsigned> Loc = SM.getDecomposedLoc(BeginF);
+  StringRef File = SM.getBufferData(Loc.first);
+  const char* TokenBegin = File.data() + Loc.second;
+  Lexer Lexer(SM.getLocForStartOfFile(Loc.first), LangOpts, File.begin(),
+    TokenBegin, File.end());
+  Token T;
+  SmallVector<ClassifiedToken, 8> ClassifiedTokens;
+  while (!Lexer.LexFromRawLexer(T) &&
+    SM.isBeforeInTranslationUnit(T.getLocation(), BeginNameF)) {
+    if (T.is(tok::raw_identifier)) {
+      IdentifierInfo& Info = Ctx.Idents.get(
+        StringRef(SM.getCharacterData(T.getLocation()), T.getLength()));
+      if (Info.hasMacroDefinition()) {
+        const MacroInfo* MI = PP->getMacroInfo(&Info);
+        if (!MI || MI->isFunctionLike()) {
+          // Cannot handle function style macros.
+          //diag(F.getLocation(), Message);
+          return llvm::None;
+        }
+      }
+      T.setIdentifierInfo(&Info);
+      T.setKind(Info.getTokenID());
+    }
+    if (llvm::Optional<ClassifiedToken> CT = classifyToken(F, *PP, T))
+      ClassifiedTokens.push_back(*CT);
+    else {
+      //diag(F.getLocation(), Message);
+      return llvm::None;
+    }
+  }
+  return ClassifiedTokens;
+}
+
+// Copied from https://github.com/llvm/llvm-project/blob/main/clang-tools-extra/clang-tidy/modernize/UseTrailingReturnTypeCheck.cpp
+SourceRange ReturnVoid::findReturnTypeAndCVSourceRange(
+  const FunctionDecl& F, const TypeLoc& ReturnLoc, const ASTContext& Ctx,
+  const SourceManager& SM, const LangOptions& LangOpts) {
+  // We start with the range of the return type and expand to neighboring
+  // qualifiers (const, volatile and restrict).
+  SourceRange ReturnTypeRange = F.getReturnTypeSourceRange();
+  if (ReturnTypeRange.isInvalid()) {
+    // Happens if e.g. clang cannot resolve all includes and the return type is
+    // unknown.
+    //diag(F.getLocation(), Message);
+    return {};
+  }
+  // If the return type has no local qualifiers, it's source range is accurate.
+  if (!hasAnyNestedLocalQualifiers(F.getReturnType()))
+    return ReturnTypeRange;
+  // Include qualifiers to the left and right of the return type.
+  llvm::Optional<SmallVector<ClassifiedToken, 8>> MaybeTokens =
+    classifyTokensBeforeFunctionName(F, Ctx, SM, LangOpts);
+  if (!MaybeTokens)
+    return {};
+  const SmallVector<ClassifiedToken, 8>& Tokens = *MaybeTokens;
+  ReturnTypeRange.setBegin(expandIfMacroId(ReturnTypeRange.getBegin(), SM));
+  ReturnTypeRange.setEnd(expandIfMacroId(ReturnTypeRange.getEnd(), SM));
+  bool ExtendedLeft = false;
+  for (size_t I = 0; I < Tokens.size(); I++) {
+    // If we found the beginning of the return type, include left qualifiers.
+    if (!SM.isBeforeInTranslationUnit(Tokens[I].T.getLocation(),
+      ReturnTypeRange.getBegin()) &&
+      !ExtendedLeft) {
+      assert(I <= size_t(std::numeric_limits<int>::max()) &&
+        "Integer overflow detected");
+      for (int J = static_cast<int>(I) - 1; J >= 0 && Tokens[J].IsQualifier;
+        J--)
+        ReturnTypeRange.setBegin(Tokens[J].T.getLocation());
+      ExtendedLeft = true;
+    }
+    // If we found the end of the return type, include right qualifiers.
+    if (SM.isBeforeInTranslationUnit(ReturnTypeRange.getEnd(),
+      Tokens[I].T.getLocation())) {
+      for (size_t J = I; J < Tokens.size() && Tokens[J].IsQualifier; J++)
+        ReturnTypeRange.setEnd(Tokens[J].T.getLocation());
+      break;
+    }
+  }
+  assert(!ReturnTypeRange.getBegin().isMacroID() &&
+    "Return type source range begin must not be a macro");
+  assert(!ReturnTypeRange.getEnd().isMacroID() &&
+    "Return type source range end must not be a macro");
+  return ReturnTypeRange;
+}
+
 bool RVASTVisitor::rewriteFuncDecl(FunctionDecl *FD)
 {
-  DeclarationNameInfo NameInfo = FD->getNameInfo();
-  SourceLocation NameInfoStartLoc = NameInfo.getBeginLoc();
-
-  SourceRange FuncDefRange = FD->getSourceRange();
-  SourceLocation FuncStartLoc = FuncDefRange.getBegin();
-
-  if (FuncStartLoc.isMacroID()) {
-    FuncStartLoc = ConsumerInstance->SrcManager->getExpansionLoc(FuncStartLoc);
-  }
-
-  const char *FuncStartBuf =
-      ConsumerInstance->SrcManager->getCharacterData(FuncStartLoc);
-  const char *NameInfoStartBuf =
-      ConsumerInstance->SrcManager->getCharacterData(NameInfoStartLoc);
-  if (FuncStartBuf == NameInfoStartBuf) {
+  // It is unbelievably difficult to determine the location of the return type including the const/volatile qualifiers
+  SourceRange ReturnRange = ConsumerInstance->findReturnTypeAndCVSourceRange(*FD, FD->getFunctionTypeLoc(), *ConsumerInstance->Context, *ConsumerInstance->SrcManager, ConsumerInstance->Context->getLangOpts());
+  if (ReturnRange.isInvalid()) {
     ConsumerInstance->Rewritten = true;
-    return !(ConsumerInstance->TheRewriter.InsertText(FuncStartLoc, "void "));
+    return !(ConsumerInstance->TheRewriter.InsertText(FD->getSourceRange().getBegin(), "void "));
   }
 
-  int Offset = NameInfoStartBuf - FuncStartBuf;
+  SourceLocation BeginLoc = ReturnRange.getBegin();
+  SourceLocation EndLoc = ReturnRange.getEnd();
 
-  NameInfoStartBuf--;
-  while ((*NameInfoStartBuf == '(') || (*NameInfoStartBuf == ' ') ||
-         (*NameInfoStartBuf == '\t') || (*NameInfoStartBuf == '\n')) {
-    Offset--;
-    NameInfoStartBuf--;
-  }
+  if (BeginLoc.isMacroID())
+    BeginLoc = ConsumerInstance->SrcManager->getExpansionLoc(BeginLoc);
+  if (EndLoc.isMacroID())
+    EndLoc = ConsumerInstance->SrcManager->getExpansionLoc(EndLoc);
 
-  TransAssert(Offset >= 0);
+  if (!Rewriter::isRewritable(BeginLoc) || !Rewriter::isRewritable(EndLoc))
+    return true;
+
   ConsumerInstance->Rewritten = true;
-  return !(ConsumerInstance->TheRewriter.ReplaceText(FuncStartLoc, 
-                 Offset, "void "));
+  return !(ConsumerInstance->TheRewriter.ReplaceText(SourceRange(BeginLoc, EndLoc), "void "));
 }
 
 bool RVASTVisitor::rewriteReturnStmt(ReturnStmt *RS)
