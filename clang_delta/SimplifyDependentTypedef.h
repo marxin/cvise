@@ -17,7 +17,7 @@
 namespace clang {
   class DeclGroupRef;
   class ASTContext;
-  class TypedefDecl;
+  class TypedefNameDecl;
   class ClassTemplateDecl;
   class TemplateTypeParmDecl;
 }
@@ -41,7 +41,7 @@ public:
 
 private:
 
-  typedef llvm::SmallPtrSet<const clang::TypedefDecl *, 20> TypedefDeclsSet;
+  typedef llvm::SmallPtrSet<const clang::TypedefNameDecl *, 20> TypedefDeclsSet;
 
   typedef llvm::SmallPtrSet<const clang::Type *, 5> TemplateTypeParmTypeSet;
 
@@ -49,7 +49,7 @@ private:
 
   virtual void HandleTranslationUnit(clang::ASTContext &Ctx);
 
-  void handleOneTypedefDecl(const clang::TypedefDecl *D);
+  void handleOneTypedefDecl(const clang::TypedefNameDecl *D);
 
   void rewriteTypedefDecl(void);
 
@@ -61,7 +61,7 @@ private:
 
   const clang::TemplateTypeParmDecl *FirstTmplTypeParmD;
 
-  const clang::TypedefDecl *TheTypedefDecl;
+  const clang::TypedefNameDecl *TheTypedefDecl;
 
   // Unimplemented
   SimplifyDependentTypedef(void);

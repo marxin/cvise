@@ -107,7 +107,7 @@ void ReplaceOneLevelTypedefType::rewriteTypedefType()
 
 void ReplaceOneLevelTypedefType::removeTypedefs()
 {
-  for (TypedefDecl::redecl_iterator I = TheTypedefDecl->redecls_begin(),
+  for (TypedefNameDecl::redecl_iterator I = TheTypedefDecl->redecls_begin(),
        E = TheTypedefDecl->redecls_end(); I != E; ++I) {
     SourceRange Range = (*I)->getSourceRange();
     if (Range.isValid()) {
@@ -122,11 +122,11 @@ void ReplaceOneLevelTypedefType::handleOneTypedefTypeLoc(TypedefTypeLoc TLoc)
   if (isInIncludedFile(TLoc.getBeginLoc()))
     return;
   const TypedefType *TdefTy = TLoc.getTypePtr();
-  const TypedefDecl *TdefD = dyn_cast<TypedefDecl>(TdefTy->getDecl());
+  const TypedefNameDecl *TdefD = dyn_cast<TypedefNameDecl>(TdefTy->getDecl());
   if (!TdefD || TdefD->getBeginLoc().isInvalid())
     return;
-  const TypedefDecl *CanonicalD = 
-    dyn_cast<TypedefDecl>(TdefD->getCanonicalDecl());
+  const TypedefNameDecl *CanonicalD = 
+    dyn_cast<TypedefNameDecl>(TdefD->getCanonicalDecl());
 
   TypedefTypeLocVector *LocVec = AllTypeDecls[CanonicalD];
   if (!LocVec) {

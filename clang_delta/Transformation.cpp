@@ -977,7 +977,7 @@ bool Transformation::getTypedefString(const StringRef &Name,
   Str = "";
   for (DeclContext::decl_iterator I = CXXRD->decls_begin(),
        E = CXXRD->decls_end(); I != E; ++I) {
-    const TypedefDecl *D = dyn_cast<TypedefDecl>(*I);
+    const TypedefNameDecl *D = dyn_cast<TypedefNameDecl>(*I);
     if (!D || (D->getNameAsString() != Name))
       continue;
     const Type *UnderlyingTy = D->getUnderlyingType().getTypePtr();
