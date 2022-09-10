@@ -358,6 +358,18 @@ set(SOURCE_FILES
   "/tests/union-to-struct/union3.output"
   "/tests/simple-inliner/alias-crash.c"
   "/tests/simple-inliner/alias-crash.output"
+  "/tests/member-to-global/test1.cc"
+  "/tests/member-to-global/test1.output"
+  "/tests/member-to-global/test2.cc"
+  "/tests/member-to-global/test2.output"
+  "/tests/member-to-global/test3.cc"
+  "/tests/member-to-global/test3.output"
+  "/tests/member-to-global/test4.cc"
+  "/tests/member-to-global/test4.output"
+  "/tests/member-to-global/test5.cc"
+  "/tests/member-to-global/test5.output"
+  "/tests/member-to-global/test6.cc"
+  "/tests/member-to-global/test6.output"
 )
 
 foreach(file IN LISTS SOURCE_FILES)
@@ -464,6 +476,8 @@ add_executable(clang_delta
   ParamToGlobal.h
   ParamToLocal.cpp
   ParamToLocal.h
+  MemberToGlobal.cpp
+  MemberToGlobal.h
   ReduceArrayDim.cpp
   ReduceArrayDim.h
   ReduceArraySize.cpp

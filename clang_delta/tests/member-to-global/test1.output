@@ -1,0 +1,13 @@
+
+namespace n {
+
+void f();
+class C {
+public:
+	
+};
+
+}
+
+void n::f() {
+}

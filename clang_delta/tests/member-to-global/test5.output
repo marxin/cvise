@@ -1,0 +1,10 @@
+
+using x = int;
+class C {
+public:
+	
+};
+
+void func() {
+	x v;
+}

@@ -568,3 +568,21 @@ class TestClangDelta(unittest.TestCase):
 
     def test_replace_simple_typedef_test2(self):
         self.check_clang_delta('replace-simple-typedef/test2.cc', '--transformation=replace-simple-typedef --counter=1')
+
+    def test_member_to_global_test1(self):
+        self.check_clang_delta('member-to-global/test1.cc', '--transformation=member-to-global --counter=1')
+
+    def test_member_to_global_test2(self):
+        self.check_clang_delta('member-to-global/test2.cc', '--transformation=member-to-global --counter=1')
+
+    def test_member_to_global_test3(self):
+        self.check_clang_delta('member-to-global/test3.cc', '--transformation=member-to-global --counter=1')
+
+    def test_member_to_global_test4(self):
+        self.check_clang_delta('member-to-global/test4.cc', '--transformation=member-to-global --counter=1')
+
+    def test_member_to_global_test5(self):
+        self.check_clang_delta('member-to-global/test5.cc', '--transformation=member-to-global --counter=1')
+
+    def test_member_to_global_test6(self):
+        self.check_clang_delta('member-to-global/test6.cc', '--transformation=member-to-global --counter=1')
