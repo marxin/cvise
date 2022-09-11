@@ -1,0 +1,7 @@
+
+class test {
+	void  f();
+}
+
+void  test::f() {
+}

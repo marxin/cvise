@@ -24,6 +24,7 @@ namespace clang {
 
 class RVASTVisitor;
 class RVCollectionVisitor;
+struct ClassifiedToken;
 
 class ReturnVoid : public Transformation {
 friend class RVASTVisitor;
@@ -53,6 +54,15 @@ private:
   bool isNonVoidReturnFunction(clang::FunctionDecl *FD);
 
   bool isInTheFuncDef(clang::ReturnStmt *RS);
+
+  llvm::Optional<llvm::SmallVector<ClassifiedToken, 8>>
+    classifyTokensBeforeFunctionName(
+      const clang::FunctionDecl& F, const clang::ASTContext& Ctx, const clang::SourceManager& SM,
+      const clang::LangOptions& LangOpts);
+
+  clang::SourceRange findReturnTypeAndCVSourceRange(
+    const clang::FunctionDecl& F, const clang::TypeLoc& ReturnLoc, const clang::ASTContext& Ctx,
+    const clang::SourceManager& SM, const clang::LangOptions& LangOpts);
 
   RVCollectionVisitor *CollectionVisitor;
 

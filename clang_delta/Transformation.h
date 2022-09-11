@@ -130,6 +130,10 @@ public:
     ToCounter = Counter;
   }
 
+  void setPreprocessor(clang::Preprocessor* PP) {
+    this->PP = PP;
+  }
+
   void setWarnOnCounterOutOfBounds(bool Flag) {
     WarnOnCounterOutOfBounds = Flag;
   }
@@ -334,6 +338,8 @@ protected:
   clang::ASTContext *Context;
 
   clang::SourceManager *SrcManager;
+
+  clang::Preprocessor *PP;
 
   clang::Rewriter TheRewriter;
 
