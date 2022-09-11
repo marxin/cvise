@@ -132,7 +132,7 @@ void ReplaceDependentName::handleOneElaboratedTypeLoc(
   if (!getTypeString(ET->getNamedType(), Str, Typename))
     return;
   std::string TyStr = "";
-  ET->getNamedType().getAsStringInternal(TyStr, Context->getPrintingPolicy());
+  ET->getNamedType().getAsStringInternal(TyStr, getPrintingPolicy());
   if (TyStr == Str)
     return;
   

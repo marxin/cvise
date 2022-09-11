@@ -315,12 +315,12 @@ bool InstantiateTemplateParam::getTypeString(
   case Type::Record: {
     RecordDeclSet TempAvailableRecordDecls;
     getForwardDeclStr(Ty, ForwardStr, TempAvailableRecordDecls);
-    QT.getAsStringInternal(Str, Context->getPrintingPolicy());
+    QT.getAsStringInternal(Str, getPrintingPolicy());
     return true;
   }
 
   case Type::Builtin: {
-    QT.getAsStringInternal(Str, Context->getPrintingPolicy());
+    QT.getAsStringInternal(Str, getPrintingPolicy());
     return true;
   }
 

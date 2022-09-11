@@ -414,7 +414,7 @@ void SimpleInliner::createReturnVar(void)
   TmpVarName = getNewTmpName();
   std::string VarStr = TmpVarName;
   CurrentFD->getReturnType().getAsStringInternal(VarStr,
-                               Context->getPrintingPolicy());
+                               getPrintingPolicy());
   VarStr += ";";
   RewriteHelper->addLocalVarToFunc(VarStr, TheCaller);
 }
@@ -447,17 +447,17 @@ void SimpleInliner::generateParamStrings(void)
         std::string TmpName = getNewTmpName();
         std::string NewParmStr = TmpName;
         PD->getType().getAsStringInternal(NewParmStr,
-                                          Context->getPrintingPolicy());
+                                          getPrintingPolicy());
         ParmsWithNameClash.push_back(NewParmStr + " = " + ArgStr + ";\n");
         ArgStr = TmpName;
       }
       PD->getType().getAsStringInternal(ParmStr,
-                                        Context->getPrintingPolicy());
+                                        getPrintingPolicy());
       ParmStr += " = " + ArgStr;
     }
     else {
       PD->getType().getAsStringInternal(ParmStr,
-                                        Context->getPrintingPolicy());
+                                        getPrintingPolicy());
     }
     ParmStr += ";\n";
     ParmStrings.push_back(ParmStr);

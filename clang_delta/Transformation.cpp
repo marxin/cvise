@@ -942,7 +942,7 @@ bool Transformation::replaceDependentNameString(const Type *Ty,
   if (Arg.getKind() != TemplateArgument::Type)
     return false;
   QualType ArgQT = Arg.getAsType();
-  ArgQT.getAsStringInternal(Str, Context->getPrintingPolicy());
+  ArgQT.getAsStringInternal(Str, getPrintingPolicy());
   Str += "::";
   Str += IdInfo->getName();
   Typename = true;
@@ -963,7 +963,7 @@ bool Transformation::getTemplateTypeParmString(
   if (Arg.getKind() != TemplateArgument::Type)
     return false;
   QualType ArgQT = Arg.getAsType();
-  ArgQT.getAsStringInternal(Str, Context->getPrintingPolicy());
+  ArgQT.getAsStringInternal(Str, getPrintingPolicy());
   return true;
 }
 
@@ -1077,7 +1077,7 @@ bool Transformation::getTypeString(const QualType &QT,
 
   case Type::Record:
   case Type::Builtin: { // fall-through
-    QT.getAsStringInternal(Str, Context->getPrintingPolicy());
+    QT.getAsStringInternal(Str, getPrintingPolicy());
     return true;
   }
 
@@ -1135,6 +1135,15 @@ bool Transformation::isDeclaringRecordDecl(const RecordDecl *RD)
                                   Context->getLangOpts(),
                                   /*SkipTrailingWhitespaceAndNewLine=*/true);
   return SemiLoc.isInvalid();
+}
+
+clang::PrintingPolicy Transformation::getPrintingPolicy() const {
+  clang::PrintingPolicy Policy = Context->getPrintingPolicy();
+
+  // Do not output (anonymous namespace)::
+  Policy.SuppressUnwrittenScope = true;
+
+  return Policy;
 }
 
 Transformation::~Transformation(void)

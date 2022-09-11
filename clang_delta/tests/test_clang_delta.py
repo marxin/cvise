@@ -120,6 +120,9 @@ class TestClangDelta(unittest.TestCase):
         self.check_query_instances('instantiate-template-param/test3.cc', '--query-instances=instantiate-template-param',
                                    'Available transformation instances: 0')
 
+    def test_instantiate_template_param_default_test4(self):
+        self.check_clang_delta('instantiate-template-param/test4.cc', '--transformation=instantiate-template-param --counter=1')
+
     def test_local_to_global_macro(self):
         self.check_clang_delta('local-to-global/macro.c', '--transformation=local-to-global --counter=1')
 

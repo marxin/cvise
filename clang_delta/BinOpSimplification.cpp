@@ -169,7 +169,7 @@ bool BinOpSimplification::addNewTmpVariable(void)
   setTmpVarName(VarStr);
 
   QT.getAsStringInternal(VarStr,
-                         Context->getPrintingPolicy());
+                         getPrintingPolicy());
 
   VarStr += ";";
   return RewriteHelper->addLocalVarToFunc(VarStr, TheFuncDecl);

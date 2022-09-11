@@ -139,7 +139,7 @@ void ReplaceDependentTypedef::handleOneTypedefDecl(const TypedefDecl *D)
     return;
   std::string TdefTyStr = "";
   D->getUnderlyingType().getAsStringInternal(
-    TdefTyStr, Context->getPrintingPolicy());
+    TdefTyStr, getPrintingPolicy());
   if (Str == TdefTyStr)
     return;
 

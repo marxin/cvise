@@ -127,7 +127,7 @@ void SimplifyCallExpr::handleOneArgStr(const Expr *Arg, std::string &Str)
   NamePostfix++;
 
   std::string TmpVarStr = Str;
-  Arg->getType().getAsStringInternal(TmpVarStr, Context->getPrintingPolicy());
+  Arg->getType().getAsStringInternal(TmpVarStr, getPrintingPolicy());
   TmpVarStr += ";\n";
   if (CurrentFD) {
     RewriteHelper->insertStringBeforeFunc(CurrentFD, TmpVarStr);
@@ -168,7 +168,7 @@ void SimplifyCallExpr::replaceCallExpr(void)
     NamePostfix++;
 
     CommaStr += ("," + RVStr);
-    RVQualType.getAsStringInternal(RVStr, Context->getPrintingPolicy());
+    RVQualType.getAsStringInternal(RVStr, getPrintingPolicy());
     RVStr += ";\n";
     if (CurrentFD) {
       RewriteHelper->insertStringBeforeFunc(CurrentFD, RVStr);

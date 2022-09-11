@@ -190,7 +190,7 @@ void RemoveNestedFunction::getVarStrForTemplateSpecialization(
 
   std::string ArgStr;
   llvm::raw_string_ostream Stream(ArgStr);
-  TST->getArg(0).print(Context->getPrintingPolicy(), Stream
+  TST->getArg(0).print(getPrintingPolicy(), Stream
 #if LLVM_VERSION_MAJOR >= 13
       , false
 #endif
@@ -199,7 +199,7 @@ void RemoveNestedFunction::getVarStrForTemplateSpecialization(
   for (unsigned I = 1; I < NumArgs; ++I) {
     const TemplateArgument &Arg = TST->getArg(I);
     Stream << ", ";
-    Arg.print(Context->getPrintingPolicy(), Stream
+    Arg.print(getPrintingPolicy(), Stream
 #if LLVM_VERSION_MAJOR >= 13
       , false
 #endif
@@ -216,7 +216,7 @@ void RemoveNestedFunction::getVarStrForTemplateSpecialization(
 void RemoveNestedFunction::getNewTmpVariable(const QualType &QT,
                                              std::string &VarStr)
 {
-  QT.getAsStringInternal(VarStr, Context->getPrintingPolicy());
+  QT.getAsStringInternal(VarStr, getPrintingPolicy());
 }
 
 void RemoveNestedFunction::getNewIntTmpVariable(std::string &VarStr)
@@ -402,7 +402,7 @@ void RemoveNestedFunction::getNewTmpVariableStr(ASTContext &ASTCtx,
         TransAssert(TST && "Invalid TemplateSpecialization Type!");
 
         QT.getAsStringInternal(VarStr,
-                               Context->getPrintingPolicy());
+                               getPrintingPolicy());
         return getVarStrForTemplateSpecialization(VarStr, TST);
       }
       else {

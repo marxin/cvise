@@ -145,7 +145,7 @@ void ReplaceClassWithBaseTemplateSpec::handleOneCXXRecordDecl(
   ValidInstanceNum++;
   if (ValidInstanceNum == TransformationCounter) {
     BS->getType().getAsStringInternal(TheBaseName, 
-                                      Context->getPrintingPolicy());
+                                      getPrintingPolicy());
     TheCXXRecord = CXXRD;
   }
 }
