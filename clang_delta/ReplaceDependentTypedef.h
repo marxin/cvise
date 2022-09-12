@@ -19,7 +19,7 @@ namespace clang {
   class ASTContext;
   class QualType;
   class Type;
-  class TypedefDecl;
+  class TypedefNameDecl;
   class CXXRecordDecl;
 }
 
@@ -49,7 +49,7 @@ private:
 
   virtual void HandleTranslationUnit(clang::ASTContext &Ctx);
 
-  void handleOneTypedefDecl(const clang::TypedefDecl *D);
+  void handleOneTypedefDecl(const clang::TypedefNameDecl *D);
 
   bool isValidType(const clang::QualType &QT);
 
@@ -59,7 +59,7 @@ private:
 
   std::string TheTyName;
 
-  const clang::TypedefDecl *TheTypedefDecl;
+  const clang::TypedefNameDecl *TheTypedefDecl;
 
   bool NeedTypenameKeyword;
 

@@ -41,7 +41,7 @@ public:
     : ConsumerInstance(Instance)
   { }
 
-  bool VisitTypedefDecl(TypedefDecl *D);
+  bool VisitTypedefNameDecl(TypedefNameDecl*D);
 
 private:
   ReplaceSimpleTypedef *ConsumerInstance;
@@ -65,11 +65,11 @@ private:
 
 };
 
-bool ReplaceSimpleTypedefCollectionVisitor::VisitTypedefDecl(TypedefDecl *TdefD)
+bool ReplaceSimpleTypedefCollectionVisitor::VisitTypedefNameDecl(TypedefNameDecl*TdefD)
 {
   if (ConsumerInstance->isInIncludedFile(TdefD))
     return true;
-  TypedefDecl *CanonicalD = dyn_cast<TypedefDecl>(TdefD->getCanonicalDecl());
+  TypedefNameDecl*CanonicalD = dyn_cast<TypedefNameDecl>(TdefD->getCanonicalDecl());
   if (!ConsumerInstance->VisitedTypedefDecls.count(CanonicalD)) {
     ConsumerInstance->handleOneTypedefDecl(CanonicalD);
     ConsumerInstance->VisitedTypedefDecls.insert(CanonicalD);
@@ -84,11 +84,11 @@ bool ReplaceSimpleTypedefRewriteVisitor::VisitTypedefTypeLoc(TypedefTypeLoc Loc)
     return true;
 
   const TypedefType *TdefTy = Loc.getTypePtr();
-  const TypedefDecl *TdefD = dyn_cast<TypedefDecl>(TdefTy->getDecl());
+  const TypedefNameDecl*TdefD = dyn_cast<TypedefNameDecl>(TdefTy->getDecl());
   if (!TdefD || TdefD->getBeginLoc().isInvalid())
     return true;
  
-  if (dyn_cast<TypedefDecl>(TdefD->getCanonicalDecl()) == 
+  if (dyn_cast<TypedefNameDecl>(TdefD->getCanonicalDecl()) ==
       ConsumerInstance->TheTypedefDecl) {
     SourceRange Range = Loc.getSourceRange();
     ConsumerInstance->TheRewriter.ReplaceText(Range, ConsumerInstance->TyName);
@@ -112,8 +112,8 @@ bool ReplaceSimpleTypedefRewriteVisitor::VisitElaboratedTypeLoc(
   if (!TdefTy)
     return true; 
 
-  const TypedefDecl *TdefD = dyn_cast<TypedefDecl>(TdefTy->getDecl());
-  if (!TdefD || (dyn_cast<TypedefDecl>(TdefD->getCanonicalDecl()) != 
+  const TypedefNameDecl*TdefD = dyn_cast<TypedefNameDecl>(TdefTy->getDecl());
+  if (!TdefD || (dyn_cast<TypedefNameDecl>(TdefD->getCanonicalDecl()) !=
                  ConsumerInstance->TheTypedefDecl)) {
     return true;
   }
@@ -161,7 +161,7 @@ void ReplaceSimpleTypedef::HandleTranslationUnit(ASTContext &Ctx)
 
 void ReplaceSimpleTypedef::removeTypedefs()
 {
-  for (TypedefDecl::redecl_iterator I = TheTypedefDecl->redecls_begin(),
+  for (TypedefNameDecl::redecl_iterator I = TheTypedefDecl->redecls_begin(),
        E = TheTypedefDecl->redecls_end(); I != E; ++I) {
     SourceRange Range = (*I)->getSourceRange();
     if (Range.isValid()) {
@@ -171,7 +171,7 @@ void ReplaceSimpleTypedef::removeTypedefs()
   }
 }
 
-bool ReplaceSimpleTypedef::isValidType(const Type *Ty, const TypedefDecl *D)
+bool ReplaceSimpleTypedef::isValidType(const Type *Ty, const TypedefNameDecl *D)
 {
   if (Ty->isEnumeralType() || Ty->isUnionType())
     return true;
@@ -200,7 +200,7 @@ bool ReplaceSimpleTypedef::isValidType(const Type *Ty, const TypedefDecl *D)
   return false;
 }
 
-void ReplaceSimpleTypedef::handleOneTypedefDecl(const TypedefDecl *CanonicalD)
+void ReplaceSimpleTypedef::handleOneTypedefDecl(const TypedefNameDecl* CanonicalD)
 {
   // omit some typedefs injected by Clang
   if (CanonicalD->getBeginLoc().isInvalid())

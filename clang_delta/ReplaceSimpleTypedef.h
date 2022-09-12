@@ -17,7 +17,7 @@
 namespace clang {
   class DeclGroupRef;
   class ASTContext;
-  class TypedefDecl;
+  class TypedefNameDecl;
 }
 
 class ReplaceSimpleTypedefCollectionVisitor;
@@ -40,15 +40,15 @@ public:
 
 private:
 
-  typedef llvm::SmallPtrSet<const clang::TypedefDecl *, 20> TypedefDeclsSet;
+  typedef llvm::SmallPtrSet<const clang::TypedefNameDecl*, 20> TypedefDeclsSet;
 
   virtual void Initialize(clang::ASTContext &context);
 
   virtual void HandleTranslationUnit(clang::ASTContext &Ctx);
 
-  void handleOneTypedefDecl(const clang::TypedefDecl *CanonicalD);
+  void handleOneTypedefDecl(const clang::TypedefNameDecl* CanonicalD);
 
-  bool isValidType(const clang::Type *Ty, const clang::TypedefDecl *D);
+  bool isValidType(const clang::Type *Ty, const clang::TypedefNameDecl *D);
 
   void removeTypedefs();
 
@@ -58,7 +58,7 @@ private:
 
   ReplaceSimpleTypedefRewriteVisitor *RewriteVisitor;
 
-  const clang::TypedefDecl *TheTypedefDecl;
+  const clang::TypedefNameDecl *TheTypedefDecl;
 
   std::string TyName;
 

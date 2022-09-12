@@ -562,3 +562,9 @@ class TestClangDelta(unittest.TestCase):
 
     def test_class_template_to_class(self):
         self.check_clang_delta('class-template-to-class/test1.cc', '--transformation=class-template-to-class --counter=1')
+
+    def test_replace_simple_typedef_test1(self):
+        self.check_clang_delta('replace-simple-typedef/test1.cc', '--transformation=replace-simple-typedef --counter=1')
+
+    def test_replace_simple_typedef_test2(self):
+        self.check_clang_delta('replace-simple-typedef/test2.cc', '--transformation=replace-simple-typedef --counter=1')

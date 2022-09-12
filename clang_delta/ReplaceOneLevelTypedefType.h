@@ -19,7 +19,7 @@
 namespace clang {
   class DeclGroupRef;
   class ASTContext;
-  class TypedefDecl;
+  class TypedefNameDecl;
 }
 
 class ReplaceOneLevelTypedefTypeCollectionVisitor;
@@ -40,7 +40,7 @@ private:
   typedef llvm::SmallVector<clang::TypedefTypeLoc, 10>
     TypedefTypeLocVector;
 
-  typedef llvm::MapVector<const clang::TypedefDecl *, 
+  typedef llvm::MapVector<const clang::TypedefNameDecl *, 
                          TypedefTypeLocVector *>
     TypedefDeclToRefMap;
 
@@ -62,7 +62,7 @@ private:
 
   ReplaceOneLevelTypedefTypeCollectionVisitor *CollectionVisitor;
 
-  const clang::TypedefDecl *TheTypedefDecl;
+  const clang::TypedefNameDecl *TheTypedefDecl;
 
   // Unimplemented
   ReplaceOneLevelTypedefType(void);

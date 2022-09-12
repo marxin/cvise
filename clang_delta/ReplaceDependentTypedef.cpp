@@ -54,7 +54,7 @@ public:
     : ConsumerInstance(Instance)
   { }
 
-  bool VisitTypedefDecl(TypedefDecl *D);
+  bool VisitTypedefNameDecl(TypedefNameDecl *D);
 
 private:
   ReplaceDependentTypedef *ConsumerInstance;
@@ -62,7 +62,7 @@ private:
 };
 
 bool 
-ReplaceDependentTypedefCollectionVisitor::VisitTypedefDecl(TypedefDecl *D)
+ReplaceDependentTypedefCollectionVisitor::VisitTypedefNameDecl(TypedefNameDecl *D)
 {
   ConsumerInstance->handleOneTypedefDecl(D);
   return true;
@@ -125,7 +125,7 @@ bool ReplaceDependentTypedef::isValidType(const QualType &QT)
   return false;
 }
 
-void ReplaceDependentTypedef::handleOneTypedefDecl(const TypedefDecl *D)
+void ReplaceDependentTypedef::handleOneTypedefDecl(const TypedefNameDecl *D)
 {
   if (isInIncludedFile(D) || D->getBeginLoc().isInvalid())
     return;

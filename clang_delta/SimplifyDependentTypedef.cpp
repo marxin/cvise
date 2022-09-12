@@ -46,7 +46,7 @@ public:
     : ConsumerInstance(Instance)
   { }
 
-  bool VisitTypedefDecl(TypedefDecl *D);
+  bool VisitTypedefNameDecl(TypedefNameDecl *D);
 
 private:
   SimplifyDependentTypedef *ConsumerInstance;
@@ -85,7 +85,7 @@ private:
   bool IsValidType;
 };
 
-bool DependentTypedefCollectionVisitor::VisitTypedefDecl(TypedefDecl *D)
+bool DependentTypedefCollectionVisitor::VisitTypedefNameDecl(TypedefNameDecl *D)
 {
   ConsumerInstance->handleOneTypedefDecl(D);
   return true;
@@ -154,13 +154,13 @@ void SimplifyDependentTypedef::rewriteTypedefDecl(void)
   TheRewriter.ReplaceText(SourceRange(LocStart, LocEnd), ParmName+" ");
 }
 
-void SimplifyDependentTypedef::handleOneTypedefDecl(const TypedefDecl *D)
+void SimplifyDependentTypedef::handleOneTypedefDecl(const TypedefNameDecl *D)
 {
   if (isInIncludedFile(D))
     return;
 
-  const TypedefDecl *CanonicalD = dyn_cast<TypedefDecl>(D->getCanonicalDecl());
-  TransAssert(CanonicalD && "Bad TypedefDecl!");
+  const TypedefNameDecl *CanonicalD = dyn_cast<TypedefNameDecl>(D->getCanonicalDecl());
+  TransAssert(CanonicalD && "Bad TypedefNameDecl!");
   if (VisitedTypedefDecls.count(CanonicalD))
     return;
   VisitedTypedefDecls.insert(CanonicalD);
