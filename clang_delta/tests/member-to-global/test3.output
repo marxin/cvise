@@ -1,0 +1,10 @@
+
+int i;
+class C {
+public:
+	
+};
+
+int func(C& c) {
+	return (c,i);
+}

@@ -1,0 +1,11 @@
+
+struct x {
+	};
+class C {
+public:
+	
+};
+
+void func() {
+	x v;
+}

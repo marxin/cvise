@@ -1,0 +1,12 @@
+
+extern int s;
+class C {
+public:
+	
+};
+
+int s = 5;
+
+int func() {
+	return s;
+}
