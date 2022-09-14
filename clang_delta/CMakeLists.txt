@@ -296,6 +296,10 @@ set(SOURCE_FILES
   "/tests/rename-fun/test1.output"
   "/tests/rename-fun/multi.c"
   "/tests/rename-fun/multi.output"
+  "/tests/rename-operator/test1.cc"
+  "/tests/rename-operator/test1.output"
+  "/tests/rename-operator/test2.cc"
+  "/tests/rename-operator/test2.output"
   "/tests/rename-param/invalid.c"
   "/tests/rename-param/invalid.output"
   "/tests/rename-param/stuck.ii"
@@ -526,6 +530,8 @@ add_executable(clang_delta
   RenameClass.h
   RenameFun.cpp
   RenameFun.h
+  RenameOperator.cpp
+  RenameOperator.h
   RenameParam.cpp
   RenameParam.h
   RenameVar.cpp

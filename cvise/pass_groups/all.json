@@ -54,6 +54,7 @@
     {"pass": "clang", "arg": "param-to-global", "c": true },
     {"pass": "clang", "arg": "param-to-local", "c": true },
     {"pass": "clang", "arg": "remove-nested-function", "c": true },
+    {"pass": "clang", "arg": "rename-operator", "renaming": true},
     {"pass": "clang", "arg": "union-to-struct", "c": true },
     {"pass": "clang", "arg": "return-void", "c": true },
     {"pass": "clang", "arg": "simple-inliner", "c": true },

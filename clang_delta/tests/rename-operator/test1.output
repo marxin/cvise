@@ -1,0 +1,37 @@
+
+class test {
+public:
+	test op1 (test);
+	test op2 ();
+	test op3 ();
+	test op4 (int);
+
+	test op5 (int);
+	test op6 (int, int);
+	test op7 (int, int, int);
+
+	test op8 (int);
+};
+
+test test::op2 () {
+	return test();
+}
+
+void func() {
+	test t1,t2,t3;
+	
+	t3 = t1 .op1( t2);
+	t3 = t1.op2();
+
+	(t1).op8( 0);
+
+	t1.op5(0);
+	t1.op6( 1, 2 );
+	t1.op7(3, 4, 5 );
+
+	t3.op3();
+	t3.op4(0);
+
+	t3.op2();
+	&test::op2;
+}
