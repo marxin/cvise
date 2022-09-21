@@ -25,7 +25,8 @@ class GCDABinaryPass(AbstractPass):
                     functions.append(int(parts[1]))
 
             state = BinaryState.create(len(functions))
-            state.functions = functions
+            if state:
+                state.functions = functions
             return state
         except subprocess.SubprocessError as e:
             logging.warning(f'gcov-dump -p failed: {e}')
