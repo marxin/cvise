@@ -140,12 +140,17 @@ void SimplifyDependentTypedef::HandleTranslationUnit(ASTContext &Ctx)
 
 void SimplifyDependentTypedef::rewriteTypedefDecl(void)
 {
-  SourceLocation LocStart = TheTypedefDecl->getBeginLoc();
+  SourceLocation LocStart = getRealLocation(TheTypedefDecl->getBeginLoc());
+  SourceLocation LocEnd = getRealLocation(TheTypedefDecl->getLocation());
 
-  // skip "typedef "
-  LocStart = LocStart.getLocWithOffset(8);
-  SourceLocation LocEnd = TheTypedefDecl->getLocation();
-  LocEnd = LocEnd.getLocWithOffset(-1);
+  if (isa<TypedefDecl>(TheTypedefDecl)) {
+    // skip "typedef "
+    LocStart = LocStart.getLocWithOffset(8);
+    LocEnd = LocEnd.getLocWithOffset(-1);
+  } else {
+    LocStart = TheTypedefDecl->getTypeSourceInfo()->getTypeLoc().getBeginLoc();
+    LocEnd = TheTypedefDecl->getTypeSourceInfo()->getTypeLoc().getEndLoc();
+  }
 
   std::string ParmName = FirstTmplTypeParmD->getNameAsString(); 
   TransAssert(!ParmName.empty() && "Invalid TypeParmType Name!");

@@ -316,7 +316,7 @@ void TemplateArgToInt::handleTemplateSpecializationTypeLoc(
 void TemplateArgToInt::rewriteTemplateArgument()
 {
   TransAssert(TheTypeSourceInfo && "NULL TheTypeSourceInfo");
-  SourceRange Range = TheTypeSourceInfo->getTypeLoc().getSourceRange();
+  SourceRange Range = getRealLocation(TheTypeSourceInfo->getTypeLoc().getSourceRange());
   TheRewriter.ReplaceText(Range, "int");
 }
 

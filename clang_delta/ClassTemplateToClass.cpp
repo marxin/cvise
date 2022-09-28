@@ -186,10 +186,10 @@ bool ClassTemplateToClassSpecializationTypeRewriteVisitor::
   // base initializer A<int> is not presented in the code but visited,
   // so, we need to make sure locations are valid.
   SourceLocation LAngleLoc = Loc.getLAngleLoc();
-  if (LAngleLoc.isInvalid())
+  if (LAngleLoc.isInvalid() || !Rewriter::isRewritable(LAngleLoc))
     return true;
   SourceLocation RAngleLoc = Loc.getRAngleLoc();
-  if (RAngleLoc.isInvalid())
+  if (RAngleLoc.isInvalid() || !Rewriter::isRewritable(RAngleLoc))
     return true;
   ConsumerInstance->TheRewriter.RemoveText(SourceRange(LAngleLoc,
                                                        RAngleLoc));

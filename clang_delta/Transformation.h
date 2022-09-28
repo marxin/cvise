@@ -325,7 +325,8 @@ protected:
 
   // If the location is a MacroID, get its expansion location.
   // Otherwise, just return the location.
-  clang::SourceLocation getRealLocation(clang::SourceLocation Loc) const;
+  clang::SourceLocation getRealLocation(const clang::SourceLocation& Loc) const;
+  clang::SourceRange getRealLocation(const clang::SourceRange& Range) const;
 
   const std::string Name;
 
