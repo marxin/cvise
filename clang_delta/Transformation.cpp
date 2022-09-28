@@ -1119,11 +1119,16 @@ bool Transformation::isInIncludedFile(const Stmt *S) const
   return isInIncludedFile(S->getBeginLoc());
 }
 
-SourceLocation Transformation::getRealLocation(SourceLocation Loc) const
+SourceLocation Transformation::getRealLocation(const SourceLocation& Loc) const
 {
   if (Loc.isMacroID())
     return SrcManager->getExpansionLoc(Loc);
   return Loc;
+}
+
+SourceRange Transformation::getRealLocation(const SourceRange& Range) const
+{
+  return SourceRange(getRealLocation(Range.getBegin()), getRealLocation(Range.getEnd()));
 }
 
 bool Transformation::isDeclaringRecordDecl(const RecordDecl *RD)
