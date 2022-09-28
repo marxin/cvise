@@ -380,6 +380,13 @@ foreach(file IN LISTS SOURCE_FILES)
   configure_one_file(${file})
 endforeach()
 
+if (MSVC)
+  # Allow big object
+  add_definitions(/bigobj)
+  # Enable parallel builds
+  add_definitions(/MP)
+endif (MSVC)
+
 # Add flags for compiling against LLVM.
 #
 add_definitions(${LLVM_DEFINITIONS})
@@ -614,6 +621,69 @@ set_target_properties(clang_delta
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(clang_delta Version)
 endif()
+
+if(MSVC)
+  set(msvc_warning_flags
+    # Disabled warnings.
+    -wd4141 # Suppress ''modifier' : used more than once' (because of __forceinline combined with inline)
+    -wd4146 # Suppress 'unary minus operator applied to unsigned type, result still unsigned'
+    -wd4244 # Suppress ''argument' : conversion from 'type1' to 'type2', possible loss of data'
+    -wd4267 # Suppress ''var' : conversion from 'size_t' to 'type', possible loss of data'
+    -wd4291 # Suppress ''declaration' : no matching operator delete found; memory will not be freed if initialization throws an exception'
+    -wd4351 # Suppress 'new behavior: elements of array 'array' will be default initialized'
+    -wd4456 # Suppress 'declaration of 'var' hides local variable'
+    -wd4457 # Suppress 'declaration of 'var' hides function parameter'
+    -wd4458 # Suppress 'declaration of 'var' hides class member'
+    -wd4459 # Suppress 'declaration of 'var' hides global declaration'
+    -wd4503 # Suppress ''identifier' : decorated name length exceeded, name was truncated'
+    -wd4624 # Suppress ''derived class' : destructor could not be generated because a base class destructor is inaccessible'
+    -wd4722 # Suppress 'function' : destructor never returns, potential memory leak
+    -wd4100 # Suppress 'unreferenced formal parameter'
+    -wd4127 # Suppress 'conditional expression is constant'
+    -wd4512 # Suppress 'assignment operator could not be generated'
+    -wd4505 # Suppress 'unreferenced local function has been removed'
+    -wd4610 # Suppress '<class> can never be instantiated'
+    -wd4510 # Suppress 'default constructor could not be generated'
+    -wd4702 # Suppress 'unreachable code'
+    -wd4245 # Suppress ''conversion' : conversion from 'type1' to 'type2', signed/unsigned mismatch'
+    -wd4706 # Suppress 'assignment within conditional expression'
+    -wd4310 # Suppress 'cast truncates constant value'
+    -wd4701 # Suppress 'potentially uninitialized local variable'
+    -wd4703 # Suppress 'potentially uninitialized local pointer variable'
+    -wd4389 # Suppress 'signed/unsigned mismatch'
+    -wd4611 # Suppress 'interaction between '_setjmp' and C++ object destruction is non-portable'
+    -wd4805 # Suppress 'unsafe mix of type <type> and type <type> in operation'
+    -wd4204 # Suppress 'nonstandard extension used : non-constant aggregate initializer'
+    -wd4577 # Suppress 'noexcept used with no exception handling mode specified; termination on exception is not guaranteed'
+    -wd4091 # Suppress 'typedef: ignored on left of '' when no variable is declared'
+        # C4592 is disabled because of false positives in Visual Studio 2015
+        # Update 1. Re-evaluate the usefulness of this diagnostic with Update 2.
+    -wd4592 # Suppress ''var': symbol will be dynamically initialized (implementation limitation)
+    -wd4319 # Suppress ''operator' : zero extending 'type' to 'type' of greater size'
+        # C4709 is disabled because of a bug with Visual Studio 2017 as of
+        # v15.8.8. Re-evaluate the usefulness of this diagnostic when the bug
+        # is fixed.
+    -wd4709 # Suppress comma operator within array index expression
+    -wd4530 # C++ exception handler used, but unwind semantics are not enabled.
+
+    # Ideally, we'd like this warning to be enabled, but even MSVC 2019 doesn't
+    # support the 'aligned' attribute in the way that clang sources requires (for
+    # any code that uses the LLVM_ALIGNAS macro), so this is must be disabled to
+    # avoid unwanted alignment warnings.
+    -wd4324 # Suppress 'structure was padded due to __declspec(align())'
+
+    # Promoted warnings.
+    -w14062 # Promote 'enumerator in switch of enum is not handled' to level 1 warning.
+
+    # Promoted warnings to errors.
+    -we4238 # Promote 'nonstandard extension used : class rvalue used as lvalue' to error.
+    )
+
+  foreach(flag ${msvc_warning_flags})
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flag}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${flag}")
+  endforeach(flag)
+endif(MSVC)
 
 # UndefinedBehaviourSanitizer
 set(CMAKE_C_FLAGS_UBSAN
