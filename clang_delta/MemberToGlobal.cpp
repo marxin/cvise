@@ -16,6 +16,7 @@
 
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/SourceManager.h"
+#include "clang/Lex/Lexer.h"
 
 #include "TransformationManager.h"
 
@@ -147,7 +148,10 @@ void MemberToGlobal::HandleTranslationUnit(ASTContext &Ctx)
 
   auto RecordBegin = TheRecordDecl->getSourceRange().getBegin();
   auto BeginLoc = TheDecl->getSourceRange().getBegin();
-  auto EndLoc = RewriteHelper->getEndLocationUntil(TheDecl->getSourceRange().getEnd(), ';');
+  auto EndLoc = TheDecl->getSourceRange().getEnd();
+  auto EndLoc2 = Lexer::getLocForEndOfToken(EndLoc, 0, *this->SrcManager, this->Context->getLangOpts());
+  if (GetText(SourceRange(EndLoc2, EndLoc2)).str() == ";")
+      EndLoc = EndLoc2;
 
   std::string Text = GetText(SourceRange(BeginLoc, EndLoc)).str();
   if (auto* VD = dyn_cast<VarDecl>(TheDecl)) {

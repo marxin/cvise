@@ -374,6 +374,8 @@ set(SOURCE_FILES
   "/tests/member-to-global/test5.output"
   "/tests/member-to-global/test6.cc"
   "/tests/member-to-global/test6.output"
+  "/tests/member-to-global/test7.cc"
+  "/tests/member-to-global/test7.output"
 )
 
 foreach(file IN LISTS SOURCE_FILES)
