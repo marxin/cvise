@@ -587,6 +587,9 @@ class TestClangDelta(unittest.TestCase):
     def test_member_to_global_test6(self):
         self.check_clang_delta('member-to-global/test6.cc', '--transformation=member-to-global --counter=1')
 
+    def test_member_to_global_test7(self):
+        self.check_clang_delta('member-to-global/test7.cc', '--transformation=member-to-global --counter=1')
+
     def test_rename_operator_test1(self):
         self.check_clang_delta('rename-operator/test1.cc', '--transformation=rename-operator --counter=1')
 
