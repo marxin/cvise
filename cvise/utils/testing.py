@@ -1,11 +1,13 @@
 from concurrent.futures import FIRST_COMPLETED, TimeoutError, wait
 import difflib
 import filecmp
+import hashlib
 import logging
 import math
 from multiprocessing import Manager
 import os
 import os.path
+from pathlib import Path
 import platform
 import shutil
 import subprocess
@@ -132,6 +134,7 @@ class TestManager:
     MAX_CRASH_DIRS = 10
     MAX_EXTRA_DIRS = 25000
     TEMP_PREFIX = 'cvise-'
+    FILE_CACHE_FOLDER = '/tmp/cvise-cache'
 
     def __init__(self, pass_statistic, test_script, timeout, save_temps, test_cases, parallel_tests,
                  no_cache, skip_key_off, silent_pass_bug, die_on_pass_bug, print_diff, max_improvement,
@@ -153,6 +156,8 @@ class TestManager:
         self.also_interesting = also_interesting
         self.start_with_pass = start_with_pass
         self.skip_after_n_transforms = skip_after_n_transforms
+        self.cache_folder = Path(self.FILE_CACHE_FOLDER)
+        self.cache_folder.mkdir(exist_ok=True)
 
         for test_case in test_cases:
             self.check_file_permissions(test_case, [os.F_OK, os.R_OK, os.W_OK], InvalidTestCaseError)
@@ -521,11 +526,24 @@ class TestManager:
                             self.log_key_event('toggle print diff')
                             self.print_diff = not self.print_diff
 
+                    # try file cache
+                    for candidate in self.get_cache_results():
+                        with tempfile.NamedTemporaryFile(mode='w+', dir=self.root) as backup:
+                            shutil.copy(test_case, backup.name)
+                            shutil.copy(candidate, test_case)
+                            try:
+                                self.check_sanity()
+                                self.state = self.current_pass.new(self.current_test_case, self.check_sanity)
+                                self.process_result(candidate, log_reason='file cache hit')
+                                continue
+                            except InsaneTestCaseError:
+                                shutil.copy(backup.name, test_case)
+
                     success_env = self.run_parallel_tests()
                     self.kill_pid_queue()
 
                     if success_env:
-                        self.process_result(success_env)
+                        self.process_result(success_env.test_case_path, success_env.state)
                         success_count += 1
 
                     # if the file increases significantly, bail out the current pass
@@ -561,21 +579,25 @@ class TestManager:
             self.remove_root()
             sys.exit(1)
 
-    def process_result(self, test_env):
+    def process_result(self, test_case_path, state=None, log_reason=None):
         if self.print_diff:
-            diff_str = self.diff_files(self.current_test_case, test_env.test_case_path)
+            diff_str = self.diff_files(self.current_test_case, test_case_path)
             if self.use_colordiff:
                 diff_str = subprocess.check_output('colordiff', shell=True, encoding='utf8', input=diff_str)
             logging.info(diff_str)
 
         try:
-            shutil.copy(test_env.test_case_path, self.current_test_case)
+            self.cache_result(test_case_path)
+            shutil.copy(test_case_path, self.current_test_case)
         except FileNotFoundError:
             raise RuntimeError(f"Can't find {self.current_test_case} -- did your interestingness test move it?")
 
-        self.state = self.current_pass.advance_on_success(test_env.test_case_path, test_env.state)
+        if state:
+            self.state = self.current_pass.advance_on_success(test_case_path, state)
         self.pass_statistic.add_success(self.current_pass)
+        self.log_stats_for_tests(log_reason)
 
+    def log_stats_for_tests(self, prefix=None):
         pct = 100 - (self.total_file_size * 100.0 / self.orig_total_file_size)
         notes = []
         notes.append(f'{round(pct, 1)}%')
@@ -583,6 +605,35 @@ class TestManager:
         if self.total_line_count:
             notes.append(f'{self.total_line_count} lines')
         if len(self.test_cases) > 1:
-            notes.append(test_env.test_case)
+            notes.append(self.current_test_case)
+        if prefix:
+            notes.append(prefix)
 
         logging.info('(' + ', '.join(notes) + ')')
+
+    @classmethod
+    def get_file_hash(cls, path):
+        hasher = hashlib.new('sha256')
+        with open(path, 'rb') as fd:
+            while True:
+                chunk = fd.read(4096)
+                if not chunk:
+                    break
+                hasher.update(chunk)
+        return hasher.hexdigest()
+
+    def cache_result(self, new_test_case):
+        hash_test_case = self.get_file_hash(self.current_test_case)
+        hash_new = self.get_file_hash(new_test_case)
+        if hash_test_case == hash_new:
+            return
+        folder = self.cache_folder / hash_test_case
+        folder.mkdir(exist_ok=True)
+        output = tempfile.mkstemp(dir=folder)
+        shutil.copy(new_test_case, output[1])
+
+    def get_cache_results(self):
+        folder = self.cache_folder / self.get_file_hash(self.current_test_case)
+        if folder.exists() and folder.is_dir():
+            return sorted((file for file in folder.iterdir()), key=lambda f: f.stat().st_size, reverse=True)
+        return []
