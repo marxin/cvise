@@ -63,6 +63,14 @@ jobs:
       run: pytest
       working-directory: objdir
 
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 14 * * *'
+
   CI-LLVM-nightly:
     runs-on: ubuntu-22.04
     container:
