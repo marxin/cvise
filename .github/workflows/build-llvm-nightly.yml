@@ -1,3 +1,5 @@
+name: Build LLVM nightly
+
 on:
   push:
     branches: [ master ]
@@ -5,6 +7,8 @@ on:
     branches: [ master ]
   schedule:
     - cron: '0 14 * * *'
+
+jobs:
 
   CI-LLVM-nightly:
     runs-on: ubuntu-22.04
@@ -27,4 +31,3 @@ on:
         working-directory: objdir
       - run: pytest
         working-directory: objdir
-
