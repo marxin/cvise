@@ -61,7 +61,7 @@ jobs:
       run: flake8
     - name: test
       run: pytest
-      workdir: objdir
+      working-directory: objdir
 
   CI-LLVM-nightly:
     runs-on: ubuntu-22.04
@@ -78,8 +78,8 @@ jobs:
       - run: mkdir cvise/objdir
       - run: WORKDIR cvise/objdir
       - run: cmake ..
-        workdir: objdir
+        working-directory: objdir
       - run: make -j`nproc` VERBOSE=1
-        workdir: objdir
+        working-directory: objdir
       - run: pytest
-        workdir: objdir
+        working-directory: objdir
