@@ -842,8 +842,13 @@ const CXXRecordDecl *Transformation::getBaseDeclFromType(const Type *Ty)
   }
 
   case Type::TypeOf: {
-    return getBaseDeclFromType(
-      dyn_cast<TypeOfType>(Ty)->getUnderlyingType().getTypePtr());
+    return getBaseDeclFromType(dyn_cast<TypeOfType>(Ty)
+#if LLVM_VERSION_MAJOR >= 16
+      ->getUnmodifiedType()
+#else
+      ->getUnderlyingType()
+#endif
+      .getTypePtr());
   }
 
   default:
