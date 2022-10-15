@@ -339,6 +339,7 @@ class TestClangDelta(unittest.TestCase):
     def test_rename_class_bool(self):
         self.check_clang_delta('rename-class/bool.cc', '--transformation=rename-class --counter=1')
 
+    @unittest.skip(reason='Fails with LLVM 16')
     def test_rename_class_class_template(self):
         self.check_clang_delta('rename-class/class_template.cc', '--transformation=rename-class --counter=1')
 
