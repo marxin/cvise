@@ -29,6 +29,7 @@ jobs:
           - llvm: 9
             build-type: DEBUG
             docker: opensuse/leap
+            env: CC=gcc-11 CXX=g++-11
       fail-fast: false
 
     container:
@@ -50,13 +51,11 @@ jobs:
       if: matrix.docker == 'opensuse/tumbleweed'
     - uses: actions/checkout@v2
     - run: nproc
-    - run: export CC=gcc-11 && export CXX=g++-11
-      if: matrix.docker == 'opensuse/leap'
     - name: build
       run: |
             mkdir objdir
             cd objdir
-            cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
+            ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
             make -j`nproc` VERBOSE=1
     - name: flake8
       run: flake8
