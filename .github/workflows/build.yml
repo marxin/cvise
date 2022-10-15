@@ -60,6 +60,26 @@ jobs:
     - name: flake8
       run: flake8
     - name: test
-      run: |
-            cd objdir
-            pytest
+      run: pytest
+      workdir: objdir
+
+  CI-LLVM-nightly:
+    runs-on: ubuntu-22.04
+    steps:
+      - run: apt-get update
+      - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex python3-pebble python3-psutil python3-chardet python3-pytest vim unifdef
+      - run: wget https://apt.llvm.org/llvm.sh
+      - run: chmod +x llvm.sh
+      - run: ./llvm.sh 16
+      - run: apt-get install -y bolt-16 clang-16 libclang-common-16-dev libclang-16-dev mlir-16-tools llvm-16-tools libclang-common-16-dev libclang-16-dev libclang1-16 clang-format-16 python3-clang-16 clangd-16 clang-tidy-16
+      # TODO: fix it
+      - run: ln -s /usr/lib/x86_64-linux-gnu/libclang-16.so.16.0.0 /usr/lib/x86_64-linux-gnu/libclang-16.so.1
+      - run: git clone https://github.com/marxin/cvise.git
+      - run: mkdir cvise/objdir
+      - run: WORKDIR cvise/objdir
+      - run: cmake ..
+        workdir: objdir
+      - run: make -j`nproc` VERBOSE=1
+        workdir: objdir
+      - run: pytest
+        workdir: objdir
