@@ -49,7 +49,7 @@ jobs:
       if: matrix.docker == 'opensuse/tumbleweed'
     - run: pip install pytest-cov
       if: matrix.docker == 'opensuse/tumbleweed'
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - run: nproc
     - name: build
       run: |
@@ -74,7 +74,7 @@ jobs:
       - run: sudo apt-get install -y bolt-16 clang-16 libclang-common-16-dev libclang-16-dev mlir-16-tools llvm-16-tools libclang-common-16-dev libclang-16-dev libclang1-16 clang-format-16 python3-clang-16 clangd-16 clang-tidy-16
       # TODO: fix it
       - run: ln -s /usr/lib/x86_64-linux-gnu/libclang-16.so.16.0.0 /usr/lib/x86_64-linux-gnu/libclang-16.so.1
-      - run: git clone https://github.com/marxin/cvise.git
+      - uses: actions/checkout@v3
       - run: mkdir cvise/objdir
       - run: WORKDIR cvise/objdir
       - run: cmake ..
