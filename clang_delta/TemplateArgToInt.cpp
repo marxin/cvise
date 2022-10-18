@@ -357,9 +357,16 @@ void TemplateArgToInt::handleOneType(const Type *Ty)
   if (!SubstType)
     return;
 
+#if LLVM_VERSION_MAJOR >= 16
+  const TemplateTypeParmDecl *ParmDecl = SubstType->getReplacedParameter();
+  unsigned parmIndex = SubstType->getIndex();
+#else
   const TemplateTypeParmType *ParmType = SubstType->getReplacedParameter();
   TemplateTypeParmDecl *ParmDecl = ParmType->getDecl();
+  unsigned parmIndex = ParmType->getIndex();
+#endif
   TransAssert(ParmDecl && "Invalid ParmDecl!");
+
   const TemplateDecl *TmplD = ParamToTemplateDecl[ParmDecl];
   if (TmplD == NULL) {
     const DeclContext *Ctx = ParmDecl->getDeclContext();
@@ -384,7 +391,7 @@ void TemplateArgToInt::handleOneType(const Type *Ty)
   TemplateParameterIdxSet *InvalidIdx = 
     DeclToParamIdx[dyn_cast<TemplateDecl>(TmplD->getCanonicalDecl())];
   TransAssert(InvalidIdx && "NULL InvalidIdx!");
-  InvalidIdx->insert(ParmType->getIndex());
+  InvalidIdx->insert(parmIndex);
 }
 
 TemplateArgToInt::~TemplateArgToInt()
