@@ -24,7 +24,7 @@ class TernaryPass(AbstractPass):
         return True
 
     def __get_next_match(self, test_case, pos):
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             prog = in_file.read()
 
         m = nestedmatcher.search(self.parts, prog, pos=pos)
@@ -41,7 +41,7 @@ class TernaryPass(AbstractPass):
         return self.__get_next_match(test_case, pos=state['all'][0])
 
     def transform(self, test_case, state, process_event_notifier):
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             prog = in_file.read()
             prog2 = prog
 

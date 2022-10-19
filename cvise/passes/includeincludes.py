@@ -20,7 +20,7 @@ class IncludeIncludesPass(AbstractPass):
         return state
 
     def transform(self, test_case, state, process_event_notifier):
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             tmp = os.path.dirname(test_case)
             with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
                 includes = 0
@@ -34,7 +34,7 @@ class IncludeIncludesPass(AbstractPass):
 
                         if includes == state:
                             try:
-                                with open(include_match.group(1), 'r') as inc_file:
+                                with open(include_match.group(1)) as inc_file:
                                     matched = True
                                     tmp_file.write(inc_file.read())
                                     # Go to next include

@@ -119,7 +119,7 @@ def get_available_pass_groups():
             pass_group_dict = CVise.load_pass_group_file(path)
             CVise.parse_pass_group_dict(pass_group_dict, set(), None, None, None, None, None, None)
         except MissingPassGroupsError:
-            logging.warning('Skipping file {}. Not valid pass group.'.format(path))
+            logging.warning(f'Skipping file {path}. Not valid pass group.')
         else:
             (name, _) = os.path.splitext(entry)
             group_names.append(name)
@@ -170,7 +170,7 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true', help='Print debug information (alias for --log-level=DEBUG)')
     parser.add_argument('--log-level', type=str, choices=['INFO', 'DEBUG', 'WARNING', 'ERROR'], default='INFO', help='Define the verbosity of the logged events')
     parser.add_argument('--log-file', type=str, help='Log events into LOG_FILE instead of stderr. New events are appended to the end of the file')
-    parser.add_argument('--no-give-up', action='store_true', help="Don't give up on a pass that hasn't made progress for {} iterations".format(testing.TestManager.GIVEUP_CONSTANT))
+    parser.add_argument('--no-give-up', action='store_true', help=f"Don't give up on a pass that hasn't made progress for {testing.TestManager.GIVEUP_CONSTANT} iterations")
     parser.add_argument('--print-diff', action='store_true', help='Show changes made by transformations, for debugging')
     parser.add_argument('--save-temps', action='store_true', help="Don't delete /tmp/cvise-xxxxxx directories on termination")
     parser.add_argument('--skip-initial-passes', action='store_true', help='Skip initial passes (useful if input is already partially reduced)')
@@ -277,7 +277,7 @@ if __name__ == '__main__':
                 encoding = chardet.detect(fd.read())['encoding']
                 if encoding not in ('ascii', 'utf-8'):
                     logging.info(f'Converting {test_case} file ({encoding} encoding) to UTF-8')
-                    data = open(test_case, 'r', encoding=encoding).read()
+                    data = open(test_case, encoding=encoding).read()
                     with open(test_case, 'w') as w:
                         w.write(data)
 
@@ -320,7 +320,7 @@ if __name__ == '__main__':
         print()
 
         if not args.no_timing:
-            print('Runtime: {} seconds'.format(round((time_stop - time_start))))
+            print(f'Runtime: {round((time_stop - time_start))} seconds')
 
         print('Reduced test-cases:\n')
         for test_case in sorted(test_manager.test_cases):

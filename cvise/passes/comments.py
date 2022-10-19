@@ -17,7 +17,7 @@ class CommentsPass(AbstractPass):
         return state
 
     def transform(self, test_case, state, process_event_notifier):
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             prog = in_file.read()
             prog2 = prog
 
