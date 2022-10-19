@@ -44,9 +44,11 @@ jobs:
         python3-flake8-bugbear
         python3-flake8-import-order
         python3-flake8-quotes
-        python3-pip python3-flake8-comprehensions python3 sqlite-devel
+        python3-pip
     - run: zypper -n install gcc11-c++
       if: matrix.docker == 'opensuse/leap'
+    - run: zypper -n install python3-flake8-comprehensions sqlite-devel
+      if: matrix.docker == 'opensuse/tumbleweed'
     - run: pip install pytest-cov
       if: matrix.docker == 'opensuse/tumbleweed'
     - uses: actions/checkout@v3
