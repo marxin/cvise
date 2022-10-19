@@ -18,7 +18,7 @@ class IfPass(AbstractPass):
     def __count_instances(self, test_case):
         count = 0
         in_multiline = False
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             for line in in_file.readlines():
                 if in_multiline:
                     if self.__macro_continues(line):
@@ -54,7 +54,7 @@ class IfPass(AbstractPass):
     def transform(self, test_case, state, process_event_notifier):
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
-            with open(test_case, 'r') as in_file:
+            with open(test_case) as in_file:
                 i = 0
                 in_multiline = False
                 for line in in_file.readlines():
@@ -68,7 +68,7 @@ class IfPass(AbstractPass):
                         if state.index <= i and i < state.end():
                             if self.__macro_continues(line):
                                 in_multiline = True
-                            line = '#if {0}\n'.format(state.value)
+                            line = f'#if {state.value}\n'
                         i += 1
                     tmp_file.write(line)
 

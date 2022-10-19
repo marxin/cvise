@@ -14,7 +14,7 @@ class LineMarkersPass(AbstractPass):
 
     def __count_instances(self, test_case):
         count = 0
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             for line in in_file.readlines():
                 if self.line_regex.search(line):
                     count += 1
@@ -32,7 +32,7 @@ class LineMarkersPass(AbstractPass):
     def transform(self, test_case, state, process_event_notifier):
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
-            with open(test_case, 'r') as in_file:
+            with open(test_case) as in_file:
                 i = 0
                 for line in in_file.readlines():
                     if self.line_regex.search(line):

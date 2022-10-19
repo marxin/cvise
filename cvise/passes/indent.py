@@ -16,7 +16,7 @@ class IndentPass(AbstractPass):
         return state + 1
 
     def transform(self, test_case, state, process_event_notifier):
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             old = in_file.read()
 
         if state != 0:
@@ -35,7 +35,7 @@ class IndentPass(AbstractPass):
         if returncode != 0:
             return (PassResult.ERROR, state)
 
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             new = in_file.read()
 
         if old == new:

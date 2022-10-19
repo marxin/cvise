@@ -16,7 +16,7 @@ class LinesPass(AbstractPass):
         tmp = os.path.dirname(test_case)
 
         with tempfile.NamedTemporaryFile(mode='w+', dir=tmp) as backup, tempfile.NamedTemporaryFile(mode='w+', dir=tmp) as tmp_file:
-            with open(test_case, 'r') as in_file:
+            with open(test_case) as in_file:
                 try:
                     cmd = [self.external_programs['topformflat'], self.arg]
                     proc = subprocess.run(cmd, stdin=in_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
@@ -43,7 +43,7 @@ class LinesPass(AbstractPass):
                 shutil.copy(tmp_file.name, test_case)
 
     def __count_instances(self, test_case):
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             lines = in_file.readlines()
             return len(lines)
 
@@ -65,7 +65,7 @@ class LinesPass(AbstractPass):
         return state.advance_on_success(self.__count_instances(test_case))
 
     def transform(self, test_case, state, process_event_notifier):
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             data = in_file.readlines()
 
         old_len = len(data)

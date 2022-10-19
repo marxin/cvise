@@ -19,7 +19,7 @@ class UnknownArgumentError(CViseError):
         self.arg = arg
 
     def __str__(self):
-        return "The argument '{}' is not valid for pass '{}'!".format(self.arg, self.pass_.__name__)
+        return f"The argument '{self.arg}' is not valid for pass '{self.pass_.__name__}'!"
 
 
 class InvalidFileError(CViseError):
@@ -38,12 +38,12 @@ class InvalidFileError(CViseError):
             return 'accessed'
 
     def __str__(self):
-        return "The specified file '{}' cannot be {}!".format(self.path, self._get_error_name())
+        return f"The specified file '{self.path}' cannot be {self._get_error_name()}!"
 
 
 class InvalidTestCaseError(InvalidFileError):
     def __str__(self):
-        return "The specified test case '{}' cannot be {}!".format(self.path, self._get_error_name())
+        return f"The specified test case '{self.path}' cannot be {self._get_error_name()}!"
 
 
 class FolderInPathTestCaseError(CViseError):
@@ -59,7 +59,7 @@ class InvalidInterestingnessTestError(InvalidFileError):
         super().__init__(path, None)
 
     def __str__(self):
-        return "The specified interestingness test '{}' cannot be executed!".format(self.path)
+        return f"The specified interestingness test '{self.path}' cannot be executed!"
 
 
 class ZeroSizeError(CViseError):

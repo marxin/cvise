@@ -60,7 +60,7 @@ jobs:
     - name: flake8
       run: flake8
     - run: pip install pyupgrade 
-    - run: find . -name '*.py' | xargs pyupgrade --py38-plus
+    - run: find . -name '*.py' | xargs pyupgrade --py36-plus
     - name: test
       run: pytest
       working-directory: objdir

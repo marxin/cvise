@@ -22,9 +22,9 @@ class ClangPass(AbstractPass):
     def transform(self, test_case, state, process_event_notifier):
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=tmp) as tmp_file:
-            args = [self.external_programs['clang_delta'], '--transformation={}'.format(self.arg), '--counter={}'.format(state)]
+            args = [self.external_programs['clang_delta'], f'--transformation={self.arg}', f'--counter={state}']
             if self.user_clang_delta_std:
-                args.append('--std={}'.format(self.user_clang_delta_std))
+                args.append(f'--std={self.user_clang_delta_std}')
             cmd = args + [test_case]
 
             logging.debug(' '.join(cmd))

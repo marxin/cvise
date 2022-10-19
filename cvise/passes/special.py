@@ -34,7 +34,7 @@ class SpecialPass(AbstractPass):
         return config
 
     def __get_next_match(self, test_case, pos):
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             prog = in_file.read()
 
         config = self.__get_config()
@@ -45,7 +45,7 @@ class SpecialPass(AbstractPass):
 
     def new(self, test_case, _=None):
         config = self.__get_config()
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             prog = in_file.read()
             regex = re.compile(config['search'], flags=re.DOTALL)
             modifications = list(reversed([(m.span(), config['replace_fn'](m)) for m in regex.finditer(prog)]))
@@ -64,7 +64,7 @@ class SpecialPass(AbstractPass):
         return self.new(test_case)
 
     def transform(self, test_case, state, process_event_notifier):
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             data = in_file.read()
             index = state['index']
             ((start, end), replacement) = state['modifications'][index]

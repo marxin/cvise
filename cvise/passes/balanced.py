@@ -8,7 +8,7 @@ class BalancedPass(AbstractPass):
         return True
 
     def __get_next_match(self, test_case, pos):
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             prog = in_file.read()
 
         config = self.__get_config()
@@ -92,7 +92,7 @@ class BalancedPass(AbstractPass):
         return config
 
     def transform(self, test_case, state, process_event_notifier):
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             prog = in_file.read()
             prog2 = prog
 

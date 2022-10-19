@@ -46,7 +46,7 @@ class UnIfDefPass(AbstractPass):
 
                 def_ = deflist[n_index]
 
-                cmd = [self.external_programs['unifdef'], '-B', '-x', '2', '{}{}'.format(du, def_), '-o', tmp_file.name, test_case]
+                cmd = [self.external_programs['unifdef'], '-B', '-x', '2', f'{du}{def_}', '-o', tmp_file.name, test_case]
                 stdout, stderr, returncode = process_event_notifier.run_process(cmd)
                 if returncode != 0:
                     return (PassResult.ERROR, state)

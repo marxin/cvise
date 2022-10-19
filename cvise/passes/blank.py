@@ -23,7 +23,7 @@ class BlankPass(AbstractPass):
     def __transform(test_case, pattern):
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
-            with open(test_case, 'r') as in_file:
+            with open(test_case) as in_file:
                 matched = False
 
                 for line in in_file:

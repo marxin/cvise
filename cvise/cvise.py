@@ -95,7 +95,7 @@ class CVise:
 
         for category in ['first', 'main', 'last']:
             if category not in pass_group_dict:
-                raise CViseError('Missing category {}'.format(category))
+                raise CViseError(f'Missing category {category}')
 
             pass_group[category] = []
 
@@ -104,7 +104,7 @@ class CVise:
                     continue
 
                 if 'pass' not in pass_dict:
-                    raise CViseError('Invalid pass in category {}'.format(category))
+                    raise CViseError(f'Invalid pass in category {category}')
 
                 try:
                     pass_class = cls.pass_name_mapping[pass_dict['pass']]
@@ -131,7 +131,7 @@ class CVise:
         if not self.skip_interestingness_test_check:
             self.test_manager.check_sanity(True)
 
-        logging.info('===< {} >==='.format(os.getpid()))
+        logging.info(f'===< {os.getpid()} >===')
         logging.info('running {} interestingness test{} in parallel'.format(self.test_manager.parallel_tests,
                                                                             '' if self.test_manager.parallel_tests == 1 else 's'))
 
@@ -156,12 +156,12 @@ class CVise:
         for category in pass_group:
             for p in pass_group[category]:
                 if not p.check_prerequisites():
-                    logging.error('Prereqs not found for pass {}'.format(p))
+                    logging.error(f'Prereqs not found for pass {p}')
 
     def _run_additional_passes(self, passes):
         for p in passes:
             if not p.check_prerequisites():
-                logging.error('Skipping {}'.format(p))
+                logging.error(f'Skipping {p}')
             else:
                 self.test_manager.run_pass(p)
 
@@ -171,11 +171,11 @@ class CVise:
 
             for p in passes:
                 if not p.check_prerequisites():
-                    logging.error('Skipping pass {}'.format(p))
+                    logging.error(f'Skipping pass {p}')
                 else:
                     self.test_manager.run_pass(p)
 
-            logging.info('Termination check: size was {}; now {}'.format(total_file_size, self.test_manager.total_file_size))
+            logging.info(f'Termination check: size was {total_file_size}; now {self.test_manager.total_file_size}')
 
             if self.test_manager.total_file_size >= total_file_size:
                 break

@@ -19,7 +19,7 @@ class RegExPattern(Pattern):
         self.expr = expr
 
     def __repr__(self):
-        return '(expr={})'.format(self.expr)
+        return f'(expr={self.expr})'
 
 
 class BalancedPattern(Pattern):
@@ -28,7 +28,7 @@ class BalancedPattern(Pattern):
         self.end = expr.value[1]
 
     def __repr__(self):
-        return '(start={}, end={})'.format(self.start, self.end)
+        return f'(start={self.start}, end={self.end})'
 
 
 class OrPattern(Pattern):
@@ -37,7 +37,7 @@ class OrPattern(Pattern):
         self.right = right
 
     def __repr__(self):
-        return '(left={}, right={})'.format(self.left, self.right)
+        return f'(left={self.left}, right={self.right})'
 
 
 def __get_regex_match(pattern, string, pos=0, search=False):

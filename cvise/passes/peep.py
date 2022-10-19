@@ -146,7 +146,7 @@ class PeepPass(AbstractPass):
             new_state['regex'] = 0
             new_state['pos'] += 1
 
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             length = len(in_file.read())
             if new_state['pos'] >= length:
                 return None
@@ -157,7 +157,7 @@ class PeepPass(AbstractPass):
         return state
 
     def transform(self, test_case, state, process_event_notifier):
-        with open(test_case, 'r') as in_file:
+        with open(test_case) as in_file:
             prog = in_file.read()
             prog2 = prog
 
