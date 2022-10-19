@@ -9,7 +9,7 @@ class TestClangDelta(unittest.TestCase):
     def check_clang_delta(cls, testcase, arguments, output_file=None):
         current = os.path.dirname(__file__)
         binary = os.path.join(current, '../clang_delta')
-        cmd = '{} {} {}'.format(binary, os.path.join(current, testcase), arguments)
+        cmd = f'{binary} {os.path.join(current, testcase)} {arguments}'
         output = subprocess.check_output(cmd, shell=True, encoding='utf8')
         if not output_file:
             output_file = os.path.splitext(testcase)[0] + '.output'
@@ -21,7 +21,7 @@ class TestClangDelta(unittest.TestCase):
     def check_query_instances(cls, testcase, arguments, expected):
         current = os.path.dirname(__file__)
         binary = os.path.join(current, '../clang_delta')
-        cmd = '{} {} {}'.format(binary, os.path.join(current, testcase), arguments)
+        cmd = f'{binary} {os.path.join(current, testcase)} {arguments}'
         output = subprocess.check_output(cmd, shell=True, encoding='utf8')
         assert output.strip() == expected
 
@@ -29,7 +29,7 @@ class TestClangDelta(unittest.TestCase):
     def check_error_message(cls, testcase, arguments, error_message):
         current = os.path.dirname(__file__)
         binary = os.path.join(current, '../clang_delta')
-        cmd = '{} {} {}'.format(binary, os.path.join(current, testcase), arguments)
+        cmd = f'{binary} {os.path.join(current, testcase)} {arguments}'
         proc = subprocess.run(cmd, shell=True, encoding='utf8', stdout=subprocess.PIPE)
         assert proc.returncode == 255
         assert proc.stdout.strip() == error_message
