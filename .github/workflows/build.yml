@@ -37,16 +37,16 @@ jobs:
 
     steps:
     - run: zypper -n install
-        binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel python3-Pebble python3-pytest unifdef python3-psutil curl git python3-chardet findutils
+        binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel
+        python3-Pebble python3-pytest unifdef python3-psutil curl git python3-chardet findutils
         python3-flake8
         python3-flake8-builtins
         python3-flake8-bugbear
         python3-flake8-import-order
         python3-flake8-quotes
+        python3-pip python3-flake8-comprehensions python3 sqlite-devel
     - run: zypper -n install gcc11-c++
       if: matrix.docker == 'opensuse/leap'
-    - run: zypper -n install python3-pip python3-flake8-comprehensions python3 sqlite-devel
-      if: matrix.docker == 'opensuse/tumbleweed'
     - run: pip install pytest-cov
       if: matrix.docker == 'opensuse/tumbleweed'
     - uses: actions/checkout@v3
