@@ -47,7 +47,7 @@ jobs:
         python3-pip
     - run: zypper -n install gcc11-c++
       if: matrix.docker == 'opensuse/leap'
-    - run: zypper -n install python3-flake8-comprehensions sqlite-devel
+    - run: zypper -n install python3-flake8-comprehensions sqlite-devel python3
       if: matrix.docker == 'opensuse/tumbleweed'
     - run: pip install pytest-cov
       if: matrix.docker == 'opensuse/tumbleweed'
