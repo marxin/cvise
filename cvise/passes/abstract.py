@@ -47,10 +47,10 @@ class BinaryState:
             self.chunk = int(self.chunk / 2)
             if self.chunk < 1:
                 return None
-            logging.debug(f'granularity reduced to {self.chunk}')
+            logging.debug('granularity reduced to {}'.format(self.chunk))
             self.index = 0
         else:
-            logging.debug(f'***ADVANCE*** from {original_index} to {self.index} with chunk {self.chunk}')
+            logging.debug('***ADVANCE*** from {} to {} with chunk {}'.format(original_index, self.index, self.chunk))
         return self
 
     def advance_on_success(self, instances):
@@ -75,9 +75,9 @@ class AbstractPass:
 
     def __repr__(self):
         if self.arg is not None:
-            return f'{type(self).__name__}::{self.arg}'
+            return '{}::{}'.format(type(self).__name__, self.arg)
         else:
-            return f'{type(self).__name__}'
+            return '{}'.format(type(self).__name__)
 
     def check_external_program(self, name):
         program = self.external_programs[name]
@@ -85,23 +85,23 @@ class AbstractPass:
             return False
         result = shutil.which(program) is not None
         if not result:
-            logging.error(f'cannot find external program {name}')
+            logging.error('cannot find external program {}'.format(name))
         return result
 
     def check_prerequisites(self):
-        raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'check_prerequisites'!")
+        raise NotImplementedError("Class {} has not implemented 'check_prerequisites'!".format(type(self).__name__))
 
     def new(self, test_case, check_sanity):
-        raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'new'!")
+        raise NotImplementedError("Class {} has not implemented 'new'!".format(type(self).__name__))
 
     def advance(self, test_case, state):
-        raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance'!")
+        raise NotImplementedError("Class {} has not implemented 'advance'!".format(type(self).__name__))
 
     def advance_on_success(self, test_case, state):
-        raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance_on_success'!")
+        raise NotImplementedError("Class {} has not implemented 'advance_on_success'!".format(type(self).__name__))
 
     def transform(self, test_case, state, process_event_notifier):
-        raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'transform'!")
+        raise NotImplementedError("Class {} has not implemented 'transform'!".format(type(self).__name__))
 
 
 @unique

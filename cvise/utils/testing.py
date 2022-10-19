@@ -219,7 +219,7 @@ class TestManager:
 
     def backup_test_cases(self):
         for f in self.test_cases:
-            orig_file = f'{f}.orig'
+            orig_file = '{}.orig'.format(f)
 
             if not os.path.exists(orig_file):
                 # Copy file and preserve attributes
@@ -254,7 +254,7 @@ class TestManager:
 
     def report_pass_bug(self, test_env, problem):
         if not self.die_on_pass_bug:
-            logging.warning(f'{self.current_pass} has encountered a non fatal bug: {problem}')
+            logging.warning('{} has encountered a non fatal bug: {}'.format(self.current_pass, problem))
 
         crash_dir = self.get_extra_dir('cvise_bug_', self.MAX_CRASH_DIRS)
 
@@ -265,7 +265,7 @@ class TestManager:
         test_env.dump(crash_dir)
 
         if not self.die_on_pass_bug:
-            logging.debug(f'Please consider tarring up {crash_dir} and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.')
+            logging.debug('Please consider tarring up {} and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.'.format(crash_dir))
 
         with open(os.path.join(crash_dir, 'PASS_BUG_INFO.TXT'), mode='w') as info_file:
             info_file.write('Package: %s\n' % CVise.Info.PACKAGE_STRING)
@@ -294,7 +294,7 @@ class TestManager:
 
         folder = tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}sanity-')
         test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, None)
-        logging.debug(f'sanity check tmpdir = {test_env.folder}')
+        logging.debug('sanity check tmpdir = {}'.format(test_env.folder))
 
         returncode = test_env.run_test(verbose)
         if returncode == 0:
@@ -349,7 +349,7 @@ class TestManager:
         if extra_dir is not None:
             os.mkdir(extra_dir)
             shutil.move(test_case_path, extra_dir)
-            logging.info(f'Created extra directory {extra_dir} for you to look at later')
+            logging.info('Created extra directory {} for you to look at later'.format(extra_dir))
 
     def process_done_futures(self):
         quit_loop = False
@@ -377,7 +377,7 @@ class TestManager:
                 if test_env.success:
                     if (self.max_improvement is not None and
                             test_env.size_improvement > self.max_improvement):
-                        logging.debug(f'Too large improvement: {test_env.size_improvement} B')
+                        logging.debug('Too large improvement: {} B'.format(test_env.size_improvement))
                     else:
                         # Report bug if transform did not change the file
                         if filecmp.cmp(self.current_test_case, test_env.test_case_path):
@@ -476,7 +476,7 @@ class TestManager:
         self.create_root()
         pass_key = repr(self.current_pass)
 
-        logging.info(f'===< {self.current_pass} >===')
+        logging.info('===< {} >==='.format(self.current_pass))
 
         if self.total_file_size == 0:
             raise ZeroSizeError(self.test_cases)
@@ -503,7 +503,7 @@ class TestManager:
                             tmp_file.seek(0)
                             tmp_file.truncate(0)
                             tmp_file.write(self.cache[pass_key][test_case_before_pass])
-                            logging.info(f'cache hit for {test_case}')
+                            logging.info('cache hit for {}'.format(test_case))
                             continue
 
                 # create initial state
