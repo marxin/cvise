@@ -1043,8 +1043,8 @@ bool Transformation::getDependentNameTypeString(
   const TemplateArgument *Args = NULL;
   if (const TemplateSpecializationType *TST =
       Ty->getAs<TemplateSpecializationType>()) {
-    NumArgs = TST->getNumArgs();
-    Args = TST->getArgs();
+    NumArgs = TST->template_arguments().size();
+    Args = TST->template_arguments().data();
   }
   return getTypedefString(IdInfo->getName(),
            BaseDef, Args, NumArgs, Str, Typename);

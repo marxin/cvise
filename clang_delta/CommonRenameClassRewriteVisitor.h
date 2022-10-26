@@ -420,8 +420,13 @@ bool CommonRenameClassRewriteVisitor<T>::TraverseTemplateArgumentLoc(
     return getDerived().TraverseStmt(ArgLoc.getSourceExpression());
 
   case TemplateArgument::Pack:
-    return getDerived().TraverseTemplateArguments(Arg.pack_begin(),
-                                                  Arg.pack_size());
+    return getDerived().TraverseTemplateArguments(
+#if LLVM_VERSION_MAJOR >= 16
+        Arg.pack_elements()
+#else
+        Arg.pack_begin(), Arg.pack_size()
+#endif
+        );
   }
 
   return true;
