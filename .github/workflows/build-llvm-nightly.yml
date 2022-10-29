@@ -20,7 +20,7 @@ jobs:
       - run: wget https://apt.llvm.org/llvm.sh
       - run: chmod +x llvm.sh
       - run: ./llvm.sh 16
-      - run: apt-get install -y bolt-16 clang-16 libclang-common-16-dev libclang-16-dev mlir-16-tools llvm-16-tools libclang-common-16-dev libclang-16-dev libclang1-16 clang-format-16 python3-clang-16 clangd-16 clang-tidy-16
+      - run: apt-get install -y bolt-16 clang-16 libclang-common-16-dev libclang-16-dev mlir-16-tools llvm-16-tools libclang-common-16-dev libclang-16-dev libclang1-16 clang-format-16 python3-clang-16 clangd-16 clang-tidy-16 libomp-16-dev
       # TODO: fix it
       - run: ln -s /usr/lib/x86_64-linux-gnu/libclang-16.so.16.0.0 /usr/lib/x86_64-linux-gnu/libclang-16.so.1
       - uses: actions/checkout@v3
