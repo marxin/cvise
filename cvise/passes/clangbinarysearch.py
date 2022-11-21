@@ -16,7 +16,7 @@ class ClangBinarySearchPass(AbstractPass):
     def detect_best_standard(self, test_case):
         best = None
         best_count = -1
-        for std in ('c++98', 'c++11', 'c++14', 'c++17', 'c++20'):
+        for std in ('c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++2b'):
             self.clang_delta_std = std
             start = time.monotonic()
             instances = self.count_instances(test_case)
