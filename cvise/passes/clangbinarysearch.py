@@ -22,7 +22,8 @@ class ClangBinarySearchPass(AbstractPass):
             instances = self.count_instances(test_case)
             took = time.monotonic() - start
 
-            if instances > best_count:
+            # prefer newer standard if the # of instances is equal
+            if instances >= best_count:
                 best = std
                 best_count = instances
             logging.debug('available transformation opportunities for %s: %d, took: %.2f s' % (std, instances, took))
