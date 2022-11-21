@@ -27,6 +27,8 @@ class ClangBinarySearchPass(AbstractPass):
                 best_count = instances
             logging.debug('available transformation opportunities for %s: %d, took: %.2f s' % (std, instances, took))
         logging.info('using C++ standard: %s with %d transformation opportunities' % (best, best_count))
+        # Use the best standard option
+        self.clang_delta_std = best
 
     def new(self, test_case, _=None):
         if not self.user_clang_delta_std:
