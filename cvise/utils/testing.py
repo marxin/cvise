@@ -535,14 +535,14 @@ class TestManager:
                                      f'{MAX_PASS_INCREASEMENT_THRESHOLD * 100}%)')
                         break
 
-                    # skip after N transformations if requested
-                    if self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms:
-                        logging.info(f'skipping after {success_count} successful transformations')
-                        break
-
                     self.release_folders()
                     self.futures.clear()
                     if not success_env:
+                        break
+
+                    # skip after N transformations if requested
+                    if self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms:
+                        logging.info(f'skipping after {success_count} successful transformations')
                         break
 
                 # Cache result of this pass
