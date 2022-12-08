@@ -3,6 +3,7 @@
 import argparse
 import datetime
 import importlib.util
+from itertools import chain
 import logging
 import os
 import os.path
@@ -256,15 +257,20 @@ if __name__ == '__main__':
         logging.info('CLEANUP PASSES')
         for p in pass_group['last']:
             logging.info(str(p))
-
         sys.exit(0)
-        logging.shutdown()
 
     pass_statistic = statistics.PassStatistic()
 
+    if args.start_with_pass:
+        pass_names = [str(p) for p in chain(*pass_group.values())]
+        if args.start_with_pass not in pass_names:
+            print(f'Cannot find pass called "{args.start_with_pass}". '
+                  'Please use --list-passes to get a list of available passes.')
+            sys.exit(1)
+
     if not args.interestingness_test and not args.commands:
         print('Either INTERESTINGNESS_TEST or --commands must be used!')
-        exit(1)
+        sys.exit(1)
 
     # shift interestingness_test if --commands is used
     if args.interestingness_test and args.commands:
