@@ -140,17 +140,26 @@ add_definitions("-DHAVE_CONFIG_H")
 check_cxx_compiler_flag(
   "-fvisibility-inlines-hidden"
   SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG
-  )
+)
+
+check_cxx_compiler_flag(
+  "-Wno-error=mismatched-new-delete"
+  SUPPORTS_WMISMATCHED_NEW_DELETE
+)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
     OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # XXX figure out how to get "-std=c++17 -fno-rtti" from LLVM.  That's how we
   # get those options in the Automake path...
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -Wno-error=maybe-uninitialized")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fno-rtti -fno-strict-aliasing -Wall -Wextra -Wno-unused-parameter -Werror -Wno-error=maybe-uninitialized -Wno-error=mismatched-new-delete")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fno-rtti -fno-strict-aliasing -Wall -Wextra -Wno-unused-parameter -Werror -Wno-error=maybe-uninitialized")
   if(SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
   endif()
+  if(SUPPORTS_WMISMATCHED_NEW_DELETE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=mismatched-new-delete")
+  endif()
+
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 endif()
