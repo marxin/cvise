@@ -70,8 +70,6 @@ private:
 
   llvm::DenseMap<const clang::FunctionDecl *, std::string> FunToNameMap;
 
-  std::set<unsigned int> AllValidNumbers;
-
   const std::string FunNamePrefix;
 
   unsigned int FunNamePostfix;

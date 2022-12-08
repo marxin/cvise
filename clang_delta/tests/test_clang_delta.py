@@ -445,6 +445,10 @@ class TestClangDelta(unittest.TestCase):
     def test_rename_fun_test1(self):
         self.check_clang_delta('rename-fun/test1.c', '--transformation=rename-fun --counter=1')
 
+    def test_rename_fun_test2(self):
+        self.check_query_instances('rename-fun/test2.cc', '--query-instances=rename-fun',
+                                   'Available transformation instances: 0')
+
     def test_rename_param_invalid(self):
         self.check_clang_delta('rename-param/invalid.c', '--transformation=rename-param --counter=1')
 

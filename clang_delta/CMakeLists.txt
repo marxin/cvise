@@ -294,6 +294,7 @@ set(SOURCE_FILES
   "/tests/rename-fun/overloaded.output"
   "/tests/rename-fun/test1.c"
   "/tests/rename-fun/test1.output"
+  "/tests/rename-fun/test2.cc"
   "/tests/rename-fun/multi.c"
   "/tests/rename-fun/multi.output"
   "/tests/rename-operator/test1.cc"
