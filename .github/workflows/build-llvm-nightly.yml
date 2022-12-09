@@ -12,8 +12,6 @@ jobs:
 
   CI-LLVM-nightly:
     runs-on: ubuntu-22.04
-    container:
-      image: ubuntu:devel
     steps:
       - run: apt-get update
       - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex python3-pebble python3-psutil python3-chardet python3-pytest vim unifdef
