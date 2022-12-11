@@ -32,8 +32,10 @@ class InstantiateTemplateParamASTVisitor;
 class InstantiateTemplateParamRewriteVisitor;
 
 class InstantiateTemplateParam : public Transformation {
-friend class InstantiateTemplateParamASTVisitor;
-friend class InstantiateTemplateParamRewriteVisitor;
+  friend class InstantiateTemplateParamASTVisitor;
+  friend class InstantiateTemplateParamRewriteVisitor;
+
+  class FindForwardDeclVisitor;
 
 public:
   InstantiateTemplateParam(const char *TransName, const char *Desc)

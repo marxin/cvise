@@ -1,0 +1,13 @@
+// Check that a forward declaration is inserted
+
+struct S;
+ void b(S&) {
+}
+
+struct S {
+};
+
+void f() {
+  S s;
+  b(s);
+}

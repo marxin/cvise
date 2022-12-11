@@ -158,6 +158,21 @@ InstantiateTemplateParamRewriteVisitor::VisitTemplateTypeParmTypeLoc(
   return true;
 }
 
+class InstantiateTemplateParam::FindForwardDeclVisitor : public RecursiveASTVisitor<FindForwardDeclVisitor> {
+  InstantiateTemplateParam* ConsumerInstance;
+  std::string& ForwardStr;
+  RecordDeclSet TempAvailableRecordDecls;
+public:
+  explicit FindForwardDeclVisitor(InstantiateTemplateParam* ConsumerInstance, std::string& ForwardStr) 
+      : ConsumerInstance(ConsumerInstance), ForwardStr(ForwardStr)
+  { }
+
+  bool VisitRecordType(RecordType* RT) {
+    ConsumerInstance->getForwardDeclStr(RT, ForwardStr, TempAvailableRecordDecls);
+    return true;
+  }
+};
+
 void InstantiateTemplateParam::Initialize(ASTContext &context) 
 {
   Transformation::Initialize(context);
@@ -297,39 +312,10 @@ void InstantiateTemplateParam::getForwardDeclStr(
 bool InstantiateTemplateParam::getTypeString(
        const QualType &QT, std::string &Str, std::string &ForwardStr)
 {
-  const Type *Ty = QT.getTypePtr();
-  Type::TypeClass TC = Ty->getTypeClass();
-
-  switch (TC) {
-  case Type::Elaborated: {
-    const ElaboratedType *ETy = dyn_cast<ElaboratedType>(Ty);
-    return getTypeString(ETy->getNamedType(), Str, ForwardStr);
-  }
-
-  case Type::Typedef: {
-    const TypedefType *TdefTy = dyn_cast<TypedefType>(Ty);
-    const TypedefNameDecl *TdefD = TdefTy->getDecl();
-    return getTypeString(TdefD->getUnderlyingType(), Str, ForwardStr);
-  }
-
-  case Type::Record: {
-    RecordDeclSet TempAvailableRecordDecls;
-    getForwardDeclStr(Ty, ForwardStr, TempAvailableRecordDecls);
-    QT.getAsStringInternal(Str, getPrintingPolicy());
-    return true;
-  }
-
-  case Type::Builtin: {
-    QT.getAsStringInternal(Str, getPrintingPolicy());
-    return true;
-  }
-
-  default:
-    return false;
-  }
-
-  TransAssert(0 && "Unreachable code!");
-  return false;
+  llvm::raw_string_ostream Strm(Str);
+  QT.print(Strm, getPrintingPolicy(), ForwardStr);
+  FindForwardDeclVisitor(this, ForwardStr).TraverseType(QT);
+  return true;
 }
 
 bool 
