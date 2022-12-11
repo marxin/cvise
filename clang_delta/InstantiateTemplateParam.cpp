@@ -360,19 +360,16 @@ void InstantiateTemplateParam::handleOneTemplateSpecialization(
     return;
 
   unsigned NumArgs = ArgList.size(); (void)NumArgs;
-  unsigned Idx = 0;
+  unsigned Idx = -1;
   TemplateParameterList *TPList = D->getTemplateParameters();
-  for (TemplateParameterList::const_iterator I = TPList->begin(),
-       E = TPList->end(); I != E; ++I) {
-    const NamedDecl *ND = (*I);
+  for (NamedDecl* ND : *TPList) {
+    ++Idx;
     // make it simple, skip NonTypeTemplateParmDecl and 
     // TemplateTemplateParmDecl for now
     const TemplateTypeParmDecl *TyParmDecl = 
       dyn_cast<TemplateTypeParmDecl>(ND);
-    if (!TyParmDecl || TyParmDecl->isParameterPack() || !ParamsSet.count(ND)) {
-      Idx++;
+    if (!TyParmDecl || TyParmDecl->isParameterPack() || !ParamsSet.count(ND))
       continue;
-    }
 
     TransAssert((Idx < NumArgs) && "Invalid Idx!");
     const TemplateArgument &Arg = ArgList.get(Idx);
