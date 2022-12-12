@@ -281,7 +281,11 @@ classifyToken(const FunctionDecl& F, Preprocessor& PP, Token Tok) {
   // If the Token/Macro contains more than one type of tokens, we would need
   // to split the macro in order to move parts to the trailing return type.
   if (ContainsQualifiers + ContainsSpecifiers + ContainsSomethingElse > 1)
+#if LLVM_VERSION_MAJOR >= 16
+    return std::nullopt;
+#else
     return llvm::None;
+#endif
 
   return CT;
 }
@@ -311,7 +315,11 @@ ReturnVoid::classifyTokensBeforeFunctionName(
         if (!MI || MI->isFunctionLike()) {
           // Cannot handle function style macros.
           //diag(F.getLocation(), Message);
+#if LLVM_VERSION_MAJOR >= 16
+          return std::nullopt;
+#else
           return llvm::None;
+#endif
         }
       }
       T.setIdentifierInfo(&Info);
@@ -321,7 +329,11 @@ ReturnVoid::classifyTokensBeforeFunctionName(
       ClassifiedTokens.push_back(*CT);
     else {
       //diag(F.getLocation(), Message);
+#if LLVM_VERSION_MAJOR >= 16
+      return std::nullopt;
+#else
       return llvm::None;
+#endif
     }
   }
   return ClassifiedTokens;

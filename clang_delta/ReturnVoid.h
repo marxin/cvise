@@ -11,6 +11,7 @@
 #ifndef VOID_RETURN_H
 #define VOID_RETURN_H
 
+#include <optional>
 #include <string>
 #include "llvm/ADT/SmallVector.h"
 #include "Transformation.h"
