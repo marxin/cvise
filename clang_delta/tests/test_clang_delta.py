@@ -124,13 +124,22 @@ class TestClangDelta(unittest.TestCase):
         self.check_clang_delta('instantiate-template-param/test4.cc', '--transformation=instantiate-template-param --counter=1')
 
     def test_instantiate_template_param_default_test5(self):
-        self.check_clang_delta('instantiate-template-param/test5.cc', '--transformation=instantiate-template-param --counter=1')
+        self.check_clang_delta('instantiate-template-param/test5.cc', '--transformation=instantiate-template-param --counter=2')
 
     def test_instantiate_template_param_default_test6(self):
         self.check_clang_delta('instantiate-template-param/test6.cc', '--transformation=instantiate-template-param --counter=2')
 
     def test_instantiate_template_param_default_test7(self):
         self.check_clang_delta('instantiate-template-param/test7.cc', '--transformation=instantiate-template-param --counter=1')
+
+    def test_instantiate_template_param_default_test8a(self):
+        self.check_clang_delta('instantiate-template-param/test8a.cc', '--transformation=instantiate-template-param --counter=1')
+
+    def test_instantiate_template_param_default_test8b(self):
+        self.check_clang_delta('instantiate-template-param/test8b.cc', '--transformation=instantiate-template-param --counter=2')
+
+    def test_instantiate_template_param_default_test8c(self):
+        self.check_clang_delta('instantiate-template-param/test8c.cc', '--transformation=instantiate-template-param --counter=3')
 
     def test_local_to_global_macro(self):
         self.check_clang_delta('local-to-global/macro.c', '--transformation=local-to-global --counter=1')

@@ -1,5 +1,5 @@
-template <class f, class g> void C(f, double) {}
+template <class f> void C(f, double) {}
 
 void f() {
-	C<int, double>(10, 1.0);
+	C<int>(10, 1.0);
 }

@@ -14,6 +14,7 @@
 #include <string>
 #include "clang/Basic/SourceLocation.h"
 #include "clang/AST/NestedNameSpecifier.h"
+#include "clang/AST/DeclTemplate.h"
 
 #ifndef ENABLE_TRANS_ASSERT
   #define TransAssert(x) {if (!(x)) exit(-1);}
@@ -260,6 +261,10 @@ public:
 
   bool removeCXXCtorInitializer(const clang::CXXCtorInitializer *Init,
                                 unsigned Index, unsigned NumInits);
+
+  bool removeTemplateArgument(const clang::DeclRefExpr* DRE, unsigned Idx);
+
+  bool removeTemplateParameter(const clang::TemplateParameterList* TPL, unsigned Idx);
 
   bool removeClassDecls(const clang::CXXRecordDecl *CXXRD);
 
