@@ -206,10 +206,8 @@ bool ReduceClassTemplateParameterRewriteVisitor::
                                               "<>");
   }
   else if ((ConsumerInstance->TheParameterIndex + 1) == NumArgs) {
-    SourceLocation EndLoc = Loc.getRAngleLoc();
-    EndLoc = EndLoc.getLocWithOffset(-1);
     ConsumerInstance->RewriteHelper->removeTextFromLeftAt(
-                                       Range, ',', EndLoc);
+                                       Range, ',', Range.getEnd());
   }
   else {
     ConsumerInstance->RewriteHelper->removeTextUntil(Range, ',');
