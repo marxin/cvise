@@ -253,13 +253,15 @@ class TestManager:
         return extra_dir
 
     def report_pass_bug(self, test_env, problem):
+        """Create pass report bug and return True if the directory is created."""
+
         if not self.die_on_pass_bug:
             logging.warning(f'{self.current_pass} has encountered a non fatal bug: {problem}')
 
         crash_dir = self.get_extra_dir('cvise_bug_', self.MAX_CRASH_DIRS)
 
         if crash_dir is None:
-            return
+            return False
 
         os.mkdir(crash_dir)
         test_env.dump(crash_dir)
@@ -276,6 +278,8 @@ class TestManager:
 
         if self.die_on_pass_bug:
             raise PassBugError(self.current_pass, problem, test_env.state, crash_dir)
+        else:
+            return True
 
     @staticmethod
     def diff_files(orig_file, changed_file):
@@ -382,7 +386,8 @@ class TestManager:
                         # Report bug if transform did not change the file
                         if filecmp.cmp(self.current_test_case, test_env.test_case_path):
                             if not self.silent_pass_bug:
-                                self.report_pass_bug(test_env, 'pass failed to modify the variant')
+                                if not self.report_pass_bug(test_env, 'pass failed to modify the variant'):
+                                    quit_loop = True
                         else:
                             quit_loop = True
                             new_futures.add(future)
