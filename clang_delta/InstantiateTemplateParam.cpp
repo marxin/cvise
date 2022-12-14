@@ -105,7 +105,7 @@ bool InstantiateTemplateParamASTVisitor::VisitClassTemplateDecl(
 bool InstantiateTemplateParamASTVisitor::VisitFunctionTemplateDecl(
        FunctionTemplateDecl *D)
 {
-  if (D->isThisDeclarationADefinition())
+  if (D->isFirstDecl())
     ConsumerInstance->handleOneFunctionTemplateDecl(D);
   return true;
 }
@@ -120,6 +120,17 @@ public:
   { }
 
   bool VisitTemplateTypeParmTypeLoc(TemplateTypeParmTypeLoc Loc);
+
+  bool VisitDeclRefExpr(DeclRefExpr* DRE) {
+    if (DRE->getDecl() == ConsumerInstance->TheTemplateSpec) {
+      auto Idx = ConsumerInstance->TheParameterIdx;
+      if (DRE->getNumTemplateArgs() > Idx) {
+        return ConsumerInstance->RewriteHelper->removeTemplateArgument(DRE, Idx);
+      }
+    }
+
+    return true;
+  }
 
 private:
   InstantiateTemplateParam *ConsumerInstance;
@@ -213,15 +224,11 @@ void InstantiateTemplateParam::HandleTranslationUnit(ASTContext &Ctx)
 
 void InstantiateTemplateParam::removeTemplateKeyword()
 {
-  if (dyn_cast<ClassTemplateDecl>(TheTemplateDecl))
+  if (isa<ClassTemplateDecl>(TheTemplateDecl))
     return;
   TemplateParameterList *TPList = TheTemplateDecl->getTemplateParameters();
-  if (TPList->size() != 1)
-    return;
-  const NamedDecl *ND = TPList->getParam(0); (void)ND;
-  TransAssert((ND == TheParameter) && "Invalid template parameter!");
-  TheRewriter.RemoveText(SourceRange(TPList->getTemplateLoc(),
-                                     TPList->getRAngleLoc()));
+  if (TheParameterIdx < TPList->size())
+    RewriteHelper->removeTemplateParameter(TPList, TheParameterIdx);
 }
 
 void InstantiateTemplateParam::addForwardDecl()
@@ -314,7 +321,11 @@ bool InstantiateTemplateParam::getTypeString(
 {
   llvm::raw_string_ostream Strm(Str);
   QT.print(Strm, getPrintingPolicy(), ForwardStr);
+  if (Str == "nullptr_t")
+    Str = "decltype(nullptr)";
+
   FindForwardDeclVisitor(this, ForwardStr).TraverseType(QT);
+
   return true;
 }
 
@@ -332,18 +343,15 @@ InstantiateTemplateParam::getTemplateArgumentString(const TemplateArgument &Arg,
 }
 
 void InstantiateTemplateParam::handleOneTemplateSpecialization(
-       const TemplateDecl *D, const TemplateArgumentList & ArgList)
+       const TemplateDecl *D, const TemplateArgumentList & ArgList, const clang::Decl* Spec)
 {
   if (isInIncludedFile(D))
     return;
 
-  NamedDecl *ND = D->getTemplatedDecl();
+  NamedDecl *TD = D->getTemplatedDecl();
   TemplateParameterSet ParamsSet;
   TemplateParameterVisitor ParameterVisitor(ParamsSet);
-  ParameterVisitor.TraverseDecl(ND);
-
-  if (ParamsSet.size() == 0)
-    return;
+  ParameterVisitor.TraverseDecl(TD);
 
   unsigned NumArgs = ArgList.size(); (void)NumArgs;
   unsigned Idx = -1;
@@ -354,7 +362,11 @@ void InstantiateTemplateParam::handleOneTemplateSpecialization(
     // TemplateTemplateParmDecl for now
     const TemplateTypeParmDecl *TyParmDecl = 
       dyn_cast<TemplateTypeParmDecl>(ND);
-    if (!TyParmDecl || TyParmDecl->isParameterPack() || !ParamsSet.count(ND))
+    if (!TyParmDecl || TyParmDecl->isParameterPack())
+      continue;
+    // For classes we are not removing the template parameter right now
+    // So we need to check that any replacement is performed
+    if (isa<ClassTemplateDecl>(D) && !ParamsSet.count(ND))
       continue;
 
     TransAssert((Idx < NumArgs) && "Invalid Idx!");
@@ -370,6 +382,8 @@ void InstantiateTemplateParam::handleOneTemplateSpecialization(
     if (ValidInstanceNum == TransformationCounter) {
       TheInstantiationString = ArgStr;
       TheParameter = ND;
+      TheParameterIdx = Idx;
+      TheTemplateSpec = Spec;
       TheTemplateDecl = D;
       TheForwardDeclString = ForwardStr;
     }
@@ -388,7 +402,7 @@ void InstantiateTemplateParam::handleOneClassTemplateDecl(
   ++I;
   if (I != D->spec_end())
     return;
-  handleOneTemplateSpecialization(D, SpecD->getTemplateArgs());
+  handleOneTemplateSpecialization(D, SpecD->getTemplateArgs(), SpecD);
 }
 
 void InstantiateTemplateParam::handleOneFunctionTemplateDecl(
@@ -404,7 +418,7 @@ void InstantiateTemplateParam::handleOneFunctionTemplateDecl(
     return;
   if (const FunctionTemplateSpecializationInfo *Info =
       FD->getTemplateSpecializationInfo()) {
-    handleOneTemplateSpecialization(D, *(Info->TemplateArguments));
+    handleOneTemplateSpecialization(D, *(Info->TemplateArguments), FD);
   }
 }
 

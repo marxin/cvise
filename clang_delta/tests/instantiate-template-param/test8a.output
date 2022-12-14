@@ -1,0 +1,3 @@
+template < class b, class c> int b();
+
+int x = b< float, char>();

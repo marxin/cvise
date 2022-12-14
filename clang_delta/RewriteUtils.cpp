@@ -1832,6 +1832,34 @@ bool RewriteUtils::removeCXXCtorInitializer(const CXXCtorInitializer *Init,
   }
 }
 
+bool RewriteUtils::removeTemplateArgument(const clang::DeclRefExpr* DRE, unsigned Idx)
+{
+  assert(Idx < DRE->getNumTemplateArgs());
+
+  const TemplateArgumentLoc* Args = DRE->getTemplateArgs();
+  if (DRE->getNumTemplateArgs() == 1) {
+    return !TheRewriter->RemoveText({ DRE->getLAngleLoc(), DRE->getRAngleLoc() });
+  } else if (Idx == 0) {
+    return removeTextUntil(Args[Idx].getSourceRange(), ',');
+  } else {
+    return removeTextFromLeftAt(Args[Idx].getSourceRange(), ',', Args[Idx].getSourceRange().getEnd());
+  }
+}
+
+bool RewriteUtils::removeTemplateParameter(const clang::TemplateParameterList* TPL, unsigned Idx)
+{
+  assert(Idx < TPL->size());
+
+  const NamedDecl* Param = TPL->getParam(Idx);
+  if (TPL->size() == 1) {
+    return !TheRewriter->RemoveText({ TPL->getTemplateLoc(), TPL->getRAngleLoc() });
+  } else if (Idx == 0) {
+    return removeTextUntil(Param->getSourceRange(), ',');
+  } else {
+    return removeTextFromLeftAt(Param->getSourceRange(), ',', Param->getEndLoc());
+  }
+}
+
 bool RewriteUtils::removeClassDecls(const CXXRecordDecl *CXXRD)
 {
   for (CXXRecordDecl::redecl_iterator I = CXXRD->redecls_begin(),
