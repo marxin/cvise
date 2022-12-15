@@ -87,6 +87,17 @@ void MoveFunctionBody::HandleTranslationUnit(ASTContext &Ctx)
     TransError = TransInternalError;
 }
 
+// Needed for backwards compatibility. Copyied from Decl::getDescribedTemplateParams.
+static const TemplateParameterList* getDescribedTemplateParams(Decl* D) {
+  if (auto* TD = D->getDescribedTemplate())
+    return TD->getTemplateParameters();
+  if (auto* CTPSD = dyn_cast<ClassTemplatePartialSpecializationDecl>(D))
+    return CTPSD->getTemplateParameters();
+  if (auto* VTPSD = dyn_cast<VarTemplatePartialSpecializationDecl>(D))
+    return VTPSD->getTemplateParameters();
+  return nullptr;
+}
+
 void MoveFunctionBody::doRewriting(void)
 {
   SourceRange DefRange = RewriteHelper->getDeclFullSourceRange(TheFunctionDef);
@@ -102,7 +113,7 @@ void MoveFunctionBody::doRewriting(void)
     if (TheFunctionDef->getNumTemplateParameterLists() == 1) {
       TemplateParameterList* TPL = TheFunctionDef->getTemplateParameterList(0);
 
-      if (const TemplateParameterList* ClassTPL = MD->getParent()->getDescribedTemplateParams()) {
+      if (const TemplateParameterList* ClassTPL = getDescribedTemplateParams(MD->getParent())) {
         assert(TPL->size() == ClassTPL->size());
         for (unsigned i2 = 0; i2 < ClassTPL->size(); ++i2) {
           auto* Param = TPL->getParam(i2);
