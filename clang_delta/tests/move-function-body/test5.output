@@ -1,0 +1,13 @@
+
+template <class T1>
+struct C {
+	 
+template <class T2> 
+T2 test(T2 x) {
+	return T1();
+}
+};
+
+// ...
+
+

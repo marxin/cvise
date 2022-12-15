@@ -22,14 +22,13 @@ namespace clang {
 }
 
 class MoveFunctionBody : public Transformation {
+  class CollectionVisitor;
+
 
 public:
 
   MoveFunctionBody(const char *TransName, const char *Desc)
-    : Transformation(TransName, Desc),
-      TheFunctionDecl(NULL),
-      TheFunctionDef(NULL),
-      PrevFunctionDecl(NULL)
+    : Transformation(TransName, Desc)
   { }
 
   ~MoveFunctionBody(void);
@@ -39,31 +38,14 @@ private:
   typedef llvm::DenseMap<clang::FunctionDecl *, clang::FunctionDecl *>
             FuncDeclToFuncDeclMap;
 
-  virtual void Initialize(clang::ASTContext &context);
-
-  virtual bool HandleTopLevelDecl(clang::DeclGroupRef D);
-
   virtual void HandleTranslationUnit(clang::ASTContext &Ctx);
-
-  void doAnalysis(void);
 
   void doRewriting(void);
 
-  FuncDeclToFuncDeclMap AllValidFunctionDecls;
+  std::vector<clang::FunctionDecl*> FunctionCandidates;
 
-  FuncDeclToFuncDeclMap FuncDeclToFuncDef;
+  clang::FunctionDecl *TheFunctionDecl = nullptr;
 
-  clang::FunctionDecl *TheFunctionDecl;
-
-  clang::FunctionDecl *TheFunctionDef;
-
-  clang::FunctionDecl *PrevFunctionDecl;
-
-  // Unimplemented
-  MoveFunctionBody(void);
-
-  MoveFunctionBody(const MoveFunctionBody &);
-
-  void operator=(const MoveFunctionBody &);
+  clang::FunctionDecl *TheFunctionDef = nullptr;
 };
 #endif

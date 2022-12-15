@@ -1,0 +1,12 @@
+
+namespace ns {
+	struct C {
+		int test(int x) {
+	return 42;
+}
+	};
+}
+
+// ...
+
+
