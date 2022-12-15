@@ -614,3 +614,18 @@ class TestClangDelta(unittest.TestCase):
 
     def test_rename_operator_test2(self):
         self.check_clang_delta('rename-operator/test2.cc', '--transformation=rename-operator --counter=1')
+
+    def test_move_function_body_test1(self):
+        self.check_clang_delta('move-function-body/test1.cc', '--transformation=move-function-body --counter=1')
+
+    def test_move_function_body_test2(self):
+        self.check_clang_delta('move-function-body/test2.cc', '--transformation=move-function-body --counter=1')
+
+    def test_move_function_body_test3(self):
+        self.check_clang_delta('move-function-body/test3.cc', '--transformation=move-function-body --counter=1')
+
+    def test_move_function_body_test4(self):
+        self.check_clang_delta('move-function-body/test4.cc', '--transformation=move-function-body --counter=1')
+
+    def test_move_function_body_test5(self):
+        self.check_clang_delta('move-function-body/test5.cc', '--transformation=move-function-body --counter=1')

@@ -24,58 +24,41 @@ using namespace clang;
 
 static const char *DescriptionMsg =
 "Move function body towards its declaration. \
-Note that this pass would generate incompilable code. \n";
+Note that this pass would generate uncompilable code. \n";
 
 static RegisterTransformation<MoveFunctionBody>
          Trans("move-function-body", DescriptionMsg);
 
-void MoveFunctionBody::Initialize(ASTContext &context) 
-{
-  Transformation::Initialize(context);
-}
+class MoveFunctionBody::CollectionVisitor : public RecursiveASTVisitor<CollectionVisitor> {
+    MoveFunctionBody* ConsumerInstance;
 
-bool MoveFunctionBody::HandleTopLevelDecl(DeclGroupRef D) 
-{
-  for (DeclGroupRef::iterator I = D.begin(), E = D.end(); I != E; ++I) {
-    FunctionDecl *FD = dyn_cast<FunctionDecl>(*I);
-    if (!FD || isInIncludedFile(FD)) {
-      PrevFunctionDecl = NULL;
-      continue;
-    }
+public:
+  explicit CollectionVisitor(MoveFunctionBody* Instance) : ConsumerInstance(Instance)
+  { }
 
-    FunctionDecl *CanonicalFD = FD->getCanonicalDecl();
-    if (FD->isThisDeclarationADefinition()) {
-      FunctionDecl *FDDecl = AllValidFunctionDecls[CanonicalFD];
-      if (!FDDecl) {
-        PrevFunctionDecl = NULL;
-        continue;
-      }
+  bool VisitFunctionDecl(FunctionDecl* FuncDef) {
+    if (!FuncDef->isThisDeclarationADefinition())
+      return true;
 
-      // Declaration and Definition are next to each other
-      if (PrevFunctionDecl) {
-        FunctionDecl *CanonicalPrevFD = PrevFunctionDecl->getCanonicalDecl();
-        if (CanonicalFD == CanonicalPrevFD) {
-          PrevFunctionDecl = NULL;
-          continue;
-        }
-      }
+    auto* FuncDecl = FuncDef->getFirstDecl();
+    if (FuncDef == FuncDecl)
+      return true;
+    if (ConsumerInstance->isInIncludedFile(FuncDef) || ConsumerInstance->isInIncludedFile(FuncDecl))
+      return true;
 
-      FuncDeclToFuncDef[FDDecl] = FD;
-    }
+    ConsumerInstance->FunctionCandidates.push_back(FuncDef);
 
-    PrevFunctionDecl = FD;
-    // We only need the first FunctionDecl
-    if (AllValidFunctionDecls[CanonicalFD])
-      continue;
-
-    AllValidFunctionDecls[CanonicalFD] = FD;
+    return true;
   }
-  return true;
-}
- 
+
+private:
+};
+
 void MoveFunctionBody::HandleTranslationUnit(ASTContext &Ctx)
 {
-  doAnalysis();
+  CollectionVisitor(this).TraverseDecl(Ctx.getTranslationUnitDecl());
+
+  ValidInstanceNum = FunctionCandidates.size();
 
   if (QueryInstanceOnly)
     return;
@@ -84,6 +67,9 @@ void MoveFunctionBody::HandleTranslationUnit(ASTContext &Ctx)
     TransError = TransMaxInstanceError;
     return;
   }
+
+  TheFunctionDef = FunctionCandidates[TransformationCounter-1];
+  TheFunctionDecl = TheFunctionDef->getFirstDecl();
 
   Ctx.getDiagnostics().setSuppressAllDiagnostics(false);
 
@@ -101,28 +87,58 @@ void MoveFunctionBody::HandleTranslationUnit(ASTContext &Ctx)
     TransError = TransInternalError;
 }
 
-void MoveFunctionBody::doAnalysis(void)
-{
-  for (FuncDeclToFuncDeclMap::iterator I = FuncDeclToFuncDef.begin(),
-       E = FuncDeclToFuncDef.end(); I != E; ++I) {
-    ValidInstanceNum++;
-
-    if (ValidInstanceNum == TransformationCounter) {
-      TheFunctionDecl = (*I).first;
-      TheFunctionDef = (*I).second;
-    }
-  }
-}
-
 void MoveFunctionBody::doRewriting(void)
 {
-  std::string FuncDefStr;
-  RewriteHelper->getFunctionDefStrAndRemove(TheFunctionDef, FuncDefStr);
-  RewriteHelper->addStringAfterFuncDecl(TheFunctionDecl, FuncDefStr);
+  SourceRange DefRange = RewriteHelper->getDeclFullSourceRange(TheFunctionDef);
+
+  // Remove namespace and class qualifiers
+  if (auto QL = TheFunctionDef->getQualifierLoc()) {
+    TheRewriter.RemoveText(QL.getSourceRange());
+  }
+
+  if (auto* MD = dyn_cast<CXXMethodDecl>(TheFunctionDecl)) {
+    // Update the template parameters name of the class if they are empty
+    // This is very likely since unused parameter names gets removed during reduction
+    if (TheFunctionDef->getNumTemplateParameterLists() == 1) {
+      TemplateParameterList* TPL = TheFunctionDef->getTemplateParameterList(0);
+
+      if (const TemplateParameterList* ClassTPL = MD->getParent()->getDescribedTemplateParams()) {
+        assert(TPL->size() == ClassTPL->size());
+        for (unsigned i2 = 0; i2 < ClassTPL->size(); ++i2) {
+          auto* Param = TPL->getParam(i2);
+          auto* ClassParam = ClassTPL->getParam(i2);
+
+          if (ClassParam->getName().empty()) {
+            std::string ParamStr = TheRewriter.getRewrittenText(Param->getSourceRange());
+            TheRewriter.ReplaceText(ClassParam->getSourceRange().getEnd(), ParamStr);
+          }
+        }
+      }
+
+      TheRewriter.RemoveText(TPL->getSourceRange());
+    }
+
+    // Removing template lists for classes
+    for (unsigned i = 0; i < TheFunctionDef->getNumTemplateParameterLists(); ++i) {
+      TemplateParameterList* TPL = TheFunctionDef->getTemplateParameterList(i);
+      TheRewriter.RemoveText(TPL->getSourceRange());
+    }
+  }
+
+  std::string FuncDefStr = TheRewriter.getRewrittenText(DefRange);
+
+  TheRewriter.RemoveText(DefRange);
+
+  // Inside a class we need to remove the declaration
+  if (isa<CXXMethodDecl>(TheFunctionDecl)) {
+    auto DeclRange = RewriteHelper->getDeclFullSourceRange(TheFunctionDecl);
+    TheRewriter.ReplaceText(DeclRange, FuncDefStr);
+  } else {
+    RewriteHelper->addStringAfterFuncDecl(TheFunctionDecl, FuncDefStr);
+  }
 }
 
 MoveFunctionBody::~MoveFunctionBody(void)
 {
   // Nothing to do
 }
-

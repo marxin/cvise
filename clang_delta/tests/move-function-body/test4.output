@@ -1,0 +1,13 @@
+
+namespace ns {
+	struct C {
+		template <class T> 
+T test(T x) {
+	return 42;
+}
+	};
+}
+
+// ...
+
+

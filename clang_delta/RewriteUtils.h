@@ -282,6 +282,8 @@ public:
   clang::SourceLocation getLocationAfterSkiping(clang::SourceLocation StartLoc,
                                                 char Symbol);
 
+  clang::SourceRange getDeclFullSourceRange(clang::Decl* D);
+
 private:
 
   static RewriteUtils *Instance;

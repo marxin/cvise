@@ -173,6 +173,30 @@ SourceLocation RewriteUtils::getEndLocationAfter(SourceRange Range,
   return EndLoc.getLocWithOffset(Offset);
 }
 
+clang::SourceRange RewriteUtils::getDeclFullSourceRange(clang::Decl* D)
+{
+  SourceRange Range = D->getSourceRange();
+  bool HasSemicolon = false;
+
+  // Ensure that function template parameters are included in the def range
+  if (auto* FD = dyn_cast<FunctionDecl>(D)) {
+    HasSemicolon |= !FD->doesThisDeclarationHaveABody();
+
+    if (FD->getNumTemplateParameterLists()) {
+      TemplateParameterList* TPL = FD->getTemplateParameterList(0);
+      Range.setBegin(TPL->getSourceRange().getBegin());
+    } else if (auto* DFT = FD->getDescribedFunctionTemplate()) {
+      TemplateParameterList* TPL = DFT->getTemplateParameters();
+      Range.setBegin(TPL->getSourceRange().getBegin());
+    }
+  }
+
+  if (HasSemicolon)
+    Range.setEnd(getEndLocationAfter(Range, ';'));
+
+  return Range;
+}
+
 SourceLocation RewriteUtils::getLocationAfter(SourceLocation Loc, 
                                                 char Symbol)
 {

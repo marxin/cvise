@@ -1,0 +1,10 @@
+
+template <class T>
+T test(T);
+
+// ...
+
+template <class T>
+T test(T x) {
+	return x;
+}
