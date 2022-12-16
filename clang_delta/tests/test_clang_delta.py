@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import unittest
 
@@ -9,8 +10,12 @@ def get_llvm_version():
     output = subprocess.check_output(f'ldd {binary}', shell=True, universal_newlines=True)
     for line in output.splitlines():
         part = line.strip().split()[0]
-        if part.startswith('libLLVM.so.'):
-            return int(part.split('.')[-1])
+        if part.startswith('libLLVM'):
+            m = re.match(r'libLLVM-(?P<version>[0-9]+)\.so', part)
+            if m:
+                return int(m.group('version'))
+            else:
+                return int(part.split('.')[-1])
 
     raise AssertionError()
 
