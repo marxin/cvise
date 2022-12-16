@@ -42,10 +42,10 @@ private:
 
   void doRewriting(void);
 
-  std::vector<clang::FunctionDecl*> FunctionCandidates;
+  std::vector<clang::Decl*> FunctionCandidates;
 
-  clang::FunctionDecl *TheFunctionDecl = nullptr;
+  clang::Decl* TheFunctionDecl = nullptr;
 
-  clang::FunctionDecl *TheFunctionDef = nullptr;
+  clang::Decl* TheFunctionDef = nullptr;
 };
 #endif
