@@ -132,16 +132,16 @@ set(SOURCE_FILES
   "/tests/remove-base-class/test3.output"
   "/tests/remove-base-class/test4.cc"
   "/tests/remove-base-class/test4.output"
-  "/tests/move-function-body/test1.cc"
-  "/tests/move-function-body/test1.output"
-  "/tests/move-function-body/test2.cc"
-  "/tests/move-function-body/test2.output"
-  "/tests/move-function-body/test3.cc"
-  "/tests/move-function-body/test3.output"
-  "/tests/move-function-body/test4.cc"
-  "/tests/move-function-body/test4.output"
-  "/tests/move-function-body/test5.cc"
-  "/tests/move-function-body/test5.output"
+  "/tests/move-definition-to-declaration/test1.cc"
+  "/tests/move-definition-to-declaration/test1.output"
+  "/tests/move-definition-to-declaration/test2.cc"
+  "/tests/move-definition-to-declaration/test2.output"
+  "/tests/move-definition-to-declaration/test3.cc"
+  "/tests/move-definition-to-declaration/test3.output"
+  "/tests/move-definition-to-declaration/test4.cc"
+  "/tests/move-definition-to-declaration/test4.output"
+  "/tests/move-definition-to-declaration/test5.cc"
+  "/tests/move-definition-to-declaration/test5.output"
   "/tests/remove-namespace/macro.cpp"
   "/tests/remove-namespace/macro.output"
   "/tests/remove-namespace/macro.output2"
@@ -517,8 +517,8 @@ add_executable(clang_delta
   LiftAssignmentExpr.h
   LocalToGlobal.cpp
   LocalToGlobal.h
-  MoveFunctionBody.cpp
-  MoveFunctionBody.h
+  MoveDefinitionToDeclaration.cpp
+  MoveDefinitionToDeclaration.h
   MoveGlobalVar.cpp
   MoveGlobalVar.h
   ParamToGlobal.cpp

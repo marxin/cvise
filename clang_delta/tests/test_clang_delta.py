@@ -654,17 +654,17 @@ class TestClangDelta(unittest.TestCase):
     def test_remove_base_class_test4(self):
         self.check_clang_delta('remove-base-class/test4.cc', '--transformation=remove-base-class --counter=1')
 
-    def test_move_function_body_test1(self):
-        self.check_clang_delta('move-function-body/test1.cc', '--transformation=move-function-body --counter=1')
+    def test_move_definition_to_declaration_test1(self):
+        self.check_clang_delta('move-definition-to-declaration/test1.cc', '--transformation=move-definition-to-declaration --counter=1')
 
-    def test_move_function_body_test2(self):
-        self.check_clang_delta('move-function-body/test2.cc', '--transformation=move-function-body --counter=1')
+    def test_move_definition_to_declaration_test2(self):
+        self.check_clang_delta('move-definition-to-declaration/test2.cc', '--transformation=move-definition-to-declaration --counter=1')
 
-    def test_move_function_body_test3(self):
-        self.check_clang_delta('move-function-body/test3.cc', '--transformation=move-function-body --counter=1')
+    def test_move_definition_to_declaration_test3(self):
+        self.check_clang_delta('move-definition-to-declaration/test3.cc', '--transformation=move-definition-to-declaration --counter=1')
 
-    def test_move_function_body_test4(self):
-        self.check_clang_delta('move-function-body/test4.cc', '--transformation=move-function-body --counter=1')
+    def test_move_definition_to_declaration_test4(self):
+        self.check_clang_delta('move-definition-to-declaration/test4.cc', '--transformation=move-definition-to-declaration --counter=1')
 
-    def test_move_function_body_test5(self):
-        self.check_clang_delta('move-function-body/test5.cc', '--transformation=move-function-body --counter=1')
+    def test_move_definition_to_declaration_test5(self):
+        self.check_clang_delta('move-definition-to-declaration/test5.cc', '--transformation=move-definition-to-declaration --counter=1')

@@ -12,7 +12,7 @@
 #  include <config.h>
 #endif
 
-#include "MoveFunctionBody.h"
+#include "MoveDefinitionToDeclaration.h"
 
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
@@ -26,14 +26,14 @@ static const char *DescriptionMsg =
 "Move function body towards its declaration. \
 Note that this pass would generate uncompilable code. \n";
 
-static RegisterTransformation<MoveFunctionBody>
-         Trans("move-function-body", DescriptionMsg);
+static RegisterTransformation<MoveDefinitionToDeclaration>
+         Trans("move-definition-to-declaration", DescriptionMsg);
 
-class MoveFunctionBody::CollectionVisitor : public RecursiveASTVisitor<CollectionVisitor> {
-    MoveFunctionBody* ConsumerInstance;
+class MoveDefinitionToDeclaration::CollectionVisitor : public RecursiveASTVisitor<CollectionVisitor> {
+    MoveDefinitionToDeclaration* ConsumerInstance;
 
 public:
-  explicit CollectionVisitor(MoveFunctionBody* Instance) : ConsumerInstance(Instance)
+  explicit CollectionVisitor(MoveDefinitionToDeclaration* Instance) : ConsumerInstance(Instance)
   { }
 
   bool VisitFunctionDecl(FunctionDecl* FuncDef) {
@@ -54,7 +54,7 @@ public:
 private:
 };
 
-void MoveFunctionBody::HandleTranslationUnit(ASTContext &Ctx)
+void MoveDefinitionToDeclaration::HandleTranslationUnit(ASTContext &Ctx)
 {
   CollectionVisitor(this).TraverseDecl(Ctx.getTranslationUnitDecl());
 
@@ -99,7 +99,7 @@ static const TemplateParameterList* getDescribedTemplateParams(Decl* D) {
   return nullptr;
 }
 
-void MoveFunctionBody::doRewriting(void)
+void MoveDefinitionToDeclaration::doRewriting(void)
 {
   SourceRange DefRange = RewriteHelper->getDeclFullSourceRange(TheFunctionDef);
 
@@ -150,7 +150,7 @@ void MoveFunctionBody::doRewriting(void)
   }
 }
 
-MoveFunctionBody::~MoveFunctionBody(void)
+MoveDefinitionToDeclaration::~MoveDefinitionToDeclaration(void)
 {
   // Nothing to do
 }

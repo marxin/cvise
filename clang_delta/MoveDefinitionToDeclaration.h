@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MOVE_FUNCTION_BODY_H
-#define MOVE_FUNCTION_BODY_H
+#ifndef MOVE_DEFINITION_TO_DECLARATION_H
+#define MOVE_DEFINITION_TO_DECLARATION_H
 
 #include <string>
 #include "llvm/ADT/DenseMap.h"
@@ -21,17 +21,17 @@ namespace clang {
   class FunctionDecl;
 }
 
-class MoveFunctionBody : public Transformation {
+class MoveDefinitionToDeclaration : public Transformation {
   class CollectionVisitor;
 
 
 public:
 
-  MoveFunctionBody(const char *TransName, const char *Desc)
+  MoveDefinitionToDeclaration(const char *TransName, const char *Desc)
     : Transformation(TransName, Desc)
   { }
 
-  ~MoveFunctionBody(void);
+  ~MoveDefinitionToDeclaration(void);
 
 private:
   
