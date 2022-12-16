@@ -282,7 +282,7 @@ public:
   clang::SourceLocation getLocationAfterSkiping(clang::SourceLocation StartLoc,
                                                 char Symbol);
 
-  clang::SourceRange getDeclFullSourceRange(clang::Decl* D);
+  clang::SourceRange getDeclFullSourceRange(const clang::Decl* D);
 
 private:
 

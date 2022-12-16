@@ -632,6 +632,28 @@ class TestClangDelta(unittest.TestCase):
     def test_rename_operator_test2(self):
         self.check_clang_delta('rename-operator/test2.cc', '--transformation=rename-operator --counter=1')
 
+    def test_merge_base_class_test1(self):
+        self.check_clang_delta('merge-base-class/test1.cc', '--transformation=merge-base-class --counter=1')
+
+    @unittest.skipIf(get_llvm_version() <= 9, 'Fails with LLVM <= 9')
+    def test_merge_base_class_test2(self):
+        self.check_clang_delta('merge-base-class/test2.cc', '--transformation=merge-base-class --counter=1')
+
+    def test_merge_base_class_test3(self):
+        self.check_clang_delta('merge-base-class/test3.cc', '--transformation=merge-base-class --counter=1')
+
+    def test_remove_base_class_test1(self):
+        self.check_clang_delta('remove-base-class/test1.cc', '--transformation=remove-base-class --counter=1')
+
+    def test_remove_base_class_test2(self):
+        self.check_clang_delta('remove-base-class/test2.cc', '--transformation=remove-base-class --counter=1')
+
+    def test_remove_base_class_test3(self):
+        self.check_clang_delta('remove-base-class/test3.cc', '--transformation=remove-base-class --counter=1')
+
+    def test_remove_base_class_test4(self):
+        self.check_clang_delta('remove-base-class/test4.cc', '--transformation=remove-base-class --counter=1')
+
     def test_move_function_body_test1(self):
         self.check_clang_delta('move-function-body/test1.cc', '--transformation=move-function-body --counter=1')
 

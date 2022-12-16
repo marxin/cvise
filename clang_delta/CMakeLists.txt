@@ -118,6 +118,20 @@ set(SOURCE_FILES
   "/tests/reduce-array-dim/non-type-temp-arg.output"
   "/tests/reduce-pointer-level/scalar-init-expr.cpp"
   "/tests/reduce-pointer-level/scalar-init-expr.output"
+  "/tests/merge-base-class/test1.cc"
+  "/tests/merge-base-class/test1.output"
+  "/tests/merge-base-class/test2.cc"
+  "/tests/merge-base-class/test2.output"
+  "/tests/merge-base-class/test3.cc"
+  "/tests/merge-base-class/test3.output"
+  "/tests/remove-base-class/test1.cc"
+  "/tests/remove-base-class/test1.output"
+  "/tests/remove-base-class/test2.cc"
+  "/tests/remove-base-class/test2.output"
+  "/tests/remove-base-class/test3.cc"
+  "/tests/remove-base-class/test3.output"
+  "/tests/remove-base-class/test4.cc"
+  "/tests/remove-base-class/test4.output"
   "/tests/move-function-body/test1.cc"
   "/tests/move-function-body/test1.output"
   "/tests/move-function-body/test2.cc"
@@ -529,6 +543,7 @@ add_executable(clang_delta
   RemoveArray.h
   RemoveBaseClass.cpp
   RemoveBaseClass.h
+  MergeBaseClass.cpp
   RemoveCtorInitializer.cpp
   RemoveCtorInitializer.h
   RemoveEnumMemberValue.cpp

@@ -173,22 +173,37 @@ SourceLocation RewriteUtils::getEndLocationAfter(SourceRange Range,
   return EndLoc.getLocWithOffset(Offset);
 }
 
-clang::SourceRange RewriteUtils::getDeclFullSourceRange(clang::Decl* D)
+clang::SourceRange RewriteUtils::getDeclFullSourceRange(const clang::Decl* D)
 {
   SourceRange Range = D->getSourceRange();
-  bool HasSemicolon = false;
 
-  // Ensure that function template parameters are included in the def range
+  // Ensure that template parameters are included in the def range
   if (auto* FD = dyn_cast<FunctionDecl>(D)) {
-    HasSemicolon |= !FD->doesThisDeclarationHaveABody();
-
     if (FD->getNumTemplateParameterLists()) {
       TemplateParameterList* TPL = FD->getTemplateParameterList(0);
       Range.setBegin(TPL->getSourceRange().getBegin());
-    } else if (auto* DFT = FD->getDescribedFunctionTemplate()) {
-      TemplateParameterList* TPL = DFT->getTemplateParameters();
+    } else if (auto* T = FD->getDescribedTemplate()) {
+      TemplateParameterList* TPL = T->getTemplateParameters();
       Range.setBegin(TPL->getSourceRange().getBegin());
     }
+  } else if (auto* TD = dyn_cast<TagDecl>(D)) {
+    if (TD->getNumTemplateParameterLists()) {
+      TemplateParameterList* TPL = TD->getTemplateParameterList(0);
+      Range.setBegin(TPL->getSourceRange().getBegin());
+    } else if (auto* T = TD->getDescribedTemplate()) {
+      TemplateParameterList* TPL = T->getTemplateParameters();
+      Range.setBegin(TPL->getSourceRange().getBegin());
+    }
+  }
+
+
+  // Include the semicolon into the declaration. 
+  // See DeclPrinter::VisitDeclContext in clang source code for all cases.
+  bool HasSemicolon = true;
+  if (auto* FD = dyn_cast<FunctionDecl>(D)) {
+    HasSemicolon = !FD->doesThisDeclarationHaveABody();
+  } else if (auto* FTD = dyn_cast<FunctionTemplateDecl>(D)) {
+    HasSemicolon = !FTD->getTemplatedDecl()->isThisDeclarationADefinition();
   }
 
   if (HasSemicolon)
@@ -1886,22 +1901,17 @@ bool RewriteUtils::removeTemplateParameter(const clang::TemplateParameterList* T
 
 bool RewriteUtils::removeClassDecls(const CXXRecordDecl *CXXRD)
 {
-  for (CXXRecordDecl::redecl_iterator I = CXXRD->redecls_begin(),
-      E = CXXRD->redecls_end(); I != E; ++I) {
-    SourceRange Range = (*I)->getSourceRange();
-    SourceLocation LocEnd;
-    if ((*I)->isThisDeclarationADefinition()) {
-      LocEnd = (*I)->getBraceRange().getEnd();
-      if (LocEnd.isValid())
-        LocEnd = getLocationUntil(LocEnd, ';');
-      else
-        LocEnd = getEndLocationUntil(Range, ';');
-    }
-    else {
-      LocEnd = getEndLocationUntil(Range, ';');
-    }
-    TheRewriter->RemoveText(SourceRange(Range.getBegin(), LocEnd));
+  if (auto* CTSD = dyn_cast<ClassTemplateSpecializationDecl>(CXXRD)) {
+    if (CTSD->getSpecializationKind() == TSK_ImplicitInstantiation)
+      CXXRD = CTSD->getSpecializedTemplate()->getTemplatedDecl();
   }
+
+  for (const TagDecl* Redecl : CXXRD->redecls()) {
+    SourceRange Range = getDeclFullSourceRange(Redecl);
+    if (Range.isValid())
+      TheRewriter->RemoveText(Range);
+  }
+
   return true;
 }
 

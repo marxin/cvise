@@ -87,7 +87,8 @@ void MoveFunctionBody::HandleTranslationUnit(ASTContext &Ctx)
     TransError = TransInternalError;
 }
 
-// Needed for backwards compatibility. Copyied from Decl::getDescribedTemplateParams.
+// Decl::getDescribedTemplateParams was introduced in LLVM 11.
+// Copied here for backwards compatibility.
 static const TemplateParameterList* getDescribedTemplateParams(Decl* D) {
   if (auto* TD = D->getDescribedTemplate())
     return TD->getTemplateParameters();

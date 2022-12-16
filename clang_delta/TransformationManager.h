@@ -184,12 +184,12 @@ private:
 
 };
 
-template<typename TransformationClass>
+template<typename TransformationClass, typename... Args>
 class RegisterTransformation {
 
 public:
-  RegisterTransformation(const char *TransName, const char *Desc) {
-    Transformation *TransImpl = new TransformationClass(TransName, Desc);
+  RegisterTransformation(const char *TransName, const char *Desc, Args... args) {
+    Transformation *TransImpl = new TransformationClass(TransName, Desc, args...);
     assert(TransImpl && "Fail to create TransformationClass");
  
     TransformationManager::registerTransformation(TransName, TransImpl);

@@ -1,0 +1,18 @@
+
+template <class T>
+struct c1 {
+};
+
+template <>
+struct c1<int> {
+	c1(int x);
+	
+	// hello
+	int y;
+};
+
+struct c2  {
+	c2()  {
+	}
+	
+};
