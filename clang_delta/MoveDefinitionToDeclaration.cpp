@@ -41,10 +41,17 @@ public:
     auto* Decl = Def->getPreviousDecl();
     if (Decl == nullptr || Def == Decl)
       return;
-    if (ConsumerInstance->isInIncludedFile(Def) || ConsumerInstance->isInIncludedFile(Decl))
+
+    auto DefRange = ConsumerInstance->RewriteHelper->getDeclFullSourceRange(Def);
+    auto DeclRange = ConsumerInstance->RewriteHelper->getDeclFullSourceRange(Decl);
+    if (DefRange.isInvalid() || DeclRange.isInvalid() || ConsumerInstance->isInIncludedFile(DefRange) || ConsumerInstance->isInIncludedFile(DeclRange))
       return;
 
-    ConsumerInstance->FunctionCandidates.push_back(Def);
+    auto Text = ConsumerInstance->TheRewriter.getRewrittenText({ DeclRange.getEnd(), DefRange.getBegin().getLocWithOffset(-1) });
+    if (std::all_of(Text.begin(), Text.end(), isspace))
+      return;
+
+    ConsumerInstance->DefCandidates.push_back(Def);
   }
 
   bool VisitFunctionDecl(FunctionDecl* FD) {
@@ -75,7 +82,7 @@ void MoveDefinitionToDeclaration::HandleTranslationUnit(ASTContext &Ctx)
 {
   CollectionVisitor(this).TraverseDecl(Ctx.getTranslationUnitDecl());
 
-  ValidInstanceNum = FunctionCandidates.size();
+  ValidInstanceNum = DefCandidates.size();
 
   if (QueryInstanceOnly)
     return;
@@ -85,13 +92,13 @@ void MoveDefinitionToDeclaration::HandleTranslationUnit(ASTContext &Ctx)
     return;
   }
 
-  TheFunctionDef = FunctionCandidates[TransformationCounter-1];
-  TheFunctionDecl = TheFunctionDef->getPreviousDecl();
+  TheDef = DefCandidates[TransformationCounter-1];
+  TheDecl = TheDef->getPreviousDecl();
 
   Ctx.getDiagnostics().setSuppressAllDiagnostics(false);
 
-  TransAssert(TheFunctionDecl && "NULL TheFunctionDecl!");
-  TransAssert(TheFunctionDef && "NULL TheFunctionDef!");
+  TransAssert(TheDecl && "NULL TheDecl!");
+  TransAssert(TheDef && "NULL TheDef!");
 
   doRewriting();
 
@@ -114,17 +121,17 @@ static const TemplateParameterList* getDescribedTemplateParams(Decl* D) {
 
 void MoveDefinitionToDeclaration::doRewriting(void)
 {
-  SourceRange DefRange = RewriteHelper->getDeclFullSourceRange(TheFunctionDef);
+  SourceRange DefRange = RewriteHelper->getDeclFullSourceRange(TheDef);
 
   // Remove namespace and class qualifiers
-  if (auto* DD = dyn_cast<DeclaratorDecl>(TheFunctionDef)) {
+  if (auto* DD = dyn_cast<DeclaratorDecl>(TheDef)) {
     if (auto QL = DD->getQualifierLoc()) {
       TheRewriter.RemoveText(QL.getSourceRange());
     }
   }
 
-  if (auto* MethDecl = dyn_cast<CXXMethodDecl>(TheFunctionDecl)) {
-    auto* MethDef = cast<CXXMethodDecl>(TheFunctionDef);
+  if (auto* MethDecl = dyn_cast<CXXMethodDecl>(TheDecl)) {
+    auto* MethDef = cast<CXXMethodDecl>(TheDef);
 
     // Update the template parameters name of the class if they are empty
     // This is very likely since unused parameter names gets removed during reduction
@@ -159,11 +166,11 @@ void MoveDefinitionToDeclaration::doRewriting(void)
   TheRewriter.RemoveText(DefRange);
 
   // Inside a class we need to remove the declaration
-  if (isa<CXXMethodDecl>(TheFunctionDecl)) {
-    auto DeclRange = RewriteHelper->getDeclFullSourceRange(TheFunctionDecl);
+  if (isa<CXXMethodDecl>(TheDecl)) {
+    auto DeclRange = RewriteHelper->getDeclFullSourceRange(TheDecl);
     TheRewriter.ReplaceText(DeclRange, FuncDefStr);
   } else {
-    RewriteHelper->addStringAfterDecl(TheFunctionDecl, FuncDefStr);
+    RewriteHelper->addStringAfterDecl(TheDecl, FuncDefStr);
   }
 }
 

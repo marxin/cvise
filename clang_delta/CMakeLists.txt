@@ -142,6 +142,7 @@ set(SOURCE_FILES
   "/tests/move-definition-to-declaration/func4.output"
   "/tests/move-definition-to-declaration/func5.cc"
   "/tests/move-definition-to-declaration/func5.output"
+  "/tests/move-definition-to-declaration/func6.cc"
   "/tests/move-definition-to-declaration/struct1.cc"
   "/tests/move-definition-to-declaration/struct1.output"
   "/tests/move-definition-to-declaration/struct2.cc"

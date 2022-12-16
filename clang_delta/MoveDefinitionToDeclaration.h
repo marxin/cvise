@@ -15,12 +15,6 @@
 #include "llvm/ADT/DenseMap.h"
 #include "Transformation.h"
 
-namespace clang {
-  class DeclGroupRef;
-  class ASTContext;
-  class FunctionDecl;
-}
-
 class MoveDefinitionToDeclaration : public Transformation {
   class CollectionVisitor;
 
@@ -34,18 +28,15 @@ public:
   ~MoveDefinitionToDeclaration(void);
 
 private:
-  
-  typedef llvm::DenseMap<clang::FunctionDecl *, clang::FunctionDecl *>
-            FuncDeclToFuncDeclMap;
 
   virtual void HandleTranslationUnit(clang::ASTContext &Ctx);
 
   void doRewriting(void);
 
-  std::vector<clang::Decl*> FunctionCandidates;
+  std::vector<clang::Decl*> DefCandidates;
 
-  clang::Decl* TheFunctionDecl = nullptr;
+  clang::Decl* TheDecl = nullptr;
 
-  clang::Decl* TheFunctionDef = nullptr;
+  clang::Decl* TheDef = nullptr;
 };
 #endif

@@ -669,6 +669,10 @@ class TestClangDelta(unittest.TestCase):
     def test_move_definition_to_declaration_func5(self):
         self.check_clang_delta('move-definition-to-declaration/func5.cc', '--transformation=move-definition-to-declaration --counter=1')
 
+    def test_move_definition_to_declaration_func6(self):
+        self.check_query_instances('move-definition-to-declaration/func6.cc', '--query-instances=move-definition-to-declaration',
+                                   'Available transformation instances: 0')
+
     def test_move_definition_to_declaration_struct1(self):
         self.check_clang_delta('move-definition-to-declaration/struct1.cc', '--transformation=move-definition-to-declaration --counter=1')
 

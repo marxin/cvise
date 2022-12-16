@@ -315,6 +315,10 @@ protected:
 
   bool isInIncludedFile(clang::SourceLocation Loc) const;
 
+  bool isInIncludedFile(const clang::SourceRange& Range) const {
+    return isInIncludedFile(Range.getBegin()) ||isInIncludedFile(Range.getEnd());
+  }
+
   bool isInIncludedFile(const clang::Decl *D) const;
 
   bool isInIncludedFile(const clang::Stmt *S) const;
