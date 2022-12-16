@@ -3,6 +3,18 @@ import subprocess
 import unittest
 
 
+def get_llvm_version():
+    current = os.path.dirname(__file__)
+    binary = os.path.join(current, '../clang_delta')
+    output = subprocess.check_output(f'ldd {binary}', shell=True, universal_newlines=True)
+    for line in output.splitlines():
+        part = line.strip().split()[0]
+        if part.startswith('libLLVM.so.'):
+            return int(part.split('.')[-1])
+
+    raise AssertionError()
+
+
 class TestClangDelta(unittest.TestCase):
 
     @classmethod
@@ -357,7 +369,7 @@ class TestClangDelta(unittest.TestCase):
     def test_rename_class_bool(self):
         self.check_clang_delta('rename-class/bool.cc', '--transformation=rename-class --counter=1')
 
-    @unittest.skip(reason='Fails with LLVM 16')
+    @unittest.skipIf(get_llvm_version() >= 16, 'Fails with LLVM 16')
     def test_rename_class_class_template(self):
         self.check_clang_delta('rename-class/class_template.cc', '--transformation=rename-class --counter=1')
 
