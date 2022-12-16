@@ -67,7 +67,7 @@
     {"pass": "clang", "arg": "simplify-if", "c": true },
     {"pass": "clang", "arg": "reduce-array-dim", "c": true },
     {"pass": "clang", "arg": "reduce-array-size", "c": true },
-    {"pass": "clang", "arg": "move-function-body", "c": true },
+    {"pass": "clang", "arg": "move-definition-to-declaration", "c": true },
     {"pass": "clang", "arg": "simplify-comma-expr", "c": true },
     {"pass": "clang", "arg": "simplify-dependent-typedef", "c": true },
     {"pass": "clang", "arg": "replace-simple-typedef", "c": true },
