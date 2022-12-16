@@ -85,6 +85,7 @@
     {"pass": "clang", "arg": "reduce-class-template-param", "c": true },
     {"pass": "clang", "arg": "remove-trivial-base-template", "c": true },
     {"pass": "clang", "arg": "class-template-to-class", "c": true },
+    {"pass": "clang", "arg": "merge-base-class", "c": true },
     {"pass": "clang", "arg": "remove-base-class", "c": true },
     {"pass": "clang", "arg": "replace-derived-class", "c": true },
     {"pass": "clang", "arg": "remove-unresolved-base", "c": true },

@@ -1,0 +1,13 @@
+
+
+
+struct c2  {
+	c2()  {
+	}
+	
+
+	int x;
+	int y;
+	
+	// hello
+	c2(int x);};

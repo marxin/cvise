@@ -1,0 +1,14 @@
+
+struct c1 {
+	int x;
+	int y;
+	
+	// hello
+	c1(int x);
+};
+
+struct c2  {
+	c2()  {
+	}
+	
+};

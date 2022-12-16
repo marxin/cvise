@@ -1,0 +1,9 @@
+template <class T> 
+struct c {
+  c(T) {}
+};
+
+struct i :  c<int> {
+  template <class T>
+  i() :  c<int>(10) {}
+};
