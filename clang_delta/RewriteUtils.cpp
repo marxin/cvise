@@ -966,13 +966,11 @@ bool RewriteUtils::addStringAfterVarDecl(const VarDecl *VD,
   return !(TheRewriter->InsertText(LocEnd, "\n" + Str));
 }
 
-bool RewriteUtils::addStringAfterFuncDecl(const FunctionDecl *FD,
-                                          const std::string &Str)
+bool RewriteUtils::addStringAfterDecl(const Decl *D, const std::string &Str)
 {
-  SourceRange FDRange = FD->getSourceRange();
-  SourceLocation LocEnd = getEndLocationAfter(FDRange, ';');
+  SourceRange Range = getDeclFullSourceRange(D);
   
-  return !(TheRewriter->InsertText(LocEnd, "\n" + Str));
+  return !(TheRewriter->InsertText(Range.getEnd(), "\n" + Str));
 }
 
 // This function is an experimental one. It doesn't work

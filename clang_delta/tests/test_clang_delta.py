@@ -654,17 +654,30 @@ class TestClangDelta(unittest.TestCase):
     def test_remove_base_class_test4(self):
         self.check_clang_delta('remove-base-class/test4.cc', '--transformation=remove-base-class --counter=1')
 
-    def test_move_definition_to_declaration_test1(self):
-        self.check_clang_delta('move-definition-to-declaration/test1.cc', '--transformation=move-definition-to-declaration --counter=1')
+    def test_move_definition_to_declaration_func1(self):
+        self.check_clang_delta('move-definition-to-declaration/func1.cc', '--transformation=move-definition-to-declaration --counter=1')
 
-    def test_move_definition_to_declaration_test2(self):
-        self.check_clang_delta('move-definition-to-declaration/test2.cc', '--transformation=move-definition-to-declaration --counter=1')
+    def test_move_definition_to_declaration_func2(self):
+        self.check_clang_delta('move-definition-to-declaration/func2.cc', '--transformation=move-definition-to-declaration --counter=1')
 
-    def test_move_definition_to_declaration_test3(self):
-        self.check_clang_delta('move-definition-to-declaration/test3.cc', '--transformation=move-definition-to-declaration --counter=1')
+    def test_move_definition_to_declaration_func3(self):
+        self.check_clang_delta('move-definition-to-declaration/func3.cc', '--transformation=move-definition-to-declaration --counter=1')
 
-    def test_move_definition_to_declaration_test4(self):
-        self.check_clang_delta('move-definition-to-declaration/test4.cc', '--transformation=move-definition-to-declaration --counter=1')
+    def test_move_definition_to_declaration_func4(self):
+        self.check_clang_delta('move-definition-to-declaration/func4.cc', '--transformation=move-definition-to-declaration --counter=1')
 
-    def test_move_definition_to_declaration_test5(self):
-        self.check_clang_delta('move-definition-to-declaration/test5.cc', '--transformation=move-definition-to-declaration --counter=1')
+    def test_move_definition_to_declaration_func5(self):
+        self.check_clang_delta('move-definition-to-declaration/func5.cc', '--transformation=move-definition-to-declaration --counter=1')
+
+    def test_move_definition_to_declaration_func6(self):
+        self.check_query_instances('move-definition-to-declaration/func6.cc', '--query-instances=move-definition-to-declaration',
+                                   'Available transformation instances: 0')
+
+    def test_move_definition_to_declaration_struct1(self):
+        self.check_clang_delta('move-definition-to-declaration/struct1.cc', '--transformation=move-definition-to-declaration --counter=1')
+
+    def test_move_definition_to_declaration_struct2(self):
+        self.check_clang_delta('move-definition-to-declaration/struct2.cc', '--transformation=move-definition-to-declaration --counter=1')
+
+    def test_move_definition_to_declaration_var1(self):
+        self.check_clang_delta('move-definition-to-declaration/var1.cc', '--transformation=move-definition-to-declaration --counter=1')

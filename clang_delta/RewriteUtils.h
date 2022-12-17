@@ -116,8 +116,8 @@ public:
   bool addStringAfterVarDecl(const clang::VarDecl *VD,
                              const std::string &Str);
 
-  bool addStringAfterFuncDecl(const clang::FunctionDecl *FD,
-                              const std::string &Str);
+  bool addStringAfterDecl(const clang::Decl *D,
+                          const std::string &Str);
 
   bool replaceVarDeclName(clang::VarDecl *VD,
                           const std::string &NameStr);

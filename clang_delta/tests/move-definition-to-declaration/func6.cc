@@ -1,0 +1,6 @@
+
+int test(int hello);
+
+int test(int x) {
+	return 42;
+}
