@@ -68,8 +68,10 @@ public:
                           CharSourceRange FilenameRange,
 #if LLVM_VERSION_MAJOR < 15
                           const FileEntry *File,
-#else
+#elif LLVM_VERSION_MAJOR < 16
                           Optional<FileEntryRef> File,
+#else
+                          OptionalFileEntryRef File,
 #endif
                           StringRef SearchPath, StringRef RelativePath,
                           const Module *Imported,
@@ -92,8 +94,10 @@ void IncludesPPCallbacks::InclusionDirective(SourceLocation HashLoc,
                                              CharSourceRange /*FilenameRange*/,
 #if LLVM_VERSION_MAJOR < 15
                                              const FileEntry * /*File*/,
-#else
+#elif LLVM_VERSION_MAJOR < 16
                                              Optional<FileEntryRef> /*File*/,
+#else
+                                             OptionalFileEntryRef /*File*/,
 #endif
                                              StringRef /*SearchPath*/,
                                              StringRef /*RelativePath*/,
