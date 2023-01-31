@@ -108,7 +108,10 @@ void Transformation::outputTransformedSource(llvm::raw_ostream &OutStream)
 void Transformation::outputOriginalSource(llvm::raw_ostream &OutStream)
 {
   FileID MainFileID = SrcManager->getMainFileID();
-#if LLVM_VERSION_MAJOR >= 12
+#if LLVM_VERSION_MAJOR >= 16
+  std::optional<llvm::MemoryBufferRef> MainBuf =
+      SrcManager->getBufferOrNone(MainFileID);
+#elif LLVM_VERSION_MAJOR >= 12
   llvm::Optional<llvm::MemoryBufferRef> MainBuf =
       SrcManager->getBufferOrNone(MainFileID);
 #else
