@@ -246,7 +246,7 @@ static bool isSpecifier(Token T) {
 }
 
 // Copied from https://github.com/llvm/llvm-project/blob/main/clang-tools-extra/clang-tidy/modernize/UseTrailingReturnTypeCheck.cpp
-static llvm::Optional<ClassifiedToken>
+static std::optional<ClassifiedToken>
 classifyToken(const FunctionDecl& F, Preprocessor& PP, Token Tok) {
   ClassifiedToken CT;
   CT.T = Tok;
@@ -281,17 +281,13 @@ classifyToken(const FunctionDecl& F, Preprocessor& PP, Token Tok) {
   // If the Token/Macro contains more than one type of tokens, we would need
   // to split the macro in order to move parts to the trailing return type.
   if (ContainsQualifiers + ContainsSpecifiers + ContainsSomethingElse > 1)
-#if LLVM_VERSION_MAJOR >= 16
-    return std::nullopt;
-#else
-    return llvm::None;
-#endif
+    return {};
 
   return CT;
 }
 
 // Copied from https://github.com/llvm/llvm-project/blob/main/clang-tools-extra/clang-tidy/modernize/UseTrailingReturnTypeCheck.cpp
-llvm::Optional<SmallVector<ClassifiedToken, 8>>
+std::optional<SmallVector<ClassifiedToken, 8>>
 ReturnVoid::classifyTokensBeforeFunctionName(
   const FunctionDecl& F, const ASTContext& Ctx, const SourceManager& SM,
   const LangOptions& LangOpts) {
@@ -315,25 +311,17 @@ ReturnVoid::classifyTokensBeforeFunctionName(
         if (!MI || MI->isFunctionLike()) {
           // Cannot handle function style macros.
           //diag(F.getLocation(), Message);
-#if LLVM_VERSION_MAJOR >= 16
-          return std::nullopt;
-#else
-          return llvm::None;
-#endif
+          return {};
         }
       }
       T.setIdentifierInfo(&Info);
       T.setKind(Info.getTokenID());
     }
-    if (llvm::Optional<ClassifiedToken> CT = classifyToken(F, *PP, T))
+    if (std::optional<ClassifiedToken> CT = classifyToken(F, *PP, T))
       ClassifiedTokens.push_back(*CT);
     else {
       //diag(F.getLocation(), Message);
-#if LLVM_VERSION_MAJOR >= 16
-      return std::nullopt;
-#else
-      return llvm::None;
-#endif
+      return {};
     }
   }
   return ClassifiedTokens;
@@ -356,7 +344,7 @@ SourceRange ReturnVoid::findReturnTypeAndCVSourceRange(
   if (!hasAnyNestedLocalQualifiers(F.getReturnType()))
     return ReturnTypeRange;
   // Include qualifiers to the left and right of the return type.
-  llvm::Optional<SmallVector<ClassifiedToken, 8>> MaybeTokens =
+  std::optional<SmallVector<ClassifiedToken, 8>> MaybeTokens =
     classifyTokensBeforeFunctionName(F, Ctx, SM, LangOpts);
   if (!MaybeTokens)
     return {};

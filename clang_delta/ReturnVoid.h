@@ -56,7 +56,7 @@ private:
 
   bool isInTheFuncDef(clang::ReturnStmt *RS);
 
-  llvm::Optional<llvm::SmallVector<ClassifiedToken, 8>>
+  std::optional<llvm::SmallVector<ClassifiedToken, 8>>
     classifyTokensBeforeFunctionName(
       const clang::FunctionDecl& F, const clang::ASTContext& Ctx, const clang::SourceManager& SM,
       const clang::LangOptions& LangOpts);
