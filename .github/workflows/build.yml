@@ -35,6 +35,10 @@ jobs:
     container:
       image: ${{ matrix.docker }}
 
+    concurrency:
+      group: ${{ github.ref }}
+      cancel-in-progress: true
+
     steps:
     - run: zypper -n install
         binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel
