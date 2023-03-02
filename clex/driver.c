@@ -203,7 +203,6 @@ static void string_rm_chars(char *s, int i) {
 static void shorten_string(int idx) {
   int i;
   int matched = 0;
-  int which = 0;
   for (i = 0; i < toks; i++) {
     if (!matched && tok_list[i].kind == TOK_STRING) {
       char *s = tok_list[i].str;
@@ -213,7 +212,6 @@ static void shorten_string(int idx) {
       } else {
         string_rm_chars(s + idx + 1, 1);
         matched = 1;
-        which++;
       }
     }
     printf("%s", tok_list[i].str);
