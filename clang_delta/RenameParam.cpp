@@ -254,7 +254,7 @@ bool RenameParam::isValidPostfix(ExistingNumberSet *LocalSet,
 unsigned int RenameParam::validatePostfix(FunctionDecl *FD, 
                                           unsigned int CurrPostfix)
 {
-  int MaxIteration = 0;
+  [[maybe_unused]] int MaxIteration = 0;
   ExistingNumberSet *LocalNumberSet = NULL;
 
   llvm::DenseMap<FunctionDecl *, ExistingNumberSet *>::iterator I =
