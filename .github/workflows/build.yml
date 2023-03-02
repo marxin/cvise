@@ -30,6 +30,10 @@ jobs:
             build-type: RelWithDebInfo
             extra-flags: -flto=auto
             docker: opensuse/tumbleweed
+          - llmv: 15
+            build-type: RelWithDebInfo
+            docker: opensuse/tumbleweed
+            env: CC=clang CXX=clang++
           - llvm: 9
             build-type: DEBUG
             docker: opensuse/leap
