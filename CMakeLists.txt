@@ -143,8 +143,13 @@ check_cxx_compiler_flag(
 )
 
 check_cxx_compiler_flag(
-  "-Wno-error=mismatched-new-delete"
+  "-Wmismatched-new-delete"
   SUPPORTS_WMISMATCHED_NEW_DELETE
+)
+
+check_cxx_compiler_flag(
+  "-Wdangling-reference"
+  SUPPORTS_WDANGLING_REFERENCE
 )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
@@ -159,6 +164,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
   if(SUPPORTS_WMISMATCHED_NEW_DELETE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=mismatched-new-delete")
   endif()
+  if(SUPPORTS_WDANGLING_REFERENCE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=dangling-reference")
+  endif()
+
 
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g")
