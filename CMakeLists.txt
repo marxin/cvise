@@ -152,12 +152,17 @@ check_cxx_compiler_flag(
   SUPPORTS_WDANGLING_REFERENCE
 )
 
+check_cxx_compiler_flag(
+  "-Wmaybe-uninitialized"
+  SUPPORTS_MAYBE_UNINITIALIZED
+)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
     OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # XXX figure out how to get "-std=c++17 -fno-rtti" from LLVM.  That's how we
   # get those options in the Automake path...
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -Wno-error=maybe-uninitialized")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fno-rtti -fno-strict-aliasing -Wall -Wextra -Wno-unused-parameter -Werror -Wno-error=maybe-uninitialized")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fno-rtti -fno-strict-aliasing -Wall -Wextra -Wno-unused-parameter -Werror")
   if(SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
   endif()
@@ -167,7 +172,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
   if(SUPPORTS_WDANGLING_REFERENCE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=dangling-reference")
   endif()
-
+  if(SUPPORTS_MAYBE_UNINITIALIZED)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=maybe-uninitialized")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=maybe-uninitialized")
+  endif()
 
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g")
