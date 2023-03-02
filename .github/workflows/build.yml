@@ -16,13 +16,13 @@ jobs:
         build-type: [DEBUG]
         docker: [opensuse/tumbleweed]
         include:
-          - llvm: 14
+          - llvm: 15
             build-type: ASAN
             docker: opensuse/tumbleweed
-          - llvm: 14
+          - llvm: 15
             build-type: UBSAN
             docker: opensuse/tumbleweed
-          - llmv: 14
+          - llmv: 15
             build-type: RelWithDebInfo
             extra-flags: -flto=auto
             docker: opensuse/tumbleweed
