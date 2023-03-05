@@ -246,11 +246,7 @@ const Expr *RemoveUnusedStructField::getInitExprFromDesignatedInitExpr(
         LastFDIdx = I;
       }
       else {
-#if LLVM_VERSION_MAJOR >= 17
-        const Designator *DS = DIE->getDesignator(0);
-#else
         const DesignatedInitExpr::Designator *DS = DIE->getDesignator(0);
-#endif
         const FieldDecl *CurrFD = DS->getField();
         if ((CurrFD && FD == CurrFD) ||
             (CurrFD == NULL && DS->getFieldName() == FD->getIdentifier())) {
