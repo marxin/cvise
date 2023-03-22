@@ -10,6 +10,8 @@ from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
 
 class ClangBinarySearchPass(AbstractPass):
+    QUERY_TIMEOUT = 10
+
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
 
@@ -49,17 +51,21 @@ class ClangBinarySearchPass(AbstractPass):
         return state
 
     def count_instances(self, test_case):
-        args = [self.external_programs['clang_delta'], f'--query-instances={self.arg}']
-        if self.clang_delta_std:
-            args.append(f'--std={self.clang_delta_std}')
+        assert self.clang_delta_std
+        args = [self.external_programs['clang_delta'], f'--query-instances={self.arg}',
+                f'--std={self.clang_delta_std}']
         if self.clang_delta_preserve_routine:
             args.append(f'--preserve-routine="{self.clang_delta_preserve_routine}"')
         cmd = args + [test_case]
 
         try:
-            proc = subprocess.run(cmd, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.run(cmd, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                  timeout=self.QUERY_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            logging.warning(f'clang_delta --query-instances (--std={self.clang_delta_std}) {self.QUERY_TIMEOUT}s timeout reached')
+            return 0
         except subprocess.SubprocessError as e:
-            logging.warning(f'clang_delta --query-instances failed: {e}')
+            logging.warning(f'clang_delta --query-instances (--std={self.clang_delta_std}) failed: {e}')
             return 0
 
         if proc.returncode != 0:
