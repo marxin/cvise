@@ -546,7 +546,8 @@ class TestManager:
                         break
 
                     # skip after N transformations if requested
-                    if self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms:
+                    if ((self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms)
+                            or (self.current_pass.max_transforms and success_count >= self.current_pass.max_transforms)):
                         logging.info(f'skipping after {success_count} successful transformations')
                         break
 

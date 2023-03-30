@@ -112,6 +112,7 @@ class CVise:
                     raise CViseError('Unkown pass {}'.format(pass_dict['pass']))
 
                 pass_instance = pass_class(pass_dict.get('arg'), external_programs)
+                pass_instance.max_transforms = None
                 if str(pass_instance) in removed_passes:
                     continue
 
@@ -119,6 +120,11 @@ class CVise:
                     continue
                 elif not renaming and 'renaming' in pass_dict and pass_dict['renaming']:
                     continue
+
+                try:
+                    pass_instance.max_transforms = int(pass_dict['max-transforms'])
+                except KeyError:
+                    pass
 
                 pass_instance.user_clang_delta_std = clang_delta_std
                 pass_instance.clang_delta_preserve_routine = clang_delta_preserve_routine

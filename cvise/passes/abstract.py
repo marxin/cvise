@@ -75,9 +75,13 @@ class AbstractPass:
 
     def __repr__(self):
         if self.arg is not None:
-            return f'{type(self).__name__}::{self.arg}'
+            name = f'{type(self).__name__}::{self.arg}'
         else:
-            return f'{type(self).__name__}'
+            name = f'{type(self).__name__}'
+
+        if self.max_transforms is not None:
+            name += f' ({self.max_transforms} transforms)'
+        return name
 
     def check_external_program(self, name):
         program = self.external_programs[name]
