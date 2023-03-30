@@ -16,21 +16,21 @@ jobs:
 
     strategy:
       matrix:
-        llvm: [11, 12, 13, 14]
+        llvm: [11, 12, 13, 14, 15, 16]
         build-type: [DEBUG]
         docker: [opensuse/tumbleweed]
         include:
-          - llvm: 15
+          - llvm: 16
             build-type: ASAN
             docker: opensuse/tumbleweed
-          - llvm: 15
+          - llvm: 16
             build-type: UBSAN
             docker: opensuse/tumbleweed
-          - llmv: 15
+          - llmv: 16
             build-type: RelWithDebInfo
             extra-flags: -flto=auto
             docker: opensuse/tumbleweed
-          - llmv: 15
+          - llmv: 16
             build-type: RelWithDebInfo
             docker: opensuse/tumbleweed
             env: CC=clang CXX=clang++
