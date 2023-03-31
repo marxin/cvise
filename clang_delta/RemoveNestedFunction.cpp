@@ -197,7 +197,7 @@ void RemoveNestedFunction::getVarStrForTemplateSpecialization(
       );
 
   for (unsigned I = 1; I < NumArgs; ++I) {
-    const TemplateArgument &Arg = TST->template_arguments()[I];
+    const TemplateArgument Arg = TST->template_arguments()[I];
     Stream << ", ";
     Arg.print(getPrintingPolicy(), Stream
 #if LLVM_VERSION_MAJOR >= 13

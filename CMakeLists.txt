@@ -148,11 +148,6 @@ check_cxx_compiler_flag(
 )
 
 check_cxx_compiler_flag(
-  "-Wdangling-reference"
-  SUPPORTS_WDANGLING_REFERENCE
-)
-
-check_cxx_compiler_flag(
   "-Wmaybe-uninitialized"
   SUPPORTS_MAYBE_UNINITIALIZED
 )
@@ -168,9 +163,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
   endif()
   if(SUPPORTS_WMISMATCHED_NEW_DELETE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=mismatched-new-delete")
-  endif()
-  if(SUPPORTS_WDANGLING_REFERENCE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=dangling-reference")
   endif()
   if(SUPPORTS_MAYBE_UNINITIALIZED)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=maybe-uninitialized")
