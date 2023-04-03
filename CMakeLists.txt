@@ -143,11 +143,6 @@ check_cxx_compiler_flag(
 )
 
 check_cxx_compiler_flag(
-  "-Wmismatched-new-delete"
-  SUPPORTS_WMISMATCHED_NEW_DELETE
-)
-
-check_cxx_compiler_flag(
   "-Wmaybe-uninitialized"
   SUPPORTS_MAYBE_UNINITIALIZED
 )
@@ -160,9 +155,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fno-rtti -fno-strict-aliasing -Wall -Wextra -Wno-unused-parameter -Werror")
   if(SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
-  endif()
-  if(SUPPORTS_WMISMATCHED_NEW_DELETE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=mismatched-new-delete")
   endif()
   if(SUPPORTS_MAYBE_UNINITIALIZED)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=maybe-uninitialized")
