@@ -88,7 +88,7 @@ class ClangBinarySearchPass(AbstractPass):
                 pass
 
     def transform(self, test_case, state, process_event_notifier):
-        logging.debug(f'TRANSFORM: index = {state.index}, chunk = {state.chunk}, instances = {state.instances}')
+        logging.debug(f'TRANSFORM: {state}')
 
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=tmp) as tmp_file:
