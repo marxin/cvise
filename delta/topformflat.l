@@ -9,13 +9,13 @@
 #include <stdlib.h>     // atoi
 
 // emit yytext as-is
-void emit();
+void emit(void);
 
 // debugging diagnostic, emitted when enabled
 void diag(char const *str);
 
 // add a newline if nesting <= threshold
-void possibleNewline();
+void possibleNewline(void);
 
 // keep track of brace nesting (0 means not inside any pair)
 int nesting = 0;
@@ -90,7 +90,7 @@ int threshold = 0;
 
 %%
 
-void emit()
+void emit(void)
 {
   printf("%.*s", (int) yyleng, yytext);
 }
@@ -100,7 +100,7 @@ void diag(char const *str)
   //printf("%s", str);
 }
 
-void possibleNewline()
+void possibleNewline(void)
 {
   if (nesting <= threshold) {
     printf("\n");
