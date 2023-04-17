@@ -14,6 +14,7 @@
 #include <string>
 #include <map>
 #include <set>
+#include <unordered_set>
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallSet.h"
@@ -141,7 +142,8 @@ private:
 
   const clang::FunctionDecl *lookupFunctionDeclShallow(
           const clang::DeclarationName &DName,
-          const clang::DeclContext *Ctx);
+          const clang::DeclContext *Ctx,
+          std::unordered_set<const clang::DeclContext *> &SeenDecls);
 
   const clang::FunctionDecl *getFunctionDeclFromSpecifier(
           const clang::DeclarationName &Name, 

@@ -259,6 +259,7 @@ set(SOURCE_FILES
   "/tests/remove-unused-function/template2.output"
   "/tests/remove-unused-function/unused-funcs.cc"
   "/tests/remove-unused-function/unused-funcs.output"
+  "/tests/remove-unused-function/cyclic-namespace-using.cc"
   "/tests/remove-unused-var/struct1.c"
   "/tests/remove-unused-var/struct1.output"
   "/tests/remove-unused-var/struct2.c"

@@ -699,10 +699,18 @@ bool RemoveUnusedFunction::isInReferencedSet(const FunctionDecl *CanonicalFD)
 
 const FunctionDecl *
 RemoveUnusedFunction::lookupFunctionDeclShallow(const DeclarationName &DName,
-                                                const DeclContext *Ctx)
+                                                const DeclContext *Ctx,
+                                                std::unordered_set<const DeclContext *> &SeenDecls)
 {
   if (dyn_cast<LinkageSpecDecl>(Ctx))
     return NULL;
+
+  if (SeenDecls.find(Ctx) != SeenDecls.end())
+    return NULL;
+  else
+    SeenDecls.insert(Ctx);
+
+
   DeclContext::lookup_result Result = Ctx->lookup(DName);
   for (auto I = Result.begin(), E = Result.end();
        I != E; ++I) {
@@ -726,7 +734,7 @@ RemoveUnusedFunction::lookupFunctionDeclShallow(const DeclarationName &DName,
         ND->getLookupParent() == Ctx) {
       return NULL;
     }
-    if (const FunctionDecl *FD = lookupFunctionDeclShallow(DName, ND))
+    if (const FunctionDecl *FD = lookupFunctionDeclShallow(DName, ND, SeenDecls))
       return FD;
   }
   return NULL;
@@ -735,19 +743,23 @@ RemoveUnusedFunction::lookupFunctionDeclShallow(const DeclarationName &DName,
 const FunctionDecl *RemoveUnusedFunction::getFunctionDeclFromSpecifier(
         const DeclarationName &Name, const NestedNameSpecifier *NNS)
 {
+  std::unordered_set<const DeclContext *> seenDeclarations;
   const FunctionDecl *FD = NULL;
   switch (NNS->getKind()) {
   case NestedNameSpecifier::Namespace:
     FD = lookupFunctionDeclShallow(Name,
-                                   NNS->getAsNamespace());
+                                   NNS->getAsNamespace(),
+                                   seenDeclarations);
     break;
   case NestedNameSpecifier::NamespaceAlias:
     FD = lookupFunctionDeclShallow(Name,
-           NNS->getAsNamespaceAlias()->getNamespace());
+           NNS->getAsNamespaceAlias()->getNamespace(),
+           seenDeclarations);
     break;
   case NestedNameSpecifier::Global:
     FD = lookupFunctionDeclShallow(Name,
-                                   Context->getTranslationUnitDecl());
+                                   Context->getTranslationUnitDecl(),
+                                   seenDeclarations);
     break;
   default:
     return NULL;
@@ -841,7 +853,8 @@ void RemoveUnusedFunction::handleOneUnresolvedLookupExpr(
   }
   else {
     const DeclContext *Ctx = CurrentFD->getLookupParent();
-    FD = lookupFunctionDeclShallow(DName, Ctx);
+    std::unordered_set<const DeclContext *> seenDeclarations;
+    FD = lookupFunctionDeclShallow(DName, Ctx, seenDeclarations);
   }
 
   if (!FD || FD->isReferenced())

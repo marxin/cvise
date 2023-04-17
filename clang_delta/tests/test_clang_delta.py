@@ -359,6 +359,10 @@ class TestClangDelta(unittest.TestCase):
     def test_remove_unused_function_unused_funcs(self):
         self.check_clang_delta('remove-unused-function/unused-funcs.cc', '--transformation=remove-unused-function --counter=1')
 
+    def test_remove_unused_function_cyclic_ns_include(self):
+        self.check_query_instances('remove-unused-function/cyclic-namespace-using.cc', '--query-instances=remove-unused-function',
+                                   'Available transformation instances: 0')
+
     def test_remove_unused_var_struct1(self):
         self.check_clang_delta('remove-unused-var/struct1.c', '--transformation=remove-unused-var --counter=1')
 
