@@ -79,7 +79,7 @@ class AbstractPass:
             name = f'{type(self).__name__}'
 
         if self.max_transforms is not None:
-            name += f' ({self.max_transforms} transforms)'
+            name += f' ({self.max_transforms} T)'
         return name
 
     def check_external_program(self, name):

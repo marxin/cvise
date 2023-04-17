@@ -316,11 +316,11 @@ if __name__ == '__main__':
     else:
         time_stop = time.monotonic()
         print('===< PASS statistics >===')
-        print('  %-54s %8s %8s %8s %8s %15s' % ('pass name', 'time (s)', 'time (%)', 'worked',
+        print('  %-60s %8s %8s %8s %8s %15s' % ('pass name', 'time (s)', 'time (%)', 'worked',
               'failed', 'total executed'))
 
         for pass_name, pass_data in pass_statistic.sorted_results:
-            print('  %-54s %8.2f %8.2f %8d %8d %15d' % (pass_name, pass_data.total_seconds,
+            print('  %-60s %8.2f %8.2f %8d %8d %15d' % (pass_name, pass_data.total_seconds,
                   100.0 * pass_data.total_seconds / (time_stop - time_start),
                 pass_data.worked, pass_data.failed, pass_data.totally_executed))
         print()
