@@ -54,6 +54,14 @@ class FolderInPathTestCaseError(CViseError):
         return f"Test case cannot contain a folder in path: '{self.path}'!"
 
 
+class CopyExtraFolderNotFoundCaseError(CViseError):
+    def __init__(self, path):
+        self.path = path
+
+    def __str__(self):
+        return f"Extra copy folder cannot be found: '{self.path}'!"
+
+
 class InvalidInterestingnessTestError(InvalidFileError):
     def __init__(self, path):
         super().__init__(path, None)

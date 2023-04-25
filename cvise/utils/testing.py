@@ -6,6 +6,7 @@ import math
 from multiprocessing import Manager
 import os
 import os.path
+from pathlib import Path
 import platform
 import shutil
 import subprocess
@@ -15,6 +16,7 @@ import traceback
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import PassResult, ProcessEventNotifier, ProcessEventType
+from cvise.utils.error import CopyExtraFolderNotFoundCaseError
 from cvise.utils.error import FolderInPathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
@@ -41,9 +43,10 @@ def rmfolder(name):
 
 class TestEnvironment:
     def __init__(self, state, order, test_script, folder, test_case,
-                 additional_files, transform, pid_queue=None):
+                 additional_files, copy_extra_folder, transform, pid_queue=None):
         self.test_case = None
         self.additional_files = set()
+        self.copy_extra_folder = copy_extra_folder
         self.state = state
         self.folder = folder
         self.base_size = None
@@ -57,11 +60,17 @@ class TestEnvironment:
         self.pwd = os.getcwd()
 
     def copy_files(self, test_case, additional_files):
+        tmpfolder = Path(self.folder)
+        if self.copy_extra_folder:
+            for item in self.copy_extra_folder.iterdir():
+                if item.is_dir():
+                    shutil.copytree(item, tmpfolder / item)
+                else:
+                    shutil.copy(item, tmpfolder)
         if test_case is not None:
             self.test_case = os.path.basename(test_case)
             shutil.copy(test_case, self.folder)
             self.base_size = os.path.getsize(test_case)
-
         for f in additional_files:
             self.additional_files.add(os.path.basename(f))
             shutil.copy(f, self.folder)
@@ -135,7 +144,7 @@ class TestManager:
 
     def __init__(self, pass_statistic, test_script, timeout, save_temps, test_cases, parallel_tests,
                  no_cache, skip_key_off, silent_pass_bug, die_on_pass_bug, print_diff, max_improvement,
-                 no_give_up, also_interesting, start_with_pass, skip_after_n_transforms):
+                 no_give_up, also_interesting, start_with_pass, skip_after_n_transforms, copy_extra_folder):
         self.test_script = os.path.abspath(test_script)
         self.timeout = timeout
         self.save_temps = save_temps
@@ -153,6 +162,7 @@ class TestManager:
         self.also_interesting = also_interesting
         self.start_with_pass = start_with_pass
         self.skip_after_n_transforms = skip_after_n_transforms
+        self.copy_extra_folder = Path(copy_extra_folder) if copy_extra_folder else None
 
         for test_case in test_cases:
             self.check_file_permissions(test_case, [os.F_OK, os.R_OK, os.W_OK], InvalidTestCaseError)
@@ -161,6 +171,9 @@ class TestManager:
             fullpath = os.path.abspath(test_case)
             self.test_cases.add(fullpath)
             self.test_cases_modes[fullpath] = os.stat(fullpath).st_mode
+
+        if self.copy_extra_folder and not self.copy_extra_folder.exists():
+            raise CopyExtraFolderNotFoundCaseError(copy_extra_folder)
 
         self.orig_total_file_size = self.total_file_size
         self.cache = {}
@@ -297,7 +310,7 @@ class TestManager:
         logging.debug('perform sanity check... ')
 
         folder = tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}sanity-')
-        test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, None)
+        test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, self.copy_extra_folder, None)
         logging.debug(f'sanity check tmpdir = {test_env.folder}')
 
         returncode = test_env.run_test(verbose)
@@ -451,6 +464,7 @@ class TestManager:
                 folder = tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=self.root)
                 test_env = TestEnvironment(self.state, order, self.test_script, folder,
                                            self.current_test_case, self.test_cases ^ {self.current_test_case},
+                                           self.copy_extra_folder,
                                            self.current_pass.transform, self.pid_queue)
                 future = pool.schedule(test_env.run, timeout=self.timeout)
                 self.temporary_folders[future] = folder
