@@ -6,6 +6,7 @@ import math
 from multiprocessing import Manager
 import os
 import os.path
+from pathlib import Path
 import platform
 import shutil
 import subprocess
