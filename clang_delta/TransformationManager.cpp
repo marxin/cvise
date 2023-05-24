@@ -127,6 +127,12 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
 #else
       LSTD = LangStandard::Kind::lang_cxx20;
 #endif
+
+// TODO: simplify and use c++23 and c++26
+#if LLVM_VERSION_MAJOR >= 17
+    else if (!CXXStandard.compare("c++2b"))
+      LSTD = LangStandard::Kind::lang_cxx23;
+#endif
 #if LLVM_VERSION_MAJOR >= 14
     else if (!CXXStandard.compare("c++2b"))
       LSTD = LangStandard::Kind::lang_cxx2b;
