@@ -22,7 +22,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
   message(FATAL_ERROR "CMAKE_SOURCE_DIR should be different from PROJECT_BINARY_DIR")
 endif()
 
-###############################################################################
+##############################################################################
 
 # Locate LLVM and check its version.  Do this here because we need the LLVM
 # package definitions in the "CMakeLists.txt" files for multiple subdirs.
@@ -152,6 +152,12 @@ check_cxx_compiler_flag(
   SUPPORTS_MAYBE_UNINITIALIZED
 )
 
+# XXX remove in the future once LLVM 17 gets released 
+check_cxx_compiler_flag(
+  "-Wclass-memaccess"
+  SUPPORTS_CLASS_MEMACCESS
+)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
     OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # XXX figure out how to get "-std=c++17 -fno-rtti" from LLVM.  That's how we
@@ -168,6 +174,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
   if(SUPPORTS_MAYBE_UNINITIALIZED)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=maybe-uninitialized")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=maybe-uninitialized")
+  endif()
+  if(SUPPORTS_CLASS_MEMACCESS)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=class-memaccess")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=class-memaccess")
   endif()
 
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
