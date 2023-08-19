@@ -17,7 +17,7 @@ env:
 
 jobs:
   CI-LLVM-nightly:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-23.04
     container:
       image: ubuntu:rolling
 
@@ -28,8 +28,8 @@ jobs:
       - run: chmod +x llvm.sh
       - run: ./llvm.sh $LLVM_RELEASE
       - run: apt-get install -y bolt-$LLVM_RELEASE clang-$LLVM_RELEASE libclang-common-$LLVM_RELEASE-dev libclang-$LLVM_RELEASE-dev mlir-$LLVM_RELEASE-tools \
-          libclang-common-$LLVM_RELEASE-dev libclang-$LLVM_RELEASE-dev libclang1-$LLVM_RELEASE clang-format-$LLVM_RELEASE \
-          clangd-$LLVM_RELEASE clang-tidy-$LLVM_RELEASE libomp-$LLVM_RELEASE-dev
+          llvm-$LLVM_RELEASE-tools libclang-common-$LLVM_RELEASE-dev libclang-$LLVM_RELEASE-dev libclang1-$LLVM_RELEASE clang-format-$LLVM_RELEASE \
+          python3-clang-$LLVM_RELEASE clangd-$LLVM_RELEASE clang-tidy-$LLVM_RELEASE libomp-$LLVM_RELEASE-dev
       - uses: actions/checkout@v3
       - run: mkdir objdir
       - run: cmake ..
