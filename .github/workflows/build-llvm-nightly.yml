@@ -12,8 +12,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-jobs:
+env:
+  LLVM_RELEASE: 18
 
+jobs:
   CI-LLVM-nightly:
     runs-on: ubuntu-22.04
     container:
@@ -25,7 +27,9 @@ jobs:
       - run: wget https://apt.llvm.org/llvm.sh
       - run: chmod +x llvm.sh
       - run: ./llvm.sh 17
-      - run: apt-get install -y bolt-17 clang-17 libclang-common-17-dev libclang-17-dev mlir-17-tools llvm-17-tools libclang-common-17-dev libclang-17-dev libclang1-17 clang-format-17 python3-clang-17 clangd-17 clang-tidy-17 libomp-17-dev
+      - run: apt-get install -y bolt-$LLVM_VERSION clang-$LLVM_VERSION libclang-common-$LLVM_VERSION-dev libclang-$LLVM_VERSION-dev mlir-$LLVM_VERSION-tools \
+          llvm-$LLVM_VERSION-tools libclang-common-$LLVM_VERSION-dev libclang-$LLVM_VERSION-dev libclang1-$LLVM_VERSION clang-format-$LLVM_VERSION \
+          python3-clang-$LLVM_VERSION clangd-$LLVM_VERSION clang-tidy-$LLVM_VERSION libomp-$LLVM_VERSION-dev
       - uses: actions/checkout@v3
       - run: mkdir objdir
       - run: cmake ..
