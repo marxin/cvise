@@ -57,7 +57,7 @@ jobs:
       if: matrix.docker == 'opensuse/leap'
     - run: zypper -n install python3-flake8-comprehensions sqlite-devel python3
       if: matrix.docker == 'opensuse/tumbleweed'
-    - run: pip install pytest-cov
+    - run: pip install --break-system-packages pytest-cov
       if: matrix.docker == 'opensuse/tumbleweed'
     - uses: actions/checkout@v3
     - run: nproc
@@ -69,7 +69,7 @@ jobs:
             make -j`nproc` VERBOSE=1
     - name: flake8
       run: flake8
-    - run: pip install pyupgrade 
+    - run: pip install --break-system-packages pyupgrade
     - run: find . -name '*.py' | xargs pyupgrade --py36-plus
     - name: test
       run: pytest
