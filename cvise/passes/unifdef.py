@@ -23,7 +23,7 @@ class UnIfDefPass(AbstractPass):
     def transform(self, test_case, state, process_event_notifier):
         try:
             cmd = [self.external_programs['unifdef'], '-s', test_case]
-            proc = subprocess.run(cmd, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.run(cmd, text=True, capture_output=True)
         except subprocess.SubprocessError:
             return (PassResult.ERROR, state)
 

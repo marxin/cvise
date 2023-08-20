@@ -7,7 +7,7 @@ import unittest
 def get_llvm_version():
     current = os.path.dirname(__file__)
     binary = os.path.join(current, '../clang_delta')
-    output = subprocess.check_output(f'ldd {binary}', shell=True, universal_newlines=True)
+    output = subprocess.check_output(f'ldd {binary}', shell=True, text=True)
     for line in output.splitlines():
         part = line.strip().split()[0]
         if part.startswith('libLLVM'):
@@ -586,7 +586,7 @@ class TestClangDelta(unittest.TestCase):
         binary = os.path.join(current, '../clang_delta')
         args = '--transformation=remove-unused-function --counter=111 --to-counter=222 --warn-on-counter-out-of-bounds --report-instances-count'
         cmd = '{} {} {}'.format(binary, os.path.join(current, 'remove-unused-function/macro2.cc'), args)
-        run = subprocess.run(cmd, shell=True, encoding='utf8', stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        run = subprocess.run(cmd, shell=True, encoding='utf8', capture_output=True)
         assert 'Available transformation instances: 1' in run.stderr
         assert 'Warning: number of transformation instances exceeded' in run.stderr
 

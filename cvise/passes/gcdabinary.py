@@ -14,7 +14,7 @@ class GCDABinaryPass(AbstractPass):
     def __create_state(self, test_case):
         try:
             proc = subprocess.run([self.external_programs['gcov-dump'], '-p', test_case], encoding='utf8', timeout=1,
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                  capture_output=True)
             if proc.returncode != 0:
                 logging.warning(f'gcov-dump -p failed: {proc.stderr}')
                 return None

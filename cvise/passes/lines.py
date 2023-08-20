@@ -19,7 +19,7 @@ class LinesPass(AbstractPass):
             with open(test_case) as in_file:
                 try:
                     cmd = [self.external_programs['topformflat'], self.arg]
-                    proc = subprocess.run(cmd, stdin=in_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                    proc = subprocess.run(cmd, stdin=in_file, capture_output=True, text=True)
                 except subprocess.SubprocessError:
                     return
 

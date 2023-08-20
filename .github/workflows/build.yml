@@ -34,10 +34,6 @@ jobs:
             build-type: RelWithDebInfo
             docker: opensuse/tumbleweed
             env: CC=clang CXX=clang++
-          - llvm: 9
-            build-type: DEBUG
-            docker: opensuse/leap
-            env: CC=gcc-11 CXX=g++-11
       fail-fast: false
 
     container:
