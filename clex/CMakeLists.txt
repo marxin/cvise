@@ -8,7 +8,7 @@
 
 ###############################################################################
 
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.14)
 
 # find_package(FLEX) is done by the topmost "CMakeLists.txt" file.
 
