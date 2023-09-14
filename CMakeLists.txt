@@ -41,10 +41,10 @@ message(STATUS "Using ClangConfig.cmake in ${Clang_DIR}")
 
 # Locate Python and check its version.
 #
-find_package(PythonInterp 3.6 REQUIRED)
+find_package(Python3)
 
 # Locate pytest
-execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pytest --version
+execute_process(COMMAND ${Python3_EXECUTABLE} -m pytest --version
   OUTPUT_VARIABLE PYTEST_output
   ERROR_VARIABLE  PYTEST_error
   RESULT_VARIABLE PYTEST_result)
@@ -53,7 +53,7 @@ if(NOT ${PYTEST_result} EQUAL 0)
 endif()
 
 # Locate Pebble
-execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import pebble"
+execute_process(COMMAND ${Python3_EXECUTABLE} -c "import pebble"
   OUTPUT_VARIABLE PEBBLE_output
   ERROR_VARIABLE  PEBBLE_error
   RESULT_VARIABLE PEBBLE_result)
@@ -62,7 +62,7 @@ if(NOT ${PEBBLE_result} EQUAL 0)
 endif()
 
 # Locate psutil
-execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import psutil"
+execute_process(COMMAND ${Python3_EXECUTABLE} -c "import psutil"
   OUTPUT_VARIABLE PSUTIL_output
   ERROR_VARIABLE  PSUTIL_error
   RESULT_VARIABLE PSUTIL_result)
@@ -188,7 +188,7 @@ endif()
 
 # Enable tests
 enable_testing()
-add_test(NAME all COMMAND ${PYTHON_EXECUTABLE} -m pytest)
+add_test(NAME all COMMAND ${Python3_EXECUTABLE} -m pytest)
 
 ###############################################################################
 
