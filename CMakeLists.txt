@@ -152,11 +152,16 @@ check_cxx_compiler_flag(
   SUPPORTS_MAYBE_UNINITIALIZED
 )
 
-# XXX remove in the future once LLVM 17 gets released 
 check_cxx_compiler_flag(
   "-Wclass-memaccess"
   SUPPORTS_CLASS_MEMACCESS
 )
+
+check_cxx_compiler_flag(
+  "-Wnon-template-friend"
+  SUPPORTS_NON_TEMPLATE_FRIEND
+)
+
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
     OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -178,6 +183,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
   if(SUPPORTS_CLASS_MEMACCESS)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=class-memaccess")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=class-memaccess")
+  endif()
+  if(SUPPORTS_NON_TEMPLATE_FRIEND)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=non-template-friend")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=non-template-friend")
   endif()
 
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
