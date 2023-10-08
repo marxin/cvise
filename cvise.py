@@ -193,7 +193,8 @@ if __name__ == '__main__':
     parser.add_argument('--renaming', action='store_true', help='Enable all renaming passes (that are disabled by default)')
     parser.add_argument('--list-passes', action='store_true', help='Print all available passes and exit')
     parser.add_argument('--version', action='version', version=CVise.Info.PACKAGE_STRING + (' (%s)' % CVise.Info.GIT_VERSION if CVise.Info.GIT_VERSION != 'unknown' else ''))
-    parser.add_argument('--commands', '-c', help='Use bash commands instead of an interestingness test case')
+    parser.add_argument('--commands', '-c', help='Use shell commands instead of an interestingness test case')
+    parser.add_argument('--shell', default='bash', help='Use selected shell for the --commands option')
     parser.add_argument('--to-utf8', action='store_true', help='Convert any non-UTF-8 encoded input file to UTF-8')
     parser.add_argument('--skip-after-n-transforms', type=int, help='Skip each pass after N successful transformations')
     parser.add_argument('interestingness_test', metavar='INTERESTINGNESS_TEST', nargs='?', help='Executable to check interestingness of test cases')
@@ -290,7 +291,7 @@ if __name__ == '__main__':
     script = None
     if args.commands:
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.sh') as script:
-            script.write('#!/bin/bash\n\n')
+            script.write(f'#!/bin/{args.shell}\n\n')
             script.write(args.commands + '\n')
         os.chmod(script.name, 0o744)
         logging.info('Using temporary interestingness test: %s' % script.name)
