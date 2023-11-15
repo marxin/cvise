@@ -291,7 +291,7 @@ if __name__ == '__main__':
     script = None
     if args.commands:
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.sh') as script:
-            script.write(f'#!/bin/{args.shell}\n\n')
+            script.write(f'#!/usr/bin/env {args.shell}\n\n')
             script.write(args.commands + '\n')
         os.chmod(script.name, 0o744)
         logging.info('Using temporary interestingness test: %s' % script.name)
