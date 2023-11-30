@@ -26,6 +26,8 @@ jobs:
       - run: chmod +x llvm.sh
       - run: ./llvm.sh 18
       - run: apt-get install -y bolt-18 clang-18 libclang-common-18-dev libclang-18-dev mlir-18-tools llvm-18-tools libclang-common-18-dev libclang-18-dev libclang1-18 clang-format-18 python3-clang-18 clangd-18 clang-tidy-18 libomp-18-dev
+      # TODO: remove in the future, it's a temporary hack
+      - run: ln -s /usr/lib/llvm-18/lib/libclang-18.so.18 /usr/lib/llvm-18/lib/libclang-18.so.1
       - uses: actions/checkout@v3
       - run: mkdir objdir
       - run: cmake ..
