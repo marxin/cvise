@@ -17,6 +17,7 @@
 #include <cstdlib>
 
 #include "llvm/Support/raw_ostream.h"
+#include "clang/Basic/Version.h"
 #include "TransformationManager.h"
 #include "git_version.h"
 
@@ -25,8 +26,15 @@ static int ErrorCode = -1;
 
 static void PrintVersion()
 {
+  // Some versions of the clang library (notably Ubuntu) prefixes its version
+  // string with uninteresting information. Strip this.
+  auto version = clang::getClangFullVersion();
+  auto start = version.find("clang version");
+  assert(start != version.npos);
+
   llvm::outs() << "clang_delta " << PACKAGE_VERSION << "\n";
   llvm::outs() << "Git version: " << git_version << "\n";
+  llvm::outs() << version.substr(start) << "\n";
   // XXX print copyright, contact info, etc.?
 }
 
