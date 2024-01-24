@@ -394,6 +394,9 @@ bool CommonRenameClassRewriteVisitor<T>::TraverseTemplateArgumentLoc(
   case TemplateArgument::Null:
   case TemplateArgument::Declaration:
   case TemplateArgument::Integral:
+#if LLVM_VERSION_MAJOR >= 18
+  case TemplateArgument::StructuralValue:
+#endif
     return true;
 
   case TemplateArgument::Type: {
