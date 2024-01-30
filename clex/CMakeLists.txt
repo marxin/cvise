@@ -50,9 +50,9 @@ add_executable(strlex
   )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
-    OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-set_source_files_properties(clex.c PROPERTIES COMPILE_FLAGS -Wno-unused-function)
-set_source_files_properties(strlex.c PROPERTIES COMPILE_FLAGS -Wno-unused-function)
+    OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+set_source_files_properties(clex.c PROPERTIES COMPILE_FLAGS "-Wno-unused-function -Wno-sign-compare")
+set_source_files_properties(strlex.c PROPERTIES COMPILE_FLAGS "-Wno-unused-function -Wno-sign-compare")
 endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 set_source_files_properties(clex.c PROPERTIES COMPILE_FLAGS -DYY_NO_UNISTD_H)

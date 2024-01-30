@@ -30,8 +30,8 @@ add_executable(topformflat
   )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
-    OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-set_source_files_properties(topformflat.c PROPERTIES COMPILE_FLAGS "-Wno-unused-function -Wno-unused-parameter")
+    OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+set_source_files_properties(topformflat.c PROPERTIES COMPILE_FLAGS "-Wno-unused-function -Wno-unused-parameter -Wno-sign-compare")
 endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 set_source_files_properties(topformflat.c PROPERTIES COMPILE_FLAGS -DYY_NO_UNISTD_H)
