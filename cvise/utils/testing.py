@@ -1,4 +1,4 @@
-from concurrent.futures import FIRST_COMPLETED, TimeoutError, wait
+from concurrent.futures import FIRST_COMPLETED, wait
 import difflib
 import filecmp
 import logging
