@@ -55,7 +55,7 @@ jobs:
       if: matrix.docker == 'opensuse/tumbleweed'
     - run: pip install --break-system-packages pytest-cov
       if: matrix.docker == 'opensuse/tumbleweed'
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - run: nproc
     - name: build
       run: |
