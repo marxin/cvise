@@ -74,7 +74,11 @@ public:
                           OptionalFileEntryRef File,
 #endif
                           StringRef SearchPath, StringRef RelativePath,
+#if LLVM_VERSION_MAJOR < 19
                           const Module *Imported,
+#else
+                          const Module *SuggestedModule, bool ModuleImported,
+#endif
                           SrcMgr::CharacteristicKind FileType) override;
 
 private:
@@ -101,7 +105,11 @@ void IncludesPPCallbacks::InclusionDirective(SourceLocation HashLoc,
 #endif
                                              StringRef /*SearchPath*/,
                                              StringRef /*RelativePath*/,
-                                             const Module * /*Imported*/,
+#if LLVM_VERSION_MAJOR < 19
+                                            const Module *Imported,
+#else
+                                            const Module *SuggestedModule, bool ModuleImported,
+#endif
                                              SrcMgr::CharacteristicKind /*FileType*/)
 {
   if (!SrcManager.isInMainFile(HashLoc))
