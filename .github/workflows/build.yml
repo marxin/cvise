@@ -48,6 +48,7 @@ jobs:
     - run: zypper -n install python3-flake8-comprehensions sqlite-devel python3
     - run: pip install --break-system-packages pytest-cov
     - uses: rui314/setup-mold@v1
+    - run: ld --version
     - uses: actions/checkout@v4
     - run: nproc
     - name: build

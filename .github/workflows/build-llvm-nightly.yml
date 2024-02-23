@@ -22,11 +22,12 @@ jobs:
     steps:
       - run: apt-get update
       - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex python3-pebble python3-psutil python3-chardet python3-pytest vim unifdef sudo
+      - uses: rui314/setup-mold@v1
+      - run: ld --version
       - run: wget https://apt.llvm.org/llvm.sh
       - run: chmod +x llvm.sh
       - run: ./llvm.sh 19
       - run: apt-get install -y bolt-19 clang-19 libclang-common-19-dev libclang-19-dev mlir-19-tools llvm-19-tools libclang-common-19-dev libclang-19-dev libclang1-19 clang-format-19 python3-clang-19 clangd-19 clang-tidy-19 libomp-19-dev
-      - uses: rui314/setup-mold@v1
       - uses: actions/checkout@v4
       - run: mkdir objdir
       - run: cmake ..
