@@ -49,8 +49,8 @@ jobs:
     - run: pip install --break-system-packages pytest-cov
     - uses: rui314/setup-mold@v1
     - run: ld --version
-    - uses: actions/checkout@v4
     - run: nproc
+    - uses: actions/checkout@v4
     - name: build
       run: |
             mkdir objdir
