@@ -26,6 +26,7 @@ jobs:
       - run: chmod +x llvm.sh
       - run: ./llvm.sh 19
       - run: apt-get install -y bolt-19 clang-19 libclang-common-19-dev libclang-19-dev mlir-19-tools llvm-19-tools libclang-common-19-dev libclang-19-dev libclang1-19 clang-format-19 python3-clang-19 clangd-19 clang-tidy-19 libomp-19-dev
+      - uses: rui314/setup-mold@v1
       - uses: actions/checkout@v4
       - run: mkdir objdir
       - run: cmake ..
