@@ -49,6 +49,7 @@ jobs:
         python3-flake8-import-order
         python3-flake8-quotes
         python3-pip
+        sudo whet
     - run: zypper -n install gcc11-c++
       if: matrix.docker == 'opensuse/leap'
     - run: zypper -n install python3-flake8-comprehensions sqlite-devel python3
