@@ -18,26 +18,21 @@ jobs:
       matrix:
         llvm: [13, 14, 15, 16, 17]
         build-type: [DEBUG]
-        docker: [opensuse/tumbleweed]
         include:
           - llvm: 17
             build-type: ASAN
-            docker: opensuse/tumbleweed
           - llvm: 17
             build-type: UBSAN
-            docker: opensuse/tumbleweed
           - llmv: 17
             build-type: RelWithDebInfo
             extra-flags: -flto=auto
-            docker: opensuse/tumbleweed
           - llmv: 17
             build-type: RelWithDebInfo
-            docker: opensuse/tumbleweed
             env: CC=clang CXX=clang++
       fail-fast: false
 
     container:
-      image: ${{ matrix.docker }}
+      image: opensuse/tumbleweed
 
     steps:
     - run: zypper -n install
@@ -50,12 +45,8 @@ jobs:
         python3-flake8-quotes
         python3-pip
         sudo wget
-    - run: zypper -n install gcc11-c++
-      if: matrix.docker == 'opensuse/leap'
     - run: zypper -n install python3-flake8-comprehensions sqlite-devel python3
-      if: matrix.docker == 'opensuse/tumbleweed'
     - run: pip install --break-system-packages pytest-cov
-      if: matrix.docker == 'opensuse/tumbleweed'
     - uses: rui314/setup-mold@v1
     - uses: actions/checkout@v4
     - run: nproc
