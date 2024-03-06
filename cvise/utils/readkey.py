@@ -35,7 +35,7 @@ class KeyLogger:
         if sys.platform == 'win32':
             return msvcrt.kbhit()
         else:
-            (dr, dw, de) = select.select([sys.stdin], [], [], 0)
+            (dr, _dw, _de) = select.select([sys.stdin], [], [], 0)
             return dr != []
 
     def pressed_key(self):

@@ -82,7 +82,7 @@ class IfPass(AbstractPass):
             test_case,
             tmp_file.name,
         ]
-        stdout, stderr, returncode = process_event_notifier.run_process(cmd)
+        _stdout, _stderr, returncode = process_event_notifier.run_process(cmd)
         if returncode != 0:
             return (PassResult.ERROR, state)
         else:

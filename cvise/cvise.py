@@ -68,7 +68,7 @@ class CVise:
             try:
                 pass_group_dict = json.load(pass_group_file)
             except json.JSONDecodeError:
-                raise CViseError('Not valid JSON.')
+                raise CViseError('Not valid JSON.') from None
 
         return pass_group_dict
 
@@ -94,7 +94,7 @@ class CVise:
                 try:
                     valid_options.add(AbstractPass.Option(opt))
                 except ValueError:
-                    raise PassOptionError(opt)
+                    raise PassOptionError(opt) from None
 
             return valid_options
 
@@ -119,7 +119,7 @@ class CVise:
                 try:
                     pass_class = cls.pass_name_mapping[pass_dict['pass']]
                 except KeyError:
-                    raise CViseError('Unkown pass {}'.format(pass_dict['pass']))
+                    raise CViseError('Unkown pass {}'.format(pass_dict['pass'])) from None
 
                 pass_instance = pass_class(pass_dict.get('arg'), external_programs)
                 pass_instance.max_transforms = None

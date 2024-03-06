@@ -505,7 +505,7 @@ if __name__ == '__main__':
         print()
 
         if not args.no_timing:
-            print(f'Runtime: {round((time_stop - time_start))} seconds')
+            print(f'Runtime: {round(time_stop - time_start)} seconds')
 
         print('Reduced test-cases:\n')
         for test_case in sorted(test_manager.test_cases):

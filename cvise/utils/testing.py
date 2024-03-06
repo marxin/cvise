@@ -617,7 +617,9 @@ class TestManager:
         try:
             shutil.copy(test_env.test_case_path, self.current_test_case)
         except FileNotFoundError:
-            raise RuntimeError(f"Can't find {self.current_test_case} -- did your interestingness test move it?")
+            raise RuntimeError(
+                f"Can't find {self.current_test_case} -- did your interestingness test move it?"
+            ) from None
 
         self.state = self.current_pass.advance_on_success(test_env.test_case_path, test_env.state)
         self.pass_statistic.add_success(self.current_pass)

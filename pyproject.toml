@@ -5,6 +5,8 @@ line-length = 120
 
 [tool.ruff.lint]
 ignore = ["E501"]
+select = ["B", "E", "F", "W", "UP", "C4"] # consider: ["I", "RUF"]
+preview = true
 
 [tool.ruff.format]
 quote-style="single"

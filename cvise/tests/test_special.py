@@ -35,7 +35,7 @@ class SpecialATestCase(unittest.TestCase):
             )
 
         state = self.pass_.new(tmp_file.name)
-        (result, state) = self.pass_.transform(tmp_file.name, state, None)
+        (_result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         iterate_pass(self.pass_, tmp_file.name)
 

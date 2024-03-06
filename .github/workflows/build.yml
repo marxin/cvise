@@ -38,29 +38,22 @@ jobs:
     - run: zypper -n install
         binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel
         python3-Pebble python3-pytest unifdef python3-psutil curl git python3-chardet findutils
-        python3-flake8
-        python3-flake8-builtins
-        python3-flake8-bugbear
-        python3-flake8-import-order
-        python3-flake8-quotes
         python3-pip
         sudo wget
-    - run: zypper -n install python3-flake8-comprehensions sqlite-devel python3
-    - run: pip install --break-system-packages pytest-cov
+    - run: zypper -n install sqlite-devel python3
+    - run: pip install --break-system-packages pytest-cov ruff
     - uses: rui314/setup-mold@v1
     - run: ld --version
     - run: nproc
     - uses: actions/checkout@v4
+    - run: ruff check
+    - run: ruff format --diff
     - name: build
       run: |
             mkdir objdir
             cd objdir
             ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
             make -j`nproc` VERBOSE=1
-    - name: flake8
-      run: flake8
-    - run: pip install --break-system-packages pyupgrade
-    - run: find . -name '*.py' | xargs pyupgrade --py36-plus
     - name: test
       run: pytest
       working-directory: objdir

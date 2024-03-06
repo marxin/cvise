@@ -22,7 +22,7 @@ class ClexPass(AbstractPass):
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=tmp) as tmp_file:
             cmd = [self.external_programs['clex'], str(self.arg), str(state), test_case]
-            stdout, stderr, returncode = process_event_notifier.run_process(cmd)
+            stdout, _stderr, returncode = process_event_notifier.run_process(cmd)
             if returncode == 51:
                 tmp_file.write(stdout)
                 shutil.move(tmp_file.name, test_case)

@@ -33,7 +33,7 @@ class ClangPass(AbstractPass):
 
             logging.debug(' '.join(cmd))
 
-            stdout, stderr, returncode = process_event_notifier.run_process(cmd)
+            stdout, _stderr, returncode = process_event_notifier.run_process(cmd)
             if returncode == 0:
                 tmp_file.write(stdout)
                 shutil.move(tmp_file.name, test_case)
