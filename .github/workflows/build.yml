@@ -38,9 +38,9 @@ jobs:
     - run: zypper -n install
         binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel
         python3-Pebble python3-pytest unifdef python3-psutil curl git python3-chardet findutils
-        sudo wget
+        sudo wget python3-pip
     - run: zypper -n install sqlite-devel python3
-    - run: pip install --break-system-packages pytest-cov ruff
+    - run: pip install --break-system-packages pytest-cov
     - uses: rui314/setup-mold@v1
     - run: ld --version
     - run: nproc
