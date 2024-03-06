@@ -38,7 +38,6 @@ jobs:
     - run: zypper -n install
         binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel
         python3-Pebble python3-pytest unifdef python3-psutil curl git python3-chardet findutils
-        python3-pip
         sudo wget
     - run: zypper -n install sqlite-devel python3
     - run: pip install --break-system-packages pytest-cov ruff
@@ -46,8 +45,6 @@ jobs:
     - run: ld --version
     - run: nproc
     - uses: actions/checkout@v4
-    - run: ruff check
-    - run: ruff format --diff
     - name: build
       run: |
             mkdir objdir
@@ -57,3 +54,12 @@ jobs:
     - name: test
       run: pytest
       working-directory: objdir
+
+  ruff:
+    runs-on: ubuntu-latest
+
+    steps:
+    - run: zypper -n install python3-pip
+    - uses: actions/checkout@v4
+    - run: ruff check
+    - run: ruff format --diff
