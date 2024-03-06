@@ -57,6 +57,8 @@ jobs:
 
   ruff:
     runs-on: ubuntu-latest
+    container:
+      image: opensuse/tumbleweed
 
     steps:
     - run: zypper -n install python3-pip
