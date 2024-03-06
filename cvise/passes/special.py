@@ -9,9 +9,10 @@ class SpecialPass(AbstractPass):
         return True
 
     def __get_config(self):
-        config = {'search': None,
-                  'replace_fn': None,
-                  }
+        config = {
+            'search': None,
+            'replace_fn': None,
+        }
 
         def replace_printf(m):
             return r"printf('%d\n', (int){})".format(m.group('list').split(',')[0])

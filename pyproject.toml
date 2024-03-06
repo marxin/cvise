@@ -1,0 +1,10 @@
+[tool.ruff]
+exclude = ["objdir"]
+
+line-length = 120
+
+[tool.ruff.lint]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style="single"

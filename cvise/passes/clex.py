@@ -29,4 +29,7 @@ class ClexPass(AbstractPass):
                 return (PassResult.OK, state)
             else:
                 os.unlink(tmp_file.name)
-                return (PassResult.STOP if returncode == 71 else PassResult.ERROR, state)
+                return (
+                    PassResult.STOP if returncode == 71 else PassResult.ERROR,
+                    state,
+                )

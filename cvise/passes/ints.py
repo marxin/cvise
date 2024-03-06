@@ -11,34 +11,59 @@ class IntsPass(AbstractPass):
         return True
 
     def __get_config(self):
-        config = {'search': None,
-                  'replace_fn': None,
-                  }
+        config = {
+            'search': None,
+            'replace_fn': None,
+        }
 
         if self.arg == 'a':
             # Delete first digit
             def replace_fn(m):
                 return m.group('pref') + m.group('numpart') + m.group('suf')
 
-            config['search'] = r'(?P<pref>' + self.border_or_space + r'[+-]?(?:0|(?:0[xX]))?)[0-9a-fA-F](?P<numpart>[0-9a-fA-F]+)(?P<suf>[ULul]*' + self.border_or_space + r')'
+            config['search'] = (
+                r'(?P<pref>'
+                + self.border_or_space
+                + r'[+-]?(?:0|(?:0[xX]))?)[0-9a-fA-F](?P<numpart>[0-9a-fA-F]+)(?P<suf>[ULul]*'
+                + self.border_or_space
+                + r')'
+            )
         elif self.arg == 'b':
             # Delete prefix
             def replace_fn(m):
                 return m.group('del') + m.group('numpart') + m.group('suf')
 
-            config['search'] = r'(?P<del>' + self.border_or_space + r')(?P<pref>[+-]?(?:0|(?:0[xX])))(?P<numpart>[0-9a-fA-F]+)(?P<suf>[ULul]*' + self.border_or_space + r')'
+            config['search'] = (
+                r'(?P<del>'
+                + self.border_or_space
+                + r')(?P<pref>[+-]?(?:0|(?:0[xX])))(?P<numpart>[0-9a-fA-F]+)(?P<suf>[ULul]*'
+                + self.border_or_space
+                + r')'
+            )
         elif self.arg == 'c':
             # Delete suffix
             def replace_fn(m):
                 return m.group('pref') + m.group('numpart') + m.group('del')
 
-            config['search'] = r'(?P<pref>' + self.border_or_space + r'[+-]?(?:0|(?:0[xX]))?)(?P<numpart>[0-9a-fA-F]+)[ULul]+(?P<del>' + self.border_or_space + r')'
+            config['search'] = (
+                r'(?P<pref>'
+                + self.border_or_space
+                + r'[+-]?(?:0|(?:0[xX]))?)(?P<numpart>[0-9a-fA-F]+)[ULul]+(?P<del>'
+                + self.border_or_space
+                + r')'
+            )
         elif self.arg == 'd':
             # Hex to dec
             def replace_fn(m):
                 return m.group('pref') + str(int(m.group('numpart'), 16)) + m.group('suf')
 
-            config['search'] = r'(?P<pref>' + self.border_or_space + r')(?P<numpart>0[Xx][0-9a-fA-F]+)(?P<suf>[ULul]*' + self.border_or_space + r')'
+            config['search'] = (
+                r'(?P<pref>'
+                + self.border_or_space
+                + r')(?P<numpart>0[Xx][0-9a-fA-F]+)(?P<suf>[ULul]*'
+                + self.border_or_space
+                + r')'
+            )
         else:
             raise UnknownArgumentError(self.__class__.__name__, self.arg)
 

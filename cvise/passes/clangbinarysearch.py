@@ -52,24 +52,30 @@ class ClangBinarySearchPass(AbstractPass):
 
     def count_instances(self, test_case):
         assert self.clang_delta_std
-        args = [self.external_programs['clang_delta'], f'--query-instances={self.arg}',
-                f'--std={self.clang_delta_std}']
+        args = [
+            self.external_programs['clang_delta'],
+            f'--query-instances={self.arg}',
+            f'--std={self.clang_delta_std}',
+        ]
         if self.clang_delta_preserve_routine:
             args.append(f'--preserve-routine="{self.clang_delta_preserve_routine}"')
         cmd = args + [test_case]
 
         try:
-            proc = subprocess.run(cmd, text=True, capture_output=True,
-                                  timeout=self.QUERY_TIMEOUT)
+            proc = subprocess.run(cmd, text=True, capture_output=True, timeout=self.QUERY_TIMEOUT)
         except subprocess.TimeoutExpired:
-            logging.warning(f'clang_delta --query-instances (--std={self.clang_delta_std}) {self.QUERY_TIMEOUT}s timeout reached')
+            logging.warning(
+                f'clang_delta --query-instances (--std={self.clang_delta_std}) {self.QUERY_TIMEOUT}s timeout reached'
+            )
             return 0
         except subprocess.SubprocessError as e:
             logging.warning(f'clang_delta --query-instances (--std={self.clang_delta_std}) failed: {e}')
             return 0
 
         if proc.returncode != 0:
-            logging.warning(f'clang_delta --query-instances failed with exit code {proc.returncode}: {proc.stderr.strip()}')
+            logging.warning(
+                f'clang_delta --query-instances failed with exit code {proc.returncode}: {proc.stderr.strip()}'
+            )
 
         m = re.match('Available transformation instances: ([0-9]+)$', proc.stdout)
 
@@ -92,8 +98,13 @@ class ClangBinarySearchPass(AbstractPass):
 
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=tmp) as tmp_file:
-            args = [f'--transformation={self.arg}', f'--counter={state.index + 1}', f'--to-counter={state.end()}',
-                    '--warn-on-counter-out-of-bounds', '--report-instances-count']
+            args = [
+                f'--transformation={self.arg}',
+                f'--counter={state.index + 1}',
+                f'--to-counter={state.end()}',
+                '--warn-on-counter-out-of-bounds',
+                '--report-instances-count',
+            ]
             if self.clang_delta_std:
                 args.append(f'--std={self.clang_delta_std}')
             if self.clang_delta_preserve_routine:
@@ -109,4 +120,7 @@ class ClangBinarySearchPass(AbstractPass):
                 return (PassResult.OK, state)
             else:
                 os.unlink(tmp_file.name)
-                return (PassResult.STOP if returncode == 255 else PassResult.ERROR, state)
+                return (
+                    PassResult.STOP if returncode == 255 else PassResult.ERROR,
+                    state,
+                )

@@ -13,8 +13,12 @@ class GCDABinaryPass(AbstractPass):
 
     def __create_state(self, test_case):
         try:
-            proc = subprocess.run([self.external_programs['gcov-dump'], '-p', test_case], encoding='utf8', timeout=1,
-                                  capture_output=True)
+            proc = subprocess.run(
+                [self.external_programs['gcov-dump'], '-p', test_case],
+                encoding='utf8',
+                timeout=1,
+                capture_output=True,
+            )
             if proc.returncode != 0:
                 logging.warning(f'gcov-dump -p failed: {proc.stderr}')
                 return None
@@ -44,9 +48,9 @@ class GCDABinaryPass(AbstractPass):
     def transform(self, test_case, state, process_event_notifier):
         data = open(test_case, 'rb').read()
         old_len = len(data)
-        newdata = data[0:state.functions[state.index]]
+        newdata = data[0 : state.functions[state.index]]
         if state.end() < len(state.functions):
-            newdata += data[state.functions[state.end()]:]
+            newdata += data[state.functions[state.end()] :]
         assert len(newdata) < old_len
 
         tmp = os.path.dirname(test_case)

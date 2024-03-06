@@ -15,7 +15,9 @@ class LinesPass(AbstractPass):
     def __format(self, test_case, check_sanity):
         tmp = os.path.dirname(test_case)
 
-        with tempfile.NamedTemporaryFile(mode='w+', dir=tmp) as backup, tempfile.NamedTemporaryFile(mode='w+', dir=tmp) as tmp_file:
+        with tempfile.NamedTemporaryFile(mode='w+', dir=tmp) as backup, tempfile.NamedTemporaryFile(
+            mode='w+', dir=tmp
+        ) as tmp_file:
             with open(test_case) as in_file:
                 try:
                     cmd = [self.external_programs['topformflat'], self.arg]
@@ -69,7 +71,7 @@ class LinesPass(AbstractPass):
             data = in_file.readlines()
 
         old_len = len(data)
-        data = data[0:state.index] + data[state.end():]
+        data = data[0 : state.index] + data[state.end() :]
         assert len(data) < old_len
 
         tmp = os.path.dirname(test_case)

@@ -42,12 +42,11 @@ script_path = os.path.dirname(os.path.realpath(__file__))
 
 
 def get_share_dir():
-
     # Test all known locations for the cvise directory
     share_dirs = [
         os.path.join('@CMAKE_INSTALL_FULL_DATADIR@', '@cvise_PACKAGE@'),
         destdir + os.path.join('@CMAKE_INSTALL_FULL_DATADIR@', '@cvise_PACKAGE@'),
-        os.path.join(script_path, 'cvise')
+        os.path.join(script_path, 'cvise'),
     ]
 
     for d in share_dirs:
@@ -63,7 +62,7 @@ def find_external_programs():
         'clex': 'clex',
         'topformflat': 'delta',
         'unifdef': None,
-        'gcov-dump': None
+        'gcov-dump': None,
     }
 
     for prog, local_folder in programs.items():
@@ -151,53 +150,192 @@ def get_available_cores():
         return 1
 
 
-EPILOG_TEXT = """
+EPILOG_TEXT = (
+    """
 available shortcuts:
   S - skip execution of the current pass
   D - toggle --print-diff option
 
 For bug reporting instructions, please use:
 %s
-""" % CVise.Info.PACKAGE_URL
+"""
+    % CVise.Info.PACKAGE_URL
+)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='C-Vise', formatter_class=argparse.RawDescriptionHelpFormatter, epilog=EPILOG_TEXT)
-    parser.add_argument('--n', '-n', type=int, default=get_available_cores(), help='Number of cores to use; C-Vise tries to automatically pick a good setting but its choice may be too low or high for your situation')
-    parser.add_argument('--tidy', action='store_true', help='Do not make a backup copy of each file to reduce as file.orig')
-    parser.add_argument('--shaddap', action='store_true', help='Suppress output about non-fatal internal errors')
-    parser.add_argument('--die-on-pass-bug', action='store_true', help='Terminate C-Vise if a pass encounters an otherwise non-fatal problem')
-    parser.add_argument('--sllooww', action='store_true', help='Try harder to reduce, but perhaps take a long time to do so')
-    parser.add_argument('--also-interesting', metavar='EXIT_CODE', type=int, help='A process exit code (somewhere in the range 64-113 would be usual) that, when returned by the interestingness test, will cause C-Vise to save a copy of the variant')
-    parser.add_argument('--debug', action='store_true', help='Print debug information (alias for --log-level=DEBUG)')
-    parser.add_argument('--log-level', type=str, choices=['INFO', 'DEBUG', 'WARNING', 'ERROR'], default='INFO', help='Define the verbosity of the logged events')
-    parser.add_argument('--log-file', type=str, help='Log events into LOG_FILE instead of stderr. New events are appended to the end of the file')
-    parser.add_argument('--no-give-up', action='store_true', help=f"Don't give up on a pass that hasn't made progress for {testing.TestManager.GIVEUP_CONSTANT} iterations")
-    parser.add_argument('--print-diff', action='store_true', help='Show changes made by transformations, for debugging')
-    parser.add_argument('--save-temps', action='store_true', help="Don't delete /tmp/cvise-xxxxxx directories on termination")
-    parser.add_argument('--skip-initial-passes', action='store_true', help='Skip initial passes (useful if input is already partially reduced)')
-    parser.add_argument('--skip-interestingness-test-check', '-s', action='store_true', help='Skip initial interestingness test check')
-    parser.add_argument('--remove-pass', help='Remove all instances of the specified passes from the schedule (comma-separated)')
+    parser = argparse.ArgumentParser(
+        description='C-Vise',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=EPILOG_TEXT,
+    )
+    parser.add_argument(
+        '--n',
+        '-n',
+        type=int,
+        default=get_available_cores(),
+        help='Number of cores to use; C-Vise tries to automatically pick a good setting but its choice may be too low or high for your situation',
+    )
+    parser.add_argument(
+        '--tidy',
+        action='store_true',
+        help='Do not make a backup copy of each file to reduce as file.orig',
+    )
+    parser.add_argument(
+        '--shaddap',
+        action='store_true',
+        help='Suppress output about non-fatal internal errors',
+    )
+    parser.add_argument(
+        '--die-on-pass-bug',
+        action='store_true',
+        help='Terminate C-Vise if a pass encounters an otherwise non-fatal problem',
+    )
+    parser.add_argument(
+        '--sllooww',
+        action='store_true',
+        help='Try harder to reduce, but perhaps take a long time to do so',
+    )
+    parser.add_argument(
+        '--also-interesting',
+        metavar='EXIT_CODE',
+        type=int,
+        help='A process exit code (somewhere in the range 64-113 would be usual) that, when returned by the interestingness test, will cause C-Vise to save a copy of the variant',
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Print debug information (alias for --log-level=DEBUG)',
+    )
+    parser.add_argument(
+        '--log-level',
+        type=str,
+        choices=['INFO', 'DEBUG', 'WARNING', 'ERROR'],
+        default='INFO',
+        help='Define the verbosity of the logged events',
+    )
+    parser.add_argument(
+        '--log-file',
+        type=str,
+        help='Log events into LOG_FILE instead of stderr. New events are appended to the end of the file',
+    )
+    parser.add_argument(
+        '--no-give-up',
+        action='store_true',
+        help=f"Don't give up on a pass that hasn't made progress for {testing.TestManager.GIVEUP_CONSTANT} iterations",
+    )
+    parser.add_argument(
+        '--print-diff',
+        action='store_true',
+        help='Show changes made by transformations, for debugging',
+    )
+    parser.add_argument(
+        '--save-temps',
+        action='store_true',
+        help="Don't delete /tmp/cvise-xxxxxx directories on termination",
+    )
+    parser.add_argument(
+        '--skip-initial-passes',
+        action='store_true',
+        help='Skip initial passes (useful if input is already partially reduced)',
+    )
+    parser.add_argument(
+        '--skip-interestingness-test-check',
+        '-s',
+        action='store_true',
+        help='Skip initial interestingness test check',
+    )
+    parser.add_argument(
+        '--remove-pass',
+        help='Remove all instances of the specified passes from the schedule (comma-separated)',
+    )
     parser.add_argument('--start-with-pass', help='Start with the specified pass')
-    parser.add_argument('--no-timing', action='store_true', help='Do not print timestamps about reduction progress')
-    parser.add_argument('--timestamp', action='store_true', help='Print timestamps instead of relative time from a reduction start')
-    parser.add_argument('--timeout', type=int, nargs='?', default=300, help='Interestingness test timeout in seconds')
+    parser.add_argument(
+        '--no-timing',
+        action='store_true',
+        help='Do not print timestamps about reduction progress',
+    )
+    parser.add_argument(
+        '--timestamp',
+        action='store_true',
+        help='Print timestamps instead of relative time from a reduction start',
+    )
+    parser.add_argument(
+        '--timeout',
+        type=int,
+        nargs='?',
+        default=300,
+        help='Interestingness test timeout in seconds',
+    )
     parser.add_argument('--no-cache', action='store_true', help="Don't cache behavior of passes")
-    parser.add_argument('--skip-key-off', action='store_true', help="Disable skipping the rest of the current pass when 's' is pressed")
-    parser.add_argument('--max-improvement', metavar='BYTES', type=int, help='Largest improvement in file size from a single transformation that C-Vise should accept (useful only to slow C-Vise down)')
+    parser.add_argument(
+        '--skip-key-off',
+        action='store_true',
+        help="Disable skipping the rest of the current pass when 's' is pressed",
+    )
+    parser.add_argument(
+        '--max-improvement',
+        metavar='BYTES',
+        type=int,
+        help='Largest improvement in file size from a single transformation that C-Vise should accept (useful only to slow C-Vise down)',
+    )
     passes_group = parser.add_mutually_exclusive_group()
-    passes_group.add_argument('--pass-group', type=str, choices=get_available_pass_groups(), help='Set of passes used during the reduction')
+    passes_group.add_argument(
+        '--pass-group',
+        type=str,
+        choices=get_available_pass_groups(),
+        help='Set of passes used during the reduction',
+    )
     passes_group.add_argument('--pass-group-file', type=str, help='JSON file defining a custom pass group')
-    parser.add_argument('--clang-delta-std', type=str, choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++2b'], help='Specify clang_delta C++ standard, it can rapidly speed up all clang_delta passes')
-    parser.add_argument('--clang-delta-preserve-routine', type=str, help='Preserve the given function in replace-function-def-with-decl clang delta pass')
-    parser.add_argument('--not-c', action='store_true', help="Don't run passes that are specific to C and C++, use this mode for reducing other languages")
-    parser.add_argument('--renaming', action='store_true', help='Enable all renaming passes (that are disabled by default)')
+    parser.add_argument(
+        '--clang-delta-std',
+        type=str,
+        choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++2b'],
+        help='Specify clang_delta C++ standard, it can rapidly speed up all clang_delta passes',
+    )
+    parser.add_argument(
+        '--clang-delta-preserve-routine',
+        type=str,
+        help='Preserve the given function in replace-function-def-with-decl clang delta pass',
+    )
+    parser.add_argument(
+        '--not-c',
+        action='store_true',
+        help="Don't run passes that are specific to C and C++, use this mode for reducing other languages",
+    )
+    parser.add_argument(
+        '--renaming',
+        action='store_true',
+        help='Enable all renaming passes (that are disabled by default)',
+    )
     parser.add_argument('--list-passes', action='store_true', help='Print all available passes and exit')
-    parser.add_argument('--version', action='version', version=CVise.Info.PACKAGE_STRING + (' (%s)' % CVise.Info.GIT_VERSION if CVise.Info.GIT_VERSION != 'unknown' else ''))
-    parser.add_argument('--commands', '-c', help='Use shell commands instead of an interestingness test case')
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=CVise.Info.PACKAGE_STRING
+        + (' (%s)' % CVise.Info.GIT_VERSION if CVise.Info.GIT_VERSION != 'unknown' else ''),
+    )
+    parser.add_argument(
+        '--commands',
+        '-c',
+        help='Use shell commands instead of an interestingness test case',
+    )
     parser.add_argument('--shell', default='bash', help='Use selected shell for the --commands option')
-    parser.add_argument('--to-utf8', action='store_true', help='Convert any non-UTF-8 encoded input file to UTF-8')
-    parser.add_argument('--skip-after-n-transforms', type=int, help='Skip each pass after N successful transformations')
-    parser.add_argument('interestingness_test', metavar='INTERESTINGNESS_TEST', nargs='?', help='Executable to check interestingness of test cases')
+    parser.add_argument(
+        '--to-utf8',
+        action='store_true',
+        help='Convert any non-UTF-8 encoded input file to UTF-8',
+    )
+    parser.add_argument(
+        '--skip-after-n-transforms',
+        type=int,
+        help='Skip each pass after N successful transformations',
+    )
+    parser.add_argument(
+        'interestingness_test',
+        metavar='INTERESTINGNESS_TEST',
+        nargs='?',
+        help='Executable to check interestingness of test cases',
+    )
     parser.add_argument('test_cases', metavar='TEST_CASE', nargs='+', help='Test cases')
 
     args = parser.parse_args()
@@ -244,9 +382,16 @@ if __name__ == '__main__':
     external_programs = find_external_programs()
 
     pass_group_dict = CVise.load_pass_group_file(pass_group_file)
-    pass_group = CVise.parse_pass_group_dict(pass_group_dict, pass_options, external_programs,
-                                             args.remove_pass, args.clang_delta_std,
-                                             args.clang_delta_preserve_routine, args.not_c, args.renaming)
+    pass_group = CVise.parse_pass_group_dict(
+        pass_group_dict,
+        pass_options,
+        external_programs,
+        args.remove_pass,
+        args.clang_delta_std,
+        args.clang_delta_preserve_routine,
+        args.not_c,
+        args.renaming,
+    )
     if args.list_passes:
         logging.info('Available passes:')
         logging.info('INITIAL PASSES')
@@ -265,8 +410,10 @@ if __name__ == '__main__':
     if args.start_with_pass:
         pass_names = [str(p) for p in chain(*pass_group.values())]
         if args.start_with_pass not in pass_names:
-            print(f'Cannot find pass called "{args.start_with_pass}". '
-                  'Please use --list-passes to get a list of available passes.')
+            print(
+                f'Cannot find pass called "{args.start_with_pass}". '
+                'Please use --list-passes to get a list of available passes.'
+            )
             sys.exit(1)
 
     if not args.interestingness_test and not args.commands:
@@ -297,10 +444,24 @@ if __name__ == '__main__':
         logging.info('Using temporary interestingness test: %s' % script.name)
         args.interestingness_test = script.name
 
-    test_manager = testing.TestManager(pass_statistic, args.interestingness_test, args.timeout,
-                                       args.save_temps, args.test_cases, args.n, args.no_cache, args.skip_key_off, args.shaddap,
-                                       args.die_on_pass_bug, args.print_diff, args.max_improvement, args.no_give_up, args.also_interesting,
-                                       args.start_with_pass, args.skip_after_n_transforms)
+    test_manager = testing.TestManager(
+        pass_statistic,
+        args.interestingness_test,
+        args.timeout,
+        args.save_temps,
+        args.test_cases,
+        args.n,
+        args.no_cache,
+        args.skip_key_off,
+        args.shaddap,
+        args.die_on_pass_bug,
+        args.print_diff,
+        args.max_improvement,
+        args.no_give_up,
+        args.also_interesting,
+        args.start_with_pass,
+        args.skip_after_n_transforms,
+    )
 
     reducer = CVise(test_manager, args.skip_interestingness_test_check)
 
@@ -317,13 +478,30 @@ if __name__ == '__main__':
     else:
         time_stop = time.monotonic()
         print('===< PASS statistics >===')
-        print('  %-60s %8s %8s %8s %8s %15s' % ('pass name', 'time (s)', 'time (%)', 'worked',
-              'failed', 'total executed'))
+        print(
+            '  %-60s %8s %8s %8s %8s %15s'
+            % (
+                'pass name',
+                'time (s)',
+                'time (%)',
+                'worked',
+                'failed',
+                'total executed',
+            )
+        )
 
         for pass_name, pass_data in pass_statistic.sorted_results:
-            print('  %-60s %8.2f %8.2f %8d %8d %15d' % (pass_name, pass_data.total_seconds,
-                  100.0 * pass_data.total_seconds / (time_stop - time_start),
-                pass_data.worked, pass_data.failed, pass_data.totally_executed))
+            print(
+                '  %-60s %8.2f %8.2f %8d %8d %15d'
+                % (
+                    pass_name,
+                    pass_data.total_seconds,
+                    100.0 * pass_data.total_seconds / (time_stop - time_start),
+                    pass_data.worked,
+                    pass_data.failed,
+                    pass_data.totally_executed,
+                )
+            )
         print()
 
         if not args.no_timing:

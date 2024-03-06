@@ -6,7 +6,6 @@ import unittest
 
 
 class TestCvise(unittest.TestCase):
-
     @classmethod
     def check_cvise(cls, testcase, arguments, expected):
         current = os.path.dirname(__file__)
@@ -21,5 +20,8 @@ class TestCvise(unittest.TestCase):
         assert stat.filemode(os.stat(testcase).st_mode) == '-rw-r--r--'
 
     def test_simple_reduction(self):
-        self.check_cvise('blocksort-part.c', '-c "gcc -c blocksort-part.c && grep nextHi blocksort-part.c"',
-                         ['#define nextHi', '#define  nextHi '])
+        self.check_cvise(
+            'blocksort-part.c',
+            '-c "gcc -c blocksort-part.c && grep nextHi blocksort-part.c"',
+            ['#define nextHi', '#define  nextHi '],
+        )

@@ -12,13 +12,15 @@ class TernaryPass(AbstractPass):
     balanced_parens_pattern = nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.parens)
     varnumexp_pattern = nestedmatcher.OrPattern(varnum_pattern, balanced_parens_pattern)
 
-    parts = [(border_or_space_pattern, 'del1'),
-             varnumexp_pattern,
-             nestedmatcher.RegExPattern(r'\s*\?\s*'),
-             (varnumexp_pattern, 'b'),
-             nestedmatcher.RegExPattern(r'\s*:\s*'),
-             (varnumexp_pattern, 'c'),
-             (border_or_space_pattern, 'del2')]
+    parts = [
+        (border_or_space_pattern, 'del1'),
+        varnumexp_pattern,
+        nestedmatcher.RegExPattern(r'\s*\?\s*'),
+        (varnumexp_pattern, 'b'),
+        nestedmatcher.RegExPattern(r'\s*:\s*'),
+        (varnumexp_pattern, 'c'),
+        (border_or_space_pattern, 'del2'),
+    ]
 
     def check_prerequisites(self):
         return True
@@ -52,7 +54,11 @@ class TernaryPass(AbstractPass):
                 if self.arg not in ['b', 'c']:
                     raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
-                prog2 = prog2[0:state['del1'][1]] + prog2[state[self.arg][0]:state[self.arg][1]] + prog2[state['del2'][0]:]
+                prog2 = (
+                    prog2[0 : state['del1'][1]]
+                    + prog2[state[self.arg][0] : state[self.arg][1]]
+                    + prog2[state['del2'][0] :]
+                )
 
                 if prog != prog2:
                     with open(test_case, 'w') as out_file:

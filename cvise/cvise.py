@@ -73,8 +73,17 @@ class CVise:
         return pass_group_dict
 
     @classmethod
-    def parse_pass_group_dict(cls, pass_group_dict, pass_options, external_programs, remove_pass,
-                              clang_delta_std, clang_delta_preserve_routine, not_c, renaming):
+    def parse_pass_group_dict(
+        cls,
+        pass_group_dict,
+        pass_options,
+        external_programs,
+        remove_pass,
+        clang_delta_std,
+        clang_delta_preserve_routine,
+        not_c,
+        renaming,
+    ):
         pass_group = {}
         removed_passes = set(remove_pass.split(',')) if remove_pass else set()
 
@@ -90,8 +99,9 @@ class CVise:
             return valid_options
 
         def include_pass(pass_dict, options):
-            return ((('include' not in pass_dict) or bool(parse_options(pass_dict['include']) & options)) and
-                    (('exclude' not in pass_dict) or not bool(parse_options(pass_dict['exclude']) & options)))
+            return (('include' not in pass_dict) or bool(parse_options(pass_dict['include']) & options)) and (
+                ('exclude' not in pass_dict) or not bool(parse_options(pass_dict['exclude']) & options)
+            )
 
         for category in ['first', 'main', 'last']:
             if category not in pass_group_dict:
@@ -138,8 +148,12 @@ class CVise:
             self.test_manager.check_sanity(True)
 
         logging.info(f'===< {os.getpid()} >===')
-        logging.info('running {} interestingness test{} in parallel'.format(self.test_manager.parallel_tests,
-                                                                            '' if self.test_manager.parallel_tests == 1 else 's'))
+        logging.info(
+            'running {} interestingness test{} in parallel'.format(
+                self.test_manager.parallel_tests,
+                '' if self.test_manager.parallel_tests == 1 else 's',
+            )
+        )
 
         if not self.tidy:
             self.test_manager.backup_test_cases()

@@ -40,8 +40,17 @@ def rmfolder(name):
 
 
 class TestEnvironment:
-    def __init__(self, state, order, test_script, folder, test_case,
-                 additional_files, transform, pid_queue=None):
+    def __init__(
+        self,
+        state,
+        order,
+        test_script,
+        folder,
+        test_case,
+        additional_files,
+        transform,
+        pid_queue=None,
+    ):
         self.test_case = None
         self.additional_files = set()
         self.state = state
@@ -71,7 +80,7 @@ class TestEnvironment:
         if self.base_size is None:
             return None
         else:
-            return (self.base_size - os.path.getsize(self.test_case_path))
+            return self.base_size - os.path.getsize(self.test_case_path)
 
     @property
     def test_case_path(self):
@@ -97,8 +106,7 @@ class TestEnvironment:
     def run(self):
         try:
             # transform by state
-            (result, self.state) = self.transform(self.test_case_path, self.state,
-                                                  ProcessEventNotifier(self.pid_queue))
+            (result, self.state) = self.transform(self.test_case_path, self.state, ProcessEventNotifier(self.pid_queue))
             self.result = result
             if self.result != PassResult.OK:
                 return self
@@ -133,9 +141,25 @@ class TestManager:
     MAX_EXTRA_DIRS = 25000
     TEMP_PREFIX = 'cvise-'
 
-    def __init__(self, pass_statistic, test_script, timeout, save_temps, test_cases, parallel_tests,
-                 no_cache, skip_key_off, silent_pass_bug, die_on_pass_bug, print_diff, max_improvement,
-                 no_give_up, also_interesting, start_with_pass, skip_after_n_transforms):
+    def __init__(
+        self,
+        pass_statistic,
+        test_script,
+        timeout,
+        save_temps,
+        test_cases,
+        parallel_tests,
+        no_cache,
+        skip_key_off,
+        silent_pass_bug,
+        die_on_pass_bug,
+        print_diff,
+        max_improvement,
+        no_give_up,
+        also_interesting,
+        start_with_pass,
+        skip_after_n_transforms,
+    ):
         self.test_script = os.path.abspath(test_script)
         self.timeout = timeout
         self.save_temps = save_temps
@@ -168,9 +192,16 @@ class TestManager:
         if not self.is_valid_test(self.test_script):
             raise InvalidInterestingnessTestError(self.test_script)
 
-        self.use_colordiff = (sys.stdout.isatty() and
-                              subprocess.run('colordiff --version', shell=True,
-                                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0)
+        self.use_colordiff = (
+            sys.stdout.isatty()
+            and subprocess.run(
+                'colordiff --version',
+                shell=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            ).returncode
+            == 0
+        )
 
     def create_root(self):
         pass_name = str(self.current_pass).replace('::', '-')
@@ -267,7 +298,9 @@ class TestManager:
         test_env.dump(crash_dir)
 
         if not self.die_on_pass_bug:
-            logging.debug(f'Please consider tarring up {crash_dir} and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.')
+            logging.debug(
+                f'Please consider tarring up {crash_dir} and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.'
+            )
 
         with open(os.path.join(crash_dir, 'PASS_BUG_INFO.TXT'), mode='w') as info_file:
             info_file.write('Package: %s\n' % CVise.Info.PACKAGE_STRING)
@@ -379,8 +412,7 @@ class TestManager:
 
                 test_env = future.result()
                 if test_env.success:
-                    if (self.max_improvement is not None and
-                            test_env.size_improvement > self.max_improvement):
+                    if self.max_improvement is not None and test_env.size_improvement > self.max_improvement:
                         logging.debug(f'Too large improvement: {test_env.size_improvement} B')
                     else:
                         # Report bug if transform did not change the file
@@ -395,8 +427,7 @@ class TestManager:
                     self.pass_statistic.add_failure(self.current_pass)
                     if test_env.result == PassResult.OK:
                         assert test_env.exitcode
-                        if (self.also_interesting is not None and
-                                test_env.exitcode == self.also_interesting):
+                        if self.also_interesting is not None and test_env.exitcode == self.also_interesting:
                             self.save_extra_dir(test_env.test_case_path)
                     elif test_env.result == PassResult.STOP:
                         quit_loop = True
@@ -449,9 +480,16 @@ class TestManager:
                     return success
 
                 folder = tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=self.root)
-                test_env = TestEnvironment(self.state, order, self.test_script, folder,
-                                           self.current_test_case, self.test_cases ^ {self.current_test_case},
-                                           self.current_pass.transform, self.pid_queue)
+                test_env = TestEnvironment(
+                    self.state,
+                    order,
+                    self.test_script,
+                    folder,
+                    self.current_test_case,
+                    self.test_cases ^ {self.current_test_case},
+                    self.current_pass.transform,
+                    self.pid_queue,
+                )
                 future = pool.schedule(test_env.run, timeout=self.timeout)
                 self.temporary_folders[future] = folder
                 self.futures.append(future)
@@ -503,8 +541,7 @@ class TestManager:
                     with open(test_case, mode='rb+') as tmp_file:
                         test_case_before_pass = tmp_file.read()
 
-                        if (pass_key in self.cache and
-                                test_case_before_pass in self.cache[pass_key]):
+                        if pass_key in self.cache and test_case_before_pass in self.cache[pass_key]:
                             tmp_file.seek(0)
                             tmp_file.truncate(0)
                             tmp_file.write(self.cache[pass_key][test_case_before_pass])
@@ -536,8 +573,10 @@ class TestManager:
                     # if the file increases significantly, bail out the current pass
                     test_case_size = os.path.getsize(self.current_test_case)
                     if test_case_size >= MAX_PASS_INCREASEMENT_THRESHOLD * starting_test_case_size:
-                        logging.info(f'skipping the rest of the pass (huge file increasement '
-                                     f'{MAX_PASS_INCREASEMENT_THRESHOLD * 100}%)')
+                        logging.info(
+                            f'skipping the rest of the pass (huge file increasement '
+                            f'{MAX_PASS_INCREASEMENT_THRESHOLD * 100}%)'
+                        )
                         break
 
                     self.release_folders()
@@ -546,8 +585,9 @@ class TestManager:
                         break
 
                     # skip after N transformations if requested
-                    if ((self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms)
-                            or (self.current_pass.max_transforms and success_count >= self.current_pass.max_transforms)):
+                    if (self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms) or (
+                        self.current_pass.max_transforms and success_count >= self.current_pass.max_transforms
+                    ):
                         logging.info(f'skipping after {success_count} successful transformations')
                         break
 

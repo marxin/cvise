@@ -72,7 +72,16 @@ class IfPass(AbstractPass):
                         i += 1
                     tmp_file.write(line)
 
-        cmd = [self.external_programs['unifdef'], '-B', '-x', '2', '-k', '-o', test_case, tmp_file.name]
+        cmd = [
+            self.external_programs['unifdef'],
+            '-B',
+            '-x',
+            '2',
+            '-k',
+            '-o',
+            test_case,
+            tmp_file.name,
+        ]
         stdout, stderr, returncode = process_event_notifier.run_process(cmd)
         if returncode != 0:
             return (PassResult.ERROR, state)

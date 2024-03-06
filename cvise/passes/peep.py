@@ -17,11 +17,19 @@ class PeepPass(AbstractPass):
     balanced_parens_pattern = nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.parens)
     varnumexp_pattern = nestedmatcher.OrPattern(varnum_pattern, balanced_parens_pattern)
 
-    call_parts = [varnum_pattern, nestedmatcher.RegExPattern(r'\s*'), nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.parens)]
+    call_parts = [
+        varnum_pattern,
+        nestedmatcher.RegExPattern(r'\s*'),
+        nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.parens),
+    ]
 
     field = r'\.(?:' + varnum + r')'
     index = r'\[(?:' + varnum + r')\]'
-    fullvar = [nestedmatcher.RegExPattern(r'[&*]*'), varnumexp_pattern, nestedmatcher.RegExPattern(r'(?:(?:' + field + r')|(?:' + index + r'))*')]
+    fullvar = [
+        nestedmatcher.RegExPattern(r'[&*]*'),
+        varnumexp_pattern,
+        nestedmatcher.RegExPattern(r'(?:(?:' + field + r')|(?:' + index + r'))*'),
+    ]
     arith = r'\+|-|%|/|\*'
     comp = r'<=|>=|<|>|==|!=|='
     logic = r'&&|\|\|'
@@ -32,8 +40,20 @@ class PeepPass(AbstractPass):
         ([nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.angles)], ''),
         ([nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.parens)], ''),
         ([nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies)], ''),
-        ([nestedmatcher.RegExPattern(r'namespace[^{]*'), nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies)], ''),
-        ([nestedmatcher.RegExPattern(r'=\s*'), nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies)], ''),
+        (
+            [
+                nestedmatcher.RegExPattern(r'namespace[^{]*'),
+                nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies),
+            ],
+            '',
+        ),
+        (
+            [
+                nestedmatcher.RegExPattern(r'=\s*'),
+                nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies),
+            ],
+            '',
+        ),
         ([nestedmatcher.RegExPattern(r':\s*[0-9]+\s*;')], ';'),
         ([nestedmatcher.RegExPattern(r';')], ''),
         ([nestedmatcher.RegExPattern(r'\^=')], '='),
@@ -62,10 +82,34 @@ class PeepPass(AbstractPass):
         ([nestedmatcher.RegExPattern(r'while')], 'if'),
         ([nestedmatcher.RegExPattern(r"'[^']*'")], ''),
         ([nestedmatcher.RegExPattern(r"'[^']*',")], ''),
-        ([nestedmatcher.RegExPattern(r'struct\s*[^{]*\s*'), nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies)], ''),
-        ([nestedmatcher.RegExPattern(r'union\s*[^{]*\s*'), nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies)], ''),
-        ([nestedmatcher.RegExPattern(r'enum\s*[^{]*\s*'), nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies)], ''),
-        ([nestedmatcher.RegExPattern(r'if\s*'), nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.parens)], ''),
+        (
+            [
+                nestedmatcher.RegExPattern(r'struct\s*[^{]*\s*'),
+                nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies),
+            ],
+            '',
+        ),
+        (
+            [
+                nestedmatcher.RegExPattern(r'union\s*[^{]*\s*'),
+                nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies),
+            ],
+            '',
+        ),
+        (
+            [
+                nestedmatcher.RegExPattern(r'enum\s*[^{]*\s*'),
+                nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies),
+            ],
+            '',
+        ),
+        (
+            [
+                nestedmatcher.RegExPattern(r'if\s*'),
+                nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.parens),
+            ],
+            '',
+        ),
     ]
 
     # these match when preceded and followed by border_or_space
@@ -97,7 +141,8 @@ class PeepPass(AbstractPass):
         (call_parts + [nestedmatcher.RegExPattern(r',')], '0'),
         (call_parts + [nestedmatcher.RegExPattern(r',')], ''),
         (call_parts, '0'),
-        (call_parts, '')]
+        (call_parts, ''),
+    ]
 
     __subexprs = [
         fullvar + [nestedmatcher.RegExPattern(r'\s*')] + binop + [nestedmatcher.RegExPattern(r'\s*')] + fullvar,
@@ -108,7 +153,11 @@ class PeepPass(AbstractPass):
         [nestedmatcher.RegExPattern(r'::\s*')] + fullvar,
         fullvar + [nestedmatcher.RegExPattern(r'\s*:')],
         fullvar + [nestedmatcher.RegExPattern(r'\s*::')],
-        fullvar + [nestedmatcher.RegExPattern(r'\s*\?\s*')] + fullvar + [nestedmatcher.RegExPattern(r'\s*:\s*')] + fullvar,
+        fullvar
+        + [nestedmatcher.RegExPattern(r'\s*\?\s*')]
+        + fullvar
+        + [nestedmatcher.RegExPattern(r'\s*:\s*')]
+        + fullvar,
     ]
 
     for x in __subexprs:
@@ -172,7 +221,7 @@ class PeepPass(AbstractPass):
             m = nestedmatcher.search(search, prog2, pos=state['pos'], search=False)
 
             if m is not None:
-                prog2 = prog2[0:m['all'][0]] + replace + prog2[m['all'][1]:]
+                prog2 = prog2[0 : m['all'][0]] + replace + prog2[m['all'][1] :]
 
                 if prog != prog2:
                     with open(test_case, 'w') as out_file:
@@ -199,7 +248,7 @@ class PeepPass(AbstractPass):
             m = nestedmatcher.search(search, prog2, pos=state['pos'], search=False)
 
             if m is not None:
-                prog2 = prog2[0:m['delim1'][1]] + replace + prog2[m['delim2'][0]:]
+                prog2 = prog2[0 : m['delim1'][1]] + replace + prog2[m['delim2'][0] :]
 
                 if prog != prog2:
                     with open(test_case, 'w') as out_file:
@@ -207,17 +256,22 @@ class PeepPass(AbstractPass):
 
                     return (PassResult.OK, state)
         elif self.arg == 'c':
-            search = [nestedmatcher.RegExPattern(r'^while\s*'),
-                      nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.parens),
-                      nestedmatcher.RegExPattern(r'\s*'),
-                      (nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies), 'body')]
+            search = [
+                nestedmatcher.RegExPattern(r'^while\s*'),
+                nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.parens),
+                nestedmatcher.RegExPattern(r'\s*'),
+                (
+                    nestedmatcher.BalancedPattern(nestedmatcher.BalancedExpr.curlies),
+                    'body',
+                ),
+            ]
 
             m = nestedmatcher.search(search, prog2, pos=state['pos'], search=False)
 
             if m is not None:
-                body = prog2[m['body'][0]:m['body'][1]]
+                body = prog2[m['body'][0] : m['body'][1]]
                 body = re.sub(r'break\s*;', '', body)
-                prog2 = prog2[0:m['all'][0]] + body + prog2[m['all'][1]:]
+                prog2 = prog2[0 : m['all'][0]] + body + prog2[m['all'][1] :]
 
                 if prog != prog2:
                     with open(test_case, 'w') as out_file:

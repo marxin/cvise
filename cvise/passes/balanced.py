@@ -26,19 +26,20 @@ class BalancedPass(AbstractPass):
         return self.__get_next_match(test_case, pos=state[0])
 
     def __get_config(self):
-        config = {'search': None,
-                  'replace_fn': None,
-                  'prefix': '',
-                  }
+        config = {
+            'search': None,
+            'replace_fn': None,
+            'prefix': '',
+        }
 
         def replace_all(string, match):
-            return string[0:match[0]] + string[match[1]:]
+            return string[0 : match[0]] + string[match[1] :]
 
         def replace_only(string, match):
-            return string[0:match[0]] + string[(match[0] + 1):(match[1] - 1)] + string[match[1]:]
+            return string[0 : match[0]] + string[(match[0] + 1) : (match[1] - 1)] + string[match[1] :]
 
         def replace_inside(string, match):
-            return string[0:(match[0] + 1)] + string[(match[1] - 1):]
+            return string[0 : (match[0] + 1)] + string[(match[1] - 1) :]
 
         if self.arg == 'square-inside':
             config['search'] = nestedmatcher.BalancedExpr.squares
@@ -60,7 +61,7 @@ class BalancedPass(AbstractPass):
             config['replace_fn'] = replace_all
         elif self.arg == 'parens-to-zero':
             config['search'] = nestedmatcher.BalancedExpr.parens
-            config['replace_fn'] = lambda string, match: string[0:match[0]] + '0' + string[match[1]:]
+            config['replace_fn'] = lambda string, match: string[0 : match[0]] + '0' + string[match[1] :]
         elif self.arg == 'parens':
             config['search'] = nestedmatcher.BalancedExpr.parens
             config['replace_fn'] = replace_all
@@ -69,7 +70,7 @@ class BalancedPass(AbstractPass):
             config['replace_fn'] = replace_all
         elif self.arg == 'curly2':
             config['search'] = nestedmatcher.BalancedExpr.curlies
-            config['replace_fn'] = lambda string, match: string[0:match[0]] + ';' + string[match[1]:]
+            config['replace_fn'] = lambda string, match: string[0 : match[0]] + ';' + string[match[1] :]
         elif self.arg == 'curly3':
             config['search'] = nestedmatcher.BalancedExpr.curlies
             config['replace_fn'] = replace_all

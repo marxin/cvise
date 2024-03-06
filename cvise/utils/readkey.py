@@ -36,7 +36,7 @@ class KeyLogger:
             return msvcrt.kbhit()
         else:
             (dr, dw, de) = select.select([sys.stdin], [], [], 0)
-            return (dr != [])
+            return dr != []
 
     def pressed_key(self):
         if self._kbhit():
