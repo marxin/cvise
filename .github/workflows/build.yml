@@ -16,17 +16,17 @@ jobs:
 
     strategy:
       matrix:
-        llvm: [13, 14, 15, 16, 17]
+        llvm: [13, 14, 15, 16, 17, 18]
         build-type: [DEBUG]
         include:
-          - llvm: 17
+          - llvm: 18
             build-type: ASAN
-          - llvm: 17
+          - llvm: 18
             build-type: UBSAN
-          - llmv: 17
+          - llmv: 18
             build-type: RelWithDebInfo
             extra-flags: -flto=auto
-          - llmv: 17
+          - llmv: 18
             build-type: RelWithDebInfo
             env: CC=clang CXX=clang++
       fail-fast: false
