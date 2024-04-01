@@ -142,7 +142,11 @@ bool LocalTmpVarCollector::VisitDeclRefExpr(DeclRefExpr *DRE)
   const VarDecl *VD = dyn_cast<VarDecl>(DRE->getDecl());
   if (!VD)
     return true;
+#if LLVM_VERSION_MAJOR < 18
   if (VD->getName().startswith(Prefix))
+#else
+  if (VD->getName().starts_with(Prefix))
+#endif
     TmpVars.push_back(VD);
   return true;
 }
@@ -387,7 +391,11 @@ void ExpressionDetector::addOneTempVar(const VarDecl *VD)
 {
   if (!VD)
     return;
+#if LLVM_VERSION_MAJOR < 18
   if (!VD->getName().startswith(TmpVarNamePrefix))
+#else
+  if (!VD->getName().starts_with(TmpVarNamePrefix))
+#endif
     return;
   if (const Expr *E = VD->getInit())
     ProcessedExprs[VD] = E->IgnoreParenImpCasts();
@@ -398,9 +406,15 @@ bool ExpressionDetector::refToTmpVar(const NamedDecl *ND)
   StringRef Name = ND->getName();
   // We don't want to repeatly replace temporary variables
   // __cvise_expr_tmp_xxx, __cvise_printed_yy and __cvise_checked_zzz.
+#if LLVM_VERSION_MAJOR < 18
   return Name.startswith(TmpVarNamePrefix) ||
          Name.startswith(PrintedVarNamePrefix) ||
          Name.startswith(CheckedVarNamePrefix);
+#else
+  return Name.starts_with(TmpVarNamePrefix) ||
+         Name.starts_with(PrintedVarNamePrefix) ||
+         Name.starts_with(CheckedVarNamePrefix);
+#endif
 }
 
 // Reference: IdenticalExprChecker.cpp from Clang
@@ -548,8 +562,13 @@ bool ExpressionDetector::isValidExpr(Stmt *S, const Expr *E)
       if (const DeclRefExpr *SubE =
           dyn_cast<DeclRefExpr>(UO->getSubExpr()->IgnoreParenCasts())) {
         StringRef SubEName = SubE->getDecl()->getName();
+#if LLVM_VERSION_MAJOR < 18
         if (SubEName.startswith(PrintedVarNamePrefix) ||
             SubEName.startswith(CheckedVarNamePrefix))
+#else
+        if (SubEName.starts_with(PrintedVarNamePrefix) ||
+            SubEName.starts_with(CheckedVarNamePrefix))
+#endif
           return false;
       }
     }
@@ -565,7 +584,11 @@ bool ExpressionDetector::isValidExpr(Stmt *S, const Expr *E)
       bool IsLit = SC == Stmt::IntegerLiteralClass ||
                    SC == Stmt::FloatingLiteralClass;
       if (IsLit && DRE &&
+#if LLVM_VERSION_MAJOR < 18
           DRE->getDecl()->getName().startswith(TmpVarNamePrefix) &&
+#else
+          DRE->getDecl()->getName().starts_with(TmpVarNamePrefix) &&
+#endif
           S->getStmtClass() == Stmt::IfStmtClass) {
         return false;
       }
