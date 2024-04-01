@@ -361,7 +361,6 @@ if __name__ == '__main__':
     syslog = logging.StreamHandler()
     formatter = DeltaTimeFormatter(log_format)
     syslog.setFormatter(formatter)
-    logging.getLogger().handlers = []
     logging.getLogger().addHandler(syslog)
 
     pass_options = set()
