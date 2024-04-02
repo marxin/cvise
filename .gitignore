@@ -71,3 +71,5 @@ __pycache__
 
 # pyenv files
 .python-version
+compile_commands.json
+.cache/
