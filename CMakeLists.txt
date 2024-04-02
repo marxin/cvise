@@ -162,11 +162,6 @@ check_cxx_compiler_flag(
   SUPPORTS_NON_TEMPLATE_FRIEND
 )
 
-check_cxx_compiler_flag(
-  "-Wdeprecated-declarations"
-  SUPPORTS_DEPRECATED_DECLARATIONS
-)
-
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
     OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # XXX figure out how to get "-std=c++17 -fno-rtti" from LLVM.  That's how we
@@ -191,10 +186,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
   if(SUPPORTS_NON_TEMPLATE_FRIEND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=non-template-friend")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=non-template-friend")
-  endif()
-  iF(SUPPORTS_DEPRECATED_DECLARATIONS)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=deprecated-declarations")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=deprecated-declarations")
   endif()
 
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
