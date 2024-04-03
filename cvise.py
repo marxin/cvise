@@ -354,15 +354,20 @@ if __name__ == '__main__':
     else:
         log_config['level'] = getattr(logging, args.log_level.upper())
 
-    if args.log_file is not None:
-        log_config['filename'] = args.log_file
+    logging.getLogger().setLevel(log_config["level"])
 
-    logging.basicConfig(**log_config)
+
     syslog = logging.StreamHandler()
     formatter = DeltaTimeFormatter(log_format)
     syslog.setFormatter(formatter)
-    logging.getLogger().handlers = []
-    logging.getLogger().addHandler(syslog)
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(syslog)
+
+    if args.log_file is not None:
+        file_handler = logging.FileHandler(args.log_file)
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
 
     pass_options = set()
 
