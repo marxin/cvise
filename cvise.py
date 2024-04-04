@@ -354,8 +354,7 @@ if __name__ == '__main__':
     else:
         log_config['level'] = getattr(logging, args.log_level.upper())
 
-    logging.getLogger().setLevel(log_config["level"])
-
+    logging.getLogger().setLevel(log_config['level'])
 
     syslog = logging.StreamHandler()
     formatter = DeltaTimeFormatter(log_format)
