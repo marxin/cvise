@@ -480,43 +480,44 @@ if __name__ == '__main__':
         print(err)
     else:
         time_stop = time.monotonic()
-        print('===< PASS statistics >===')
-        print(
-            '  %-60s %8s %8s %8s %8s %15s'
-            % (
-                'pass name',
-                'time (s)',
-                'time (%)',
-                'worked',
-                'failed',
-                'total executed',
-            )
-        )
-
-        for pass_name, pass_data in pass_statistic.sorted_results:
-            print(
-                '  %-60s %8.2f %8.2f %8d %8d %15d'
+        with open(args.log_file, 'a') if args.log_file else sys.stderr as fs:
+            fs.write('===< PASS statistics >===\n')
+            fs.write(
+                '  %-60s %8s %8s %8s %8s %15s\n'
                 % (
-                    pass_name,
-                    pass_data.total_seconds,
-                    100.0 * pass_data.total_seconds / (time_stop - time_start),
-                    pass_data.worked,
-                    pass_data.failed,
-                    pass_data.totally_executed,
+                    'pass name',
+                    'time (s)',
+                    'time (%)',
+                    'worked',
+                    'failed',
+                    'total executed',
                 )
             )
-        print()
 
-        if not args.no_timing:
-            print(f'Runtime: {round(time_stop - time_start)} seconds')
+            for pass_name, pass_data in pass_statistic.sorted_results:
+                fs.write(
+                    '  %-60s %8.2f %8.2f %8d %8d %15d\n'
+                    % (
+                        pass_name,
+                        pass_data.total_seconds,
+                        100.0 * pass_data.total_seconds / (time_stop - time_start),
+                        pass_data.worked,
+                        pass_data.failed,
+                        pass_data.totally_executed,
+                    )
+                )
+            fs.write('\n')
 
-        print('Reduced test-cases:\n')
-        for test_case in sorted(test_manager.test_cases):
-            if misc.is_readable_file(test_case):
-                print(f'--- {test_case} ---')
-                with open(test_case) as test_case_file:
-                    print(test_case_file.read())
-        if script:
-            os.unlink(script.name)
+            if not args.no_timing:
+                fs.write(f'Runtime: {round(time_stop - time_start)} seconds\n')
+
+            fs.write('Reduced test-cases:\n\n')
+            for test_case in sorted(test_manager.test_cases):
+                if misc.is_readable_file(test_case):
+                    print(f'--- {test_case} ---')
+                    with open(test_case) as test_case_file:
+                        fs.write(test_case_file.read() + '\n')
+            if script:
+                os.unlink(script.name)
 
     logging.shutdown()
