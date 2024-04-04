@@ -355,18 +355,17 @@ if __name__ == '__main__':
         log_config['level'] = getattr(logging, args.log_level.upper())
 
     logging.getLogger().setLevel(log_config['level'])
-
-    syslog = logging.StreamHandler()
     formatter = DeltaTimeFormatter(log_format)
-    syslog.setFormatter(formatter)
-
     root_logger = logging.getLogger()
-    root_logger.addHandler(syslog)
 
     if args.log_file is not None:
         file_handler = logging.FileHandler(args.log_file)
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
+    else:
+        syslog = logging.StreamHandler()
+        syslog.setFormatter(formatter)
+        root_logger.addHandler(syslog)
 
     pass_options = set()
 
