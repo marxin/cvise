@@ -48,10 +48,12 @@ class TestEnvironment:
         folder,
         test_case,
         additional_files,
+        test_case_dirs,
         transform,
         pid_queue=None,
     ):
         self.test_case = None
+        self.test_case_dirs = dict()
         self.additional_files = set()
         self.state = state
         self.folder = folder
@@ -62,18 +64,22 @@ class TestEnvironment:
         self.order = order
         self.transform = transform
         self.pid_queue = pid_queue
-        self.copy_files(test_case, additional_files)
+        self.copy_files(test_case, additional_files, test_case_dirs)
         self.pwd = os.getcwd()
 
-    def copy_files(self, test_case, additional_files):
+    def copy_files(self, test_case, additional_files, test_case_dirs):
         if test_case is not None:
-            self.test_case = os.path.basename(test_case)
-            shutil.copy(test_case, self.folder)
+            test_case_dir = test_case_dirs[test_case]
+            os.makedirs(os.path.join(self.folder, test_case_dir), exist_ok=True)
+            self.test_case = os.path.join(test_case_dir, os.path.basename(test_case))
+            shutil.copy(test_case, os.path.join(self.folder, test_case_dir))
             self.base_size = os.path.getsize(test_case)
 
         for f in additional_files:
-            self.additional_files.add(os.path.basename(f))
-            shutil.copy(f, self.folder)
+            additional_file_dir = test_case_dirs[f]
+            os.makedirs(os.path.join(self.folder, additional_file_dir), exist_ok=True)
+            self.additional_files.add(os.path.join(additional_file_dir, os.path.basename(f)))
+            shutil.copy(f, os.path.join(self.folder, additional_file_dir))
 
     @property
     def size_improvement(self):
@@ -165,6 +171,7 @@ class TestManager:
         self.save_temps = save_temps
         self.pass_statistic = pass_statistic
         self.test_cases = set()
+        self.test_case_dirs = dict()
         self.test_cases_modes = {}
         self.parallel_tests = parallel_tests
         self.no_cache = no_cache
@@ -181,10 +188,11 @@ class TestManager:
         for test_case in test_cases:
             self.check_file_permissions(test_case, [os.F_OK, os.R_OK, os.W_OK], InvalidTestCaseError)
             if os.path.split(test_case)[0]:
-                raise FolderInPathTestCaseError(test_case)
+                pass  # We now handle files in subdirectories
             fullpath = os.path.abspath(test_case)
             self.test_cases.add(fullpath)
             self.test_cases_modes[fullpath] = os.stat(fullpath).st_mode
+            self.test_case_dirs[fullpath] = os.path.split(test_case)[0]
 
         self.orig_total_file_size = self.total_file_size
         self.cache = {}
@@ -330,7 +338,7 @@ class TestManager:
         logging.debug('perform sanity check... ')
 
         folder = tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}sanity-')
-        test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, None)
+        test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, self.test_case_dirs, None)
         logging.debug(f'sanity check tmpdir = {test_env.folder}')
 
         returncode = test_env.run_test(verbose)
@@ -487,6 +495,7 @@ class TestManager:
                     folder,
                     self.current_test_case,
                     self.test_cases ^ {self.current_test_case},
+                    self.test_case_dirs,
                     self.current_pass.transform,
                     self.pid_queue,
                 )
