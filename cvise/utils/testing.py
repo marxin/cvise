@@ -91,7 +91,9 @@ class TestEnvironment:
     def run(self):
         try:
             # transform by state
-            (result, self.state) = self.transform(str(self.test_case_path), self.state, ProcessEventNotifier(self.pid_queue))
+            (result, self.state) = self.transform(
+                str(self.test_case_path), self.state, ProcessEventNotifier(self.pid_queue)
+            )
             self.result = result
             if self.result != PassResult.OK:
                 return self
@@ -110,7 +112,9 @@ class TestEnvironment:
     def run_test(self, verbose):
         try:
             os.chdir(self.folder)
-            stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(str(self.test_script), shell=True)
+            stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(
+                str(self.test_script), shell=True
+            )
             if verbose and returncode != 0:
                 logging.debug('stdout:\n' + stdout)
                 logging.debug('stderr:\n' + stderr)
