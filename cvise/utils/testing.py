@@ -154,6 +154,7 @@ class TestManager:
         self.save_temps = save_temps
         self.pass_statistic = pass_statistic
         self.test_cases = set()
+        self.test_cases_modes = {}
         self.parallel_tests = parallel_tests
         self.no_cache = no_cache
         self.skip_key_off = skip_key_off
@@ -168,6 +169,7 @@ class TestManager:
 
         for test_case in test_cases:
             test_case = Path(test_case)
+            self.test_cases_modes[test_case] = test_case.stat().st_mode
             self.check_file_permissions(test_case, [os.F_OK, os.R_OK, os.W_OK], InvalidTestCaseError)
             if test_case.parent.is_absolute():
                 raise AbsolutePathTestCaseError(test_case)
@@ -198,6 +200,10 @@ class TestManager:
     def remove_root(self):
         if not self.save_temps:
             rmfolder(self.root)
+
+    def restore_mode(self):
+        for test_case in self.test_cases:
+            test_case.chmod(self.test_cases_modes[test_case])
 
     @classmethod
     def is_valid_test(cls, test_script):
@@ -582,6 +588,7 @@ class TestManager:
 
                         self.cache[pass_key][test_case_before_pass] = tmp_file.read()
 
+            self.restore_mode()
             self.pass_statistic.stop(self.current_pass)
             self.remove_root()
         except KeyboardInterrupt:
