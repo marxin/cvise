@@ -5,7 +5,7 @@ import logging
 import math
 from multiprocessing import Manager
 import os
-import os.path
+from pathlib import Path
 import platform
 import shutil
 import subprocess
@@ -15,7 +15,7 @@ import traceback
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import PassResult, ProcessEventNotifier, ProcessEventType
-from cvise.utils.error import FolderInPathTestCaseError
+from cvise.utils.error import AbsolutePathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
 from cvise.utils.error import InvalidTestCaseError
@@ -32,7 +32,7 @@ MAX_PASS_INCREASEMENT_THRESHOLD = 3
 
 
 def rmfolder(name):
-    assert 'cvise' in name
+    assert 'cvise' in str(name)
     try:
         shutil.rmtree(name)
     except OSError:
@@ -47,12 +47,10 @@ class TestEnvironment:
         test_script,
         folder,
         test_case,
-        additional_files,
+        all_test_cases,
         transform,
         pid_queue=None,
     ):
-        self.test_case = None
-        self.additional_files = set()
         self.state = state
         self.folder = folder
         self.base_size = None
@@ -62,51 +60,40 @@ class TestEnvironment:
         self.order = order
         self.transform = transform
         self.pid_queue = pid_queue
-        self.copy_files(test_case, additional_files)
         self.pwd = os.getcwd()
+        self.test_case = test_case
+        self.base_size = test_case.stat().st_size
+        self.all_test_cases = all_test_cases
 
-    def copy_files(self, test_case, additional_files):
-        if test_case is not None:
-            self.test_case = os.path.basename(test_case)
-            shutil.copy(test_case, self.folder)
-            self.base_size = os.path.getsize(test_case)
-
-        for f in additional_files:
-            self.additional_files.add(os.path.basename(f))
-            shutil.copy(f, self.folder)
+        # Copy files to the created folder
+        for test_case in all_test_cases:
+            (self.folder / test_case.parent).mkdir(parents=True, exist_ok=True)
+            shutil.copy2(test_case, self.folder / test_case.parent)
 
     @property
     def size_improvement(self):
-        if self.base_size is None:
-            return None
-        else:
-            return self.base_size - os.path.getsize(self.test_case_path)
+        return self.base_size - self.test_case_path.stat().st_size
 
     @property
     def test_case_path(self):
-        return os.path.join(self.folder, self.test_case)
-
-    @property
-    def additional_files_paths(self):
-        return [os.path.join(self.folder, f) for f in self.additional_files]
+        return self.folder / self.test_case
 
     @property
     def success(self):
         return self.result == PassResult.OK and self.exitcode == 0
 
     def dump(self, dst):
-        if self.test_case is not None:
-            shutil.copy(self.test_case_path, dst)
-
-        for f in self.additional_files:
-            shutil.copy(f, dst)
+        for f in self.all_test_cases:
+            shutil.copy(self.folder / f, dst)
 
         shutil.copy(self.test_script, dst)
 
     def run(self):
         try:
             # transform by state
-            (result, self.state) = self.transform(self.test_case_path, self.state, ProcessEventNotifier(self.pid_queue))
+            (result, self.state) = self.transform(
+                str(self.test_case_path), self.state, ProcessEventNotifier(self.pid_queue)
+            )
             self.result = result
             if self.result != PassResult.OK:
                 return self
@@ -125,7 +112,9 @@ class TestEnvironment:
     def run_test(self, verbose):
         try:
             os.chdir(self.folder)
-            stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(self.test_script, shell=True)
+            stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(
+                str(self.test_script), shell=True
+            )
             if verbose and returncode != 0:
                 logging.debug('stdout:\n' + stdout)
                 logging.debug('stderr:\n' + stderr)
@@ -160,7 +149,7 @@ class TestManager:
         start_with_pass,
         skip_after_n_transforms,
     ):
-        self.test_script = os.path.abspath(test_script)
+        self.test_script = Path(test_script).absolute()
         self.timeout = timeout
         self.save_temps = save_temps
         self.pass_statistic = pass_statistic
@@ -179,12 +168,12 @@ class TestManager:
         self.skip_after_n_transforms = skip_after_n_transforms
 
         for test_case in test_cases:
+            test_case = Path(test_case)
+            self.test_cases_modes[test_case] = test_case.stat().st_mode
             self.check_file_permissions(test_case, [os.F_OK, os.R_OK, os.W_OK], InvalidTestCaseError)
-            if os.path.split(test_case)[0]:
-                raise FolderInPathTestCaseError(test_case)
-            fullpath = os.path.abspath(test_case)
-            self.test_cases.add(fullpath)
-            self.test_cases_modes[fullpath] = os.stat(fullpath).st_mode
+            if test_case.parent.is_absolute():
+                raise AbsolutePathTestCaseError(test_case)
+            self.test_cases.add(test_case)
 
         self.orig_total_file_size = self.total_file_size
         self.cache = {}
@@ -214,7 +203,7 @@ class TestManager:
 
     def restore_mode(self):
         for test_case in self.test_cases:
-            os.chmod(test_case, self.test_cases_modes[test_case])
+            test_case.chmod(self.test_cases_modes[test_case])
 
     @classmethod
     def is_valid_test(cls, test_script):
@@ -229,11 +218,11 @@ class TestManager:
 
     @property
     def sorted_test_cases(self):
-        return sorted(self.test_cases, key=os.path.getsize, reverse=True)
+        return sorted(self.test_cases, key=lambda x: x.stat().st_size, reverse=True)
 
     @staticmethod
     def get_file_size(files):
-        return sum(os.path.getsize(f) for f in files)
+        return sum(f.stat().st_size for f in files)
 
     @property
     def total_line_count(self):
@@ -250,9 +239,9 @@ class TestManager:
 
     def backup_test_cases(self):
         for f in self.test_cases:
-            orig_file = f'{f}.orig'
+            orig_file = Path(f'{f}.orig')
 
-            if not os.path.exists(orig_file):
+            if not orig_file.exists():
                 # Copy file and preserve attributes
                 shutil.copy2(f, orig_file)
 
@@ -271,14 +260,14 @@ class TestManager:
     def get_extra_dir(prefix, max_number):
         for i in range(0, max_number + 1):
             digits = int(round(math.log10(max_number), 0))
-            extra_dir = ('{0}{1:0' + str(digits) + 'd}').format(prefix, i)
+            extra_dir = Path(('{0}{1:0' + str(digits) + 'd}').format(prefix, i))
 
-            if not os.path.exists(extra_dir):
+            if not extra_dir.exists():
                 break
 
         # just bail if we've already created enough of these dirs, no need to
         # clutter things up even more...
-        if os.path.exists(extra_dir):
+        if extra_dir.exists():
             return None
 
         return extra_dir
@@ -294,7 +283,7 @@ class TestManager:
         if crash_dir is None:
             return False
 
-        os.mkdir(crash_dir)
+        crash_dir.mkdir()
         test_env.dump(crash_dir)
 
         if not self.die_on_pass_bug:
@@ -302,7 +291,7 @@ class TestManager:
                 f'Please consider tarring up {crash_dir} and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.'
             )
 
-        with open(os.path.join(crash_dir, 'PASS_BUG_INFO.TXT'), mode='w') as info_file:
+        with (crash_dir / 'PASS_BUG_INFO.TXT').open(mode='w') as info_file:
             info_file.write('Package: %s\n' % CVise.Info.PACKAGE_STRING)
             info_file.write('Git version: %s\n' % CVise.Info.GIT_VERSION)
             info_file.write('LLVM version: %s\n' % CVise.Info.LLVM_VERSION)
@@ -329,8 +318,8 @@ class TestManager:
     def check_sanity(self, verbose=False):
         logging.debug('perform sanity check... ')
 
-        folder = tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}sanity-')
-        test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, None)
+        folder = Path(tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}sanity-'))
+        test_env = TestEnvironment(None, 0, self.test_script, folder, list(self.test_cases)[0], self.test_cases, None)
         logging.debug(f'sanity check tmpdir = {test_env.folder}')
 
         returncode = test_env.run_test(verbose)
@@ -479,14 +468,14 @@ class TestManager:
                     self.terminate_all(pool)
                     return success
 
-                folder = tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=self.root)
+                folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=self.root))
                 test_env = TestEnvironment(
                     self.state,
                     order,
                     self.test_script,
                     folder,
                     self.current_test_case,
-                    self.test_cases ^ {self.current_test_case},
+                    self.test_cases,
                     self.current_pass.transform,
                     self.pid_queue,
                 )
@@ -531,7 +520,7 @@ class TestManager:
         try:
             for test_case in self.sorted_test_cases:
                 self.current_test_case = test_case
-                starting_test_case_size = os.path.getsize(test_case)
+                starting_test_case_size = test_case.stat().st_size
                 success_count = 0
 
                 if self.get_file_size([test_case]) == 0:
@@ -571,7 +560,7 @@ class TestManager:
                         success_count += 1
 
                     # if the file increases significantly, bail out the current pass
-                    test_case_size = os.path.getsize(self.current_test_case)
+                    test_case_size = self.current_test_case.stat().st_size
                     if test_case_size >= MAX_PASS_INCREASEMENT_THRESHOLD * starting_test_case_size:
                         logging.info(
                             f'skipping the rest of the pass (huge file increasement '
@@ -631,6 +620,6 @@ class TestManager:
         if self.total_line_count:
             notes.append(f'{self.total_line_count} lines')
         if len(self.test_cases) > 1:
-            notes.append(test_env.test_case)
+            notes.append(str(test_env.test_case))
 
         logging.info('(' + ', '.join(notes) + ')')

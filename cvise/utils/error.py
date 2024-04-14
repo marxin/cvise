@@ -46,12 +46,12 @@ class InvalidTestCaseError(InvalidFileError):
         return f"The specified test case '{self.path}' cannot be {self._get_error_name()}!"
 
 
-class FolderInPathTestCaseError(CViseError):
+class AbsolutePathTestCaseError(CViseError):
     def __init__(self, path):
         self.path = path
 
     def __str__(self):
-        return f"Test case cannot contain a folder in path: '{self.path}'!"
+        return f"Test case path cannot be absolute: '{self.path}'!"
 
 
 class InvalidInterestingnessTestError(InvalidFileError):
@@ -137,5 +137,7 @@ should result in '0' being echoed to the terminal.
 Please ensure that the test script takes no arguments; it should be hard-coded to refer
 to the same file that is passed as an argument to C-Vise.
 
-See 'cvise.py --help' for more information.""".format(test_cases=' '.join(self.test_cases), test=self.test)
+See 'cvise.py --help' for more information.""".format(
+            test_cases=' '.join([str(t) for t in self.test_cases]), test=self.test
+        )
         return message
