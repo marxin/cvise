@@ -15,7 +15,7 @@ import traceback
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import PassResult, ProcessEventNotifier, ProcessEventType
-from cvise.utils.error import FolderInPathTestCaseError
+from cvise.utils.error import AbsolutePathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
 from cvise.utils.error import InvalidTestCaseError
@@ -47,7 +47,7 @@ class TestEnvironment:
         test_script,
         folder,
         test_case,
-        additional_files,
+        all_test_cases,
         transform,
         pid_queue=None,
     ):
@@ -61,45 +61,30 @@ class TestEnvironment:
         self.transform = transform
         self.pid_queue = pid_queue
         self.pwd = os.getcwd()
+        self.test_case = test_case
+        self.base_size = test_case.stat().st_size
+        self.all_test_cases = all_test_cases
 
         # Copy files to the created folder
-        if test_case is not None:
-            shutil.copy(test_case, self.folder)
-            self.test_case = test_case.name
-            self.base_size = test_case.stat().st_size
-        else:
-            self.test_case = None
-
-        self.additional_files = set()
-        for file in additional_files:
-            self.additional_files.add(file.name)
-            shutil.copy(file, self.folder)
+        for test_case in all_test_cases:
+            (self.folder / test_case.parent).mkdir(parents=True, exist_ok=True)
+            shutil.copy2(test_case, self.folder / test_case.parent)
 
     @property
     def size_improvement(self):
-        if self.base_size is None:
-            return None
-        else:
-            return self.base_size - self.test_case_path.stat().st_size
+        return self.base_size - self.test_case_path.stat().st_size
 
     @property
     def test_case_path(self):
         return self.folder / self.test_case
 
     @property
-    def additional_files_paths(self):
-        return [self.folder / f for f in self.additional_files]
-
-    @property
     def success(self):
         return self.result == PassResult.OK and self.exitcode == 0
 
     def dump(self, dst):
-        if self.test_case is not None:
-            shutil.copy(self.test_case_path, dst)
-
-        for f in self.additional_files:
-            shutil.copy(f, dst)
+        for f in self.all_test_cases:
+            shutil.copy(self.folder / f, dst)
 
         shutil.copy(self.test_script, dst)
 
@@ -165,7 +150,6 @@ class TestManager:
         self.save_temps = save_temps
         self.pass_statistic = pass_statistic
         self.test_cases = set()
-        self.test_cases_modes = {}
         self.parallel_tests = parallel_tests
         self.no_cache = no_cache
         self.skip_key_off = skip_key_off
@@ -181,11 +165,9 @@ class TestManager:
         for test_case in test_cases:
             test_case = Path(test_case)
             self.check_file_permissions(test_case, [os.F_OK, os.R_OK, os.W_OK], InvalidTestCaseError)
-            if test_case.parent != Path():
-                raise FolderInPathTestCaseError(test_case)
-            fullpath = test_case.absolute()
-            self.test_cases.add(fullpath)
-            self.test_cases_modes[fullpath] = fullpath.stat().st_mode
+            if test_case.parent.is_absolute():
+                raise AbsolutePathTestCaseError(test_case)
+            self.test_cases.add(test_case)
 
         self.orig_total_file_size = self.total_file_size
         self.cache = {}
@@ -212,10 +194,6 @@ class TestManager:
     def remove_root(self):
         if not self.save_temps:
             rmfolder(self.root)
-
-    def restore_mode(self):
-        for test_case in self.test_cases:
-            os.chmod(test_case, self.test_cases_modes[test_case])
 
     @classmethod
     def is_valid_test(cls, test_script):
@@ -331,7 +309,7 @@ class TestManager:
         logging.debug('perform sanity check... ')
 
         folder = Path(tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}sanity-'))
-        test_env = TestEnvironment(None, 0, self.test_script, folder, None, self.test_cases, None)
+        test_env = TestEnvironment(None, 0, self.test_script, folder, list(self.test_cases)[0], self.test_cases, None)
         logging.debug(f'sanity check tmpdir = {test_env.folder}')
 
         returncode = test_env.run_test(verbose)
@@ -487,7 +465,7 @@ class TestManager:
                     self.test_script,
                     folder,
                     self.current_test_case,
-                    self.test_cases - {self.current_test_case},
+                    self.test_cases,
                     self.current_pass.transform,
                     self.pid_queue,
                 )
@@ -600,7 +578,6 @@ class TestManager:
 
                         self.cache[pass_key][test_case_before_pass] = tmp_file.read()
 
-            self.restore_mode()
             self.pass_statistic.stop(self.current_pass)
             self.remove_root()
         except KeyboardInterrupt:
@@ -632,6 +609,6 @@ class TestManager:
         if self.total_line_count:
             notes.append(f'{self.total_line_count} lines')
         if len(self.test_cases) > 1:
-            notes.append(test_env.test_case)
+            notes.append(str(test_env.test_case))
 
         logging.info('(' + ', '.join(notes) + ')')
