@@ -192,9 +192,13 @@ class CVise:
             met_stopping_threshold = False
             for p in passes:
                 # Exit early if we're already reduced enough
-                improvement = (self.test_manager.orig_total_file_size - total_file_size) / self.test_manager.orig_total_file_size
-                logging.info(f'Termination check: stopping threshold is {self.test_manager.stopping_threshold}; current improvement is {improvement}')
-                if (improvement >= self.test_manager.stopping_threshold):
+                improvement = (
+                    self.test_manager.orig_total_file_size - total_file_size
+                ) / self.test_manager.orig_total_file_size
+                logging.info(
+                    f'Termination check: stopping threshold is {self.test_manager.stopping_threshold}; current improvement is {improvement}'
+                )
+                if improvement >= self.test_manager.stopping_threshold:
                     met_stopping_threshold = True
                     break
                 if not p.check_prerequisites():

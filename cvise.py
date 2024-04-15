@@ -341,7 +341,8 @@ if __name__ == '__main__':
         '--stopping-threshold',
         default=1.0,
         type=float,
-        help='CVise will stop reducing a test case once it has reduced by this fraction of its original size.  Between 0.0 and 1.0.')
+        help='CVise will stop reducing a test case once it has reduced by this fraction of its original size.  Between 0.0 and 1.0.',
+    )
 
     args = parser.parse_args()
 
