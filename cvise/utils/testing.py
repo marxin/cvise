@@ -148,6 +148,7 @@ class TestManager:
         also_interesting,
         start_with_pass,
         skip_after_n_transforms,
+        stopping_threshold,
     ):
         self.test_script = Path(test_script).absolute()
         self.timeout = timeout
@@ -166,6 +167,7 @@ class TestManager:
         self.also_interesting = also_interesting
         self.start_with_pass = start_with_pass
         self.skip_after_n_transforms = skip_after_n_transforms
+        self.stopping_threshold = stopping_threshold
 
         for test_case in test_cases:
             test_case = Path(test_case)

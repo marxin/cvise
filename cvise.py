@@ -337,6 +337,11 @@ if __name__ == '__main__':
         help='Executable to check interestingness of test cases',
     )
     parser.add_argument('test_cases', metavar='TEST_CASE', nargs='+', help='Test cases')
+    parser.add_argument(
+        '--stopping-threshold',
+        default=1.0,
+        type=float,
+        help='CVise will stop reducing a test case once it has reduced by this fraction of its original size.  Between 0.0 and 1.0.')
 
     args = parser.parse_args()
 
@@ -464,6 +469,7 @@ if __name__ == '__main__':
         args.also_interesting,
         args.start_with_pass,
         args.skip_after_n_transforms,
+        args.stopping_threshold,
     )
 
     reducer = CVise(test_manager, args.skip_interestingness_test_check)
