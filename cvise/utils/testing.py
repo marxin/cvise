@@ -313,7 +313,7 @@ class TestManager:
         with open(changed_file) as f:
             changed_file_lines = f.readlines()
 
-        diffed_lines = difflib.unified_diff(orig_file_lines, changed_file_lines, orig_file, changed_file)
+        diffed_lines = difflib.unified_diff(orig_file_lines, changed_file_lines, str(orig_file), str(changed_file))
 
         return ''.join(diffed_lines)
 
