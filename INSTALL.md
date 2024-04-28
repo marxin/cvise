@@ -159,7 +159,7 @@ msbuild ALL_BUILD.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VisualStud
 Download flex from https://github.com/lexxmark/winflexbison/releases/download/v2.5.24/win_flex_bison-2.5.24.zip
 
 ```
-pip install pytest psutil pebble
+pip install pytest psutil pebble chardet
 @call "%PROGRAMFILES(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
 set LLVM_DIR=D:\src\llvm-project\build\lib\cmake\llvm
 set CLANG_DIR=D:\src\llvm-project\build\lib\cmake\clang
