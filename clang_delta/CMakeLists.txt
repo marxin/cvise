@@ -728,7 +728,7 @@ if(MSVC)
 
   foreach(flag ${msvc_warning_flags})
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flag}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${flag}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
   endforeach(flag)
 endif(MSVC)
 
