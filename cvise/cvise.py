@@ -195,8 +195,8 @@ class CVise:
                 improvement = (
                     self.test_manager.orig_total_file_size - total_file_size
                 ) / self.test_manager.orig_total_file_size
-                logging.info(
-                    f'Termination check: stopping threshold is {self.test_manager.stopping_threshold}; current improvement is {improvement}'
+                logging.debug(
+                    f'Termination check: stopping threshold is {self.test_manager.stopping_threshold}; current improvement is {improvement:.1f}'
                 )
                 if improvement >= self.test_manager.stopping_threshold:
                     met_stopping_threshold = True
