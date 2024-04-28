@@ -3,10 +3,10 @@ import os
 import re
 import shutil
 import subprocess
-import tempfile
 import time
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
+from cvise.utils.misc import CloseableTemporaryFile
 
 
 class ClangBinarySearchPass(AbstractPass):
@@ -97,7 +97,7 @@ class ClangBinarySearchPass(AbstractPass):
         logging.debug(f'TRANSFORM: {state}')
 
         tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=tmp) as tmp_file:
+        with CloseableTemporaryFile(mode='w', dir=tmp) as tmp_file:
             args = [
                 f'--transformation={self.arg}',
                 f'--counter={state.index + 1}',
@@ -115,11 +115,11 @@ class ClangBinarySearchPass(AbstractPass):
             stdout, stderr, returncode = process_event_notifier.run_process(cmd)
             self.parse_stderr(state, stderr)
             tmp_file.write(stdout)
+            tmp_file.close()
             if returncode == 0:
-                shutil.move(tmp_file.name, test_case)
+                shutil.copy(tmp_file.name, test_case)
                 return (PassResult.OK, state)
             else:
-                os.unlink(tmp_file.name)
                 return (
                     PassResult.STOP if returncode == 255 else PassResult.ERROR,
                     state,

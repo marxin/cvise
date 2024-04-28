@@ -1,8 +1,8 @@
 import os
 import shutil
-import tempfile
 
 from cvise.passes.abstract import AbstractPass, PassResult
+from cvise.utils.misc import CloseableTemporaryFile
 
 
 class ClexPass(AbstractPass):
@@ -20,15 +20,15 @@ class ClexPass(AbstractPass):
 
     def transform(self, test_case, state, process_event_notifier):
         tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=tmp) as tmp_file:
+        with CloseableTemporaryFile(mode='w', dir=tmp) as tmp_file:
             cmd = [self.external_programs['clex'], str(self.arg), str(state), test_case]
             stdout, _stderr, returncode = process_event_notifier.run_process(cmd)
             if returncode == 51:
                 tmp_file.write(stdout)
-                shutil.move(tmp_file.name, test_case)
+                tmp_file.close()
+                shutil.copy(tmp_file.name, test_case)
                 return (PassResult.OK, state)
             else:
-                os.unlink(tmp_file.name)
                 return (
                     PassResult.STOP if returncode == 71 else PassResult.ERROR,
                     state,

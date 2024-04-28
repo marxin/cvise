@@ -36,6 +36,7 @@ class UnIfDefPass(AbstractPass):
 
         tmp = os.path.dirname(test_case)
         with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
+            tmp_file.close()
             while True:
                 du = '-D' if state % 2 == 0 else '-U'
                 n_index = int(state / 2)

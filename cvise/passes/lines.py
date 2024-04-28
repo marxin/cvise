@@ -6,6 +6,7 @@ import tempfile
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 from cvise.utils.error import InsaneTestCaseError
+from cvise.utils.misc import CloseableTemporaryFile
 
 
 class LinesPass(AbstractPass):
@@ -15,9 +16,10 @@ class LinesPass(AbstractPass):
     def __format(self, test_case, check_sanity):
         tmp = os.path.dirname(test_case)
 
-        with tempfile.NamedTemporaryFile(mode='w+', dir=tmp) as backup, tempfile.NamedTemporaryFile(
+        with CloseableTemporaryFile(mode='w+', dir=tmp) as backup, CloseableTemporaryFile(
             mode='w+', dir=tmp
         ) as tmp_file:
+            backup.close()
             with open(test_case) as in_file:
                 try:
                     cmd = [self.external_programs['topformflat'], self.arg]
@@ -28,7 +30,7 @@ class LinesPass(AbstractPass):
             for line in proc.stdout.splitlines(keepends=True):
                 if not line.isspace():
                     tmp_file.write(line)
-            tmp_file.flush()
+            tmp_file.close()
 
             # we need to check that sanity check is still fine
             if check_sanity:
