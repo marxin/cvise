@@ -151,15 +151,14 @@ def get_available_cores():
 
 
 EPILOG_TEXT = (
-    """
+    f"""
 available shortcuts:
   S - skip execution of the current pass
   D - toggle --print-diff option
 
 For bug reporting instructions, please use:
-%s
+{CVise.Info.PACKAGE_URL}
 """
-    % CVise.Info.PACKAGE_URL
 )
 
 if __name__ == '__main__':
@@ -312,7 +311,7 @@ if __name__ == '__main__':
         '--version',
         action='version',
         version=CVise.Info.PACKAGE_STRING
-        + (' (%s)' % CVise.Info.GIT_VERSION if CVise.Info.GIT_VERSION != 'unknown' else ''),
+        + (f' ({CVise.Info.GIT_VERSION})' if CVise.Info.GIT_VERSION != 'unknown' else ''),
     )
     parser.add_argument(
         '--commands',
@@ -450,7 +449,7 @@ if __name__ == '__main__':
             script.write(f'#!/usr/bin/env {args.shell}\n\n')
             script.write(args.commands + '\n')
         os.chmod(script.name, 0o744)
-        logging.info('Using temporary interestingness test: %s' % script.name)
+        logging.info(f'Using temporary interestingness test: {script.name}')
         args.interestingness_test = script.name
 
     test_manager = testing.TestManager(

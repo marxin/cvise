@@ -197,7 +197,7 @@ class TestManager:
     def create_root(self):
         pass_name = str(self.current_pass).replace('::', '-')
         self.root = tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}{pass_name}-')
-        logging.debug('Creating pass root folder: %s' % self.root)
+        logging.debug(f'Creating pass root folder: {self.root}')
 
     def remove_root(self):
         if not self.save_temps:
@@ -294,10 +294,10 @@ class TestManager:
             )
 
         with (crash_dir / 'PASS_BUG_INFO.TXT').open(mode='w') as info_file:
-            info_file.write('Package: %s\n' % CVise.Info.PACKAGE_STRING)
-            info_file.write('Git version: %s\n' % CVise.Info.GIT_VERSION)
-            info_file.write('LLVM version: %s\n' % CVise.Info.LLVM_VERSION)
-            info_file.write('System: %s\n' % str(platform.uname()))
+            info_file.write(f'Package: {CVise.Info.PACKAGE_STRING}\n')
+            info_file.write(f'Git version: {CVise.Info.GIT_VERSION}\n')
+            info_file.write(f'LLVM version: {CVise.Info.LLVM_VERSION}\n')
+            info_file.write(f'System: {str(platform.uname())}\n')
             info_file.write(PassBugError.MSG.format(self.current_pass, problem, test_env.state, crash_dir))
 
         if self.die_on_pass_bug:
@@ -345,7 +345,7 @@ class TestManager:
 
     @classmethod
     def log_key_event(cls, event):
-        logging.info('****** %s ******' % event)
+        logging.info(f'****** {event} ******')
 
     def kill_pid_queue(self):
         active_pids = set()
