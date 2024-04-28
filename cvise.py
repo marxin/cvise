@@ -150,8 +150,7 @@ def get_available_cores():
         return 1
 
 
-EPILOG_TEXT = (
-    f"""
+EPILOG_TEXT = f"""
 available shortcuts:
   S - skip execution of the current pass
   D - toggle --print-diff option
@@ -159,7 +158,6 @@ available shortcuts:
 For bug reporting instructions, please use:
 {CVise.Info.PACKAGE_URL}
 """
-)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
