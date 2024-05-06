@@ -1,9 +1,9 @@
 import logging
 import os
 import shutil
-import tempfile
 
 from cvise.passes.abstract import AbstractPass, PassResult
+from cvise.utils.misc import CloseableTemporaryFile
 
 
 class ClangPass(AbstractPass):
@@ -21,7 +21,7 @@ class ClangPass(AbstractPass):
 
     def transform(self, test_case, state, process_event_notifier):
         tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=tmp) as tmp_file:
+        with CloseableTemporaryFile(mode='w', dir=tmp) as tmp_file:
             args = [
                 self.external_programs['clang_delta'],
                 f'--transformation={self.arg}',
@@ -33,13 +33,13 @@ class ClangPass(AbstractPass):
 
             logging.debug(' '.join(cmd))
 
-            stdout, _stderr, returncode = process_event_notifier.run_process(cmd)
+            stdout, _, returncode = process_event_notifier.run_process(cmd)
             if returncode == 0:
                 tmp_file.write(stdout)
-                shutil.move(tmp_file.name, test_case)
+                tmp_file.close()
+                shutil.copy(tmp_file.name, test_case)
                 return (PassResult.OK, state)
             else:
-                os.unlink(tmp_file.name)
                 if returncode == 255 or returncode == 1:
                     return (PassResult.STOP, state)
                 else:
