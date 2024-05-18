@@ -40,6 +40,7 @@ x64/
 x86/
 objdir/
 build/
+build-docker/
 
 # Visual Studio 2015 cache/options directory
 .vs/
