@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:rolling
 RUN apt-get update
 RUN apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex python3-pebble python3-psutil python3-chardet python3-pytest vim unifdef
 RUN wget https://apt.llvm.org/llvm.sh
