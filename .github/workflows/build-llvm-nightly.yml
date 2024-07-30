@@ -27,10 +27,10 @@ jobs:
       - run: nproc
       - run: wget https://apt.llvm.org/llvm.sh
       - run: chmod +x llvm.sh
-      - run: ./llvm.sh 19
-      - run: apt-get install -y bolt-19 clang-19 libclang-common-19-dev libclang-19-dev mlir-19-tools llvm-19-tools libclang-common-19-dev libclang-19-dev libclang1-19 clang-format-19 python3-clang-19 clangd-19 clang-tidy-19 libomp-19-dev
+      - run: ./llvm.sh 20
+      - run: apt-get install -y bolt-20 clang-20 libclang-common-20-dev libclang-20-dev mlir-20-tools llvm-20-tools libclang-common-20-dev libclang-20-dev libclang1-20 clang-format-20 python3-clang-20 clangd-20 clang-tidy-20 libomp-20-dev
       # TODO: remove in the future
-      - run: touch /usr/lib/llvm-19/lib/libLibcTableGenUtil.a
+      - run: touch /usr/lib/llvm-20/lib/libLibcTableGenUtil.a
       - uses: actions/checkout@v4
       - run: mkdir objdir
       - run: cmake ..
