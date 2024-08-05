@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import traceback
+import concurrent.futures
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import PassResult, ProcessEventNotifier, ProcessEventType
@@ -390,7 +391,8 @@ class TestManager:
 
             if future.done():
                 if future.exception():
-                    if type(future.exception()) is TimeoutError:
+                    # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
+                    if type(future.exception()) in (TimeoutError, concurrent.futures.TimeoutError):
                         self.timeout_count += 1
                         logging.warning('Test timed out.')
                         self.save_extra_dir(self.temporary_folders[future])
@@ -444,7 +446,8 @@ class TestManager:
                 test_env = future.result()
                 if test_env.success:
                     return test_env
-            except TimeoutError:
+            # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
+            except (TimeoutError, concurrent.futures.TimeoutError):
                 pass
         return None
 
