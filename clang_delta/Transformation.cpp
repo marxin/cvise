@@ -98,7 +98,12 @@ void Transformation::Initialize(ASTContext &context)
 void Transformation::outputTransformedSource(llvm::raw_ostream &OutStream)
 {
   FileID MainFileID = SrcManager->getMainFileID();
-  const RewriteBuffer *RWBuf = TheRewriter.getRewriteBufferFor(MainFileID);
+#if LLVM_VERSION_MAJOR >= 20
+  const llvm::RewriteBuffer
+#else
+  const RewriteBuffer
+#endif
+  *RWBuf = TheRewriter.getRewriteBufferFor(MainFileID);
 
   // RWBuf is non-empty upon any rewrites
   TransAssert(RWBuf && "Empty RewriteBuffer!");
