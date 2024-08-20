@@ -4,7 +4,8 @@ exclude = ["objdir"]
 line-length = 120
 
 [tool.ruff.lint]
-ignore = ["E501"]
+# Enable UP031.
+ignore = ["E501", "UP031"]
 select = ["B", "E", "F", "W", "UP", "C4"] # consider: ["I", "RUF"]
 preview = true
 
