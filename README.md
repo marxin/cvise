@@ -9,6 +9,8 @@ C-Vise is a super-parallel Python port of the [C-Reduce](https://github.com/csmi
 The port is fully compatible to the C-Reduce and uses the same efficient
 LLVM-based C/C++ reduction tool named `clang_delta`.
 
+**This project is looking for maintainers — reach out to [@marxin] if you're interested.**
+
 C-Vise is a tool that takes a large C, C++ or OpenCL program that
 has a property of interest (such as triggering a compiler bug) and
 automatically produces a much smaller C/C++ or OpenCL program that has
