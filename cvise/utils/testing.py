@@ -363,7 +363,8 @@ class TestManager:
                 children.append(process)
                 for child in children:
                     try:
-                        child.terminate()
+                        # Terminate the process more reliability: https://github.com/marxin/cvise/issues/145
+                        child.kill()
                     except psutil.NoSuchProcess:
                         pass
             except psutil.NoSuchProcess:
