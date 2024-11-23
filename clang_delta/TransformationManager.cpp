@@ -29,6 +29,10 @@
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Parse/ParseAST.h"
 
+#if LLVM_VERSION_MAJOR >= 20
+#include "llvm/Support/VirtualFileSystem.h"
+#endif
+
 #include "Transformation.h"
 
 using namespace std;
@@ -96,7 +100,11 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
   ClangInstance = new CompilerInstance();
   assert(ClangInstance);
   
-  ClangInstance->createDiagnostics();
+  ClangInstance->createDiagnostics(
+#if LLVM_VERSION_MAJOR >= 20
+    *llvm::vfs::getRealFileSystem()
+#endif
+  );
 
   TargetOptions &TargetOpts = ClangInstance->getTargetOpts();
 #if LLVM_VERSION_MAJOR < 12
