@@ -118,7 +118,8 @@ void Transformation::outputOriginalSource(llvm::raw_ostream &OutStream)
   std::optional<llvm::MemoryBufferRef> MainBuf =
       SrcManager->getBufferOrNone(MainFileID);
 #else
-  const llvm::MemoryBuffer *MainBuf = SrcManager->getBuffer(MainFileID);
+  llvm::Optional<llvm::MemoryBufferRef> MainBuf =
+      SrcManager->getBufferOrNone(MainFileID);
 #endif
   TransAssert(MainBuf && "Empty MainBuf!");
   OutStream << MainBuf->getBufferStart();
