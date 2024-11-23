@@ -775,15 +775,9 @@ std::string RewriteUtils::getStmtIndentString(Stmt *S,
   StringRef MB = SrcManager->getBufferData(FID);
  
   unsigned lineNo = SrcManager->getLineNumber(FID, StartOffset) - 1;
-#if LLVM_VERSION_MAJOR >= 12
   const SrcMgr::ContentCache&
       Content = SrcManager->getSLocEntry(FID).getFile().getContentCache();
   unsigned lineOffs = Content.SourceLineCache[lineNo];
-#else
-  const SrcMgr::ContentCache *
-      Content = SrcManager->getSLocEntry(FID).getFile().getContentCache();
-  unsigned lineOffs = Content->SourceLineCache[lineNo];
-#endif
  
   // Find the whitespace at the start of the line.
   StringRef indentSpace;

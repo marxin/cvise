@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        llvm: [13, 14, 15, 16, 17, 18, 19]
+        llvm: [15, 16, 17, 18, 19]
         build-type: [DEBUG]
         include:
           - llvm: 19

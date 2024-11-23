@@ -20,14 +20,16 @@
 #include "clang/Basic/Builtins.h"
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/FileManager.h"
-#if LLVM_VERSION_MAJOR >= 15
 #include "clang/Basic/LangOptions.h"
 #include "clang/Basic/LangStandard.h"
-#endif
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Parse/ParseAST.h"
+
+#if LLVM_VERSION_MAJOR >= 20
+#include "llvm/Support/VirtualFileSystem.h"
+#endif
 
 #include "Transformation.h"
 
@@ -96,12 +98,13 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
   ClangInstance = new CompilerInstance();
   assert(ClangInstance);
   
-  ClangInstance->createDiagnostics();
+  ClangInstance->createDiagnostics(
+#if LLVM_VERSION_MAJOR >= 20
+    *llvm::vfs::getRealFileSystem()
+#endif
+  );
 
   TargetOptions &TargetOpts = ClangInstance->getTargetOpts();
-#if LLVM_VERSION_MAJOR < 12
-  PreprocessorOptions &PPOpts = ClangInstance->getPreprocessorOpts();
-#endif
   if (const char *env = getenv("CVISE_TARGET_TRIPLE")) {
     TargetOpts.Triple = std::string(env);
   } else {
@@ -122,17 +125,13 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     else if (!CXXStandard.compare("c++17"))
       LSTD = LangStandard::Kind::lang_cxx17;
     else if (!CXXStandard.compare("c++20"))
-#if LLVM_VERSION_MAJOR < 10
-      LSTD = LangStandard::Kind::lang_cxx2a;
-#else
       LSTD = LangStandard::Kind::lang_cxx20;
-#endif
 
 // TODO: simplify and use c++23 and c++26
 #if LLVM_VERSION_MAJOR >= 17
     else if (!CXXStandard.compare("c++2b"))
       LSTD = LangStandard::Kind::lang_cxx23;
-#elif LLVM_VERSION_MAJOR >= 14
+#else
     else if (!CXXStandard.compare("c++2b"))
       LSTD = LangStandard::Kind::lang_cxx2b;
 #endif
@@ -142,41 +141,6 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     }
   }
 
-#if LLVM_VERSION_MAJOR < 10
-  if (IK.getLanguage() == InputKind::C) {
-    Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind::C, T, PPOpts);
-  }
-  else if (IK.getLanguage() == InputKind::CXX) {
-    // ISSUE: it might cause some problems when building AST
-    // for a function which has a non-declared callee, e.g.,
-    // It results an empty AST for the caller.
-    Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind::CXX, T, PPOpts, LSTD);
-  }
-  else if(IK.getLanguage() == InputKind::OpenCL) {
-#elif LLVM_VERSION_MAJOR < 12
-  if (IK.getLanguage() == Language::C) {
-    Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::C), T, PPOpts);
-  }
-  else if (IK.getLanguage() == Language::CXX) {
-    // ISSUE: it might cause some problems when building AST
-    // for a function which has a non-declared callee, e.g.,
-    // It results an empty AST for the caller.
-    Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::CXX), T, PPOpts, LSTD);
-  }
-  else if(IK.getLanguage() == Language::OpenCL) {
-#elif LLVM_VERSION_MAJOR < 15
-  vector<string> includes;
-  if (IK.getLanguage() == Language::C) {
-    Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::C), T, includes);
-  }
-  else if (IK.getLanguage() == Language::CXX) {
-    // ISSUE: it might cause some problems when building AST
-    // for a function which has a non-declared callee, e.g.,
-    // It results an empty AST for the caller.
-    Invocation.setLangDefaults(ClangInstance->getLangOpts(), InputKind(Language::CXX), T, includes, LSTD);
-  }
-  else if(IK.getLanguage() == Language::OpenCL) {
-#else
   vector<string> includes;
   if (IK.getLanguage() == Language::C) {
     LangOptions::setLangDefaults(ClangInstance->getLangOpts(), Language::C, T, includes);
@@ -188,7 +152,6 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     LangOptions::setLangDefaults(ClangInstance->getLangOpts(), Language::CXX, T, includes, LSTD);
   }
   else if(IK.getLanguage() == Language::OpenCL) {
-#endif
     //Commandline parameters
     std::vector<const char*> Args;
     Args.push_back("-x");
@@ -210,31 +173,11 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     Args.push_back("-fno-builtin");
 
     CompilerInvocation::CreateFromArgs(Invocation,
-#if LLVM_VERSION_MAJOR >= 10
                                        Args,
-#else
-                                       &Args[0], &Args[0] + Args.size(),
-#endif
                                        ClangInstance->getDiagnostics());
-#if LLVM_VERSION_MAJOR < 15
-    Invocation.setLangDefaults(ClangInstance->getLangOpts(),
-#else
     LangOptions::setLangDefaults(ClangInstance->getLangOpts(),
-#endif
-
-#if LLVM_VERSION_MAJOR < 10
-                               InputKind::OpenCL,
-#elif LLVM_VERSION_MAJOR < 15
-                               InputKind(Language::OpenCL),
-#else
                                Language::OpenCL,
-#endif
-
-#if LLVM_VERSION_MAJOR < 12
-			       T, PPOpts);
-#else
 			       T, includes);
-#endif
   }
   else {
     ErrorMsg = "Unsupported file type!";

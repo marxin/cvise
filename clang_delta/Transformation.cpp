@@ -117,11 +117,9 @@ void Transformation::outputOriginalSource(llvm::raw_ostream &OutStream)
 #if LLVM_VERSION_MAJOR >= 16
   std::optional<llvm::MemoryBufferRef> MainBuf =
       SrcManager->getBufferOrNone(MainFileID);
-#elif LLVM_VERSION_MAJOR >= 12
+#else
   llvm::Optional<llvm::MemoryBufferRef> MainBuf =
       SrcManager->getBufferOrNone(MainFileID);
-#else
-  const llvm::MemoryBuffer *MainBuf = SrcManager->getBuffer(MainFileID);
 #endif
   TransAssert(MainBuf && "Empty MainBuf!");
   OutStream << MainBuf->getBufferStart();
@@ -439,11 +437,7 @@ const Expr *Transformation::getBaseExprAndIdxs(const Expr *E,
       // If we cannot have an integeral index, use 0.
       if (IdxE && IdxE->EvaluateAsInt(Result, *Context)) {
         llvm::APSInt IVal = Result.Val.getInt();
-#if LLVM_VERSION_MAJOR >= 13
         std::string IntStr = toString(IVal, 10);
-#else
-        std::string IntStr = IVal.toString(10);
-#endif
         std::stringstream TmpSS(IntStr);
         if (!(TmpSS >> Idx))
           TransAssert(0 && "Non-integer value!");

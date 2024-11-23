@@ -191,18 +191,14 @@ void RemoveNestedFunction::getVarStrForTemplateSpecialization(
   std::string ArgStr;
   llvm::raw_string_ostream Stream(ArgStr);
   TST->template_arguments()[0].print(getPrintingPolicy(), Stream
-#if LLVM_VERSION_MAJOR >= 13
       , false
-#endif
       );
 
   for (unsigned I = 1; I < NumArgs; ++I) {
     const TemplateArgument Arg = TST->template_arguments()[I];
     Stream << ", ";
     Arg.print(getPrintingPolicy(), Stream
-#if LLVM_VERSION_MAJOR >= 13
       , false
-#endif
     );
   }
   size_t BeginPos = VarStr.find_first_of('<');
