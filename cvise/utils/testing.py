@@ -420,7 +420,6 @@ class TestManager:
                 else:
                     self.pass_statistic.add_failure(self.current_pass)
                     if test_env.result == PassResult.OK:
-                        assert test_env.exitcode
                         if self.also_interesting is not None and test_env.exitcode == self.also_interesting:
                             self.save_extra_dir(test_env.test_case_path)
                     elif test_env.result == PassResult.STOP:
