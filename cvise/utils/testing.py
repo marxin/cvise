@@ -130,6 +130,7 @@ class TestManager:
     MAX_CRASH_DIRS = 10
     MAX_EXTRA_DIRS = 25000
     TEMP_PREFIX = 'cvise-'
+    BUG_DIR_PREFIX = 'cvise_bug_'
 
     def __init__(
         self,
@@ -281,7 +282,7 @@ class TestManager:
         if not self.die_on_pass_bug:
             logging.warning(f'{self.current_pass} has encountered a non fatal bug: {problem}')
 
-        crash_dir = self.get_extra_dir('cvise_bug_', self.MAX_CRASH_DIRS)
+        crash_dir = self.get_extra_dir(self.BUG_DIR_PREFIX, self.MAX_CRASH_DIRS)
 
         if crash_dir is None:
             return False

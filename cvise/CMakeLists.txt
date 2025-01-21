@@ -99,6 +99,7 @@ set(SOURCE_FILES
   "tests/test_peep.py"
   "tests/test_special.py"
   "tests/test_ternary.py"
+  "tests/test_test_manager.py"
   "utils/__init__.py"
   "utils/error.py"
   "utils/misc.py"
