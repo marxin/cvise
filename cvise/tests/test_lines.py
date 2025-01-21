@@ -1,6 +1,7 @@
 import pytest
 
 from cvise.passes.lines import LinesPass
+from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.externalprograms import find_external_programs
 
 
@@ -50,14 +51,14 @@ def test_new_reformatting_arg0(input_path, external_programs):
     write_file(input_path, 'int f() {\nchar x;\n}\nnamespace foo\n{\n}\n')
     p = LinesPass('0', external_programs)
     p.new(input_path, check_sanity=lambda: True)
-    assert read_file(input_path) == 'int f() { char x; }\n namespace foo { }\n'
+    assert read_file(input_path) == 'int f() { char x; }\nnamespace foo { }\n'
 
 
 def test_new_reformatting_arg1(input_path, external_programs):
     write_file(input_path, 'int f() {\nchar x;\n}\nnamespace foo\n{\n}\n')
     p = LinesPass('1', external_programs)
     p.new(input_path, check_sanity=lambda: True)
-    assert read_file(input_path) == 'int f() {\n char x;\n }\n namespace foo {\n }\n'
+    assert read_file(input_path) == 'int f() {\nchar x;\n}\nnamespace foo {\n}\n'
 
 
 def test_transform_deletes_individual_line(input_path, external_programs):
@@ -72,16 +73,16 @@ def test_transform_deletes_individual_line(input_path, external_programs):
 def test_transform_deletes_lines_range(input_path, external_programs):
     write_file(input_path, 'A;\nB;\nC;\nD;\nE;\nF;\nG;\nH;\n')
     p = LinesPass('0', external_programs)
-    state = p.new(input_path)
+    state = p.new(input_path, check_sanity=lambda: True)
     all_transforms = collect_all_transforms(p, state, input_path)
     # deletion of a half:
-    assert 'A;\n B;\n C;\n D;\n' in all_transforms
-    assert ' E;\n F;\n G;\n H;\n' in all_transforms
+    assert 'A;\nB;\nC;\nD;\n' in all_transforms
+    assert 'E;\nF;\nG;\nH;\n' in all_transforms
     # deletion of a quarter:
-    assert ' C;\n D;\n E;\n F;\n G;\n H;\n' in all_transforms
-    assert 'A;\n B;\n E;\n F;\n G;\n H;\n' in all_transforms
-    assert 'A;\n B;\n C;\n D;\n G;\n H;\n' in all_transforms
-    assert 'A;\n B;\n C;\n D;\n E;\n F;\n' in all_transforms
+    assert 'C;\nD;\nE;\nF;\nG;\nH;\n' in all_transforms
+    assert 'A;\nB;\nE;\nF;\nG;\nH;\n' in all_transforms
+    assert 'A;\nB;\nC;\nD;\nG;\nH;\n' in all_transforms
+    assert 'A;\nB;\nC;\nD;\nE;\nF;\n' in all_transforms
 
 
 def test_advance_on_success(input_path, external_programs):
@@ -95,3 +96,14 @@ def test_advance_on_success(input_path, external_programs):
     state = advance_until(p, state, input_path, lambda s: 'bar' in s)
     p.advance_on_success(input_path, state)
     assert read_file(input_path) == ' bar;\n'
+
+
+def test_new_reformatting_keeps_spaces_if_needed(input_path, external_programs):
+    def check_sanity():
+        if '  char' not in read_file(input_path):
+            raise InsaneTestCaseError([], '')
+
+    write_file(input_path, 'int f() {\n  char x;}\n')
+    p = LinesPass('1', external_programs)
+    p.new(input_path, check_sanity)
+    assert read_file(input_path) == 'int f() {\n   char x;\n}\n'
