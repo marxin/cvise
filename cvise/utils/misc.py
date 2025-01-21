@@ -5,7 +5,8 @@ from contextlib import contextmanager
 
 def is_readable_file(filename):
     try:
-        open(filename).read()
+        with open(filename) as f:
+            f.read()
         return True
     except UnicodeDecodeError:
         return False
