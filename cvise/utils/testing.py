@@ -1,5 +1,6 @@
 from concurrent.futures import FIRST_COMPLETED, wait
 import difflib
+from enum import auto, Enum, unique
 import filecmp
 import logging
 import math
@@ -30,6 +31,15 @@ import psutil
 # change default Pebble sleep unit for faster response
 pebble.common.SLEEP_UNIT = 0.01
 MAX_PASS_INCREASEMENT_THRESHOLD = 3
+
+
+@unique
+class PassCheckingOutcome(Enum):
+    """Outcome of checking the result of an invocation of a pass."""
+
+    ACCEPT = auto()
+    IGNORE = auto()
+    QUIT_LOOP = auto()
 
 
 def rmfolder(name):
@@ -406,32 +416,14 @@ class TestManager:
                         raise future.exception()
 
                 test_env = future.result()
-                if test_env.success:
-                    if self.max_improvement is not None and test_env.size_improvement > self.max_improvement:
-                        logging.debug(f'Too large improvement: {test_env.size_improvement} B')
-                    else:
-                        # Report bug if transform did not change the file
-                        if filecmp.cmp(self.current_test_case, test_env.test_case_path):
-                            if not self.silent_pass_bug:
-                                if not self.report_pass_bug(test_env, 'pass failed to modify the variant'):
-                                    quit_loop = True
-                        else:
-                            quit_loop = True
-                            new_futures.add(future)
-                else:
-                    self.pass_statistic.add_failure(self.current_pass)
-                    if test_env.result == PassResult.OK:
-                        if self.also_interesting is not None and test_env.exitcode == self.also_interesting:
-                            self.save_extra_dir(test_env.test_case_path)
-                    elif test_env.result == PassResult.STOP:
-                        quit_loop = True
-                    elif test_env.result == PassResult.ERROR:
-                        if not self.silent_pass_bug:
-                            self.report_pass_bug(test_env, 'pass error')
-                            quit_loop = True
-                    if not self.no_give_up and test_env.order > self.GIVEUP_CONSTANT:
-                        self.report_pass_bug(test_env, 'pass got stuck')
-                        quit_loop = True
+                outcome = self.check_pass_result(test_env)
+                if outcome == PassCheckingOutcome.ACCEPT:
+                    quit_loop = True
+                    new_futures.add(future)
+                elif outcome == PassCheckingOutcome.IGNORE:
+                    pass
+                elif outcome == PassCheckingOutcome.QUIT_LOOP:
+                    quit_loop = True
             else:
                 new_futures.add(future)
 
@@ -445,12 +437,45 @@ class TestManager:
         for future in self.futures:
             try:
                 test_env = future.result()
-                if test_env.success:
+                outcome = self.check_pass_result(test_env)
+                if outcome == PassCheckingOutcome.ACCEPT:
                     return test_env
             # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
             except (TimeoutError, concurrent.futures.TimeoutError):
                 pass
         return None
+
+    def check_pass_result(self, test_env):
+        if test_env.success:
+            if self.max_improvement is not None and test_env.size_improvement > self.max_improvement:
+                logging.debug(f'Too large improvement: {test_env.size_improvement} B')
+                return PassCheckingOutcome.IGNORE
+            # Report bug if transform did not change the file
+            if filecmp.cmp(self.current_test_case, test_env.test_case_path):
+                if not self.silent_pass_bug:
+                    if not self.report_pass_bug(test_env, 'pass failed to modify the variant'):
+                        return PassCheckingOutcome.QUIT_LOOP
+                return PassCheckingOutcome.IGNORE
+            return PassCheckingOutcome.ACCEPT
+
+        self.pass_statistic.add_failure(self.current_pass)
+        if test_env.result == PassResult.OK:
+            assert test_env.exitcode
+            if self.also_interesting is not None and test_env.exitcode == self.also_interesting:
+                self.save_extra_dir(test_env.test_case_path)
+        elif test_env.result == PassResult.STOP:
+            return PassCheckingOutcome.QUIT_LOOP
+        elif test_env.result == PassResult.ERROR:
+            if not self.silent_pass_bug:
+                self.report_pass_bug(test_env, 'pass error')
+                return PassCheckingOutcome.QUIT_LOOP
+
+        if not self.no_give_up and test_env.order > self.GIVEUP_CONSTANT:
+            if not self.giveup_reported:
+                self.report_pass_bug(test_env, 'pass got stuck')
+                self.giveup_reported = True
+            return PassCheckingOutcome.QUIT_LOOP
+        return PassCheckingOutcome.IGNORE
 
     @classmethod
     def terminate_all(cls, pool):
@@ -463,6 +488,7 @@ class TestManager:
         with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
             order = 1
             self.timeout_count = 0
+            self.giveup_reported = False
             while self.state is not None:
                 # do not create too many states
                 if len(self.futures) >= self.parallel_tests:

@@ -2,6 +2,7 @@ import glob
 import os
 import pytest
 import shutil
+import time
 from unittest.mock import patch
 
 from cvise.passes.abstract import AbstractPass, PassResult  # noqa: E402
@@ -78,6 +79,18 @@ class AlwaysUnalteredPass(StubPass):
 
     def transform(self, test_case, state, process_event_notifier):
         return (PassResult.OK, state)
+
+
+class SlowUnalteredThenStoppingPass(StubPass):
+    """Attempts to simulate the "STOP event observed before a buggy OK" scenario."""
+
+    DELAY_SECS = 1  # the larger the number, the higher the chance of catching bugs
+
+    def transform(self, test_case, state, process_event_notifier):
+        if state == 0:
+            time.sleep(self.DELAY_SECS)
+            return (PassResult.OK, state)
+        return (PassResult.STOP, state)
 
 
 def read_file(path):
@@ -203,3 +216,12 @@ def test_halt_on_unaltered(input_file, manager):
     assert read_file(input_file) == INPUT_DATA
     # This number of "failed to modify the variant" reports were to be created.
     assert bug_dir_count() == testing.TestManager.MAX_CRASH_DIRS + 1
+
+
+def test_halt_on_unaltered_after_stop(input_file, manager):
+    """Check that we quit after the pass' stop, even if it interleaved with a misbehave."""
+    p = SlowUnalteredThenStoppingPass()
+    manager.run_pass(p)
+    assert read_file(input_file) == INPUT_DATA
+    # Whether the misbehave ("failed to modify the variant") is detected depends on timing.
+    assert bug_dir_count() <= 1
