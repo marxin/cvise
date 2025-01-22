@@ -23,5 +23,5 @@ class TestCvise(unittest.TestCase):
         self.check_cvise(
             'blocksort-part.c',
             '-c "gcc -c blocksort-part.c && grep nextHi blocksort-part.c"',
-            ['#define nextHi', '#define  nextHi '],
+            ['#define nextHi', '#define  nextHi'],
         )
