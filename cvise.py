@@ -7,8 +7,6 @@ from itertools import chain
 import logging
 import os
 import os.path
-import platform
-import shutil
 import sys
 import tempfile
 import time
@@ -26,6 +24,7 @@ from cvise.passes.abstract import AbstractPass  # noqa: E402
 from cvise.utils import misc, statistics, testing  # noqa: E402
 from cvise.utils.error import CViseError  # noqa: E402
 from cvise.utils.error import MissingPassGroupsError  # noqa: E402
+from cvise.utils.externalprograms import find_external_programs  # noqa: E402
 import psutil  # noqa: E402
 
 
@@ -54,47 +53,6 @@ def get_share_dir():
             return d
 
     raise CViseError('Cannot find cvise module directory!')
-
-
-def find_external_programs():
-    programs = {
-        'clang_delta': 'clang_delta',
-        'clex': 'clex',
-        'topformflat': 'delta',
-        'unifdef': None,
-        'gcov-dump': None,
-    }
-
-    for prog, local_folder in programs.items():
-        path = None
-        if local_folder:
-            local_folder = os.path.join(script_path, local_folder)
-            if platform.system() == 'Windows':
-                for configuration in ['Debug', 'Release']:
-                    new_local_folder = os.path.join(local_folder, configuration)
-                    if os.path.exists(new_local_folder):
-                        local_folder = new_local_folder
-                        break
-
-            path = shutil.which(prog, path=local_folder)
-
-            if not path:
-                search = os.path.join('@CMAKE_INSTALL_FULL_LIBEXECDIR@', '@cvise_PACKAGE@')
-                path = shutil.which(prog, path=search)
-            if not path:
-                search = destdir + os.path.join('@CMAKE_INSTALL_FULL_LIBEXECDIR@', '@cvise_PACKAGE@')
-                path = shutil.which(prog, path=search)
-
-        if not path:
-            path = shutil.which(prog)
-
-        if path is not None:
-            programs[prog] = path
-
-    # Special case for clang-format
-    programs['clang-format'] = '@CLANG_FORMAT_PATH@'
-
-    return programs
 
 
 def get_pass_group_path(name):

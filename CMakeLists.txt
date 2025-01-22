@@ -233,6 +233,12 @@ configure_file(
 )
 
 configure_file(
+  "${PROJECT_SOURCE_DIR}/cvise/utils/externalprograms.py"
+  "${PROJECT_BINARY_DIR}/cvise/utils/externalprograms.py"
+  @ONLY
+)
+
+configure_file(
   "${PROJECT_SOURCE_DIR}/tests/test_cvise.py"
   "${PROJECT_BINARY_DIR}/tests/test_cvise.py"
   COPYONLY
