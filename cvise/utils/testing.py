@@ -155,6 +155,7 @@ class TestManager:
         silent_pass_bug,
         die_on_pass_bug,
         no_diagnostics_on_pass_bug,
+        no_dir_on_timeout,
         print_diff,
         max_improvement,
         no_give_up,
@@ -175,6 +176,7 @@ class TestManager:
         self.silent_pass_bug = silent_pass_bug
         self.die_on_pass_bug = die_on_pass_bug
         self.no_diagnostics_on_pass_bug = no_diagnostics_on_pass_bug
+        self.no_dir_on_timeout = no_dir_on_timeout
         self.print_diff = print_diff
         self.max_improvement = max_improvement
         self.no_give_up = no_give_up
@@ -415,7 +417,8 @@ class TestManager:
                     if type(future.exception()) in (TimeoutError, concurrent.futures.TimeoutError):
                         self.timeout_count += 1
                         logging.warning('Test timed out.')
-                        self.save_extra_dir(self.temporary_folders[future])
+                        if not self.no_dir_on_timeout:
+                            self.save_extra_dir(self.temporary_folders[future])
                         if self.timeout_count >= self.MAX_TIMEOUTS:
                             logging.warning('Maximum number of timeout were reached: %d' % self.MAX_TIMEOUTS)
                             quit_loop = True

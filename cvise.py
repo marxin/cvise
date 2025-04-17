@@ -152,6 +152,11 @@ if __name__ == '__main__':
         help='Do not create diagnostics folder on pass bug',
     )
     parser.add_argument(
+        '--no-dir-on-timeout',
+        action='store_true',
+        help='Do not create a folder with the source on timeout',
+    )
+    parser.add_argument(
         '--sllooww',
         action='store_true',
         help='Try harder to reduce, but perhaps take a long time to do so',
@@ -426,6 +431,7 @@ if __name__ == '__main__':
         args.shaddap,
         args.die_on_pass_bug,
         args.no_diagnostics_on_pass_bug,
+        args.no_dir_on_timeout,
         args.print_diff,
         args.max_improvement,
         args.no_give_up,
