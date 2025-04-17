@@ -154,6 +154,7 @@ class TestManager:
         skip_key_off,
         silent_pass_bug,
         die_on_pass_bug,
+        no_diagnostics_on_pass_bug,
         print_diff,
         max_improvement,
         no_give_up,
@@ -173,6 +174,7 @@ class TestManager:
         self.skip_key_off = skip_key_off
         self.silent_pass_bug = silent_pass_bug
         self.die_on_pass_bug = die_on_pass_bug
+        self.no_diagnostics_on_pass_bug = no_diagnostics_on_pass_bug
         self.print_diff = print_diff
         self.max_improvement = max_improvement
         self.no_give_up = no_give_up
@@ -287,8 +289,8 @@ class TestManager:
         return extra_dir
 
     def report_pass_bug(self, test_env, problem):
-        """Create pass report bug and return True if the directory is created."""
-
+        """Create pass report bug and return True if the directory is required and is created."""
+    
         if not self.die_on_pass_bug:
             logging.warning(f'{self.current_pass} has encountered a non fatal bug: {problem}')
 
@@ -296,6 +298,12 @@ class TestManager:
 
         if crash_dir is None:
             return False
+
+        if self.no_diagnostics_on_pass_bug:
+            if self.die_on_pass_bug:
+                raise PassBugError(self.current_pass, problem, test_env.state, crash_dir)
+            else:
+                return True
 
         crash_dir.mkdir()
         test_env.dump(crash_dir)

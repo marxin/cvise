@@ -146,6 +146,11 @@ if __name__ == '__main__':
         help='Terminate C-Vise if a pass encounters an otherwise non-fatal problem',
     )
     parser.add_argument(
+        '--no-diagnostics-on-pass-bug',
+        action='store_true',
+        help='Do not create diagnostics folder on pass bug',
+    )
+    parser.add_argument(
         '--sllooww',
         action='store_true',
         help='Try harder to reduce, but perhaps take a long time to do so',
@@ -419,6 +424,7 @@ if __name__ == '__main__':
         args.skip_key_off,
         args.shaddap,
         args.die_on_pass_bug,
+        args.no_diagnostics_on_pass_bug,
         args.print_diff,
         args.max_improvement,
         args.no_give_up,
