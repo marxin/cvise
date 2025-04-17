@@ -24,6 +24,7 @@ from cvise.passes.abstract import AbstractPass  # noqa: E402
 from cvise.utils import misc, statistics, testing  # noqa: E402
 from cvise.utils.error import CViseError  # noqa: E402
 from cvise.utils.error import MissingPassGroupsError  # noqa: E402
+from cvise.utils.error import PassBugError
 from cvise.utils.externalprograms import find_external_programs  # noqa: E402
 import psutil  # noqa: E402
 
@@ -446,6 +447,9 @@ if __name__ == '__main__':
     except CViseError as err:
         time_stop = time.monotonic()
         print(err)
+        if isinstance(err, PassBugError):
+            logging.shutdown()
+            sys.exit(1)
     else:
         time_stop = time.monotonic()
         with open(args.log_file, 'a') if args.log_file else sys.stderr as fs:
