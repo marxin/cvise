@@ -65,7 +65,7 @@ class ClangBinarySearchPass(AbstractPass):
             proc = subprocess.run(cmd, text=True, capture_output=True, timeout=self.QUERY_TIMEOUT)
         except subprocess.TimeoutExpired:
             logging.warning(
-                f'clang_delta --query-instances (--std={self.clang_delta_std}) {self.QUERY_TIMEOUT}s timeout reached'
+                f'clang_delta --query-instances (--std={self.clang_delta_std}) {self.QUERY_TIMEOUT}s timeout reached. Cmd: {cmd}'
             )
             return 0
         except subprocess.SubprocessError as e:

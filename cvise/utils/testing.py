@@ -14,6 +14,7 @@ import sys
 import tempfile
 import traceback
 import concurrent.futures
+import time
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import PassResult, ProcessEventNotifier, ProcessEventType
@@ -161,6 +162,7 @@ class TestManager:
         start_with_pass,
         skip_after_n_transforms,
         stopping_threshold,
+        print_warnings,
     ):
         self.test_script = Path(test_script).absolute()
         self.timeout = timeout
@@ -180,6 +182,7 @@ class TestManager:
         self.start_with_pass = start_with_pass
         self.skip_after_n_transforms = skip_after_n_transforms
         self.stopping_threshold = stopping_threshold
+        self.print_warnings = print_warnings
 
         for test_case in test_cases:
             test_case = Path(test_case)
@@ -206,6 +209,23 @@ class TestManager:
             == 0
         )
 
+        if self.parallel_tests <= 0:
+            logging.debug("Trying to find a good estimate for parallel tests.")
+            available_cores = self.get_available_cores()
+            available_space_per_process = max(int(self.get_free_temp_space()/self.total_file_size)-1, 1)
+            # i.e., parallel_tests = min(available_cores, available_space_per_process)
+            if available_cores < available_space_per_process:
+                logging.debug(f'Setting parallelism to {available_cores}, because we have less available cores than space in {self.get_tempdirname()}')
+                self.parallel_tests = available_cores
+            else:
+                logging.debug(f'Setting parallelism to {available_space_per_process}, because we have less space available in {self.get_tempdirname()}, than we have available cores.')
+                self.parallel_tests = available_space_per_process
+        elif self.print_warnings:
+            free_space = self.get_free_temp_space()
+            if self.orig_total_file_size * self.parallel_tests >= free_space:
+                tempdir = self.get_tempdirname()
+                logging.warning(f'You chose an input set of {self.orig_total_file_size} Bytes and a parallelism of {self.parallel_tests} interestingness tests. This may require {self.orig_total_file_size * self.parallel_tests} Bytes of available disk space. However, your temp directory ({tempdir}) only has {free_space} Bytes available. Please consider using less parallel interestingness tests (we propose {int(free_space/self.orig_total_file_size)} at max), a different temp directory by setting the TMPDIR environment variable, or freeing space in {tempdir}, to not run into No Disk Space Available errors!')
+
     def create_root(self):
         pass_name = str(self.current_pass).replace('::', '-')
         self.root = tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}{pass_name}-')
@@ -219,12 +239,21 @@ class TestManager:
         for test_case in self.test_cases:
             test_case.chmod(self.test_cases_modes[test_case])
 
+    @staticmethod
+    def get_tempdirname():
+        return os.getenv('TMPDIR') or '/tmp'
+
     @classmethod
     def is_valid_test(cls, test_script):
         for mode in {os.F_OK, os.X_OK}:
             if not os.access(test_script, mode):
                 return False
         return True
+
+    def get_free_temp_space(self):
+        tempdir = os.getenv('TMPDIR') or '/tmp'
+        usage = shutil.disk_usage(tempdir)
+        return usage.free
 
     @property
     def total_file_size(self):
@@ -251,6 +280,29 @@ class TestManager:
                     lines += len([line for line in f.readlines() if line and not line.isspace()])
         return lines
 
+    @staticmethod
+    def get_available_cores():
+        try:
+            # try to detect only physical cores, ignore HyperThreading
+            # in order to speed up parallel execution
+            core_count = psutil.cpu_count(logical=False)
+            if not core_count:
+                core_count = psutil.cpu_count(logical=True)
+            # respect affinity
+            try:
+                affinity = len(psutil.Process().cpu_affinity())
+                assert affinity >= 1
+            except AttributeError:
+                return core_count
+
+            if core_count:
+                core_count = min(core_count, affinity)
+            else:
+                core_count = affinity
+            return core_count
+        except NotImplementedError:
+            return 1
+
     def backup_test_cases(self):
         for f in self.test_cases:
             orig_file = Path(f'{f}.orig')
@@ -258,6 +310,8 @@ class TestManager:
             if not orig_file.exists():
                 # Copy file and preserve attributes
                 shutil.copy2(f, orig_file)
+            elif self.print_warnings:
+                logger.warning(f'Could not create backup of {f}, as {orig_file} already exists.')
 
     @staticmethod
     def check_file_permissions(path, modes, error):
@@ -336,10 +390,16 @@ class TestManager:
         test_env = TestEnvironment(None, 0, self.test_script, folder, list(self.test_cases)[0], self.test_cases, None)
         logging.debug(f'sanity check tmpdir = {test_env.folder}')
 
+        time_start = time.monotonic()
         returncode = test_env.run_test(verbose)
+        time_stop = time.monotonic()
         if returncode == 0:
             rmfolder(folder)
             logging.debug('sanity check successful')
+            if self.print_warnings:
+                time_diff = time_stop - time_start
+                if time_diff > self.timeout:
+                    logging.warning(f'Timeout is set to {self.timeout} seconds. However, the sanity check already took {time_diff:.6f} seconds. Please consider increasing the timeout. Otherwise, you may run into timeout issues, later!')
         else:
             if not self.save_temps:
                 rmfolder(folder)

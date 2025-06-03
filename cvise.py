@@ -85,29 +85,6 @@ def get_available_pass_groups():
     return group_names
 
 
-def get_available_cores():
-    try:
-        # try to detect only physical cores, ignore HyperThreading
-        # in order to speed up parallel execution
-        core_count = psutil.cpu_count(logical=False)
-        if not core_count:
-            core_count = psutil.cpu_count(logical=True)
-        # respect affinity
-        try:
-            affinity = len(psutil.Process().cpu_affinity())
-            assert affinity >= 1
-        except AttributeError:
-            return core_count
-
-        if core_count:
-            core_count = min(core_count, affinity)
-        else:
-            core_count = affinity
-        return core_count
-    except NotImplementedError:
-        return 1
-
-
 EPILOG_TEXT = f"""
 available shortcuts:
   S - skip execution of the current pass
@@ -118,6 +95,7 @@ For bug reporting instructions, please use:
 """
 
 if __name__ == '__main__':
+    default_timeout_value = 300
     parser = argparse.ArgumentParser(
         description='C-Vise',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -127,8 +105,8 @@ if __name__ == '__main__':
         '--n',
         '-n',
         type=int,
-        default=get_available_cores(),
-        help='Number of cores to use; C-Vise tries to automatically pick a good setting but its choice may be too low or high for your situation',
+        default=-1,
+        help=f'Number of cores to use; C-Vise tries to automatically pick a good setting but its choice may be too low or high for your situation. Usually defaults to {testing.TestManager.get_available_cores()}. May be less on large TEST_CASEs.',
     )
     parser.add_argument(
         '--tidy',
@@ -160,6 +138,12 @@ if __name__ == '__main__':
         '--debug',
         action='store_true',
         help='Print debug information (alias for --log-level=DEBUG)',
+    )
+    parser.add_argument(
+        '-w',
+        action='store_false',
+        default=True,
+        help='Do not double-check command-line arguments.',
     )
     parser.add_argument(
         '--log-level',
@@ -218,8 +202,8 @@ if __name__ == '__main__':
         '--timeout',
         type=int,
         nargs='?',
-        default=300,
-        help='Interestingness test timeout in seconds',
+        default=-1,
+        help=f'Interestingness test timeout in seconds. Defaults to {default_timeout_value}.',
     )
     parser.add_argument('--no-cache', action='store_true', help="Don't cache behavior of passes")
     parser.add_argument(
@@ -238,7 +222,7 @@ if __name__ == '__main__':
         '--pass-group',
         type=str,
         choices=get_available_pass_groups(),
-        help='Set of passes used during the reduction',
+        help='Set of passes used during the reduction.',
     )
     passes_group.add_argument('--pass-group-file', type=str, help='JSON file defining a custom pass group')
     parser.add_argument(
@@ -262,7 +246,7 @@ if __name__ == '__main__':
         action='store_true',
         help='Enable all renaming passes (that are disabled by default)',
     )
-    parser.add_argument('--list-passes', action='store_true', help='Print all available passes and exit')
+    parser.add_argument('--list-passes', action='store_true', help='Print all available passes and exit. Works with --not-c (showing available passes not specific to C and C++), --renaming (showing available renaming passes), and --sllooww (showing availalbe passes, activated with the --sllooww option).')
     parser.add_argument(
         '--version',
         action='version',
@@ -274,7 +258,7 @@ if __name__ == '__main__':
         '-c',
         help='Use shell commands instead of an interestingness test case',
     )
-    parser.add_argument('--shell', default='bash', help='Use selected shell for the --commands option')
+    parser.add_argument('--shell', default='bash', help='Use selected shell for the --commands option. Defaults to "bash"')
     parser.add_argument(
         '--to-utf8',
         action='store_true',
@@ -296,10 +280,17 @@ if __name__ == '__main__':
         '--stopping-threshold',
         default=1.0,
         type=float,
-        help='CVise will stop reducing a test case once it has reduced by this fraction of its original size.  Between 0.0 and 1.0.',
+        help='CVise will stop reducing a test case once it has reduced by this fraction of its original size.  Between 0.0 and 1.0. Defaults to 1.0',
     )
 
-    args = parser.parse_args()
+    # TEST_CASE may not be required, when `--list-passes` is provided. But the parser doesn't know.
+    # Thus, we insert a dummy element so that the parser won't complain.
+    if '--list-passes' in sys.argv:
+        cmd_args = sys.argv[1:]
+        cmd_args.append("/dev/null")
+        args = parser.parse_args(cmd_args)
+    else:
+        args = parser.parse_args()
 
     log_config = {}
 
@@ -358,13 +349,21 @@ if __name__ == '__main__':
     )
     if args.list_passes:
         logging.info('Available passes:')
+        logging.info('==============')
         logging.info('INITIAL PASSES')
+        logging.info('==============')
         for p in pass_group['first']:
             logging.info(str(p))
+        logging.info('')
+        logging.info('==============')
         logging.info('MAIN PASSES')
+        logging.info('==============')
         for p in pass_group['main']:
             logging.info(str(p))
+        logging.info('')
+        logging.info('==============')
         logging.info('CLEANUP PASSES')
+        logging.info('==============')
         for p in pass_group['last']:
             logging.info(str(p))
         sys.exit(0)
@@ -408,6 +407,12 @@ if __name__ == '__main__':
         logging.info(f'Using temporary interestingness test: {script.name}')
         args.interestingness_test = script.name
 
+    if args.timeout <= 0:
+        args.timeout = default_timeout_value
+    else:
+       from cvise.passes import ClangBinarySearchPass
+       ClangBinarySearchPass.QUERY_TIMEOUT = args.timeout
+
     test_manager = testing.TestManager(
         pass_statistic,
         args.interestingness_test,
@@ -426,6 +431,7 @@ if __name__ == '__main__':
         args.start_with_pass,
         args.skip_after_n_transforms,
         args.stopping_threshold,
+        args.w,
     )
 
     reducer = CVise(test_manager, args.skip_interestingness_test_check)
