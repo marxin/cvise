@@ -16,9 +16,9 @@ class LinesPass(AbstractPass):
     def __format(self, test_case, check_sanity):
         tmp = os.path.dirname(test_case)
 
-        with CloseableTemporaryFile(mode='w+', dir=tmp) as backup, \
-             CloseableTemporaryFile(mode='w+', dir=tmp) as tmp_file, \
-             CloseableTemporaryFile(mode='w+', dir=tmp) as stripped_tmp_file:
+        with CloseableTemporaryFile(mode='w+', dir=tmp) as backup, CloseableTemporaryFile(
+            mode='w+', dir=tmp
+        ) as tmp_file, CloseableTemporaryFile(mode='w+', dir=tmp) as stripped_tmp_file:
             backup.close()
             with open(test_case) as in_file:
                 try:
