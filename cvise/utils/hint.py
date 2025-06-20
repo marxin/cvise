@@ -1,7 +1,7 @@
 """Helpers for working with "hints" - descriptions of edits to be attempted.
 
 A hint is a compact JSON object that describes one or multiple modifications of
-the input: deletion of text at a particular location, repatchment with new
+the input: deletion of text at a particular location, replacement with new
 text, etc.
 
 The usage of hints, as a protocol, allows to simplify implementing reduction
