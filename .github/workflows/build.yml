@@ -65,4 +65,4 @@ jobs:
     - uses: actions/checkout@v4
     - run: pip install --break-system-packages ruff
     - run: ruff check --target-version py38
-    - run: ruff format --diff
+    - run: ruff format --target-version py38 --diff
