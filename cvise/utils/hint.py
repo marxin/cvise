@@ -81,7 +81,7 @@ def merge_overlapping_places(places: Sequence[object]) -> Sequence[object]:
     merged = []
     for place in sorted(places, key=sorting_key):
         if merged and places_overlap(merged[-1], place):
-            extend_to_fit(merged[-1], place)
+            extend_end_to_fit(merged[-1], place)
         else:
             merged.append(place)
     return merged
@@ -96,6 +96,6 @@ def places_overlap(first: object, second: object) -> bool:
     return max(first['l'], second['l']) < min(first['r'], second['r'])
 
 
-def extend_to_fit(place: object, appended_place: object) -> None:
+def extend_end_to_fit(place: object, appended_place: object) -> None:
     """Modifies the first place so that the second place fits into it."""
     place['r'] = max(place['r'], appended_place['r'])
