@@ -64,7 +64,7 @@ def test_apply_hints_delete_all(tmp_file):
 
 def test_apply_hints_delete_touching(tmp_file):
     tmp_file.write_text('Foo bar baz')
-    # It's essentially the deletion of 3..7.
+    # It's essentially the deletion of [3..7).
     hint1 = {'p': [{'l': 3, 'r': 4}]}
     hint2 = {'p': [{'l': 6, 'r': 7}]}
     hint3 = {'p': [{'l': 5, 'r': 6}, {'l': 4, 'r': 5}]}
@@ -79,7 +79,7 @@ def test_apply_hints_delete_touching(tmp_file):
 
 def test_apply_hints_delete_overlapping(tmp_file):
     tmp_file.write_text('Foo bar baz')
-    # It's essentially the deletion of 3..7.
+    # It's essentially the deletion of [3..7).
     hint1 = {'p': [{'l': 3, 'r': 6}]}
     hint2 = {'p': [{'l': 4, 'r': 7}]}
     hints = [hint1, hint2]

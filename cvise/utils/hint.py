@@ -1,7 +1,7 @@
 """Helpers for working with "hints" - descriptions of edits to be attempted.
 
 A hint is a compact JSON object that describes one or multiple modifications of
-the input: deletion of text at a particular location, replacement with new
+the input: deletion of text at a particular location, repatchment with new
 text, etc.
 
 The usage of hints, as a protocol, allows to simplify implementing reduction
@@ -14,8 +14,8 @@ from typing import Sequence
 
 # JSON Schemas:
 
-HINT_PLACE_SCHEMA = {
-    'description': 'Hint place object, describing a simple patch to be applied to the input. By default, unless a specific property is specified, a place deletes the specified chunk',
+HINT_PATCH_SCHEMA = {
+    'description': 'Hint patch object. By default, unless a specific property is specified, the object denotes a simple deletion of the specified chunk.',
     'type': 'object',
     'properties': {
         'l': {
@@ -36,9 +36,9 @@ HINT_SCHEMA = {
     'type': 'object',
     'properties': {
         'p': {
-            'description': 'Places where the hint is to be applied',
+            'description': 'Patches that this hint consists of',
             'type': 'array',
-            'items': HINT_PLACE_SCHEMA,
+            'items': HINT_PATCH_SCHEMA,
             'minItems': 1,
         },
     },
@@ -48,54 +48,54 @@ HINT_SCHEMA = {
 
 def apply_hints(hints: Sequence[object], file: Path) -> None:
     """Edits the file applying the specified hints to its contents."""
-    places = sum((h['p'] for h in hints), start=[])
-    merged_places = merge_overlapping_places(places)
+    patches = sum((h['p'] for h in hints), start=[])
+    merged_patches = merge_overlapping_patches(patches)
 
     with open(file) as f:
         orig_data = f.read()
 
     new_data = ''
     start_pos = 0
-    for p in merged_places:
+    for p in merged_patches:
         left = p['l']
         right = p['r']
         assert start_pos <= left < len(orig_data)
         assert left < right <= len(orig_data)
-        # Add the chunk up to the current beginning unmodified.
+        # Add the unmodified chunk up to the current patch begin.
         new_data += orig_data[start_pos:left]
-        # Delete the chunk inside the current edit.
+        # Delete the chunk inside the current patch.
         start_pos = right
-    # Add unmodified the chunk after the last edit"s end.
+    # Add the unmodified chunk after the last patch end.
     new_data += orig_data[start_pos:]
 
     with open(file, 'w') as f:
         f.write(new_data)
 
 
-def merge_overlapping_places(places: Sequence[object]) -> Sequence[object]:
-    """Returns non-overlapping hint places, merging places where necessary."""
+def merge_overlapping_patches(patches: Sequence[object]) -> Sequence[object]:
+    """Returns non-overlapping hint patches, merging patches where necessary."""
 
-    def sorting_key(place):
-        return place['l']
+    def sorting_key(patch):
+        return patch['l']
 
     merged = []
-    for place in sorted(places, key=sorting_key):
-        if merged and places_overlap(merged[-1], place):
-            extend_end_to_fit(merged[-1], place)
+    for patch in sorted(patches, key=sorting_key):
+        if merged and patches_overlap(merged[-1], patch):
+            extend_end_to_fit(merged[-1], patch)
         else:
-            merged.append(place)
+            merged.append(patch)
     return merged
 
 
-def places_overlap(first: object, second: object) -> bool:
-    """Checks whether two places overlap.
+def patches_overlap(first: object, second: object) -> bool:
+    """Checks whether two patches overlap.
 
-    Only real overlaps (with at least one common position) are counted - False
-    is returned for places merely touching each other.
+    Only real overlaps (with at least one common character) are counted - False
+    is returned for patches merely touching each other.
     """
     return max(first['l'], second['l']) < min(first['r'], second['r'])
 
 
-def extend_end_to_fit(place: object, appended_place: object) -> None:
-    """Modifies the first place so that the second place fits into it."""
-    place['r'] = max(place['r'], appended_place['r'])
+def extend_end_to_fit(patch: object, appended_patch: object) -> None:
+    """Modifies the first patch so that the second patch fits into it."""
+    patch['r'] = max(patch['r'], appended_patch['r'])
