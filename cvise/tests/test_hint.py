@@ -3,9 +3,11 @@ import pytest
 
 from cvise.utils.hint import apply_hints, HINT_SCHEMA
 
+
 @pytest.fixture
 def tmp_file(tmp_path):
     return tmp_path / 'file.txt'
+
 
 def test_apply_hints_delete_prefix(tmp_file):
     tmp_file.write_text('Foo bar')
@@ -16,6 +18,7 @@ def test_apply_hints_delete_prefix(tmp_file):
 
     assert tmp_file.read_text() == 'bar'
 
+
 def test_apply_hints_delete_suffix(tmp_file):
     tmp_file.write_text('Foo bar')
     hint = {'p': [{'l': 3, 'r': 7}]}
@@ -25,6 +28,7 @@ def test_apply_hints_delete_suffix(tmp_file):
 
     assert tmp_file.read_text() == 'Foo'
 
+
 def test_apply_hints_delete_middle(tmp_file):
     tmp_file.write_text('Foo bar baz')
     hint = {'p': [{'l': 3, 'r': 7}]}
@@ -33,6 +37,7 @@ def test_apply_hints_delete_middle(tmp_file):
     apply_hints([hint], tmp_file)
 
     assert tmp_file.read_text() == 'Foo baz'
+
 
 def test_apply_hints_delete_middle_multiple(tmp_file):
     tmp_file.write_text('Foo bar baz')
@@ -46,6 +51,7 @@ def test_apply_hints_delete_middle_multiple(tmp_file):
 
     assert tmp_file.read_text() == 'Foobarbaz'
 
+
 def test_apply_hints_delete_all(tmp_file):
     tmp_file.write_text('Foo bar')
     hint = {'p': [{'l': 0, 'r': 7}]}
@@ -54,6 +60,7 @@ def test_apply_hints_delete_all(tmp_file):
     apply_hints([hint], tmp_file)
 
     assert tmp_file.read_text() == ''
+
 
 def test_apply_hints_delete_touching(tmp_file):
     tmp_file.write_text('Foo bar baz')
@@ -69,6 +76,7 @@ def test_apply_hints_delete_touching(tmp_file):
 
     assert tmp_file.read_text() == 'Foo baz'
 
+
 def test_apply_hints_delete_overlapping(tmp_file):
     tmp_file.write_text('Foo bar baz')
     # It's essentially the deletion of 3..7.
@@ -81,6 +89,7 @@ def test_apply_hints_delete_overlapping(tmp_file):
     apply_hints(hints, tmp_file)
 
     assert tmp_file.read_text() == 'Foo baz'
+
 
 def test_apply_hints_delete_nested(tmp_file):
     tmp_file.write_text('Foo bar baz')
