@@ -10,7 +10,7 @@ applied to all heuristics in a uniform way).
 """
 
 from pathlib import Path
-from typing import List
+from typing import Sequence
 
 # JSON Schemas:
 
@@ -46,12 +46,12 @@ HINT_SCHEMA = {
 }
 
 
-def apply_hints(hints: List[object], file: Path) -> None:
+def apply_hints(hints: Sequence[object], file: Path) -> None:
     """Edits the file applying the specified hints to its contents."""
     places = sum((h['p'] for h in hints), start=[])
     merged_places = merge_overlapping_places(places)
 
-    with open(file, 'rt') as f:
+    with open(file) as f:
         orig_data = f.read()
 
     new_data = ''
@@ -68,11 +68,11 @@ def apply_hints(hints: List[object], file: Path) -> None:
     # Add unmodified the chunk after the last edit"s end.
     new_data += orig_data[start_pos:]
 
-    with open(file, 'wt') as f:
+    with open(file, 'w') as f:
         f.write(new_data)
 
 
-def merge_overlapping_places(places: List[object]) -> List[object]:
+def merge_overlapping_places(places: Sequence[object]) -> Sequence[object]:
     """Returns non-overlapping hint places, merging places where necessary."""
 
     def sorting_key(place):
