@@ -1,6 +1,7 @@
 import pytest
 
 from cvise.passes.lines import LinesPass
+from cvise.tests.testabstract import collect_all_transforms
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.externalprograms import find_external_programs
 
@@ -23,17 +24,6 @@ def read_file(path):
 def write_file(path, data):
     with open(path, 'w') as f:
         f.write(data)
-
-
-def collect_all_transforms(pass_, state, input_path):
-    all_outputs = set()
-    backup = read_file(input_path)
-    while state is not None:
-        pass_.transform(input_path, state, process_event_notifier=None)
-        all_outputs.add(read_file(input_path))
-        write_file(input_path, backup)
-        state = pass_.advance(input_path, state)
-    return all_outputs
 
 
 def advance_until(pass_, state, input_path, predicate):
