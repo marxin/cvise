@@ -1,7 +1,7 @@
 import jsonschema
 import pytest
 
-from cvise.utils.hint import apply_hints, HINT_SCHEMA
+from cvise.utils.hint import apply_hints, load_hints, store_hints, HINT_SCHEMA
 
 
 @pytest.fixture
@@ -102,3 +102,14 @@ def test_apply_hints_delete_nested(tmp_file):
     apply_hints(hints, tmp_file)
 
     assert tmp_file.read_text() == 'Foo baz'
+
+
+def test_store_load_hints(tmp_file):
+    hint1 = {'p': [{'l': 0, 'r': 1}]}
+    hint2 = {'p': [{'l': 2, 'r': 3}, {'l': 4, 'r': 5}]}
+    store_hints([hint1, hint2], tmp_file)
+
+    assert load_hints(tmp_file, 0, 2) == [hint1, hint2]
+    assert load_hints(tmp_file, 0, 1) == [hint1]
+    assert load_hints(tmp_file, 1, 2) == [hint2]
+    assert load_hints(tmp_file, 0, 0) == []

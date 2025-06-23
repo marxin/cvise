@@ -90,6 +90,8 @@ manager:
 
 * [psutil](https://pypi.org/project/psutil/)
 
+* [pyzstd](https://pypi.org/project/pyzstd/)
+
 * [CMake](https://cmake.org/)
 
 * [unifdef](http://dotat.at/prog/unifdef/)

@@ -9,7 +9,9 @@ heuristics and to perform reduction more efficiently (as algorithms can now be
 applied to all heuristics in a uniform way).
 """
 
+import json
 from pathlib import Path
+import pyzstd
 from typing import Sequence
 
 # JSON Schemas:
@@ -70,6 +72,26 @@ def apply_hints(hints: Sequence[object], file: Path) -> None:
 
     with open(file, 'w') as f:
         f.write(new_data)
+
+
+def store_hints(hints: Sequence[object], hints_file_path: Path) -> None:
+    """Serializes hints to the given file."""
+    with pyzstd.open(hints_file_path, 'wt') as f:
+        for h in hints:
+            # Skip checks and omit spaces around separators, for the sake of performance.
+            json.dump(h, f, check_circular=False, separators=(',', ':'))
+            f.write('\n')
+
+
+def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> Sequence[object]:
+    """Deserializes hints with the given indices [begin; end) from a file."""
+    assert begin_index <= end_index
+    hints = []
+    with pyzstd.open(hints_file_path, 'rt') as f:
+        for i, line in enumerate(f):
+            if begin_index <= i < end_index:
+                hints.append(json.loads(line))
+    return hints
 
 
 def merge_overlapping_patches(patches: Sequence[object]) -> Sequence[object]:
