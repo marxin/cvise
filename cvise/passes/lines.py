@@ -61,7 +61,7 @@ class LinesPass(AbstractPass):
             lines = in_file.readlines()
             return len(lines)
 
-    def new(self, test_case, check_sanity=None):
+    def new(self, test_case, check_sanity=None, **kwargs):
         self.bailout = False
         # None means no topformflat
         if self.arg != 'None':

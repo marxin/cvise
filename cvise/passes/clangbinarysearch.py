@@ -33,7 +33,7 @@ class ClangBinarySearchPass(AbstractPass):
         # Use the best standard option
         self.clang_delta_std = best
 
-    def new(self, test_case, _=None):
+    def new(self, test_case, **kwargs):
         if not self.user_clang_delta_std:
             self.detect_best_standard(test_case)
         else:

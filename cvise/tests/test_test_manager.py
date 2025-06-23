@@ -20,7 +20,7 @@ class StubPass(AbstractPass):
         super().__init__()
         self.max_transforms = None
 
-    def new(self, test_case, check_sanity):
+    def new(self, test_case, **kwargs):
         return 0
 
     def advance(self, test_case, state):

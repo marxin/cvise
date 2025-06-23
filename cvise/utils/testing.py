@@ -570,7 +570,7 @@ class TestManager:
                             continue
 
                 # create initial state
-                self.state = self.current_pass.new(self.current_test_case, self.check_sanity)
+                self.state = self.current_pass.new(self.current_test_case, check_sanity=self.check_sanity)
                 self.skip = False
 
                 while self.state is not None and not self.skip:

@@ -7,7 +7,7 @@ class CommentsPass(AbstractPass):
     def check_prerequisites(self):
         return True
 
-    def new(self, test_case, _=None):
+    def new(self, test_case, **kwargs):
         return -2
 
     def advance(self, test_case, state):

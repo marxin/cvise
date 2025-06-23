@@ -6,7 +6,7 @@ class IndentPass(AbstractPass):
     def check_prerequisites(self):
         return self.check_external_program('clang-format')
 
-    def new(self, test_case, _=None):
+    def new(self, test_case, **kwargs):
         return 0
 
     def advance(self, test_case, state):

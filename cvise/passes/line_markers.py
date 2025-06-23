@@ -20,7 +20,7 @@ class LineMarkersPass(AbstractPass):
                     count += 1
         return count
 
-    def new(self, test_case, _=None):
+    def new(self, test_case, **kwargs):
         return BinaryState.create(self.__count_instances(test_case))
 
     def advance(self, test_case, state):
