@@ -100,6 +100,8 @@ Optional packages:
 
 * [colordiff](https://www.colordiff.org/)
 
+* [jsonschema](https://pypi.org/project/jsonschema/)
+
 ## Building and installing C-Vise
 
 You can configure, build, and install C-Vise with the CMake.

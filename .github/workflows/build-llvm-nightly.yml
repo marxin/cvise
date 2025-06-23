@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - run: apt-get update
-      - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex python3-pebble python3-psutil python3-chardet python3-pytest vim unifdef sudo
+      - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex python3-pebble python3-psutil python3-chardet python3-pytest python3-jsonschema vim unifdef sudo
       - uses: rui314/setup-mold@v1
       - run: ld --version
       - run: nproc
