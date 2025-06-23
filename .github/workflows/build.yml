@@ -64,5 +64,5 @@ jobs:
     - run: zypper -n install python3-pip
     - uses: actions/checkout@v4
     - run: pip install --break-system-packages ruff
-    - run: ruff check
-    - run: ruff format --diff
+    - run: ruff check --target-version py38
+    - run: ruff format --target-version py38 --diff
