@@ -263,7 +263,7 @@ void RenameFun::addFun(const FunctionDecl *FD)
   // Skip special functions
   if (isSpecialFun(Name) ||
 #if LLVM_VERSION_MAJOR >= 21
-      FD->hasAttr<DeviceKernelAttr>() ||
+      FD->hasAttr<DeviceKernelAttr>()
 #else
       FD->hasAttr<OpenCLKernelAttr>()
 #endif
