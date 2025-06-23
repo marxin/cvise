@@ -440,7 +440,12 @@ bool RemoveNamespaceRewriteVisitor::VisitDependentTemplateSpecializationTypeLoc(
     dyn_cast<DependentTemplateSpecializationType>(Ty);
   TransAssert(DTST && "Bad DependentTemplateSpecializationType!");
 
-  const IdentifierInfo *IdInfo = DTST->getIdentifier();
+  const IdentifierInfo *IdInfo =
+#if LLVM_VERSION_MAJOR >= 21
+    DTST->getDependentTemplateName().getName().getIdentifier();
+#else
+    DTST->getIdentifier();
+#endif
   std::string IdName = IdInfo->getName().str();
   std::string Name;
 
@@ -563,7 +568,9 @@ bool RemoveNamespaceRewriteVisitor::TraverseNestedNameSpecifierLoc(
         break;
       }
       case NestedNameSpecifier::TypeSpec: // Fall-through
+#if LLVM_VERSION_MAJOR <= 20
       case NestedNameSpecifier::TypeSpecWithTemplate:
+#endif
         TraverseTypeLoc(Loc.getTypeLoc());
         break;
       default:

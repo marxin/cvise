@@ -163,7 +163,12 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     ClangInstance->createFileManager();
 
     if(CLCPath != NULL && ClangInstance->hasFileManager() &&
-       ClangInstance->getFileManager().getDirectory(CLCPath, false)) {
+#if LLVM_VERSION_MAJOR >= 21
+       ClangInstance->getFileManager().getDirectoryRef(CLCPath, false)
+#else
+       ClangInstance->getFileManager().getDirectory(CLCPath, false)
+#endif
+      ) {
         Args.push_back("-I");
         Args.push_back(CLCPath);
     }
@@ -186,7 +191,12 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
 
   TargetInfo *Target = 
     TargetInfo::CreateTargetInfo(ClangInstance->getDiagnostics(),
-                                 ClangInstance->getInvocation().TargetOpts);
+#if LLVM_VERSION_MAJOR >= 21
+                                 ClangInstance->getInvocation().getTargetOpts()
+#else
+                                 ClangInstance->getInvocation().TargetOpts
+#endif
+                                );
   ClangInstance->setTarget(Target);
 
   if (const char *env = getenv("CVISE_INCLUDE_PATH")) {
