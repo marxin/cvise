@@ -70,7 +70,7 @@ class IntsPass(AbstractPass):
         config['replace_fn'] = replace_fn
         return config
 
-    def new(self, test_case, _=None):
+    def new(self, test_case, **kwargs):
         config = self.__get_config()
         with open(test_case) as in_file:
             prog = in_file.read()

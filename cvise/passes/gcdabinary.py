@@ -36,7 +36,7 @@ class GCDABinaryPass(AbstractPass):
             logging.warning(f'gcov-dump -p failed: {e}')
             return None
 
-    def new(self, test_case, check_sanity=None):
+    def new(self, test_case, **kwargs):
         return self.__create_state(test_case)
 
     def advance(self, test_case, state):

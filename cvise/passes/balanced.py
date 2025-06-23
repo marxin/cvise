@@ -16,7 +16,7 @@ class BalancedPass(AbstractPass):
 
         return m
 
-    def new(self, test_case, _=None):
+    def new(self, test_case, **kwargs):
         return self.__get_next_match(test_case, pos=0)
 
     def advance(self, test_case, state):
