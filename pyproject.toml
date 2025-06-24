@@ -1,3 +1,12 @@
+[project]
+name = "C-Vise"
+authors = [{ name = "Martin Liška", email = "marxin.liska@gmail.com" }, { name = "Moritz Pflanzer", email = "moritz@pflanzer.eu" }]
+maintainers = [{ name = "Martin Liška", email = "marxin.liska@gmail.com" }]
+description = "C-Vise is a super-parallel Python port of the C-Reduce."
+readme = "README.md"
+license = { file = "COPYING" }
+requires-python = ">=3.8"
+
 [tool.ruff]
 exclude = ["objdir"]
 
