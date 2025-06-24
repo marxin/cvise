@@ -13,8 +13,11 @@ exclude = ["objdir"]
 line-length = 120
 
 [tool.ruff.lint]
-# Enable UP031.
-ignore = ["E501", "UP031"]
+ignore = [
+    "E501",
+    "UP031",
+    "UP007",  # incorrectly suggests "Use `X | Y` for type annotations" which is incompatible with Python 3.8
+]
 select = ["B", "E", "F", "W", "UP", "C4"] # consider: ["I", "RUF"]
 preview = true
 
