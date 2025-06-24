@@ -1,5 +1,5 @@
 [project]
-name = "cvise"
+name = "C-Vise"
 authors = [{ name = "Martin Liška", email = "marxin.liska@gmail.com" }, { name = "Moritz Pflanzer", email = "moritz@pflanzer.eu" }]
 maintainers = [{ name = "Martin Liška", email = "marxin.liska@gmail.com" }]
 description = "C-Vise is a super-parallel Python port of the C-Reduce."
