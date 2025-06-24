@@ -369,7 +369,7 @@ template<typename T> bool CommonRenameClassRewriteVisitor<T>::
   TransAssert(DTST && "Bad DependentTemplateSpecializationType!");
 
   const IdentifierInfo *IdInfo =
-#if LLVM_VERSION_MAJOR >= 21
+#if LLVM_VERSION_MAJOR > 20
     DTST->getDependentTemplateName().getName().getIdentifier();
 #else
     DTST->getIdentifier();

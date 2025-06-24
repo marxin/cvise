@@ -254,7 +254,7 @@ bool RUFAnalysisVisitor::VisitFunctionDecl(FunctionDecl *FD)
 
   if (FD->isReferenced() ||
       FD->isMain() ||
-#if LLVM_VERSION_MAJOR >= 21
+#if LLVM_VERSION_MAJOR > 20
       FD->hasAttr<DeviceKernelAttr>() ||
 #else
       FD->hasAttr<OpenCLKernelAttr>() ||

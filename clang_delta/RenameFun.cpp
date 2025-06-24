@@ -262,7 +262,7 @@ void RenameFun::addFun(const FunctionDecl *FD)
   std::string Name = FD->getNameAsString();
   // Skip special functions
   if (isSpecialFun(Name) ||
-#if LLVM_VERSION_MAJOR >= 21
+#if LLVM_VERSION_MAJOR > 20
       FD->hasAttr<DeviceKernelAttr>()
 #else
       FD->hasAttr<OpenCLKernelAttr>()
