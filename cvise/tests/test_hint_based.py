@@ -1,6 +1,5 @@
 import jsonschema
 from pathlib import Path
-import pytest
 from typing import Dict, Sequence
 
 from cvise.passes.hint_based import HintBasedPass
