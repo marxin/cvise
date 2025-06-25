@@ -85,7 +85,7 @@ def store_hints(hints: Sequence[object], hints_file_path: Path) -> None:
 
 def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> Sequence[object]:
     """Deserializes hints with the given indices [begin; end) from a file."""
-    assert begin_index <= end_index
+    assert begin_index < end_index
     hints = []
     with pyzstd.open(hints_file_path, 'rt') as f:
         for i, line in enumerate(f):

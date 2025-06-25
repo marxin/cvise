@@ -112,4 +112,3 @@ def test_store_load_hints(tmp_file):
     assert load_hints(tmp_file, 0, 2) == [hint1, hint2]
     assert load_hints(tmp_file, 0, 1) == [hint1]
     assert load_hints(tmp_file, 1, 2) == [hint2]
-    assert load_hints(tmp_file, 0, 0) == []
