@@ -1,7 +1,4 @@
-import os
 import pytest
-import tempfile
-import unittest
 
 from cvise.passes.line_markers import LineMarkersPass
 
