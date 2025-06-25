@@ -1,38 +1,34 @@
-import os
-import tempfile
-import unittest
+import pytest
 
 from cvise.passes.line_markers import LineMarkersPass
 
 
-class LineMarkersTestCase(unittest.TestCase):
-    def setUp(self):
-        self.pass_ = LineMarkersPass()
+@pytest.fixture
+def input_path(tmp_path):
+    return tmp_path / 'input.cc'
 
-    def test_all(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write("# 1 'foo.h'\n# 2 'bar.h'\n#4   'x.h'")
 
-        state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state, None)
-        self.assertEqual(state.index, 0)
-        self.assertEqual(state.instances, 3)
+def init_pass(input_path):
+    pass_ = LineMarkersPass()
+    state = pass_.new(input_path)
+    return pass_, state
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
 
-        os.unlink(tmp_file.name)
-        self.assertEqual(variant, '')
+def test_all(input_path):
+    input_path.write_text("# 1 'foo.h'\n# 2 'bar.h'\n#4   'x.h'")
+    pass_, state = init_pass(input_path)
 
-    def test_only_last(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write("# 1 'foo.h'\n# 2 'bar.h'\n#4   'x.h\nint x = 2;")
+    (_, state) = pass_.transform(input_path, state, None)
 
-        state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state, None)
+    assert state.index == 0
+    assert state.instances == 3
+    assert input_path.read_text() == ''
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
 
-        os.unlink(tmp_file.name)
-        self.assertEqual(variant, 'int x = 2;')
+def test_only_last(input_path):
+    input_path.write_text("# 1 'foo.h'\n# 2 'bar.h'\n#4   'x.h\nint x = 2;")
+    pass_, state = init_pass(input_path)
+
+    (_, state) = pass_.transform(input_path, state, None)
+
+    assert input_path.read_text() == 'int x = 2;'
