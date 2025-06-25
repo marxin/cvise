@@ -10,7 +10,7 @@ def find_external_programs():
     programs = {
         'clang_delta': 'clang_delta',
         'clex': 'clex',
-        'topformflat': 'delta',
+        'topformflat_hints': 'delta',
         'unifdef': None,
         'gcov-dump': None,
     }

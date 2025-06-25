@@ -25,7 +25,7 @@ FLEX_TARGET(topformflat_scanner
   ${PROJECT_BINARY_DIR}/topformflat.c
   )
 
-add_executable(topformflat
+add_executable(topformflat_hints
   ${FLEX_topformflat_scanner_OUTPUTS}
   )
 
@@ -39,7 +39,7 @@ endif()
 
 ###############################################################################
 
-install(TARGETS topformflat
+install(TARGETS topformflat_hints
   DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}/${cvise_PACKAGE}/"
   )
 

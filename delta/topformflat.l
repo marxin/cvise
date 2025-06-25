@@ -1,5 +1,5 @@
 /* topformflat.l; see License.txt for copyright and terms of use
- * 
+ *
  * Scott McPeak        <smcpeak@cs.berkeley.edu>
  *
  * flatten all toplevel forms to single lines.
@@ -8,14 +8,17 @@
 %{
 #include <stdlib.h>     // atoi
 
-// emit yytext as-is
-void emit(void);
-
 // debugging diagnostic, emitted when enabled
 void diag(char const *str);
 
-// add a newline if nesting <= threshold
-void possibleNewline(void);
+// handle a possible newline insertion if nesting <= threshold
+void possibleChunkEnd(int pos);
+
+// index of byte where the current yytext ends in the input.
+int token_end_pos = 0;
+
+// index of byte where the current toplevel block started.
+int chunk_start_pos = 0;
 
 // keep track of brace nesting (0 means not inside any pair)
 int nesting = 0;
@@ -23,6 +26,9 @@ int nesting = 0;
 // nesting threshold; when nesting is greater than threshold,
 // newlines are suppressed
 int threshold = 0;
+
+// update the position whenever a token is about to be processed.
+#define YY_USER_ACTION token_end_pos += yyleng;
 
 %}
 
@@ -38,81 +44,70 @@ int threshold = 0;
 
 %%
 
-";"           { emit(); possibleNewline(); }
+";"           { possibleChunkEnd(token_end_pos); }
 
-"/\n"         { if (nesting <= threshold) {    /* end of C comment */
-                  emit();
-                }
-                else {
-                  printf("%c", yytext[0]);
-                }
-              }
+"/\n"         { }     /* end of C comment */
 
 "{"           { nesting++;
-                emit();
-                possibleNewline();      // so the header is separated from the components
+                possibleChunkEnd(token_end_pos);      // so the header is separated from the components
               }
 
 "}"(";"?)     { nesting--;
-                emit();
-                possibleNewline();
+                possibleChunkEnd(token_end_pos);
               }
 
   /* a hash, then some non-newlines.  then, possibly, an escaped
    * newline followed by more non-newlines (repeat as needed).
    * finally, a newline */
 "#".*("\\\n".*)*"\n" {
-                printf("\n");      /* make sure starts on own line */
-                emit();            /* preprocessor */
+                int hash_pos = token_end_pos - yyleng;
+                possibleChunkEnd(hash_pos);                 /* make sure starts on own line */
+                possibleChunkEnd(token_end_pos);
               }
 
-"\n"          { printf(" "); }     /* not any above case, eat it*/
+"\n"          { }                                           /* not any above case, skip it*/
 
-"//".*"\n"    { emit(); }          /* C++ comment */
+"//".*"\n"    { }                                           /* C++ comment */
 
-"\""          { diag("<STR>"); emit(); BEGIN(STRING); }     /* start quote */
+"\""          { diag("<STR>"); BEGIN(STRING); }             /* start quote */
 
 <STRING>{
-  "\\"(.|\n)  { emit(); }                                   /* escaped character */
-  "\""        { emit(); diag("</STR>"); BEGIN(INITIAL); }   /* close quote */
-  (.|\n)      { emit(); }                                   /* ordinary char */
+  "\\"(.|\n)  { }                                           /* escaped character */
+  "\""        { diag("</STR>"); BEGIN(INITIAL); }           /* close quote */
+  (.|\n)      { }                                           /* ordinary char */
 }
 
-"\'"          { diag("<CHAR>"); emit(); BEGIN(CHARLIT); }   /* start tick */
+"\'"          { diag("<CHAR>"); BEGIN(CHARLIT); }           /* start tick */
 
 <CHARLIT>{
-  "\\"(.|\n)  { emit(); }                                   /* escaped character */
-  "\'"        { emit(); diag("</CHAR>"); BEGIN(INITIAL); }  /* close tick */
-  (.|\n)      { emit(); }                                   /* ordinary char */
+  "\\"(.|\n)  { }                                           /* escaped character */
+  "\'"        { diag("</CHAR>"); BEGIN(INITIAL); }          /* close tick */
+  (.|\n)      {  }                                          /* ordinary char */
 }
 
-.             { emit(); }
+.             { }
 
 %%
-
-void emit(void)
-{
-  printf("%.*s", (int) yyleng, yytext);
-}
 
 void diag(char const *str)
 {
   //printf("%s", str);
 }
 
-void possibleNewline(void)
+void possibleChunkEnd(int pos)
 {
-  if (nesting <= threshold) {
-    printf("\n");
+  if (nesting <= threshold && chunk_start_pos < pos) {
+    printf("{\"p\":[{\"l\":%d,\"r\":%d}]}\n", chunk_start_pos, pos);
+    chunk_start_pos = pos;
   }
 }
 
-char *version = "2003.7.14";
+char *version = "2025.6.25";
 int main(int argc, char *argv[])
 {
   if (isatty(0)) {
-    printf("topformflat version %s\n", version);
-    printf("usage: %s [threshold] <input.c >output.c\n", argv[0]);
+    printf("topformflat_hints version %s\n", version);
+    printf("usage: %s [threshold] <input.c >hints.jsonl\n", argv[0]);
     printf("  The threshold (default: 0) specifies at what nesting level\n"
            "  of braces will line breaks be allowed (or inserted).  By\n"
            "  starting with 0, you get all top-level forms, one per line\n"
@@ -124,9 +119,10 @@ int main(int argc, char *argv[])
 
   if (argc >= 2) {
     threshold = atoi(argv[1]);    // user-specified threshold
-  }  
+  }
 
   yyin = stdin;
   yylex();
+  possibleChunkEnd(token_end_pos);
   return 0;
 }
