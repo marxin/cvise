@@ -69,7 +69,7 @@ def test_func_namespace_level1(input_path, external_programs):
     assert 'int f() {\nchar x;\n}\nnamespace foo {\n}\n' in all_transforms
 
 
-def test_multiline_func_header_level0(input_path, external_programs):
+def test_multiline_func_signature_level0(input_path, external_programs):
     write_file(input_path, 'template <class T>\nint\nf()\n{\n}')
     p = LinesPass('0', external_programs)
     state = p.new(input_path, check_sanity=lambda: True)
@@ -79,7 +79,7 @@ def test_multiline_func_header_level0(input_path, external_programs):
     assert len(all_transforms) == 1
 
 
-def test_multiline_func_header_level1(input_path, external_programs):
+def test_multiline_func_signature_level1(input_path, external_programs):
     write_file(input_path, 'namespace {\ntemplate <class T>\nint\nf()\n{\n}\n}\n')
     p = LinesPass('1', external_programs)
     state = p.new(input_path, check_sanity=lambda: True)
