@@ -221,8 +221,8 @@ add_subdirectory(delta)
 
 # Copy top-level cvise script
 configure_file(
-  "${PROJECT_SOURCE_DIR}/cvise.py"
-  "${PROJECT_BINARY_DIR}/cvise.py"
+  "${PROJECT_SOURCE_DIR}/cvise-cli.py"
+  "${PROJECT_BINARY_DIR}/cvise-cli.py"
   @ONLY
 )
 
@@ -256,7 +256,7 @@ configure_file(
   COPYONLY
 )
 
-install(PROGRAMS "${PROJECT_BINARY_DIR}/cvise.py"
+install(PROGRAMS "${PROJECT_BINARY_DIR}/cvise-cli.py"
   DESTINATION "${CMAKE_INSTALL_BINDIR}"
   RENAME "cvise"
 )
