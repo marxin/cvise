@@ -571,7 +571,7 @@ class TestManager:
 
                 # create initial state
                 self.state = self.current_pass.new(
-                    self.current_test_case, check_sanity=self.check_sanity, temp_dir=Path(self.root)
+                    self.current_test_case, check_sanity=self.check_sanity, tmp_dir=Path(self.root)
                 )
                 self.skip = False
 

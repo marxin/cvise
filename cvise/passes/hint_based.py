@@ -35,7 +35,7 @@ class HintState:
 
 
 class HintBasedPass(AbstractPass, metaclass=ABCMeta):
-    """Based class for hint-based passes.
+    """Base class for hint-based passes.
 
     Subclasses must implement the generate_hints() method; the
     new/transform/advance operations are taken care by the generic logic here.
@@ -45,16 +45,18 @@ class HintBasedPass(AbstractPass, metaclass=ABCMeta):
     def generate_hints(self, test_case: Path) -> Sequence[object]:
         pass
 
-    def new(self, test_case, temp_dir, **kwargs):
+    def new(self, test_case, tmp_dir, **kwargs):
         hints = self.generate_hints(test_case)
         if not hints:
             return None
-        hints_file_path = temp_dir / HINTS_FILE_NAME
+        hints_file_path = tmp_dir / HINTS_FILE_NAME
         store_hints(hints, hints_file_path)
         return HintState.create(len(hints), hints_file_path)
 
     def transform(self, test_case, state, process_event_notifier):
-        hints = load_hints(state.hints_file_path, state.binary_state.index, state.binary_state.end())
+        hints_range_begin = state.binary_state.index
+        hints_range_end = state.binary_state.end()
+        hints = load_hints(state.hints_file_path, hints_range_begin, hints_range_end)
         apply_hints(hints, Path(test_case))
         return (PassResult.OK, state)
 
