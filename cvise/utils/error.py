@@ -137,7 +137,7 @@ should result in '0' being echoed to the terminal.
 Please ensure that the test script takes no arguments; it should be hard-coded to refer
 to the same file that is passed as an argument to C-Vise.
 
-See 'cvise.py --help' for more information.""".format(
+See 'cvise-cli.py --help' for more information.""".format(
             test_cases=' '.join([str(t) for t in self.test_cases]), test=self.test
         )
         return message
