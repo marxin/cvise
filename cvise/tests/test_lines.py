@@ -140,7 +140,7 @@ def test_advance_on_success(input_path):
     # cut 'baz' now
     state = advance_until(p, state, input_path, lambda s: 'bar' in s)
     p.advance_on_success(input_path, state)
-    assert read_file(input_path) == ' bar;\n'
+    assert read_file(input_path) == 'bar;\n'
 
 
 def test_new_reformatting_keeps_spaces_if_needed(input_path):
