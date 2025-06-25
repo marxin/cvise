@@ -152,6 +152,7 @@ def test_advance_on_success(input_path, external_programs):
 
 def test_new_reformatting_keeps_spaces_if_needed(input_path, external_programs):
     """Test the fallback scenario, when trimming spaces leads to an unsuccessful sanity check."""
+
     def check_sanity():
         if '  char' not in read_file(input_path):
             raise InsaneTestCaseError([], '')
