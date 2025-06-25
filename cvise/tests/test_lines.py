@@ -96,20 +96,26 @@ def test_multiline_func_signature_level1(input_path, external_programs):
 
 def test_c_comment(input_path, external_programs):
     """Test that a C comment is deleted as a whole."""
-    write_file(input_path, 'int x; /* \ncomment */\nint y;')
+    write_file(input_path, 'int x; /* \nsome\ncomment\n */\nint y;')
     p = LinesPass('0', external_programs)
     state = p.new(input_path, check_sanity=lambda: True)
     all_transforms = collect_all_transforms(p, state, input_path)
     assert 'int x;\nint y;\n' in all_transforms
+    # no attempts to partially remove the comment
+    for s in all_transforms:
+        assert ('/*' in s) == ('some' in s) == ('comment' in s) == ('*/' in s)
 
 
 def test_cpp_comment(input_path, external_programs):
     """Test that a C++ comment is deleted as a whole."""
-    write_file(input_path, 'int x; // comment\nint y;')
+    write_file(input_path, 'int x; // some comment\nint y;')
     p = LinesPass('0', external_programs)
     state = p.new(input_path, check_sanity=lambda: True)
     all_transforms = collect_all_transforms(p, state, input_path)
     assert 'int x;\nint y;\n' in all_transforms
+    # no attempts to partially remove the comment
+    for s in all_transforms:
+        assert ('//' in s) == ('some' in s) == ('comment' in s)
 
 
 def test_transform_deletes_lines_range(input_path, external_programs):
