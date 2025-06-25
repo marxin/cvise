@@ -48,6 +48,7 @@ def advance_until(pass_, state, input_path, predicate):
 
 
 def test_func_namespace_level0(input_path, external_programs):
+    """Test that arg=0 deletes top-level functions and namespaces."""
     write_file(input_path, 'int f() {\nchar x;\n}\nnamespace foo\n{\n}\n')
     p = LinesPass('0', external_programs)
     state = p.new(input_path, check_sanity=lambda: True)
@@ -59,6 +60,7 @@ def test_func_namespace_level0(input_path, external_programs):
 
 
 def test_func_namespace_level1(input_path, external_programs):
+    """Test that arg=1 deletes code inside top-level functions and namespaces."""
     write_file(input_path, 'int f() {\nchar x;\n}\nnamespace foo\n{\nvoid g() {\n}\n}\n')
     p = LinesPass('1', external_programs)
     state = p.new(input_path, check_sanity=lambda: True)
@@ -70,6 +72,7 @@ def test_func_namespace_level1(input_path, external_programs):
 
 
 def test_multiline_func_signature_level0(input_path, external_programs):
+    """Test that arg=0 deletes a top-level function despite line breaks in the signature."""
     write_file(input_path, 'template <class T>\nint\nf()\n{\n}')
     p = LinesPass('0', external_programs)
     state = p.new(input_path, check_sanity=lambda: True)
@@ -80,17 +83,19 @@ def test_multiline_func_signature_level0(input_path, external_programs):
 
 
 def test_multiline_func_signature_level1(input_path, external_programs):
+    """Test that arg=1 deletes a nested function despite line breaks in the signature."""
     write_file(input_path, 'namespace {\ntemplate <class T>\nint\nf()\n{\n}\n}\n')
     p = LinesPass('1', external_programs)
     state = p.new(input_path, check_sanity=lambda: True)
     all_transforms = collect_all_transforms(p, state, input_path)
     assert 'namespace {\n}\n' in all_transforms
-    # the (multi-line) func must be deleted as a whole
+    # the (multi-line) func must be deleted as a whole, not partially
     for s in all_transforms:
         assert ('template' in s) == ('f()' in s)
 
 
 def test_c_comment(input_path, external_programs):
+    """Test that a C comment is deleted as a whole."""
     write_file(input_path, 'int x; /* \ncomment */\nint y;')
     p = LinesPass('0', external_programs)
     state = p.new(input_path, check_sanity=lambda: True)
@@ -99,6 +104,7 @@ def test_c_comment(input_path, external_programs):
 
 
 def test_cpp_comment(input_path, external_programs):
+    """Test that a C++ comment is deleted as a whole."""
     write_file(input_path, 'int x; // comment\nint y;')
     p = LinesPass('0', external_programs)
     state = p.new(input_path, check_sanity=lambda: True)
@@ -107,6 +113,9 @@ def test_cpp_comment(input_path, external_programs):
 
 
 def test_transform_deletes_lines_range(input_path, external_programs):
+    """Test various combinations of line deletion are attempted.
+
+    This verifies the code performs the binary search or some similar strategy."""
     write_file(input_path, 'A;\nB;\nC;\nD;\nE;\nF;\nG;\nH;\n')
     p = LinesPass('0', external_programs)
     state = p.new(input_path, check_sanity=lambda: True)
@@ -122,6 +131,7 @@ def test_transform_deletes_lines_range(input_path, external_programs):
 
 
 def test_advance_on_success(input_path, external_programs):
+    """Test the scenario where successful advancements are interleaved with unsuccessful transforms."""
     write_file(input_path, 'foo;\nbar;\nbaz;\n')
     p = LinesPass('0', external_programs)
     state = p.new(input_path)
@@ -135,6 +145,7 @@ def test_advance_on_success(input_path, external_programs):
 
 
 def test_new_reformatting_keeps_spaces_if_needed(input_path, external_programs):
+    """Test the fallback scenario, when trimming spaces leads to an unsuccessful sanity check."""
     def check_sanity():
         if '  char' not in read_file(input_path):
             raise InsaneTestCaseError([], '')
