@@ -11,7 +11,8 @@
 // debugging diagnostic, emitted when enabled
 void diag(char const *str);
 
-// handle a possible newline insertion if nesting <= threshold
+// handle possible toplevel block boundaries if nesting <= threshold
+void possibleChunkBegin(int pos);
 void possibleChunkEnd(int pos);
 
 // index of byte where the current yytext ends in the input.
@@ -50,7 +51,7 @@ int threshold = 0;
 "/\n"         { }     /* end of C comment */
 
 "{"           { nesting++;
-                possibleChunkEnd(token_end_pos);      // so the header is separated from the components
+                possibleChunkBegin(token_end_pos);      // so the header is separated from the components
               }
 
 "}"(";"?)     { nesting--;
@@ -96,12 +97,20 @@ void diag(char const *str)
   //printf("%s", str);
 }
 
-void possibleChunkEnd(int pos)
+void possibleChunkBegin(int pos)
 {
-  if (nesting <= threshold && chunk_start_pos < pos) {
-    printf("{\"p\":[{\"l\":%d,\"r\":%d}]}\n", chunk_start_pos, pos);
+  if (nesting <= threshold) {
     chunk_start_pos = pos;
   }
+}
+
+void possibleChunkEnd(int pos)
+{
+  // Only attempt deleting chunks exactly at the specified nesting.
+  if (nesting == threshold && chunk_start_pos < pos) {
+    printf("{\"p\":[{\"l\":%d,\"r\":%d}]}\n", chunk_start_pos, pos);
+  }
+  possibleChunkBegin(pos);
 }
 
 char *version = "2025.6.25";
