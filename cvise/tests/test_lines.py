@@ -134,7 +134,6 @@ def test_advance_on_success(input_path):
     """Test the scenario where successful advancements are interleaved with unsuccessful transforms."""
     write_file(input_path, 'foo;\nbar;\nbaz;\n')
     p, state = init_pass('0', input_path, check_sanity=lambda: True)
-    state = p.new(input_path)
     # cut 'foo' first
     state = advance_until(p, state, input_path, lambda s: 'bar' in s and 'baz' in s)
     p.advance_on_success(input_path, state)
