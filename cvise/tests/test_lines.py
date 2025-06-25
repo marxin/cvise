@@ -47,27 +47,63 @@ def advance_until(pass_, state, input_path, predicate):
         assert state is not None
 
 
-def test_new_reformatting_arg0(input_path, external_programs):
+def test_func_namespace_level0(input_path, external_programs):
     write_file(input_path, 'int f() {\nchar x;\n}\nnamespace foo\n{\n}\n')
     p = LinesPass('0', external_programs)
-    p.new(input_path, check_sanity=lambda: True)
-    assert read_file(input_path) == 'int f() { char x; }\nnamespace foo { }\n'
-
-
-def test_new_reformatting_arg1(input_path, external_programs):
-    write_file(input_path, 'int f() {\nchar x;\n}\nnamespace foo\n{\n}\n')
-    p = LinesPass('1', external_programs)
-    p.new(input_path, check_sanity=lambda: True)
-    assert read_file(input_path) == 'int f() {\nchar x;\n}\nnamespace foo {\n}\n'
-
-
-def test_transform_deletes_individual_line(input_path, external_programs):
-    write_file(input_path, 'int f() { char x; }\nnamespace foo { }\n')
-    p = LinesPass('0', external_programs)
-    state = p.new(input_path)
+    state = p.new(input_path, check_sanity=lambda: True)
     all_transforms = collect_all_transforms(p, state, input_path)
+    # removal of the namespace
     assert 'int f() { char x; }\n' in all_transforms
-    assert ' namespace foo { }\n' in all_transforms
+    # removal of f()
+    assert 'namespace foo { }\n' in all_transforms
+
+
+def test_func_namespace_level1(input_path, external_programs):
+    write_file(input_path, 'int f() {\nchar x;\n}\nnamespace foo\n{\nvoid g() {\n}\n}\n')
+    p = LinesPass('1', external_programs)
+    state = p.new(input_path, check_sanity=lambda: True)
+    all_transforms = collect_all_transforms(p, state, input_path)
+    # removal of code inside f()
+    assert 'int f() {\n}\nnamespace foo {\nvoid g() { }\n}\n' in all_transforms
+    # removal of code inside foo
+    assert 'int f() {\nchar x;\n}\nnamespace foo {\n}\n' in all_transforms
+
+
+def test_multiline_func_header_level0(input_path, external_programs):
+    write_file(input_path, 'template <class T>\nint\nf()\n{\n}')
+    p = LinesPass('0', external_programs)
+    state = p.new(input_path, check_sanity=lambda: True)
+    all_transforms = collect_all_transforms(p, state, input_path)
+    assert '' in all_transforms
+    # no attempts to partially remove the function
+    assert len(all_transforms) == 1
+
+
+def test_multiline_func_header_level1(input_path, external_programs):
+    write_file(input_path, 'namespace {\ntemplate <class T>\nint\nf()\n{\n}\n}\n')
+    p = LinesPass('1', external_programs)
+    state = p.new(input_path, check_sanity=lambda: True)
+    all_transforms = collect_all_transforms(p, state, input_path)
+    assert 'namespace {\n}\n' in all_transforms
+    # the (multi-line) func must be deleted as a whole
+    for s in all_transforms:
+        assert ('template' in s) == ('f()' in s)
+
+
+def test_c_comment(input_path, external_programs):
+    write_file(input_path, 'int x; /* \ncomment */\nint y;')
+    p = LinesPass('0', external_programs)
+    state = p.new(input_path, check_sanity=lambda: True)
+    all_transforms = collect_all_transforms(p, state, input_path)
+    assert 'int x;\nint y;\n' in all_transforms
+
+
+def test_cpp_comment(input_path, external_programs):
+    write_file(input_path, 'int x; // comment\nint y;')
+    p = LinesPass('0', external_programs)
+    state = p.new(input_path, check_sanity=lambda: True)
+    all_transforms = collect_all_transforms(p, state, input_path)
+    assert 'int x;\nint y;\n' in all_transforms
 
 
 def test_transform_deletes_lines_range(input_path, external_programs):
