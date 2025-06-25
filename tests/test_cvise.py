@@ -9,7 +9,7 @@ class TestCvise(unittest.TestCase):
     @classmethod
     def check_cvise(cls, testcase, arguments, expected):
         current = os.path.dirname(__file__)
-        binary = os.path.join(current, '../cvise.py')
+        binary = os.path.join(current, '../cvise-cli.py')
         shutil.copy(os.path.join(current, 'sources', testcase), '.')
         os.chmod(testcase, 0o644)
         cmd = f'{binary} {testcase} {arguments}'
