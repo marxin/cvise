@@ -115,7 +115,7 @@ def test_store_load_hints(tmp_file):
     assert load_hints(tmp_file, 1, 2) == [hint2]
 
 
-def test_store_load_hints_compression(tmp_file):
+def test_hints_storage_compression(tmp_file):
     COUNT = 10000
     hints = [{'p': [{'l': i, 'r': i + 1}]} for i in range(COUNT)]
     store_hints(hints, tmp_file)
