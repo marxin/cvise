@@ -1,3 +1,4 @@
+import json
 import jsonschema
 import pytest
 
@@ -112,3 +113,15 @@ def test_store_load_hints(tmp_file):
     assert load_hints(tmp_file, 0, 2) == [hint1, hint2]
     assert load_hints(tmp_file, 0, 1) == [hint1]
     assert load_hints(tmp_file, 1, 2) == [hint2]
+
+
+def test_store_load_hints_compression(tmp_file):
+    COUNT = 10000
+    hints = [{'p': [{'l': i, 'r': i + 1}]} for i in range(COUNT)]
+    store_hints(hints, tmp_file)
+
+    # Check that the file is significantly smaller than a regular JSON representation (without extra spaces around
+    # separators).
+    RATIO_AT_LEAST = 10
+    hints_json_size = len(json.dumps(hints, separators=(',', ':')))
+    assert tmp_file.stat().st_size * RATIO_AT_LEAST < hints_json_size

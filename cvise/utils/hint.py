@@ -11,8 +11,8 @@ applied to all heuristics in a uniform way).
 
 import json
 from pathlib import Path
-import pyzstd
 from typing import Sequence
+import zstandard
 
 # JSON Schemas:
 
@@ -75,8 +75,11 @@ def apply_hints(hints: Sequence[object], file: Path) -> None:
 
 
 def store_hints(hints: Sequence[object], hints_file_path: Path) -> None:
-    """Serializes hints to the given file."""
-    with pyzstd.open(hints_file_path, 'wt') as f:
+    """Serializes hints to the given file.
+
+    We currently use the Zstandard compression to reduce the space usage (the empirical compression ratio observed for
+    hint JSONs is around 5x..20x)."""
+    with zstandard.open(hints_file_path, 'wt') as f:
         for h in hints:
             # Skip checks and omit spaces around separators, for the sake of performance.
             json.dump(h, f, check_circular=False, separators=(',', ':'))
@@ -87,7 +90,7 @@ def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> Seque
     """Deserializes hints with the given indices [begin; end) from a file."""
     assert begin_index < end_index
     hints = []
-    with pyzstd.open(hints_file_path, 'rt') as f:
+    with zstandard.open(hints_file_path, 'rt') as f:
         for i, line in enumerate(f):
             if begin_index <= i < end_index:
                 hints.append(json.loads(line))
