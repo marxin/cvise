@@ -90,7 +90,7 @@ manager:
 
 * [psutil](https://pypi.org/project/psutil/)
 
-* [pyzstd](https://pypi.org/project/pyzstd/)
+* [zstandard](https://pypi.org/project/zstandard/)
 
 * [CMake](https://cmake.org/)
 
