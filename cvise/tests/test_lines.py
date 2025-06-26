@@ -131,7 +131,6 @@ def test_class_with_methods_level0(tmp_path, input_path):
     p, state = init_pass('0', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
-    # the first statement in f() deleted
     assert '' in all_transforms
     # check no transform violates curly brace sequences
     for s in all_transforms:
