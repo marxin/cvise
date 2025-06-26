@@ -61,7 +61,7 @@ def test_func_namespace_level1(tmp_path, input_path):
 
 def test_multiline_func_signature_level0(tmp_path, input_path):
     """Test that arg=0 deletes a top-level function despite line breaks in the signature."""
-    write_file(input_path, 'template <class T>\nint\nf()\n{\n}')
+    write_file(input_path, 'template <class T>\nSomeVeryLongType\nf()\n{\n}')
     p, state = init_pass('0', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
     assert '' in all_transforms
@@ -76,6 +76,8 @@ def test_multiline_func_signature_level1(tmp_path, input_path):
     all_transforms = collect_all_transforms(p, state, input_path)
     assert 'namespace {\n}\n' in all_transforms
     # the (multi-line) func must be deleted as a whole, not partially
+    # FIXME: Improve the heuristic to not try removing just the opening `namespace {` part,
+    # and replace the assertion here with "len(all_transforms) == 1".
     for s in all_transforms:
         assert ('template' in s) == ('f()' in s)
 
@@ -85,6 +87,7 @@ def test_c_comment(tmp_path, input_path):
     write_file(input_path, 'int x; /* \nsome\ncomment\n */\nint y;')
     p, state = init_pass('0', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
+    assert 'int x;' in all_transforms
     assert ' /* \nsome\ncomment\n */\nint y;' in all_transforms
     # no attempts to partially remove the comment
     for s in all_transforms:
@@ -96,10 +99,19 @@ def test_cpp_comment(tmp_path, input_path):
     write_file(input_path, 'int x; // some comment\nint y;')
     p, state = init_pass('0', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
+    assert 'int x;' in all_transforms
     assert ' // some comment\nint y;' in all_transforms
     # no attempts to partially remove the comment
     for s in all_transforms:
         assert ('//' in s) == ('some' in s) == ('comment' in s)
+
+
+def test_eof_with_non_recognized_chunk_end(tmp_path, input_path):
+    """Test the file terminating with a text that wouldn't be recognized as chunk end."""
+    write_file(input_path, '#define FOO }\nFOO')
+    p, state = init_pass('0', tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+    assert '#define FOO }\n' in all_transforms
 
 
 def test_transform_deletes_lines_range(tmp_path, input_path):
@@ -123,10 +135,12 @@ def test_advance_on_success(tmp_path, input_path):
     """Test the scenario where successful advancements are interleaved with unsuccessful transforms."""
     write_file(input_path, 'foo;\nbar;\nbaz;\n')
     p, state = init_pass('0', tmp_path, input_path)
-    # cut 'foo' first
+    # Cut 'foo' first, pretending that all previous transforms (e.g., deletion of the whole text) didn't pass the
+    # interestingness test.
     state = advance_until(p, state, input_path, lambda s: 'bar' in s and 'baz' in s)
     p.advance_on_success(input_path, state)
-    # cut 'baz' now
+    # Cut 'baz' now, pretending that all transforms in between (e.g, deletion of "bar;") didn't pass the
+    # interestingness test.
     state = advance_until(p, state, input_path, lambda s: 'bar' in s)
     p.advance_on_success(input_path, state)
     assert read_file(input_path) == '\nbar;\n'

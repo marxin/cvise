@@ -27,7 +27,8 @@ int nesting = 0;
 // newlines are suppressed
 int threshold = 0;
 
-// update the position whenever a token is about to be processed.
+// update the position whenever a token is about to be processed
+// (this macro is triggered by Flex prior to executing the matched rule’s action).
 #define YY_USER_ACTION token_end_pos += yyleng;
 
 %}
@@ -56,7 +57,8 @@ int threshold = 0;
                 possibleChunkEnd(token_end_pos);
               }
 
-  /* a hash, then some non-newlines.  then, possibly, an escaped
+  /* parse a preprocessor directive:
+   * a hash, then some non-newlines.  then, possibly, an escaped
    * newline followed by more non-newlines (repeat as needed).
    * finally, a newline */
 "#".*("\\\n".*)*"\n" {
@@ -123,6 +125,8 @@ int main(int argc, char *argv[])
 
   yyin = stdin;
   yylex();
+  // In case there's some chunk of text remaining - e.g., if the file is not
+  // EOL-terminated and the last line was a preprocessor directive.
   possibleChunkEnd(token_end_pos);
   return 0;
 }
