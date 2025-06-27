@@ -58,7 +58,8 @@ def test_func_namespace_level0(tmp_path, input_path):
           char x;
         }
         namespace foo {
-        }""",
+        }
+        """,
     )
     p, state = init_pass('0', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
@@ -68,14 +69,16 @@ def test_func_namespace_level0(tmp_path, input_path):
         """
         int f() {
           char x;
-        }"""
+        }
+        """
         in all_transforms
     )
     # removal of f()
     assert (
         """
         namespace foo {
-        }"""
+        }
+        """
         in all_transforms
     )
     # check no transform violates curly brace sequences
@@ -140,6 +143,8 @@ def test_func_namespace_level1(tmp_path, input_path):
 
 def test_multiline_func_signature_level0(tmp_path, input_path):
     """Test that arg=0 deletes a top-level function despite line breaks in the signature."""
+    # FIXME: Move the ending quotes into a separate line once the heuristic is improved to not produce hints for
+    # whitespace-only chunks.
     write_file(
         input_path,
         """
@@ -171,7 +176,8 @@ def test_multiline_func_signature_level1(tmp_path, input_path):
           f()
           {
           }
-        }""",
+        }
+        """,
     )
     p, state = init_pass('1', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
@@ -179,7 +185,8 @@ def test_multiline_func_signature_level1(tmp_path, input_path):
     assert (
         """
         namespace {
-        }"""
+        }
+        """
         in all_transforms
     )
     # the (multi-line) func must be deleted as a whole, not partially
