@@ -418,6 +418,7 @@ class TestManager:
                         if self.timeout_count >= self.MAX_TIMEOUTS:
                             logging.warning('Maximum number of timeout were reached: %d' % self.MAX_TIMEOUTS)
                             quit_loop = True
+                        jobs_to_remove.append(job)
                         continue
                     else:
                         raise job.future.exception()
