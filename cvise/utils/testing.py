@@ -438,6 +438,7 @@ class TestManager:
     def wait_for_first_success(self) -> Union[Job, None]:
         for job in self.jobs:
             try:
+                job.future.result()  # blocks until the job finishes
                 outcome = self.check_pass_result(job)
                 if outcome == PassCheckingOutcome.ACCEPT:
                     return job
