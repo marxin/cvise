@@ -513,6 +513,7 @@ class TestManager:
                     self.pid_queue,
                 )
                 future = pool.schedule(test_env.run, timeout=self.timeout)
+                self.pass_statistic.add_executed(self.current_pass)
                 self.jobs.append(
                     Job(
                         future=future,
