@@ -1,4 +1,5 @@
-from concurrent.futures import FIRST_COMPLETED, wait
+from concurrent.futures import FIRST_COMPLETED, Future, wait
+from dataclasses import dataclass
 import difflib
 from enum import auto, Enum, unique
 import filecmp
@@ -13,10 +14,11 @@ import subprocess
 import sys
 import tempfile
 import traceback
+from typing import List, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
-from cvise.passes.abstract import PassResult, ProcessEventNotifier, ProcessEventType
+from cvise.passes.abstract import AbstractPass, PassResult, ProcessEventNotifier, ProcessEventType
 from cvise.utils.error import AbsolutePathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
@@ -134,6 +136,13 @@ class TestEnvironment:
         return returncode
 
 
+@dataclass
+class Job:
+    future: Future
+    pass_: AbstractPass
+    temporary_folder: Path
+
+
 class TestManager:
     GIVEUP_CONSTANT = 50000
     MAX_TIMEOUTS = 20
@@ -194,6 +203,7 @@ class TestManager:
         self.root = None
         if not self.is_valid_test(self.test_script):
             raise InvalidInterestingnessTestError(self.test_script)
+        self.jobs: List[Job] = []
 
         self.use_colordiff = (
             sys.stdout.isatty()
@@ -286,11 +296,11 @@ class TestManager:
 
         return extra_dir
 
-    def report_pass_bug(self, test_env, problem):
+    def report_pass_bug(self, job: Job, problem: str):
         """Create pass report bug and return True if the directory is created."""
 
         if not self.die_on_pass_bug:
-            logging.warning(f'{self.current_pass} has encountered a non fatal bug: {problem}')
+            logging.warning(f'{job.pass_} has encountered a non fatal bug: {problem}')
 
         crash_dir = self.get_extra_dir(self.BUG_DIR_PREFIX, self.MAX_CRASH_DIRS)
 
@@ -298,6 +308,7 @@ class TestManager:
             return False
 
         crash_dir.mkdir()
+        test_env: TestEnvironment = job.future.result()
         test_env.dump(crash_dir)
 
         if not self.die_on_pass_bug:
@@ -310,10 +321,10 @@ class TestManager:
             info_file.write(f'Git version: {CVise.Info.GIT_VERSION}\n')
             info_file.write(f'LLVM version: {CVise.Info.LLVM_VERSION}\n')
             info_file.write(f'System: {str(platform.uname())}\n')
-            info_file.write(PassBugError.MSG.format(self.current_pass, problem, test_env.state, crash_dir))
+            info_file.write(PassBugError.MSG.format(job.pass_, problem, test_env.state, crash_dir))
 
         if self.die_on_pass_bug:
-            raise PassBugError(self.current_pass, problem, test_env.state, crash_dir)
+            raise PassBugError(job.pass_, problem, test_env.state, crash_dir)
         else:
             return True
 
@@ -345,16 +356,6 @@ class TestManager:
                 rmfolder(folder)
             raise InsaneTestCaseError(self.test_cases, self.test_script)
 
-    def release_folder(self, future):
-        name = self.temporary_folders.pop(future)
-        if not self.save_temps:
-            rmfolder(name)
-
-    def release_folders(self):
-        for future in self.futures:
-            self.release_folder(future)
-        assert not self.temporary_folders
-
     @classmethod
     def log_key_event(cls, event):
         logging.info(f'****** {event} ******')
@@ -381,9 +382,14 @@ class TestManager:
             except psutil.NoSuchProcess:
                 pass
 
-    def release_future(self, future):
-        self.futures.remove(future)
-        self.release_folder(future)
+    def release_job(self, job: Job) -> None:
+        if not self.save_temps:
+            rmfolder(job.temporary_folder)
+        self.jobs.remove(job)
+
+    def release_all_jobs(self) -> None:
+        while self.jobs:
+            self.release_job(self.jobs[0])
 
     def save_extra_dir(self, test_case_path):
         extra_dir = self.get_extra_dir('cvise_extra_', self.MAX_EXTRA_DIRS)
@@ -394,58 +400,56 @@ class TestManager:
 
     def process_done_futures(self):
         quit_loop = False
-        new_futures = set()
-        for future in self.futures:
+        jobs_to_remove = []
+        for job in self.jobs:
             # all items after first successfull (or STOP) should be cancelled
             if quit_loop:
-                future.cancel()
+                job.future.cancel()
+                jobs_to_remove.append(job)
                 continue
 
-            if future.done():
-                if future.exception():
+            if job.future.done():
+                if job.future.exception():
                     # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
-                    if type(future.exception()) in (TimeoutError, concurrent.futures.TimeoutError):
+                    if type(job.future.exception()) in (TimeoutError, concurrent.futures.TimeoutError):
                         self.timeout_count += 1
                         logging.warning('Test timed out.')
-                        self.save_extra_dir(self.temporary_folders[future])
+                        self.save_extra_dir(job.temporary_folder)
                         if self.timeout_count >= self.MAX_TIMEOUTS:
                             logging.warning('Maximum number of timeout were reached: %d' % self.MAX_TIMEOUTS)
                             quit_loop = True
+                        jobs_to_remove.append(job)
                         continue
                     else:
-                        raise future.exception()
+                        raise job.future.exception()
 
-                test_env = future.result()
-                outcome = self.check_pass_result(test_env)
+                outcome = self.check_pass_result(job)
                 if outcome == PassCheckingOutcome.ACCEPT:
                     quit_loop = True
-                    new_futures.add(future)
-                elif outcome == PassCheckingOutcome.IGNORE:
-                    pass
-                elif outcome == PassCheckingOutcome.QUIT_LOOP:
-                    quit_loop = True
-            else:
-                new_futures.add(future)
+                else:
+                    jobs_to_remove.append(job)
+                    if outcome == PassCheckingOutcome.QUIT_LOOP:
+                        quit_loop = True
 
-        removed_futures = [f for f in self.futures if f not in new_futures]
-        for f in removed_futures:
-            self.release_future(f)
+        for job in jobs_to_remove:
+            self.release_job(job)
 
         return quit_loop
 
-    def wait_for_first_success(self):
-        for future in self.futures:
+    def wait_for_first_success(self) -> Union[Job, None]:
+        for job in self.jobs:
             try:
-                test_env = future.result()
-                outcome = self.check_pass_result(test_env)
+                job.future.result()  # blocks until the job finishes
+                outcome = self.check_pass_result(job)
                 if outcome == PassCheckingOutcome.ACCEPT:
-                    return test_env
+                    return job
             # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
             except (TimeoutError, concurrent.futures.TimeoutError):
                 pass
         return None
 
-    def check_pass_result(self, test_env):
+    def check_pass_result(self, job: Job):
+        test_env: TestEnvironment = job.future.result()
         if test_env.success:
             if self.max_improvement is not None and test_env.size_improvement > self.max_improvement:
                 logging.debug(f'Too large improvement: {test_env.size_improvement} B')
@@ -453,12 +457,12 @@ class TestManager:
             # Report bug if transform did not change the file
             if filecmp.cmp(self.current_test_case, test_env.test_case_path):
                 if not self.silent_pass_bug:
-                    if not self.report_pass_bug(test_env, 'pass failed to modify the variant'):
+                    if not self.report_pass_bug(job, 'pass failed to modify the variant'):
                         return PassCheckingOutcome.QUIT_LOOP
                 return PassCheckingOutcome.IGNORE
             return PassCheckingOutcome.ACCEPT
 
-        self.pass_statistic.add_failure(self.current_pass)
+        self.pass_statistic.add_failure(job.pass_)
         if test_env.result == PassResult.OK:
             assert test_env.exitcode
             if self.also_interesting is not None and test_env.exitcode == self.also_interesting:
@@ -467,12 +471,12 @@ class TestManager:
             return PassCheckingOutcome.QUIT_LOOP
         elif test_env.result == PassResult.ERROR:
             if not self.silent_pass_bug:
-                self.report_pass_bug(test_env, 'pass error')
+                self.report_pass_bug(job, 'pass error')
                 return PassCheckingOutcome.QUIT_LOOP
 
         if not self.no_give_up and test_env.order > self.GIVEUP_CONSTANT:
             if not self.giveup_reported:
-                self.report_pass_bug(test_env, 'pass got stuck')
+                self.report_pass_bug(job, 'pass got stuck')
                 self.giveup_reported = True
             return PassCheckingOutcome.QUIT_LOOP
         return PassCheckingOutcome.IGNORE
@@ -482,17 +486,16 @@ class TestManager:
         pool.stop()
         pool.join()
 
-    def run_parallel_tests(self):
-        assert not self.futures
-        assert not self.temporary_folders
+    def run_parallel_tests(self) -> Union[Job, None]:
+        assert not self.jobs
         with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
             order = 1
             self.timeout_count = 0
             self.giveup_reported = False
             while self.state is not None:
                 # do not create too many states
-                if len(self.futures) >= self.parallel_tests:
-                    wait(self.futures, return_when=FIRST_COMPLETED)
+                if len(self.jobs) >= self.parallel_tests:
+                    wait([job.future for job in self.jobs], return_when=FIRST_COMPLETED)
 
                 quit_loop = self.process_done_futures()
                 if quit_loop:
@@ -512,9 +515,14 @@ class TestManager:
                     self.pid_queue,
                 )
                 future = pool.schedule(test_env.run, timeout=self.timeout)
-                self.temporary_folders[future] = folder
-                self.futures.append(future)
                 self.pass_statistic.add_executed(self.current_pass)
+                self.jobs.append(
+                    Job(
+                        future=future,
+                        pass_=self.current_pass,
+                        temporary_folder=folder,
+                    )
+                )
                 order += 1
                 state = self.current_pass.advance(self.current_test_case, self.state)
                 # we are at the end of enumeration
@@ -533,8 +541,7 @@ class TestManager:
                 return
 
         self.current_pass = pass_
-        self.futures = []
-        self.temporary_folders = {}
+        self.jobs = []
         m = Manager()
         self.pid_queue = m.Queue()
         self.create_root()
@@ -586,11 +593,11 @@ class TestManager:
                             self.log_key_event('toggle print diff')
                             self.print_diff = not self.print_diff
 
-                    success_env = self.run_parallel_tests()
+                    success_job = self.run_parallel_tests()
                     self.kill_pid_queue()
 
-                    if success_env:
-                        self.process_result(success_env)
+                    if success_job:
+                        self.process_result(success_job)
                         success_count += 1
 
                     # if the file increases significantly, bail out the current pass
@@ -602,9 +609,8 @@ class TestManager:
                         )
                         break
 
-                    self.release_folders()
-                    self.futures.clear()
-                    if not success_env:
+                    self.release_all_jobs()
+                    if not success_job:
                         break
 
                     # skip after N transformations if requested
@@ -630,7 +636,8 @@ class TestManager:
             self.remove_root()
             sys.exit(1)
 
-    def process_result(self, test_env):
+    def process_result(self, job: Job) -> None:
+        test_env: TestEnvironment = job.future.result()
         if self.print_diff:
             diff_str = self.diff_files(self.current_test_case, test_env.test_case_path)
             if self.use_colordiff:
