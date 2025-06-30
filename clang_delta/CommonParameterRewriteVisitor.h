@@ -16,7 +16,6 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "RewriteUtils.h"
 
-
 template<typename T, typename Trans>
 class CommonParameterRewriteVisitor : public clang::RecursiveASTVisitor<T> {
 
