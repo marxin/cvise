@@ -108,6 +108,7 @@ set(SOURCE_FILES
   "utils/error.py"
   "utils/externalprograms.py"
   "utils/hint.py"
+  "utils/keyboard_interrupt_monitor.py"
   "utils/misc.py"
   "utils/nestedmatcher.py"
   "utils/readkey.py"

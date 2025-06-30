@@ -26,6 +26,7 @@ from cvise.utils.error import InvalidTestCaseError
 from cvise.utils.error import PassBugError
 from cvise.utils.error import ZeroSizeError
 from cvise.utils.misc import is_readable_file
+from cvise.utils import keyboard_interrupt_monitor
 from cvise.utils.readkey import KeyLogger
 import pebble
 import psutil
@@ -150,6 +151,7 @@ class TestManager:
     MAX_EXTRA_DIRS = 25000
     TEMP_PREFIX = 'cvise-'
     BUG_DIR_PREFIX = 'cvise_bug_'
+    EVENT_LOOP_TIMEOUT = 1
 
     def __init__(
         self,
@@ -439,7 +441,10 @@ class TestManager:
     def wait_for_first_success(self) -> Union[Job, None]:
         for job in self.jobs:
             try:
-                job.future.result()  # blocks until the job finishes
+                while not job.future.done():
+                    # wait with a timeout, so that keyboard events can be handled reasonably quickly.
+                    wait([job.future], timeout=self.EVENT_LOOP_TIMEOUT)
+                    keyboard_interrupt_monitor.maybe_reraise()
                 outcome = self.check_pass_result(job)
                 if outcome == PassCheckingOutcome.ACCEPT:
                     return job
@@ -494,9 +499,19 @@ class TestManager:
                 self.timeout_count = 0
                 self.giveup_reported = False
                 while self.state is not None:
+                    # re-raise KeyboardInterrupt if it got swallowed
+                    keyboard_interrupt_monitor.maybe_reraise()
+
                     # do not create too many states
                     if len(self.jobs) >= self.parallel_tests:
-                        wait([job.future for job in self.jobs], return_when=FIRST_COMPLETED)
+                        # wait with a timeout, so that keyboard events can be handled reasonably quickly.
+                        done, _ = wait(
+                            [job.future for job in self.jobs],
+                            return_when=FIRST_COMPLETED,
+                            timeout=self.EVENT_LOOP_TIMEOUT,
+                        )
+                        if not done:
+                            continue
 
                     quit_loop = self.process_done_futures()
                     if quit_loop:
