@@ -489,49 +489,54 @@ class TestManager:
     def run_parallel_tests(self) -> Union[Job, None]:
         assert not self.jobs
         with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
-            order = 1
-            self.timeout_count = 0
-            self.giveup_reported = False
-            while self.state is not None:
-                # do not create too many states
-                if len(self.jobs) >= self.parallel_tests:
-                    wait([job.future for job in self.jobs], return_when=FIRST_COMPLETED)
+            try:
+                order = 1
+                self.timeout_count = 0
+                self.giveup_reported = False
+                while self.state is not None:
+                    # do not create too many states
+                    if len(self.jobs) >= self.parallel_tests:
+                        wait([job.future for job in self.jobs], return_when=FIRST_COMPLETED)
 
-                quit_loop = self.process_done_futures()
-                if quit_loop:
-                    success = self.wait_for_first_success()
-                    self.terminate_all(pool)
-                    return success
+                    quit_loop = self.process_done_futures()
+                    if quit_loop:
+                        success = self.wait_for_first_success()
+                        self.terminate_all(pool)
+                        return success
 
-                folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=self.root))
-                test_env = TestEnvironment(
-                    self.state,
-                    order,
-                    self.test_script,
-                    folder,
-                    self.current_test_case,
-                    self.test_cases,
-                    self.current_pass.transform,
-                    self.pid_queue,
-                )
-                future = pool.schedule(test_env.run, timeout=self.timeout)
-                self.pass_statistic.add_executed(self.current_pass)
-                self.jobs.append(
-                    Job(
-                        future=future,
-                        pass_=self.current_pass,
-                        temporary_folder=folder,
+                    folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=self.root))
+                    test_env = TestEnvironment(
+                        self.state,
+                        order,
+                        self.test_script,
+                        folder,
+                        self.current_test_case,
+                        self.test_cases,
+                        self.current_pass.transform,
+                        self.pid_queue,
                     )
-                )
-                order += 1
-                state = self.current_pass.advance(self.current_test_case, self.state)
-                # we are at the end of enumeration
-                if state is None:
-                    success = self.wait_for_first_success()
-                    self.terminate_all(pool)
-                    return success
-                else:
-                    self.state = state
+                    future = pool.schedule(test_env.run, timeout=self.timeout)
+                    self.pass_statistic.add_executed(self.current_pass)
+                    self.jobs.append(
+                        Job(
+                            future=future,
+                            pass_=self.current_pass,
+                            temporary_folder=folder,
+                        )
+                    )
+                    order += 1
+                    state = self.current_pass.advance(self.current_test_case, self.state)
+                    # we are at the end of enumeration
+                    if state is None:
+                        success = self.wait_for_first_success()
+                        self.terminate_all(pool)
+                        return success
+                    else:
+                        self.state = state
+            except:
+                # Abort running jobs - by default the process pool waits for the ongoing jobs' completion.
+                self.terminate_all(pool)
+                raise
 
     def run_pass(self, pass_):
         if self.start_with_pass:
