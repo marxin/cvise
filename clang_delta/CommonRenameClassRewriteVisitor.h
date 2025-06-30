@@ -13,8 +13,7 @@
 
 #include "llvm/ADT/SmallPtrSet.h"
 #include "clang/AST/RecursiveASTVisitor.h"
-
-class Transformation;
+#include "Transformation.h"
 
 namespace clang_delta_common_visitor {
 
