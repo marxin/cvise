@@ -21,8 +21,8 @@ from cvise.passes.peep import PeepPass
 from cvise.passes.special import SpecialPass
 from cvise.passes.ternary import TernaryPass
 from cvise.passes.unifdef import UnIfDefPass
-from cvise.utils.error import CViseError, PassOptionError
 from cvise.utils import keyboard_interrupt_monitor
+from cvise.utils.error import CViseError, PassOptionError
 
 
 class CVise:

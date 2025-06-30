@@ -19,6 +19,7 @@ import concurrent.futures
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass, PassResult, ProcessEventNotifier, ProcessEventType
+from cvise.utils import keyboard_interrupt_monitor
 from cvise.utils.error import AbsolutePathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
@@ -26,7 +27,6 @@ from cvise.utils.error import InvalidTestCaseError
 from cvise.utils.error import PassBugError
 from cvise.utils.error import ZeroSizeError
 from cvise.utils.misc import is_readable_file
-from cvise.utils import keyboard_interrupt_monitor
 from cvise.utils.readkey import KeyLogger
 import pebble
 import psutil
