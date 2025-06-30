@@ -44,7 +44,8 @@ class TestCvise(unittest.TestCase):
 
         proc = self.start_cvise(
             'blocksort-part.c',
-            f'-c "gcc -c blocksort-part.c && sleep {JOB_SLOWNESS}" --skip-interestingness-test-check')
+            f'-c "gcc -c blocksort-part.c && sleep {JOB_SLOWNESS}" --skip-interestingness-test-check',
+        )
         time.sleep(INIT_DELAY)
 
         proc.send_signal(signal.SIGINT)
