@@ -49,5 +49,9 @@ class TestCvise(unittest.TestCase):
         time.sleep(INIT_DELAY)
 
         proc.send_signal(signal.SIGINT)
-        proc.communicate(timeout=MAX_SHUTDOWN)
-        # no assertions needed - a slow shutdown would manifest as a TimeoutExpired exception
+        try:
+            proc.communicate(timeout=MAX_SHUTDOWN)
+        except TimeoutError:
+            # C-Vise not quit on time - kill it and fail the test
+            proc.kill()
+            raise
