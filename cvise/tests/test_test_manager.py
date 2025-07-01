@@ -104,9 +104,6 @@ class LetterRemovingPass(StubPass):
         super().__init__()
         self.letters_to_remove = letters_to_remove
 
-    def __repr__(self):
-        return f'LetterRemovingPass(letters_to_remove={self.letters_to_remove})'
-
     def transform(self, test_case, state, process_event_notifier):
         text = read_file(test_case)
         instances = 0
