@@ -607,9 +607,11 @@ class TestManager:
                 self.states = []
                 for pass_id, pass_ in enumerate(self.current_passes):
                     start_time = time.monotonic()
-                    self.states.append(pass_.new(
-                        self.current_test_case, check_sanity=self.check_sanity, tmp_dir=Path(self.roots[pass_id])
-                    ))
+                    self.states.append(
+                        pass_.new(
+                            self.current_test_case, check_sanity=self.check_sanity, tmp_dir=Path(self.roots[pass_id])
+                        )
+                    )
                     self.pass_statistic.add_newed(pass_, start_time)
                 self.skip = False
 
