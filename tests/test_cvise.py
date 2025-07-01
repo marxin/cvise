@@ -14,8 +14,8 @@ class TestCvise(unittest.TestCase):
         binary = os.path.join(current, '../cvise-cli.py')
         shutil.copy(os.path.join(current, 'sources', testcase), '.')
         os.chmod(testcase, 0o644)
-        cmd = f'{binary} {testcase} {arguments}'
-        return subprocess.Popen(cmd, shell=True, encoding='utf8')
+        cmd = [binary, testcase] + arguments
+        return subprocess.Popen(cmd, encoding='utf8')
 
     @classmethod
     def check_cvise(cls, testcase, arguments, expected):
@@ -31,7 +31,7 @@ class TestCvise(unittest.TestCase):
     def test_simple_reduction(self):
         self.check_cvise(
             'blocksort-part.c',
-            '-c "gcc -c blocksort-part.c && grep nextHi blocksort-part.c"',
+            ['-c', 'gcc -c blocksort-part.c && grep nextHi blocksort-part.c'],
             ['#define nextHi', '#define  nextHi'],
         )
 
@@ -44,7 +44,7 @@ class TestCvise(unittest.TestCase):
 
         proc = self.start_cvise(
             'blocksort-part.c',
-            f'-c "gcc -c blocksort-part.c && sleep {JOB_SLOWNESS}" --skip-interestingness-test-check',
+            ['-c', f'gcc -c blocksort-part.c && sleep {JOB_SLOWNESS}', '--skip-interestingness-test-check'],
         )
         time.sleep(INIT_DELAY)
 
