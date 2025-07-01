@@ -40,7 +40,7 @@ def test_simple_reduction():
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 def test_ctrl_c(tmp_path: Path):
     """Test that Control-C is handled quickly, without waiting for jobs to finish."""
-    MAX_SHUTDOWN = 10  # tolerance on C-Vise shutdown to prevent flakiness (normally it's a fraction of a seconds)
+    MAX_SHUTDOWN = 10  # tolerance on C-Vise shutdown to prevent flakiness (normally it's a fraction of a second)
     JOB_SLOWNESS = MAX_SHUTDOWN * 2  # make a single job slower than the thresholds
 
     flag_file = tmp_path / 'flag'
