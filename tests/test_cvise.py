@@ -79,6 +79,7 @@ class TestCvise(unittest.TestCase):
         )
         time.sleep(init_delay)
 
+        logging.info(f'send_signal SIGINT')
         proc.send_signal(signal.SIGINT)
         try:
             proc.communicate(timeout=MAX_SHUTDOWN)

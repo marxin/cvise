@@ -37,7 +37,7 @@ def maybe_reraise():
 
 def on_sigint(signum, frame):
     global sigint_observed
-    logging.info(f'on_sigint: old_sigint_handler={not not old_sigint_handler}')
+    logging.info(f'keyboard_interrupt_monitor.on_sigint: old_sigint_handler={not not old_sigint_handler}')
     sigint_observed = True
     if old_sigint_handler:
         old_sigint_handler(signum, frame)
