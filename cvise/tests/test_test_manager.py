@@ -160,7 +160,7 @@ def input_file(tmp_path):
 
 @pytest.fixture
 def interestingness_script():
-    """The default interestingness script, which trivially returns true.
+    """The default interestingness script, which trivially returns success.
 
     Can be overridden in particular tests."""
     # Just eat the test file name.
@@ -278,12 +278,13 @@ def test_interleaving_letter_removals(input_file, manager):
     assert read_file(input_file) == 'oo\nar\na\n'
 
 
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 @pytest.mark.parametrize('interestingness_script', [r"grep a {test_case} && ! grep '\(.\)\1' {test_case}"])
 def test_interleaving_letter_removals_large(input_file, manager):
-    """Test that multiple passes executed in interleaving way can delete all characters in a specific order.
+    """Test that multiple passes executed in interleaving way can delete all but one characters.
 
-    The interestingness test here is "there's the `a` character and no character is repeated immediately", which for
-    the given test requires switching between removing `a`, `b` and `c` many times."""
+    The interestingness test here is "there's the `a` character and no character is repeated twice in a row", which for
+    the given test requires alternating between removing `a`, `b` and `c` many times."""
     input_file.write_text('ababacac' * PARALLEL_TESTS)
     p1 = LetterRemovingPass('a')
     p2 = LetterRemovingPass('b')
