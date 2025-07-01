@@ -151,7 +151,7 @@ class TestManager:
     MAX_EXTRA_DIRS = 25000
     TEMP_PREFIX = 'cvise-'
     BUG_DIR_PREFIX = 'cvise_bug_'
-    EVENT_LOOP_TIMEOUT = 1
+    EVENT_LOOP_TIMEOUT = 1  # seconds
 
     def __init__(
         self,

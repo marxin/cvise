@@ -75,7 +75,7 @@ class TestCvise(unittest.TestCase):
         logging.info(f'init_delay={init_delay} n={n}')
         proc = self.start_cvise(
             'blocksort-part.c',
-            ['-c', 'gcc -c blocksort-part.c && sleep {JOB_SLOWNESS}', '--skip-interestingness-test-check', f'--n={n}', '--debug',]
+            ['-c', f'gcc -c blocksort-part.c && sleep {JOB_SLOWNESS}', '--skip-interestingness-test-check', f'--n={n}', '--debug',]
         )
         time.sleep(init_delay)
 
