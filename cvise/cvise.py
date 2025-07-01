@@ -185,7 +185,7 @@ class CVise:
             if not p.check_prerequisites():
                 logging.error(f'Skipping {p}')
             else:
-                self.test_manager.run_pass(p)
+                self.test_manager.run_passes([p])
 
     def _run_main_passes(self, passes):
         while True:
@@ -206,7 +206,7 @@ class CVise:
                 if not p.check_prerequisites():
                     logging.error(f'Skipping pass {p}')
                 else:
-                    self.test_manager.run_pass(p)
+                    self.test_manager.run_passes([p])
 
             logging.info(f'Termination check: size was {total_file_size}; now {self.test_manager.total_file_size}')
 

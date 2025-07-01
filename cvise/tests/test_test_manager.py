@@ -1,7 +1,7 @@
 import glob
 import os
+from pathlib import Path
 import pytest
-import shutil
 import time
 from unittest.mock import patch
 
@@ -13,6 +13,8 @@ INPUT_DATA = """foo
 bar
 baz
 """
+
+PARALLEL_TESTS = 10
 
 
 class StubPass(AbstractPass):
@@ -93,6 +95,31 @@ class SlowUnalteredThenStoppingPass(StubPass):
         return (PassResult.STOP, state)
 
 
+class LetterRemovingPass(StubPass):
+    """Attempts removing letters from the specified vocabulary.
+
+    In this pass, the state is interpreted as the index among all matching letters."""
+
+    def __init__(self, letters_to_remove):
+        super().__init__()
+        self.letters_to_remove = letters_to_remove
+
+    def __repr__(self):
+        return f'LetterRemovingPass(letters_to_remove={self.letters_to_remove})'
+
+    def transform(self, test_case, state, process_event_notifier):
+        text = read_file(test_case)
+        instances = 0
+        for i, c in enumerate(text):
+            if c in self.letters_to_remove:
+                if instances == state:
+                    # Found a matching letter with the expected index; remove it.
+                    Path(test_case).write_text(text[:i] + text[i+1:])
+                    return (PassResult.OK, state)
+                instances += 1
+        return (PassResult.STOP, state)
+
+
 def read_file(path):
     with open(path) as f:
         return f.read()
@@ -128,21 +155,22 @@ def input_file(tmp_path):
     path = tmp_path / RELATIVE_PATH
     with open(path, 'w') as f:
         f.write(INPUT_DATA)
-    return RELATIVE_PATH
+    return Path(RELATIVE_PATH)
 
 
 @pytest.fixture
 def interestingness_script():
-    path = shutil.which('true')
-    assert path
-    return path
+    """The default interestingness script, which trivially returns true.
+
+    Can be overridden in particular tests."""
+    # Just eat the test file name.
+    return 'true {test_case}'
 
 
 @pytest.fixture
-def manager(input_file, interestingness_script):
+def manager(tmp_path, input_file, interestingness_script):
     TIMEOUT = 100
     SAVE_TEMPS = False
-    N = 10
     NO_CACHE = False
     SKIP_KEY_OFF = True  # tests shouldn't listen to keyboard
     SHADDAP = False
@@ -155,13 +183,18 @@ def manager(input_file, interestingness_script):
     SKIP_AFTER_N_TRANSFORMS = None
     STOPPING_THRESHOLD = 1.0
     pass_statistic = statistics.PassStatistic()
+
+    script_path = tmp_path / 'check.sh'
+    script_path.write_text(interestingness_script.format(test_case=input_file))
+    script_path.chmod(0o744)
+
     return testing.TestManager(
         pass_statistic,
-        interestingness_script,
+        script_path,
         TIMEOUT,
         SAVE_TEMPS,
         [input_file],
-        N,
+        PARALLEL_TESTS,
         NO_CACHE,
         SKIP_KEY_OFF,
         SHADDAP,
@@ -179,7 +212,7 @@ def manager(input_file, interestingness_script):
 def test_succeed_via_naive_pass(input_file, manager):
     """Check that we completely empty the file via the naive lines pass."""
     p = NaiveLinePass()
-    manager.run_pass(p)
+    manager.run_passes([p])
     assert read_file(input_file) == ''
     assert bug_dir_count() == 0
 
@@ -190,7 +223,7 @@ def test_succeed_via_n_one_off_passes(input_file, manager):
     for lines in range(LINES, 0, -1):
         assert count_lines(input_file) == lines
         p = OneOffLinesPass()
-        manager.run_pass(p)
+        manager.run_passes([p])
         assert count_lines(input_file) == lines - 1
     assert bug_dir_count() == 0
 
@@ -199,7 +232,7 @@ def test_succeed_after_n_invalid_results(input_file, manager):
     """Check that we still succeed even if the first few invocations were unsuccessful."""
     INVALID_N = 15
     p = NInvalidThenLinesPass(INVALID_N)
-    manager.run_pass(p)
+    manager.run_passes([p])
     assert read_file(input_file) == ''
     assert bug_dir_count() == 0
 
@@ -208,7 +241,7 @@ def test_succeed_after_n_invalid_results(input_file, manager):
 def test_give_up_on_stuck_pass(input_file, manager):
     """Check that we quit if the pass doesn't improve for a long time."""
     p = AlwaysInvalidPass()
-    manager.run_pass(p)
+    manager.run_passes([p])
     assert read_file(input_file) == INPUT_DATA
     # The "pass got stuck" report.
     assert bug_dir_count() == 1
@@ -217,7 +250,7 @@ def test_give_up_on_stuck_pass(input_file, manager):
 def test_halt_on_unaltered(input_file, manager):
     """Check that we quit if the pass keeps misbehaving."""
     p = AlwaysUnalteredPass()
-    manager.run_pass(p)
+    manager.run_passes([p])
     assert read_file(input_file) == INPUT_DATA
     # This number of "failed to modify the variant" reports were to be created.
     assert bug_dir_count() == testing.TestManager.MAX_CRASH_DIRS + 1
@@ -226,7 +259,39 @@ def test_halt_on_unaltered(input_file, manager):
 def test_halt_on_unaltered_after_stop(input_file, manager):
     """Check that we quit after the pass' stop, even if it interleaved with a misbehave."""
     p = SlowUnalteredThenStoppingPass()
-    manager.run_pass(p)
+    manager.run_passes([p])
     assert read_file(input_file) == INPUT_DATA
     # Whether the misbehave ("failed to modify the variant") is detected depends on timing.
     assert bug_dir_count() <= 1
+
+
+def test_interleaving_letter_removals(input_file, manager):
+    """Test that two different passes executed in interleaving way remove different letters."""
+    p1 = LetterRemovingPass('fz')
+    p2 = LetterRemovingPass('b')
+    while True:
+        value_before = read_file(input_file)
+        manager.run_passes([p1, p2])
+        if read_file(input_file) == value_before:
+            break
+
+    assert read_file(input_file) == 'oo\nar\na\n'
+
+
+@pytest.mark.parametrize('interestingness_script', [r"grep a {test_case} && ! grep '\(.\)\1' {test_case}"])
+def test_interleaving_letter_removals_large(input_file, manager):
+    """Test that multiple passes executed in interleaving way can delete all characters in a specific order.
+
+    The interestingness test here is "there's the `a` character and no character is repeated immediately", which for
+    the given test requires switching between removing `a`, `b` and `c` many times."""
+    input_file.write_text('ababacac' * PARALLEL_TESTS)
+    p1 = LetterRemovingPass('a')
+    p2 = LetterRemovingPass('b')
+    p3 = LetterRemovingPass('c')
+    while True:
+        value_before = read_file(input_file)
+        manager.run_passes([p1, p2, p3])
+        if read_file(input_file) == value_before:
+            break
+
+    assert read_file(input_file) == 'a'
