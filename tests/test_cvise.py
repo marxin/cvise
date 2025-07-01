@@ -16,6 +16,7 @@ def start_cvise(testcase, arguments):
     cmd = [binary, testcase] + arguments
     return subprocess.Popen(cmd, encoding='utf8')
 
+
 def check_cvise(testcase, arguments, expected):
     proc = start_cvise(testcase, arguments)
     proc.communicate()
@@ -26,9 +27,11 @@ def check_cvise(testcase, arguments, expected):
     assert content in expected
     assert stat.filemode(os.stat(testcase).st_mode) == '-rw-r--r--'
 
+
 def wait_until_file_created(path: Path):
     while not path.exists():
         time.sleep(0.1)
+
 
 def test_simple_reduction():
     check_cvise(
@@ -36,6 +39,7 @@ def test_simple_reduction():
         ['-c', 'gcc -c blocksort-part.c && grep nextHi blocksort-part.c'],
         ['#define nextHi', '#define  nextHi'],
     )
+
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 def test_ctrl_c(tmp_path: Path):
@@ -47,7 +51,11 @@ def test_ctrl_c(tmp_path: Path):
 
     proc = start_cvise(
         'blocksort-part.c',
-        ['-c', f'gcc -c blocksort-part.c && touch {flag_file} && sleep {JOB_SLOWNESS}', '--skip-interestingness-test-check'],
+        [
+            '-c',
+            f'gcc -c blocksort-part.c && touch {flag_file} && sleep {JOB_SLOWNESS}',
+            '--skip-interestingness-test-check',
+        ],
     )
     # to make the test cover the interesting scenario, we wait until C-Vise starts at least one job
     wait_until_file_created(flag_file)
