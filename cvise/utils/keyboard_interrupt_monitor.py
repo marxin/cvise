@@ -22,6 +22,7 @@ def init():
     global inited
     global old_sigint_handler
     if not inited:
+        # Install the new handler while remembering the previous one.
         old_sigint_handler = signal.signal(signal.SIGINT, on_sigint)
         inited = True
 
@@ -37,3 +38,6 @@ def on_sigint(signum, frame):
     sigint_observed = True
     if old_sigint_handler:
         old_sigint_handler(signum, frame)
+    else:
+        signal.default_int_handler(signum, frame)
+    # no code after this point - the signal handler above should've raised the exception
