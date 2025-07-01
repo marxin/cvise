@@ -428,7 +428,9 @@ if __name__ == '__main__':
         args.stopping_threshold,
     )
 
+    logging.info(f'creating CVise')
     reducer = CVise(test_manager, args.skip_interestingness_test_check)
+    logging.info(f'created CVise')
 
     reducer.tidy = args.tidy
 
@@ -436,7 +438,9 @@ if __name__ == '__main__':
     time_start = time.monotonic()
 
     try:
+        logging.info(f'calling CVise.reduce')
         reducer.reduce(pass_group, skip_initial=args.skip_initial_passes)
+        logging.info(f'called CVise.reduce')
     except CViseError as err:
         time_stop = time.monotonic()
         print(err)

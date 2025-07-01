@@ -443,14 +443,18 @@ class TestManager:
             try:
                 while not job.future.done():
                     # wait with a timeout, so that keyboard events can be handled reasonably quickly.
+                    logging.info(f'wait_for_first_success: wait BEGIN')
                     wait([job.future], timeout=self.EVENT_LOOP_TIMEOUT)
+                    logging.info(f'wait_for_first_success: wait END')
                     keyboard_interrupt_monitor.maybe_reraise()
                 outcome = self.check_pass_result(job)
                 if outcome == PassCheckingOutcome.ACCEPT:
                     return job
             # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
             except (TimeoutError, concurrent.futures.TimeoutError):
+                logging.info(f'wait_for_first_success: TimeoutError')
                 pass
+        logging.info(f'wait_for_first_success: returning None')
         return None
 
     def check_pass_result(self, job: Job):
@@ -488,10 +492,13 @@ class TestManager:
 
     @classmethod
     def terminate_all(cls, pool):
+        logging.info(f'terminate_all: BEGIN')
         pool.stop()
         pool.join()
+        logging.info(f'terminate_all: END')
 
     def run_parallel_tests(self) -> Union[Job, None]:
+        logging.info(f'run_parallel_tests')
         assert not self.jobs
         with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
             try:
@@ -505,11 +512,13 @@ class TestManager:
                     # do not create too many states
                     if len(self.jobs) >= self.parallel_tests:
                         # wait with a timeout, so that keyboard events can be handled reasonably quickly.
+                        logging.info(f'run_parallel_tests: wait BEGIN')
                         done, _ = wait(
                             [job.future for job in self.jobs],
                             return_when=FIRST_COMPLETED,
                             timeout=self.EVENT_LOOP_TIMEOUT,
                         )
+                        logging.info(f'run_parallel_tests: wait END')
                         if not done:
                             continue
 
@@ -550,10 +559,12 @@ class TestManager:
                         self.state = state
             except:
                 # Abort running jobs - by default the process pool waits for the ongoing jobs' completion.
+                logging.info(f'run_parallel_tests: exception caught {sys.exc_info()[0]}')
                 self.terminate_all(pool)
                 raise
 
     def run_pass(self, pass_):
+        logging.info(f'run_pass')
         if self.start_with_pass:
             if self.start_with_pass == str(pass_):
                 self.start_with_pass = None

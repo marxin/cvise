@@ -38,5 +38,5 @@ jobs:
         working-directory: objdir
       - run: make -j`nproc` VERBOSE=1
         working-directory: objdir
-      - run: pytest
+      - run: pytest -s
         working-directory: objdir

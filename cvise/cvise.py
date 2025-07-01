@@ -181,6 +181,7 @@ class CVise:
                     logging.error(f'Prereqs not found for pass {p}')
 
     def _run_additional_passes(self, passes):
+        logging.info(f'_run_additional_passes')
         for p in passes:
             if not p.check_prerequisites():
                 logging.error(f'Skipping {p}')
@@ -188,6 +189,7 @@ class CVise:
                 self.test_manager.run_pass(p)
 
     def _run_main_passes(self, passes):
+        logging.info(f'_run_main_passes')
         while True:
             total_file_size = self.test_manager.total_file_size
 
