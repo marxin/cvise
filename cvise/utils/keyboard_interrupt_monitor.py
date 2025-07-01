@@ -11,6 +11,7 @@ Ctrl-C keystroke. This helper allows to prevent this by remembering whether
 SIGINT was observed and letting the code raise the KeyboardInterrupt exception.
 """
 
+import logging
 import signal
 
 inited = False
@@ -21,8 +22,10 @@ sigint_observed = False
 def init():
     global inited
     global old_sigint_handler
+    logging.info(f'keyboard_interrupt_monitor.init')
     if not inited:
         old_sigint_handler = signal.signal(signal.SIGINT, on_sigint)
+        logging.info(f'keyboard_interrupt_monitor.init: old_sigint_handler={not not old_sigint_handler}')
         inited = True
 
 
@@ -34,6 +37,8 @@ def maybe_reraise():
 
 def on_sigint(signum, frame):
     global sigint_observed
+    logging.info(f'on_sigint: old_sigint_handler={not not old_sigint_handler}')
     sigint_observed = True
     if old_sigint_handler:
         old_sigint_handler(signum, frame)
+        # no code after this point - the handler invocation above should've thrown an exception
