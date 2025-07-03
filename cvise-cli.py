@@ -7,6 +7,7 @@ from itertools import chain
 import logging
 import os
 import os.path
+from pathlib import Path
 import sys
 import tempfile
 import time
@@ -25,6 +26,7 @@ from cvise.utils import misc, statistics, testing  # noqa: E402
 from cvise.utils.error import CViseError  # noqa: E402
 from cvise.utils.error import MissingPassGroupsError  # noqa: E402
 from cvise.utils.externalprograms import find_external_programs  # noqa: E402
+from cvise.utils.hint import apply_hints, load_hints
 import psutil  # noqa: E402
 
 
@@ -117,11 +119,18 @@ For bug reporting instructions, please use:
 {CVise.Info.PACKAGE_URL}
 """
 
-if __name__ == '__main__':
+
+def main():
     parser = argparse.ArgumentParser(
         description='C-Vise',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=EPILOG_TEXT,
+    )
+    parser.add_argument(
+        '--action',
+        choices=['reduce', 'apply-hints'],
+        default='reduce',
+        help='Action to perform ("reduce" by default)',
     )
     parser.add_argument(
         '--n',
@@ -298,6 +307,19 @@ if __name__ == '__main__':
         type=float,
         help='CVise will stop reducing a test case once it has reduced by this fraction of its original size.  Between 0.0 and 1.0.',
     )
+    parser.add_argument(
+        '--hints-file', help='Path to file containing reduction hints (used only for --action=apply-hints)'
+    )
+    parser.add_argument(
+        '--hint-begin-index',
+        type=int,
+        help='Index of the first hint to apply; 0-based (used only for --action=apply-hints)',
+    )
+    parser.add_argument(
+        '--hint-end-index',
+        type=int,
+        help='Index past the last hint to apply; 0-based (used only for --action=apply-hints)',
+    )
 
     args = parser.parse_args()
 
@@ -328,6 +350,17 @@ if __name__ == '__main__':
         syslog.setFormatter(formatter)
         root_logger.addHandler(syslog)
 
+    if args.action == 'reduce':
+        do_reduce(args)
+    elif args.action == 'apply-hints':
+        do_apply_hints(args)
+    else:
+        logging.error('Unknown action to perform: {args.action}')
+
+    logging.shutdown()
+
+
+def do_reduce(args):
     pass_options = set()
 
     if sys.platform == 'win32':
@@ -482,4 +515,22 @@ if __name__ == '__main__':
             if script:
                 os.unlink(script.name)
 
-    logging.shutdown()
+
+def do_apply_hints(args):
+    if args.hints_file is None:
+        sys.exit('--hints-file is mandatory for --action=apply-hints')
+    if args.hint_begin_index is None:
+        sys.exit('--hint-begin-index is mandatory for --action=apply-hints')
+    if args.hint_end_index is None:
+        sys.exit('--hint-end-index is mandatory for --action=apply-hints')
+    if args.hint_begin_index >= args.hint_end_index:
+        sys.exit('HINT_BEGIN_INDEX must be smaller than HINT_END_INDEX')
+    if len(args.test_cases) > 1:
+        sys.exit('exactly one TEST_CASE must be supplied')
+    hints = load_hints(Path(args.hints_file), args.hint_begin_index, args.hint_end_index)
+    new_data = apply_hints(hints, Path(args.test_cases[0]))
+    print(new_data, end='')  # avoid adding an extra newline
+
+
+if __name__ == '__main__':
+    main()

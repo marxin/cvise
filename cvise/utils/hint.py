@@ -48,7 +48,7 @@ HINT_SCHEMA = {
 }
 
 
-def apply_hints(hints: Sequence[object], file: Path) -> None:
+def apply_hints(hints: Sequence[object], file: Path) -> str:
     """Edits the file applying the specified hints to its contents."""
     patches = sum((h['p'] for h in hints), start=[])
     merged_patches = merge_overlapping_patches(patches)
@@ -69,9 +69,7 @@ def apply_hints(hints: Sequence[object], file: Path) -> None:
         start_pos = right
     # Add the unmodified chunk after the last patch end.
     new_data += orig_data[start_pos:]
-
-    with open(file, 'w') as f:
-        f.write(new_data)
+    return new_data
 
 
 def store_hints(hints: Sequence[object], hints_file_path: Path) -> None:
