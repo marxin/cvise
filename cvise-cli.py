@@ -26,7 +26,7 @@ from cvise.utils import misc, statistics, testing  # noqa: E402
 from cvise.utils.error import CViseError  # noqa: E402
 from cvise.utils.error import MissingPassGroupsError  # noqa: E402
 from cvise.utils.externalprograms import find_external_programs  # noqa: E402
-from cvise.utils.hint import apply_hints, load_hints
+from cvise.utils.hint import apply_hints, load_hints  # noqa: E402
 import psutil  # noqa: E402
 
 
