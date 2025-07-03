@@ -6,7 +6,7 @@ import time
 from unittest.mock import patch
 
 from cvise.passes.abstract import AbstractPass, PassResult  # noqa: E402
-from cvise.utils import statistics, testing  # noqa: E402
+from cvise.utils import keyboard_interrupt_monitor, statistics, testing  # noqa: E402
 
 
 INPUT_DATA = """foo
@@ -106,6 +106,11 @@ def count_lines(path):
 def bug_dir_count():
     pattern = testing.TestManager.BUG_DIR_PREFIX + '*'
     return len(glob.glob(pattern))
+
+
+@pytest.fixture(autouse=True)
+def interrupt_monitor():
+    keyboard_interrupt_monitor.init()
 
 
 # Run all tests in the temp dir, to prevent artifacts like the cvise_bug_* from appearing in the build directory.
