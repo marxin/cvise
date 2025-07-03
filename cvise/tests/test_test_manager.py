@@ -278,7 +278,7 @@ def test_interleaving_letter_removals(input_file, manager):
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 @pytest.mark.parametrize('interestingness_script', [r"grep a {test_case} && ! grep '\(.\)\1' {test_case}"])
 def test_interleaving_letter_removals_large(input_file, manager):
-    """Test that multiple passes executed in interleaving way can delete all but one characters.
+    """Test that multiple passes executed in interleaving way can delete all but one character.
 
     The interestingness test here is "there's the `a` character and no character is repeated twice in a row", which for
     the given test requires alternating between removing `a`, `b` and `c` many times."""

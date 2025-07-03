@@ -603,7 +603,6 @@ class TestManager:
                             continue
 
                 # create initial states
-
                 self.states = []
                 for pass_id, pass_ in enumerate(self.current_passes):
                     start_time = time.monotonic()
@@ -612,7 +611,7 @@ class TestManager:
                             self.current_test_case, check_sanity=self.check_sanity, tmp_dir=Path(self.roots[pass_id])
                         )
                     )
-                    self.pass_statistic.add_newed(pass_, start_time)
+                    self.pass_statistic.add_initialized(pass_, start_time)
                 self.skip = False
 
                 while any(state is not None for state in self.states) and not self.skip:
