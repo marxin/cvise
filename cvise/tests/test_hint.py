@@ -20,9 +20,9 @@ def test_apply_hints_delete_prefix(tmp_file):
     hint = {'p': [{'l': 0, 'r': 4}]}
     jsonschema.validate(hint, schema=HINT_SCHEMA)
 
-    apply_hints([hint], tmp_file)
+    new_data = apply_hints([hint], tmp_file)
 
-    assert tmp_file.read_text() == 'bar'
+    assert new_data == 'bar'
 
 
 def test_apply_hints_delete_suffix(tmp_file):
@@ -30,9 +30,9 @@ def test_apply_hints_delete_suffix(tmp_file):
     hint = {'p': [{'l': 3, 'r': 7}]}
     jsonschema.validate(hint, schema=HINT_SCHEMA)
 
-    apply_hints([hint], tmp_file)
+    new_data = apply_hints([hint], tmp_file)
 
-    assert tmp_file.read_text() == 'Foo'
+    assert new_data == 'Foo'
 
 
 def test_apply_hints_delete_middle(tmp_file):
@@ -40,9 +40,9 @@ def test_apply_hints_delete_middle(tmp_file):
     hint = {'p': [{'l': 3, 'r': 7}]}
     jsonschema.validate(hint, schema=HINT_SCHEMA)
 
-    apply_hints([hint], tmp_file)
+    new_data = apply_hints([hint], tmp_file)
 
-    assert tmp_file.read_text() == 'Foo baz'
+    assert new_data == 'Foo baz'
 
 
 def test_apply_hints_delete_middle_multiple(tmp_file):
@@ -53,9 +53,9 @@ def test_apply_hints_delete_middle_multiple(tmp_file):
     for h in hints:
         jsonschema.validate(h, schema=HINT_SCHEMA)
 
-    apply_hints(hints, tmp_file)
+    new_data = apply_hints(hints, tmp_file)
 
-    assert tmp_file.read_text() == 'Foobarbaz'
+    assert new_data == 'Foobarbaz'
 
 
 def test_apply_hints_delete_all(tmp_file):
@@ -63,9 +63,9 @@ def test_apply_hints_delete_all(tmp_file):
     hint = {'p': [{'l': 0, 'r': 7}]}
     jsonschema.validate(hint, schema=HINT_SCHEMA)
 
-    apply_hints([hint], tmp_file)
+    new_data = apply_hints([hint], tmp_file)
 
-    assert tmp_file.read_text() == ''
+    assert new_data == ''
 
 
 def test_apply_hints_delete_touching(tmp_file):
@@ -78,9 +78,9 @@ def test_apply_hints_delete_touching(tmp_file):
     for h in hints:
         jsonschema.validate(h, schema=HINT_SCHEMA)
 
-    apply_hints(hints, tmp_file)
+    new_data = apply_hints(hints, tmp_file)
 
-    assert tmp_file.read_text() == 'Foo baz'
+    assert new_data == 'Foo baz'
 
 
 def test_apply_hints_delete_overlapping(tmp_file):
@@ -92,9 +92,9 @@ def test_apply_hints_delete_overlapping(tmp_file):
     for h in hints:
         jsonschema.validate(h, schema=HINT_SCHEMA)
 
-    apply_hints(hints, tmp_file)
+    new_data = apply_hints(hints, tmp_file)
 
-    assert tmp_file.read_text() == 'Foo baz'
+    assert new_data == 'Foo baz'
 
 
 def test_apply_hints_delete_nested(tmp_file):
@@ -105,9 +105,9 @@ def test_apply_hints_delete_nested(tmp_file):
     for h in hints:
         jsonschema.validate(h, schema=HINT_SCHEMA)
 
-    apply_hints(hints, tmp_file)
+    new_data = apply_hints(hints, tmp_file)
 
-    assert tmp_file.read_text() == 'Foo baz'
+    assert new_data == 'Foo baz'
 
 
 def test_store_load_hints(tmp_hints_file):

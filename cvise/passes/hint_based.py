@@ -57,7 +57,8 @@ class HintBasedPass(AbstractPass, metaclass=ABCMeta):
         hints_range_begin = state.binary_state.index
         hints_range_end = state.binary_state.end()
         hints = load_hints(state.hints_file_path, hints_range_begin, hints_range_end)
-        apply_hints(hints, Path(test_case))
+        new_data = apply_hints(hints, Path(test_case))
+        Path(test_case).write_text(new_data)
         return (PassResult.OK, state)
 
     def advance(self, test_case, state):

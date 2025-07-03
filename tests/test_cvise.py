@@ -8,17 +8,18 @@ import subprocess
 import time
 
 
-def start_cvise(testcase, arguments):
+def start_cvise(arguments):
     current = os.path.dirname(__file__)
     binary = os.path.join(current, '../cvise-cli.py')
-    shutil.copy(os.path.join(current, 'sources', testcase), '.')
-    os.chmod(testcase, 0o644)
-    cmd = [binary, testcase] + arguments
-    return subprocess.Popen(cmd, encoding='utf8')
+    cmd = [binary] + arguments
+    return subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding='utf8')
 
 
 def check_cvise(testcase, arguments, expected):
-    proc = start_cvise(testcase, arguments)
+    current = os.path.dirname(__file__)
+    shutil.copy(os.path.join(current, 'sources', testcase), '.')
+    os.chmod(testcase, 0o644)
+    proc = start_cvise([testcase] + arguments)
     proc.communicate()
     assert proc.returncode == 0
 
@@ -50,12 +51,12 @@ def test_ctrl_c(tmp_path: Path):
     flag_file = tmp_path / 'flag'
 
     proc = start_cvise(
-        'blocksort-part.c',
         [
+            'blocksort-part.c',
             '-c',
             f'gcc -c blocksort-part.c && touch {flag_file} && sleep {JOB_SLOWNESS}',
             '--skip-interestingness-test-check',
-        ],
+        ]
     )
     # to make the test cover the interesting scenario, we wait until C-Vise starts at least one job
     wait_until_file_created(flag_file)
@@ -67,3 +68,24 @@ def test_ctrl_c(tmp_path: Path):
         # C-Vise has not quit on time - kill it and fail the test
         proc.kill()
         raise
+
+
+def test_apply_hints(tmp_path: Path):
+    """Test the application of hints via the --action=apply-hints mode."""
+    hints_path = tmp_path / 'hints.jsonl'
+    hints_path.write_text(
+        """{"p": [{"l": 0, "r": 1}]}
+        {"p": [{"l": 1, "r": 2}]}
+        {"p": [{"l": 2, "r": 3}]}
+        """
+    )
+
+    input_path = tmp_path / 'input.txt'
+    input_path.write_text('abcd')
+
+    proc = start_cvise(
+        ['--action=apply-hints', '--hints-file', hints_path, '--hint-begin-index=1', '--hint-end-index=3', input_path]
+    )
+    stdout, _ = proc.communicate()
+    assert proc.returncode == 0
+    assert stdout == 'ad'
