@@ -16,6 +16,8 @@
 #include "clang/AST/NestedNameSpecifier.h"
 #include "clang/AST/DeclTemplate.h"
 
+#include "HintsBuilder.h"
+
 #ifndef ENABLE_TRANS_ASSERT
   #define TransAssert(x) {if (!(x)) exit(-1);}
 #else
@@ -55,7 +57,7 @@ namespace clang {
 
 class RewriteUtils {
 public:
-  static RewriteUtils *GetInstance(clang::Rewriter *RW);
+  static RewriteUtils *GetInstance(clang::Rewriter *RW, HintsBuilder *H);
 
   static void Finalize(void);
 
@@ -291,6 +293,8 @@ private:
   static const char *TmpVarNamePrefix;
 
   clang::Rewriter *TheRewriter;
+
+  HintsBuilder *Hints;
 
   clang::SourceManager *SrcManager;
 

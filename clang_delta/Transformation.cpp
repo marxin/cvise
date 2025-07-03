@@ -15,6 +15,8 @@
 #include "Transformation.h"
 
 #include <iostream>
+#include <limits>
+#include <memory>
 #include <sstream>
 
 #include "clang/AST/RecursiveASTVisitor.h"
@@ -24,6 +26,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringExtras.h"
+
+#include "HintsBuilder.h"
 
 using namespace std;
 using namespace clang;
@@ -92,7 +96,8 @@ void Transformation::Initialize(ASTContext &context)
   SrcManager = &Context->getSourceManager();
   TheRewriter.setSourceMgr(Context->getSourceManager(),
                            Context->getLangOpts());
-  RewriteHelper = RewriteUtils::GetInstance(&TheRewriter);
+  Hints = std::make_unique<HintsBuilder>(Context->getSourceManager(), Context->getLangOpts());
+  RewriteHelper = RewriteUtils::GetInstance(&TheRewriter, Hints.get());
 }
 
 void Transformation::outputTransformedSource(llvm::raw_ostream &OutStream)
@@ -123,6 +128,14 @@ void Transformation::outputOriginalSource(llvm::raw_ostream &OutStream)
 #endif
   TransAssert(MainBuf && "Empty MainBuf!");
   OutStream << MainBuf->getBufferStart();
+  OutStream.flush();
+}
+
+void Transformation::outputHints(llvm::raw_ostream &OutStream)
+{
+  for (const auto& Json : Hints->GetHintJsons()) {
+    OutStream << Json << "\n";
+  }
   OutStream.flush();
 }
 
@@ -166,6 +179,11 @@ void Transformation::getTransErrorMsg(std::string &ErrorMsg)
 }
 
 bool Transformation::checkCounterValidity() {
+  if (TransformationCounter == 1 && ToCounter == std::numeric_limits<int>::max()) {
+    // Special values denoting that all transformations are requested.
+    return true;
+  }
+
   if (TransformationCounter > ValidInstanceNum) {
     if (WarnOnCounterOutOfBounds) {
       TransformationCounter = ValidInstanceNum;

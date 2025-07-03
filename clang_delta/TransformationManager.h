@@ -75,6 +75,10 @@ public:
     OutputFileName = FileName;
   }
 
+  void setGenerateHintsFlag(bool Flag) {
+    GenerateHints = Flag;
+  }
+
   void setReplacement(const std::string &Str) {
     Replacement = Str;
     DoReplacement = true;
@@ -154,6 +158,8 @@ private:
   std::string CurrentTransName;
 
   clang::CompilerInstance *ClangInstance;
+
+  bool GenerateHints;
 
   bool QueryInstanceOnly;
 

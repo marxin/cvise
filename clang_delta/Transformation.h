@@ -11,6 +11,7 @@
 #ifndef TRANSFORMATION_H
 #define TRANSFORMATION_H
 
+#include <memory>
 #include <string>
 #include <cstdlib>
 #include <cassert>
@@ -18,6 +19,7 @@
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/PrettyPrinter.h"
 #include "clang/Rewrite/Core/Rewriter.h"
+#include "HintsBuilder.h"
 #include "RewriteUtils.h"
 
 namespace clang {
@@ -121,6 +123,8 @@ public:
   void outputOriginalSource(llvm::raw_ostream &OutStream);
 
   void outputTransformedSource(llvm::raw_ostream &OutStream);
+
+  void outputHints(llvm::raw_ostream &OutStream);
 
   void setTransformationCounter(int Counter) {
     TransformationCounter = Counter;
@@ -347,6 +351,8 @@ protected:
   clang::Preprocessor *PP;
 
   clang::Rewriter TheRewriter;
+
+  std::unique_ptr<HintsBuilder> Hints;
 
   TransformationError TransError;
   

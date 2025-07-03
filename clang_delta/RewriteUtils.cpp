@@ -25,6 +25,8 @@
 #include "clang/AST/TypeLoc.h"
 #include "clang/AST/ExprCXX.h"
 
+#include "HintsBuilder.h"
+
 using namespace clang;
 
 static const char *DefaultIndentStr = "    ";
@@ -33,10 +35,11 @@ RewriteUtils *RewriteUtils::Instance;
 
 const char *RewriteUtils::TmpVarNamePrefix = "__trans_tmp_";
 
-RewriteUtils *RewriteUtils::GetInstance(Rewriter *RW)
+RewriteUtils *RewriteUtils::GetInstance(Rewriter *RW, HintsBuilder *H)
 {
   if (RewriteUtils::Instance) {
     RewriteUtils::Instance->TheRewriter = RW;
+    RewriteUtils::Instance->Hints = H;
     RewriteUtils::Instance->SrcManager = &(RW->getSourceMgr());
     return RewriteUtils::Instance;
   }
@@ -45,6 +48,7 @@ RewriteUtils *RewriteUtils::GetInstance(Rewriter *RW)
   assert(RewriteUtils::Instance);
 
   RewriteUtils::Instance->TheRewriter = RW;
+  RewriteUtils::Instance->Hints = H;
   RewriteUtils::Instance->SrcManager = &(RW->getSourceMgr());
   return RewriteUtils::Instance;
 }
@@ -1611,7 +1615,9 @@ bool RewriteUtils::removeDecl(const Decl *D)
               "Bad UsingDecl SourceRange!");
   SourceLocation StartLoc = Range.getBegin();
   SourceLocation EndLoc = getEndLocationUntil(Range, ';');
-  return !(TheRewriter->RemoveText(SourceRange(StartLoc, EndLoc)));
+  SourceRange R(StartLoc, EndLoc);
+  Hints->AddPatch(R);
+  return !(TheRewriter->RemoveText(R));
 }
 
 bool RewriteUtils::replaceCXXDtorCallExpr(const CXXMemberCallExpr *CE,

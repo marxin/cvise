@@ -12,6 +12,7 @@
 #  include <config.h>
 #endif
 
+#include <limits>
 #include <string>
 #include <sstream>
 #include <cstdlib>
@@ -113,6 +114,10 @@ static void PrintHelpMessage()
   llvm::outs() << "make only warning when a counter is out of bounds ";
   llvm::outs() << "(replace-function-def-with-decl and remove-unused-function are supported)";
   llvm::outs() << "\n";
+
+  llvm::outs() << "  --generate-hints: ";
+  llvm::outs() << "print edit hints instead of the modified input ";
+  llvm::outs() << "\n";
 }
 
 static void DieOnBadCmdArg(const std::string &ArgStr)
@@ -213,6 +218,11 @@ static void HandleOneNoneValueArg(const std::string &ArgStr)
   else if (!ArgStr.compare("verbose-transformations")) {
     TransMgr->printTransformations();
     exit(0);
+  }
+  else if (!ArgStr.compare("generate-hints")) {
+    TransMgr->setGenerateHintsFlag(true);
+    TransMgr->setTransformationCounter(1);
+    TransMgr->setToCounter(std::numeric_limits<int>::max());
   }
   else if (!ArgStr.compare("report-instances-count")) {
     TransMgr->setReportInstancesCount(true);
