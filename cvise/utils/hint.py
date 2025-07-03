@@ -87,13 +87,18 @@ def store_hints(hints: Sequence[object], hints_file_path: Path) -> None:
 
 
 def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> Sequence[object]:
-    """Deserializes hints with the given indices [begin; end) from a file."""
+    """Deserializes hints with the given indices [begin; end) from a file.
+
+    Whether the hints file is compressed is determined based on the file extension."""
     assert begin_index < end_index
     hints = []
-    with zstandard.open(hints_file_path, 'rt') as f:
+    with zstandard.open(hints_file_path, 'rt') if hints_file_path.suffix == '.zst' else open(hints_file_path) as f:
         for i, line in enumerate(f):
             if begin_index <= i < end_index:
-                hints.append(json.loads(line))
+                try:
+                    hints.append(json.loads(line))
+                except json.decoder.JSONDecodeError as e:
+                    raise RuntimeError(f'Failed to decode line "{line}": {e}') from e
     return hints
 
 
