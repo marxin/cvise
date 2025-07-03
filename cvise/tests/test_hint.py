@@ -10,6 +10,11 @@ def tmp_file(tmp_path):
     return tmp_path / 'file.txt'
 
 
+@pytest.fixture
+def tmp_hints_file(tmp_path):
+    return tmp_path / 'hints.zst'
+
+
 def test_apply_hints_delete_prefix(tmp_file):
     tmp_file.write_text('Foo bar')
     hint = {'p': [{'l': 0, 'r': 4}]}
@@ -105,14 +110,14 @@ def test_apply_hints_delete_nested(tmp_file):
     assert tmp_file.read_text() == 'Foo baz'
 
 
-def test_store_load_hints(tmp_file):
+def test_store_load_hints(tmp_hints_file):
     hint1 = {'p': [{'l': 0, 'r': 1}]}
     hint2 = {'p': [{'l': 2, 'r': 3}, {'l': 4, 'r': 5}]}
-    store_hints([hint1, hint2], tmp_file)
+    store_hints([hint1, hint2], tmp_hints_file)
 
-    assert load_hints(tmp_file, 0, 2) == [hint1, hint2]
-    assert load_hints(tmp_file, 0, 1) == [hint1]
-    assert load_hints(tmp_file, 1, 2) == [hint2]
+    assert load_hints(tmp_hints_file, 0, 2) == [hint1, hint2]
+    assert load_hints(tmp_hints_file, 0, 1) == [hint1]
+    assert load_hints(tmp_hints_file, 1, 2) == [hint2]
 
 
 def test_hints_storage_compression(tmp_file):
