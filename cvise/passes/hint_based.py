@@ -1,5 +1,4 @@
 from __future__ import annotations
-from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from typing import Sequence, Union
 
@@ -34,24 +33,18 @@ class HintState:
         return HintState(new_hint_count, self.hints_file_path, next_state)
 
 
-class HintBasedPass(AbstractPass, metaclass=ABCMeta):
+class HintBasedPass(AbstractPass):
     """Base class for hint-based passes.
 
-    Subclasses must implement the generate_hints() method; the
-    new/transform/advance operations are taken care by the generic logic here.
-    """
+    Provides default implementations of new/transform/advance operations, which only require the subclass to implement
+    the generate_hints() method."""
 
-    @abstractmethod
     def generate_hints(self, test_case: Path) -> Sequence[object]:
-        pass
+        raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'generate_hints'!")
 
     def new(self, test_case, tmp_dir, **kwargs):
         hints = self.generate_hints(test_case)
-        if not hints:
-            return None
-        hints_file_path = tmp_dir / HINTS_FILE_NAME
-        store_hints(hints, hints_file_path)
-        return HintState.create(len(hints), hints_file_path)
+        return self.new_from_hints(hints, tmp_dir)
 
     def transform(self, test_case, state, process_event_notifier):
         hints_range_begin = state.binary_state.index
@@ -66,6 +59,22 @@ class HintBasedPass(AbstractPass, metaclass=ABCMeta):
 
     def advance_on_success(self, test_case, state):
         hints = self.generate_hints(test_case)
+        return self.advance_on_success_from_hints(hints, state)
+
+    def new_from_hints(self, hints: Sequence[object], tmp_dir: str) -> Union[HintState, None]:
+        """Creates a state for pre-generated hints.
+
+        Can be used by subclasses which don't follow the typical approach with implementing generate_hints()."""
+        if not hints:
+            return None
+        hints_file_path = tmp_dir / HINTS_FILE_NAME
+        store_hints(hints, hints_file_path)
+        return HintState.create(len(hints), hints_file_path)
+
+    def advance_on_success_from_hints(self, hints: Sequence[object], state: HintState) -> Union[HintState, None]:
+        """Advances the state after a successful reduction, given pre-generated hints.
+
+        Can be used by subclasses which don't follow the typical approach with implementing generate_hints()."""
         if not hints:
             return None
         store_hints(hints, state.hints_file_path)
