@@ -200,10 +200,10 @@ class CVise:
             self._run_passes(passes, check_threshold=False)
         else:
             while True:
-                total_file_size = self.test_manager.total_file_size
+                size_before = self.test_manager.total_file_size
                 met_stopping_threshold = self._run_passes(passes, check_threshold=True)
-                logging.info(f'Termination check: size was {total_file_size}; now {self.test_manager.total_file_size}')
-                if (self.test_manager.total_file_size >= total_file_size) or met_stopping_threshold:
+                logging.info(f'Termination check: size was {size_before}; now {self.test_manager.total_file_size}')
+                if (self.test_manager.total_file_size >= size_before) or met_stopping_threshold:
                     break
 
     def _run_passes(self, passes: List[AbstractPass], check_threshold: bool) -> None:
