@@ -25,7 +25,7 @@
 // Helper for generating reduction hints - for the background and data format,
 // see //cvise/utils/hint.py.
 class HintsBuilder {
- public:
+public:
   HintsBuilder(clang::SourceManager &SM, const clang::LangOptions &LO);
   ~HintsBuilder();
 
@@ -39,7 +39,7 @@ class HintsBuilder {
 
   std::vector<std::string> GetHintJsons() const;
 
- private:
+private:
   struct Patch {
     int64_t L, R;
   };

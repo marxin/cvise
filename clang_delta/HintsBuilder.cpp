@@ -13,8 +13,9 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/FormatVariadic.h"
 
-HintsBuilder::HintsBuilder(clang::SourceManager &SM, const clang::LangOptions &LO)
-: SourceMgr(SM), NoOpRewriter(SourceMgr, LO) {}
+HintsBuilder::HintsBuilder(clang::SourceManager &SM,
+                           const clang::LangOptions &LO)
+    : SourceMgr(SM), NoOpRewriter(SourceMgr, LO) {}
 
 HintsBuilder::~HintsBuilder() = default;
 
@@ -46,15 +47,13 @@ void HintsBuilder::FinishCurrentHint() {
   CurrentHint = {};
 }
 
-void HintsBuilder::ReverseOrder() {
-  std::reverse(Hints.begin(), Hints.end());
-}
+void HintsBuilder::ReverseOrder() { std::reverse(Hints.begin(), Hints.end()); }
 
 std::vector<std::string> HintsBuilder::GetHintJsons() const {
   std::vector<std::string> Jsons;
-  for (const auto& H : Hints) {
+  for (const auto &H : Hints) {
     std::string Array;
-    for (const auto& P : H.Patches) {
+    for (const auto &P : H.Patches) {
       if (!Array.empty())
         Array += ",";
       Array += llvm::formatv(R"txt({{"l":{0},"r":{1}})txt", P.L, P.R);
