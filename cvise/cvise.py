@@ -189,13 +189,13 @@ class CVise:
 
     def _run_main_passes(self, passes):
         while True:
-            total_file_size = self.test_manager.total_file_size
+            size_before = self.test_manager.total_file_size
 
             met_stopping_threshold = False
             for p in passes:
                 # Exit early if we're already reduced enough
                 improvement = (
-                    self.test_manager.orig_total_file_size - total_file_size
+                    self.test_manager.orig_total_file_size - self.test_manager.total_file_size
                 ) / self.test_manager.orig_total_file_size
                 logging.debug(
                     f'Termination check: stopping threshold is {self.test_manager.stopping_threshold}; current improvement is {improvement:.1f}'
@@ -208,7 +208,7 @@ class CVise:
                 else:
                     self.test_manager.run_passes([p])
 
-            logging.info(f'Termination check: size was {total_file_size}; now {self.test_manager.total_file_size}')
+            logging.info(f'Termination check: size was {size_before}; now {self.test_manager.total_file_size}')
 
-            if (self.test_manager.total_file_size >= total_file_size) or met_stopping_threshold:
+            if (self.test_manager.total_file_size >= size_before) or met_stopping_threshold:
                 break
