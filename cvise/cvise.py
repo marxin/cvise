@@ -44,15 +44,18 @@ class CVise:
         name: str  # name in the JSON config; must remain stable for backwards compatibility
         log_title: str
         initial: bool
+        interleaving: bool
         once: bool
 
     PASS_CATEGORIES = [
         # "initial" categories (executed once)
-        PassCategory(name='first', log_title='INITIAL PASSES', initial=True, once=True),
+        PassCategory(name='interleaving_first', log_title='INITIAL PASSES (interleaving)', initial=True, interleaving=True, once=True),
+        PassCategory(name='first', log_title='INITIAL PASSES', initial=True, interleaving=False, once=True),
         # "main" categories (looped)
-        PassCategory(name='main', log_title='MAIN PASSES', initial=False, once=False),
+        PassCategory(name='interleaving', log_title='MAIN PASSES (interleaving)', initial=False, interleaving=True, once=False),
+        PassCategory(name='main', log_title='MAIN PASSES', initial=False, interleaving=False, once=False),
         # "cleanup" category (executed once)
-        PassCategory(name='last', log_title='CLEANUP PASSES', initial=False, once=True),
+        PassCategory(name='last', log_title='CLEANUP PASSES', initial=False, interleaving=False, once=True),
     ]
 
     pass_name_mapping = {
@@ -125,7 +128,8 @@ class CVise:
 
         for category in cls.PASS_CATEGORIES:
             if category.name not in pass_group_dict:
-                raise CViseError(f'Missing category {category}')
+                # All categories are optional.
+                continue
 
             pass_group[category.name] = []
 
@@ -151,14 +155,18 @@ class CVise:
                 elif not renaming and 'renaming' in pass_dict and pass_dict['renaming']:
                     continue
 
-                try:
-                    pass_instance.max_transforms = int(pass_dict['max-transforms'])
-                except KeyError:
-                    pass
+                if not category.interleaving:  # max-transforms is only supported for non-interleaving passes
+                    try:
+                        pass_instance.max_transforms = int(pass_dict['max-transforms'])
+                    except KeyError:
+                        pass
 
                 pass_instance.user_clang_delta_std = clang_delta_std
                 pass_instance.clang_delta_preserve_routine = clang_delta_preserve_routine
                 pass_group[category.name].append(pass_instance)
+
+        if not pass_group:
+            raise CViseError(f'At least one pass category must be configured: {", ".join(c.name for c in cls.PASS_CATEGORIES)}')
 
         return pass_group
 
@@ -197,16 +205,16 @@ class CVise:
 
     def _run_pass_category(self, passes: List[AbstractPass], category: PassCategory) -> None:
         if category.once:
-            self._run_passes(passes, check_threshold=False)
+            self._run_passes(passes, category.interleaving, check_threshold=False)
         else:
             while True:
                 size_before = self.test_manager.total_file_size
-                met_stopping_threshold = self._run_passes(passes, check_threshold=True)
+                met_stopping_threshold = self._run_passes(passes, category.interleaving, check_threshold=True)
                 logging.info(f'Termination check: size was {size_before}; now {self.test_manager.total_file_size}')
                 if (self.test_manager.total_file_size >= size_before) or met_stopping_threshold:
                     break
 
-    def _run_passes(self, passes: List[AbstractPass], check_threshold: bool) -> bool:
+    def _run_passes(self, passes: List[AbstractPass], interleaving: bool, check_threshold: bool) -> bool:
         """Runs the given passes once; returns whether the stopping threshold was met."""
         available_passes = []
         for p in passes:
@@ -217,11 +225,14 @@ class CVise:
         if not available_passes:
             return False
 
-        for p in available_passes:
-            # Exit early if we're already reduced enough
-            if check_threshold and self._met_stopping_threshold():
-                return True
-            self.test_manager.run_passes([p])
+        if interleaving:
+            self.test_manager.run_passes(available_passes)
+        else:
+            for p in available_passes:
+                # Exit early if we're already reduced enough
+                if check_threshold and self._met_stopping_threshold():
+                    return True
+                self.test_manager.run_passes([p])
         return check_threshold and self._met_stopping_threshold()
 
     def _met_stopping_threshold(self) -> bool:
