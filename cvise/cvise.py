@@ -165,7 +165,7 @@ class CVise:
 
                 if 'max-transforms' in pass_dict:
                     if category.interleaving:
-                        raise CViseError(f'max-transforms not available for passes in interleaving categories')
+                        raise CViseError('max-transforms not available for passes in interleaving categories')
                     pass_instance.max_transforms = int(pass_dict['max-transforms'])
 
                 pass_instance.user_clang_delta_std = clang_delta_std
