@@ -85,6 +85,7 @@ class ClangHintsPass(HintBasedPass):
         logging.debug(shlex.join(str(s) for s in cmd))
 
         hints = []
+        # FIXME: Set a timeout.
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True) as proc:
             for line in proc.stdout:
                 if not line.isspace():
