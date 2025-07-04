@@ -49,10 +49,18 @@ class CVise:
 
     PASS_CATEGORIES = [
         # "initial" categories (executed once)
-        PassCategory(name='interleaving_first', log_title='INITIAL PASSES (interleaving)', initial=True, interleaving=True, once=True),
+        PassCategory(
+            name='interleaving_first',
+            log_title='INITIAL PASSES (interleaving)',
+            initial=True,
+            interleaving=True,
+            once=True,
+        ),
         PassCategory(name='first', log_title='INITIAL PASSES', initial=True, interleaving=False, once=True),
         # "main" categories (looped)
-        PassCategory(name='interleaving', log_title='MAIN PASSES (interleaving)', initial=False, interleaving=True, once=False),
+        PassCategory(
+            name='interleaving', log_title='MAIN PASSES (interleaving)', initial=False, interleaving=True, once=False
+        ),
         PassCategory(name='main', log_title='MAIN PASSES', initial=False, interleaving=False, once=False),
         # "cleanup" category (executed once)
         PassCategory(name='last', log_title='CLEANUP PASSES', initial=False, interleaving=False, once=True),
@@ -165,7 +173,9 @@ class CVise:
                 pass_group[category.name].append(pass_instance)
 
         if not pass_group:
-            raise CViseError(f'At least one pass category must be configured: {", ".join(c.name for c in cls.PASS_CATEGORIES)}')
+            raise CViseError(
+                f'At least one pass category must be configured: {", ".join(c.name for c in cls.PASS_CATEGORIES)}'
+            )
 
         return pass_group
 
