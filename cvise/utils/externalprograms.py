@@ -2,7 +2,7 @@ import os
 import platform
 import shutil
 
-SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
+SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 DESTDIR = os.getenv('DESTDIR', '')
 
 
