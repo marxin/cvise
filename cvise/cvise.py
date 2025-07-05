@@ -41,17 +41,17 @@ class CVise:
 
     @dataclass
     class PassCategory:
-        name: str
+        name: str  # name in the JSON config; must remain stable for backwards compatibility
         log_title: str
         initial: bool
         once: bool
 
     PASS_CATEGORIES = [
-        # "first" categories (executed once)
+        # "initial" categories (executed once)
         PassCategory(name='first', log_title='INITIAL PASSES', initial=True, once=True),
         # "main" categories (looped)
         PassCategory(name='main', log_title='MAIN PASSES', initial=False, once=False),
-        # "last" category (executed once)
+        # "cleanup" category (executed once)
         PassCategory(name='last', log_title='CLEANUP PASSES', initial=False, once=True),
     ]
 
