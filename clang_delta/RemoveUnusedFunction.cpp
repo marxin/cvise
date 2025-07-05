@@ -331,7 +331,8 @@ void RemoveUnusedFunction::doRewriting()
   if (ToCounter == std::numeric_limits<int>::max()) {
     // This special value denotes performing all possible transforms.
     ToCounter = static_cast<int>(AllValidFunctionDecls.size());
-    TransformationCounter = std::min(1, ToCounter);
+    if (!ToCounter)
+      return;
   }
   TransAssert((TransformationCounter <=
                 static_cast<int>(AllValidFunctionDecls.size())) &&
