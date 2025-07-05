@@ -1,6 +1,8 @@
+from dataclasses import dataclass
 import json
 import logging
 import os
+from typing import List
 
 from cvise.passes.abstract import AbstractPass
 from cvise.passes.balanced import BalancedPass
@@ -36,6 +38,22 @@ class CVise:
         VERSION = '@cvise_VERSION@'
         GIT_VERSION = '@GIT_HASH@'
         LLVM_VERSION = '@LLVM_VERSION@'
+
+    @dataclass
+    class PassCategory:
+        name: str  # name in the JSON config; must remain stable for backwards compatibility
+        log_title: str
+        initial: bool
+        once: bool
+
+    PASS_CATEGORIES = [
+        # "initial" categories (executed once)
+        PassCategory(name='first', log_title='INITIAL PASSES', initial=True, once=True),
+        # "main" categories (looped)
+        PassCategory(name='main', log_title='MAIN PASSES', initial=False, once=False),
+        # "cleanup" category (executed once)
+        PassCategory(name='last', log_title='CLEANUP PASSES', initial=False, once=True),
+    ]
 
     pass_name_mapping = {
         'balanced': BalancedPass,
@@ -105,23 +123,23 @@ class CVise:
                 ('exclude' not in pass_dict) or not bool(parse_options(pass_dict['exclude']) & options)
             )
 
-        for category in ['first', 'main', 'last']:
-            if category not in pass_group_dict:
+        for category in cls.PASS_CATEGORIES:
+            if category.name not in pass_group_dict:
                 raise CViseError(f'Missing category {category}')
 
-            pass_group[category] = []
+            pass_group[category.name] = []
 
-            for pass_dict in pass_group_dict[category]:
+            for pass_dict in pass_group_dict[category.name]:
                 if not include_pass(pass_dict, pass_options):
                     continue
 
                 if 'pass' not in pass_dict:
-                    raise CViseError(f'Invalid pass in category {category}')
+                    raise CViseError(f'Invalid pass in category {category.name}')
 
                 try:
                     pass_class = cls.pass_name_mapping[pass_dict['pass']]
                 except KeyError:
-                    raise CViseError('Unkown pass {}'.format(pass_dict['pass'])) from None
+                    raise CViseError('Unknown pass {}'.format(pass_dict['pass'])) from None
 
                 pass_instance = pass_class(pass_dict.get('arg'), external_programs)
                 pass_instance.max_transforms = None
@@ -140,7 +158,7 @@ class CVise:
 
                 pass_instance.user_clang_delta_std = clang_delta_std
                 pass_instance.clang_delta_preserve_routine = clang_delta_preserve_routine
-                pass_group[category].append(pass_instance)
+                pass_group[category.name].append(pass_instance)
 
         return pass_group
 
@@ -160,15 +178,12 @@ class CVise:
         if not self.tidy:
             self.test_manager.backup_test_cases()
 
-        if not skip_initial:
-            logging.info('INITIAL PASSES')
-            self._run_additional_passes(pass_group['first'])
-
-        logging.info('MAIN PASSES')
-        self._run_main_passes(pass_group['main'])
-
-        logging.info('CLEANUP PASSES')
-        self._run_additional_passes(pass_group['last'])
+        for category_name, passes in pass_group.items():
+            category = next(c for c in self.PASS_CATEGORIES if c.name == category_name)
+            if skip_initial and category.initial:
+                continue
+            logging.info('%s', category.log_title)
+            self._run_pass_category(passes, category)
 
         logging.info('===================== done ====================')
         return True
@@ -180,35 +195,40 @@ class CVise:
                 if not p.check_prerequisites():
                     logging.error(f'Prereqs not found for pass {p}')
 
-    def _run_additional_passes(self, passes):
+    def _run_pass_category(self, passes: List[AbstractPass], category: PassCategory) -> None:
+        if category.once:
+            self._run_passes(passes, check_threshold=False)
+        else:
+            while True:
+                size_before = self.test_manager.total_file_size
+                met_stopping_threshold = self._run_passes(passes, check_threshold=True)
+                logging.info(f'Termination check: size was {size_before}; now {self.test_manager.total_file_size}')
+                if (self.test_manager.total_file_size >= size_before) or met_stopping_threshold:
+                    break
+
+    def _run_passes(self, passes: List[AbstractPass], check_threshold: bool) -> bool:
+        """Runs the given passes once; returns whether the stopping threshold was met."""
+        available_passes = []
         for p in passes:
             if not p.check_prerequisites():
-                logging.error(f'Skipping {p}')
+                logging.error(f'Skipping pass {p}')
             else:
-                self.test_manager.run_passes([p])
+                available_passes.append(p)
+        if not available_passes:
+            return False
 
-    def _run_main_passes(self, passes):
-        while True:
-            size_before = self.test_manager.total_file_size
+        for p in available_passes:
+            # Exit early if we're already reduced enough
+            if check_threshold and self._met_stopping_threshold():
+                return True
+            self.test_manager.run_passes([p])
+        return check_threshold and self._met_stopping_threshold()
 
-            met_stopping_threshold = False
-            for p in passes:
-                # Exit early if we're already reduced enough
-                improvement = (
-                    self.test_manager.orig_total_file_size - self.test_manager.total_file_size
-                ) / self.test_manager.orig_total_file_size
-                logging.debug(
-                    f'Termination check: stopping threshold is {self.test_manager.stopping_threshold}; current improvement is {improvement:.1f}'
-                )
-                if improvement >= self.test_manager.stopping_threshold:
-                    met_stopping_threshold = True
-                    break
-                if not p.check_prerequisites():
-                    logging.error(f'Skipping pass {p}')
-                else:
-                    self.test_manager.run_passes([p])
-
-            logging.info(f'Termination check: size was {size_before}; now {self.test_manager.total_file_size}')
-
-            if (self.test_manager.total_file_size >= size_before) or met_stopping_threshold:
-                break
+    def _met_stopping_threshold(self) -> bool:
+        improvement = (
+            self.test_manager.orig_total_file_size - self.test_manager.total_file_size
+        ) / self.test_manager.orig_total_file_size
+        logging.debug(
+            f'Termination check: stopping threshold is {self.test_manager.stopping_threshold}; current improvement is {improvement:.1f}'
+        )
+        return improvement >= self.test_manager.stopping_threshold
