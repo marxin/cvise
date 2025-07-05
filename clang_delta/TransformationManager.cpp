@@ -319,24 +319,15 @@ bool TransformationManager::doTransformation(std::string &ErrorMsg, int &ErrorCo
   }
 
   llvm::raw_ostream *OutStream = getOutStream();
-  bool RV;
-  if (GenerateHints) {
-  if (CurrentTransformationImpl->transSuccess()) {
-      CurrentTransformationImpl->outputHints(*OutStream);
-      RV = true;
-    }
-    else {
-      CurrentTransformationImpl->getTransErrorMsg(ErrorMsg);
-      RV = false;
-    }
+  bool RV = true;
+  if (CurrentTransformationImpl->transSuccess() && GenerateHints) {
+    CurrentTransformationImpl->outputHints(*OutStream);
   }
-  else if (CurrentTransformationImpl->transSuccess()) {
+  else if (CurrentTransformationImpl->transSuccess() && !GenerateHints) {
     CurrentTransformationImpl->outputTransformedSource(*OutStream);
-    RV = true;
   }
-  else if (CurrentTransformationImpl->transInternalError()) {
+  else if (CurrentTransformationImpl->transInternalError() && !GenerateHints) {
     CurrentTransformationImpl->outputOriginalSource(*OutStream);
-    RV = true;
   }
   else {
     CurrentTransformationImpl->getTransErrorMsg(ErrorMsg);

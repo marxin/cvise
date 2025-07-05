@@ -37,7 +37,7 @@ def run_clang_delta(testcase: str, arguments: str) -> str:
     return subprocess.check_output(cmd, shell=True, encoding='utf8')
 
 
-def run_apply_hints(hints_file: Path, begin_index, end_index, testcase) -> str:
+def run_apply_hints(hints_file: Path, begin_index: int, end_index: int, testcase: str) -> str:
     hints_tool = Path(__file__).parent.parent.parent / 'cvise-cli.py'
     cmd = [
         hints_tool,

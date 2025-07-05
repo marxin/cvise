@@ -40,7 +40,9 @@ void HintsBuilder::AddPatch(clang::SourceLocation L, int64_t Len) {
 
 void HintsBuilder::FinishCurrentHint() {
   if (CurrentHint.Patches.empty()) {
-    // Don't add empty hints.
+    // This shouldn't happen normally, but because it's hard to guarantee and
+    // because an empty hint would trigger errors in C-Vise we add this
+    // safeguard here.
     return;
   }
   Hints.push_back(std::move(CurrentHint));
@@ -51,6 +53,7 @@ void HintsBuilder::ReverseOrder() { std::reverse(Hints.begin(), Hints.end()); }
 
 std::vector<std::string> HintsBuilder::GetHintJsons() const {
   std::vector<std::string> Jsons;
+  Jsons.reserve(Hints.size());
   for (const auto &H : Hints) {
     std::string Array;
     for (const auto &P : H.Patches) {

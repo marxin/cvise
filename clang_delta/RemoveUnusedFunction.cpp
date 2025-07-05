@@ -331,13 +331,13 @@ void RemoveUnusedFunction::doRewriting()
   if (ToCounter == std::numeric_limits<int>::max()) {
     // This special value denotes performing all possible transforms.
     ToCounter = static_cast<int>(AllValidFunctionDecls.size());
-  } else {
-    TransAssert((TransformationCounter <=
-                  static_cast<int>(AllValidFunctionDecls.size())) &&
-                "TransformationCounter is larger than the number of defs!");
-    TransAssert((ToCounter <= static_cast<int>(AllValidFunctionDecls.size())) &&
-                "ToCounter is larger than the number of defs!");
+    TransformationCounter = std::min(1, ToCounter);
   }
+  TransAssert((TransformationCounter <=
+                static_cast<int>(AllValidFunctionDecls.size())) &&
+              "TransformationCounter is larger than the number of defs!");
+  TransAssert((ToCounter <= static_cast<int>(AllValidFunctionDecls.size())) &&
+              "ToCounter is larger than the number of defs!");
   for (int I = ToCounter; I >= TransformationCounter; --I) {
     TransAssert((I >= 1) && "Invalid Index!");
     const FunctionDecl *FD = AllValidFunctionDecls[I-1];
