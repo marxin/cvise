@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
 import re
 import subprocess
+import tempfile
 import unittest
 
 
@@ -16,17 +18,57 @@ def get_clang_version():
     raise AssertionError()
 
 
+def get_clang_delta_path() -> Path:
+    return Path(__file__).parent.parent / 'clang_delta'
+
+
+def get_testcase_path(testcase: str) -> Path:
+    return Path(__file__).parent / testcase
+
+
+def get_expected_output_path(testcase: str, output_file: str = None) -> Path:
+    if not output_file:
+        output_file = os.path.splitext(testcase)[0] + '.output'
+    return Path(__file__).parent / output_file
+
+
+def run_clang_delta(testcase: str, arguments: str) -> str:
+    cmd = f'{get_clang_delta_path()} {get_testcase_path(testcase)} {arguments}'
+    return subprocess.check_output(cmd, shell=True, encoding='utf8')
+
+
+def run_apply_hints(hints_file: Path, begin_index: int, end_index: int, testcase: str) -> str:
+    hints_tool = Path(__file__).parent.parent.parent / 'cvise-cli.py'
+    cmd = [
+        hints_tool,
+        '--action=apply-hints',
+        '--hints-file',
+        hints_file,
+        '--hint-begin-index',
+        str(begin_index),
+        '--hint-end-index',
+        str(end_index),
+        get_testcase_path(testcase),
+    ]
+    return subprocess.check_output(cmd, encoding='utf-8')
+
+
 class TestClangDelta(unittest.TestCase):
     @classmethod
     def check_clang_delta(cls, testcase, arguments, output_file=None):
-        current = os.path.dirname(__file__)
-        binary = os.path.join(current, '../clang_delta')
-        cmd = f'{binary} {os.path.join(current, testcase)} {arguments}'
-        output = subprocess.check_output(cmd, shell=True, encoding='utf8')
-        if not output_file:
-            output_file = os.path.splitext(testcase)[0] + '.output'
-        with open(os.path.join(current, output_file)) as f:
-            expected = f.read()
+        output = run_clang_delta(testcase, arguments)
+        expected = get_expected_output_path(testcase, output_file).read_text()
+        assert output == expected
+
+    @classmethod
+    def check_clang_delta_hints(cls, testcase, arguments, begin_index, end_index, output_file=None):
+        hints = run_clang_delta(testcase, arguments + ' --generate-hints')
+        with tempfile.NamedTemporaryFile(delete_on_close=False, mode='wt', suffix='.jsonl') as hints_file:
+            hints_file.write(hints)
+            hints_file.close()
+            output = run_apply_hints(Path(hints_file.name), begin_index, end_index, testcase)
+
+        expected = get_expected_output_path(testcase, output_file).read_text()
         assert output == expected
 
     @classmethod
@@ -588,16 +630,35 @@ class TestClangDelta(unittest.TestCase):
             'remove-unused-function/class.cc',
             '--transformation=remove-unused-function --counter=1',
         )
+        self.check_clang_delta_hints(
+            'remove-unused-function/class.cc',
+            '--transformation=remove-unused-function',
+            begin_index=0,
+            end_index=1,
+        )
 
     def test_remove_unused_function_const(self):
         self.check_clang_delta(
             'remove-unused-function/const.cc',
             '--transformation=remove-unused-function --counter=1',
         )
+        self.check_clang_delta_hints(
+            'remove-unused-function/const.cc',
+            '--transformation=remove-unused-function',
+            begin_index=0,
+            end_index=1,
+        )
         self.check_clang_delta(
             'remove-unused-function/const.cc',
             '--transformation=remove-unused-function --counter=2',
             'remove-unused-function/const.output2',
+        )
+        self.check_clang_delta_hints(
+            'remove-unused-function/const.cc',
+            '--transformation=remove-unused-function',
+            begin_index=1,
+            end_index=2,
+            output_file='remove-unused-function/const.output2',
         )
 
     def test_remove_unused_function_default(self):
@@ -605,10 +666,23 @@ class TestClangDelta(unittest.TestCase):
             'remove-unused-function/default.cc',
             '--transformation=remove-unused-function --counter=1',
         )
+        self.check_clang_delta_hints(
+            'remove-unused-function/default.cc',
+            '--transformation=remove-unused-function',
+            begin_index=0,
+            end_index=1,
+        )
         self.check_clang_delta(
             'remove-unused-function/default.cc',
             '--transformation=remove-unused-function --counter=2',
             'remove-unused-function/default.output2',
+        )
+        self.check_clang_delta_hints(
+            'remove-unused-function/default.cc',
+            '--transformation=remove-unused-function',
+            begin_index=1,
+            end_index=2,
+            output_file='remove-unused-function/default.output2',
         )
 
     def test_remove_unused_function_delete(self):
@@ -616,29 +690,67 @@ class TestClangDelta(unittest.TestCase):
             'remove-unused-function/delete.cc',
             '--transformation=remove-unused-function --counter=1',
         )
+        self.check_clang_delta_hints(
+            'remove-unused-function/delete.cc',
+            '--transformation=remove-unused-function',
+            begin_index=0,
+            end_index=1,
+        )
 
     def test_remove_unused_function_delete2(self):
         self.check_clang_delta(
             'remove-unused-function/delete2.cc',
             '--transformation=remove-unused-function --counter=1',
         )
+        self.check_clang_delta_hints(
+            'remove-unused-function/delete2.cc',
+            '--transformation=remove-unused-function',
+            begin_index=0,
+            end_index=1,
+        )
         self.check_clang_delta(
             'remove-unused-function/delete2.cc',
             '--transformation=remove-unused-function --counter=2',
             'remove-unused-function/delete2.output2',
+        )
+        self.check_clang_delta_hints(
+            'remove-unused-function/delete2.cc',
+            '--transformation=remove-unused-function',
+            begin_index=1,
+            end_index=2,
+            output_file='remove-unused-function/delete2.output2',
         )
         self.check_clang_delta(
             'remove-unused-function/delete2.cc',
             '--transformation=remove-unused-function --counter=3',
             'remove-unused-function/delete2.output3',
         )
+        self.check_clang_delta_hints(
+            'remove-unused-function/delete2.cc',
+            '--transformation=remove-unused-function',
+            begin_index=2,
+            end_index=3,
+            output_file='remove-unused-function/delete2.output3',
+        )
         self.check_clang_delta(
             'remove-unused-function/delete2.cc',
             '--transformation=remove-unused-function --counter=4',
             'remove-unused-function/delete2.output4',
         )
+        self.check_clang_delta_hints(
+            'remove-unused-function/delete2.cc',
+            '--transformation=remove-unused-function',
+            begin_index=3,
+            end_index=4,
+            output_file='remove-unused-function/delete2.output4',
+        )
 
     def test_remove_unused_function_inline_ns(self):
+        self.check_query_instances(
+            'remove-unused-function/inline_ns.cc',
+            '--query-instances=remove-unused-function',
+            'Available transformation instances: 0',
+        )
         self.check_query_instances(
             'remove-unused-function/inline_ns.cc',
             '--query-instances=remove-unused-function',
@@ -650,11 +762,23 @@ class TestClangDelta(unittest.TestCase):
             'remove-unused-function/macro1.cc',
             '--transformation=remove-unused-function --counter=1',
         )
+        self.check_clang_delta_hints(
+            'remove-unused-function/macro1.cc',
+            '--transformation=remove-unused-function',
+            begin_index=0,
+            end_index=1,
+        )
 
     def test_remove_unused_function_macro2(self):
         self.check_clang_delta(
             'remove-unused-function/macro2.cc',
             '--transformation=remove-unused-function --counter=1',
+        )
+        self.check_clang_delta_hints(
+            'remove-unused-function/macro2.cc',
+            '--transformation=remove-unused-function',
+            begin_index=0,
+            end_index=1,
         )
 
     def test_remove_unused_function_macro3(self):
@@ -662,11 +786,23 @@ class TestClangDelta(unittest.TestCase):
             'remove-unused-function/macro3.cc',
             '--transformation=remove-unused-function --counter=1',
         )
+        self.check_clang_delta_hints(
+            'remove-unused-function/macro3.cc',
+            '--transformation=remove-unused-function',
+            begin_index=0,
+            end_index=1,
+        )
 
     def test_remove_unused_function_template1(self):
         self.check_clang_delta(
             'remove-unused-function/template1.cc',
             '--transformation=remove-unused-function --counter=1',
+        )
+        self.check_clang_delta_hints(
+            'remove-unused-function/template1.cc',
+            '--transformation=remove-unused-function',
+            begin_index=0,
+            end_index=1,
         )
 
     def test_remove_unused_function_template2(self):
@@ -674,14 +810,31 @@ class TestClangDelta(unittest.TestCase):
             'remove-unused-function/template2.cc',
             '--transformation=remove-unused-function --counter=1',
         )
+        self.check_clang_delta_hints(
+            'remove-unused-function/template2.cc',
+            '--transformation=remove-unused-function',
+            begin_index=0,
+            end_index=1,
+        )
 
     def test_remove_unused_function_unused_funcs(self):
         self.check_clang_delta(
             'remove-unused-function/unused-funcs.cc',
             '--transformation=remove-unused-function --counter=1',
         )
+        self.check_clang_delta_hints(
+            'remove-unused-function/unused-funcs.cc',
+            '--transformation=remove-unused-function',
+            begin_index=0,
+            end_index=1,
+        )
 
     def test_remove_unused_function_cyclic_ns_include(self):
+        self.check_query_instances(
+            'remove-unused-function/cyclic-namespace-using.cc',
+            '--query-instances=remove-unused-function',
+            'Available transformation instances: 0',
+        )
         self.check_query_instances(
             'remove-unused-function/cyclic-namespace-using.cc',
             '--query-instances=remove-unused-function',

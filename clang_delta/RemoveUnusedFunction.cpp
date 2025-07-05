@@ -328,8 +328,14 @@ void RemoveUnusedFunction::doRewriting()
     return;
   }
 
+  if (ToCounter == std::numeric_limits<int>::max()) {
+    // This special value denotes performing all possible transforms.
+    ToCounter = static_cast<int>(AllValidFunctionDecls.size());
+    if (!ToCounter)
+      return;
+  }
   TransAssert((TransformationCounter <=
-                 static_cast<int>(AllValidFunctionDecls.size())) &&
+                static_cast<int>(AllValidFunctionDecls.size())) &&
               "TransformationCounter is larger than the number of defs!");
   TransAssert((ToCounter <= static_cast<int>(AllValidFunctionDecls.size())) &&
               "ToCounter is larger than the number of defs!");
@@ -340,6 +346,10 @@ void RemoveUnusedFunction::doRewriting()
     RemovedFDs.insert(FD);
     removeOneFunctionDeclGroup(FD);
   }
+
+  // The loop above processes functions in the reverse order, but hints need to
+  // be emitted in the right order.
+  Hints->ReverseOrder();
 }
 
 SourceLocation RemoveUnusedFunction::getExtensionLocStart(
@@ -508,8 +518,11 @@ void RemoveUnusedFunction::removeOneFunctionDecl(const FunctionDecl *FD)
 
     LocEnd = getFunctionLocEnd(FuncLocStart, LocEnd, FD);
     if (SrcManager->isWrittenInMainFile(FuncLocStart) &&
-        SrcManager->isWrittenInMainFile(LocEnd))
-      TheRewriter.RemoveText(SourceRange(FuncLocStart, LocEnd));
+        SrcManager->isWrittenInMainFile(LocEnd)) {
+      SourceRange R(FuncLocStart, LocEnd);
+      Hints->AddPatch(R);
+      TheRewriter.RemoveText(R);
+    }
     return;
   }
 
@@ -520,7 +533,9 @@ void RemoveUnusedFunction::removeOneFunctionDecl(const FunctionDecl *FD)
     if (FuncLocStart.isInvalid())
       return;
     LocEnd = getFunctionLocEnd(FuncLocStart, LocEnd, FD);
-    TheRewriter.RemoveText(SourceRange(FuncLocStart, LocEnd));
+    SourceRange R(FuncLocStart, LocEnd);
+    Hints->AddPatch(R);
+    TheRewriter.RemoveText(R);
     return;
   }
   // cases like:
@@ -530,7 +545,9 @@ void RemoveUnusedFunction::removeOneFunctionDecl(const FunctionDecl *FD)
     SourceLocation FuncLocStart = getFunctionOuterLocStart(FD);
     if (FuncLocStart.isInvalid())
       return;
-    TheRewriter.RemoveText(SourceRange(FuncLocStart, LocEnd));
+    SourceRange R(FuncLocStart, LocEnd);
+    Hints->AddPatch(R);
+    TheRewriter.RemoveText(R);
     return;
   }
   // cases like:
@@ -540,7 +557,9 @@ void RemoveUnusedFunction::removeOneFunctionDecl(const FunctionDecl *FD)
   if (LocStart.isMacroID())
     LocStart = SrcManager->getExpansionLoc(LocStart);
   LocStart = getExtensionLocStart(LocStart);
-  TheRewriter.RemoveText(SourceRange(LocStart, LocEnd));
+  SourceRange R(LocStart, LocEnd);
+  Hints->AddPatch(R);
+  TheRewriter.RemoveText(R);
 }
 
 void RemoveUnusedFunction::removeOneExplicitInstantiation(
@@ -552,6 +571,7 @@ void RemoveUnusedFunction::removeOneExplicitInstantiation(
 
   SourceLocation Loc = Spec->getPointOfInstantiation();
   if (Loc.isInvalid()) {
+    Hints->AddPatch(Spec->getSourceRange());
     TheRewriter.RemoveText(Spec->getSourceRange());
     return;
   }
@@ -571,7 +591,9 @@ void RemoveUnusedFunction::removeOneExplicitInstantiation(
     Offset++;
   }
   SourceLocation LocEnd = Loc.getLocWithOffset(Offset - 1);
-  TheRewriter.RemoveText(SourceRange(LocStart, LocEnd));
+  SourceRange R(LocStart, LocEnd);
+  Hints->AddPatch(R);
+  TheRewriter.RemoveText(R);
 }
 
 void RemoveUnusedFunction::removeRemainingExplicitSpecs(
@@ -682,11 +704,15 @@ void RemoveUnusedFunction::removeOneFunctionDeclGroup(const FunctionDecl *FD)
     const UsingDecl *UD = (*I).first;
     SourceRange Range = UD->getSourceRange();
     if (Range.getBegin().isMacroID()) {
-      TheRewriter.RemoveText(SrcManager->getExpansionRange(Range));
+      CharSourceRange R = SrcManager->getExpansionRange(Range);
+      Hints->AddPatch(R);
+      TheRewriter.RemoveText(R);
     } else {
       RewriteHelper->removeDecl((*I).first);
     }
   }
+
+  Hints->FinishCurrentHint();
 }
 
 bool RemoveUnusedFunction::hasAtLeastOneValidLocation(const FunctionDecl *FD)

@@ -517,6 +517,8 @@ add_executable(clang_delta
   EmptyStructToInt.h
   ExpressionDetector.cpp
   ExpressionDetector.h
+  HintsBuilder.cpp
+  HintsBuilder.h
   InstantiateTemplateParam.cpp
   InstantiateTemplateParam.h
   InstantiateTemplateTypeParamToInt.cpp

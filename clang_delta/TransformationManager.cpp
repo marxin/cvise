@@ -319,14 +319,15 @@ bool TransformationManager::doTransformation(std::string &ErrorMsg, int &ErrorCo
   }
 
   llvm::raw_ostream *OutStream = getOutStream();
-  bool RV;
-  if (CurrentTransformationImpl->transSuccess()) {
-    CurrentTransformationImpl->outputTransformedSource(*OutStream);
-    RV = true;
+  bool RV = true;
+  if (CurrentTransformationImpl->transSuccess() && GenerateHints) {
+    CurrentTransformationImpl->outputHints(*OutStream);
   }
-  else if (CurrentTransformationImpl->transInternalError()) {
+  else if (CurrentTransformationImpl->transSuccess() && !GenerateHints) {
+    CurrentTransformationImpl->outputTransformedSource(*OutStream);
+  }
+  else if (CurrentTransformationImpl->transInternalError() && !GenerateHints) {
     CurrentTransformationImpl->outputOriginalSource(*OutStream);
-    RV = true;
   }
   else {
     CurrentTransformationImpl->getTransErrorMsg(ErrorMsg);
@@ -426,6 +427,7 @@ TransformationManager::TransformationManager()
     OutputFileName(""),
     CurrentTransName(""),
     ClangInstance(NULL),
+    GenerateHints(false),
     QueryInstanceOnly(false),
     DoReplacement(false),
     Replacement(""),
