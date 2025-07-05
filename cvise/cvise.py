@@ -206,7 +206,7 @@ class CVise:
                 if (self.test_manager.total_file_size >= size_before) or met_stopping_threshold:
                     break
 
-    def _run_passes(self, passes: List[AbstractPass], check_threshold: bool) -> None:
+    def _run_passes(self, passes: List[AbstractPass], check_threshold: bool) -> bool:
         """Runs the given passes once; returns whether the stopping threshold was met."""
         available_passes = []
         for p in passes:
