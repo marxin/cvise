@@ -59,7 +59,7 @@ class CVise:
         PassCategory(name='first', log_title='INITIAL PASSES', initial=True, interleaving=False, once=True),
         # "main" categories (looped)
         PassCategory(
-            name='interleaving', log_title='MAIN PASSES (interleaving)', initial=False, interleaving=True, once=False
+            name='interleaving', log_title='INTERLEAVING PASSES', initial=False, interleaving=True, once=False
         ),
         PassCategory(name='main', log_title='MAIN PASSES', initial=False, interleaving=False, once=False),
         # "cleanup" category (executed once)
