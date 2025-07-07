@@ -1076,17 +1076,36 @@ class TestClangDelta(unittest.TestCase):
             'replace-function-def-with-decl/macro1.c',
             '--transformation=replace-function-def-with-decl --counter=1 --to-counter=2',
         )
+        self.check_clang_delta_hints(
+            'replace-function-def-with-decl/macro1.c',
+            '--transformation=replace-function-def-with-decl',
+            begin_index=0,
+            end_index=2,
+        )
 
     def test_replace_function_def_with_decl_macro2(self):
         self.check_clang_delta(
             'replace-function-def-with-decl/macro2.c',
             '--transformation=replace-function-def-with-decl --counter=1 --to-counter=2',
         )
+        self.check_clang_delta_hints(
+            'replace-function-def-with-decl/macro2.c',
+            '--transformation=replace-function-def-with-decl',
+            begin_index=0,
+            end_index=2,
+        )
 
     def test_replace_function_def_with_decl_simple_preserve_missing(self):
         self.check_clang_delta(
             'replace-function-def-with-decl/simple.cpp',
             '--transformation=replace-function-def-with-decl --preserve-routine=blahblahblah --counter=1 --to-counter=3',
+            output_file='replace-function-def-with-decl/simple.cpp.preserve_missing.output',
+        )
+        self.check_clang_delta_hints(
+            'replace-function-def-with-decl/simple.cpp',
+            '--transformation=replace-function-def-with-decl --preserve-routine=blahblahblah',
+            begin_index=0,
+            end_index=3,
             output_file='replace-function-def-with-decl/simple.cpp.preserve_missing.output',
         )
 
@@ -1096,11 +1115,25 @@ class TestClangDelta(unittest.TestCase):
             '--transformation=replace-function-def-with-decl --preserve-routine=quack --counter=1 --to-counter=2',
             output_file='replace-function-def-with-decl/simple.cpp.preserve_quack.output',
         )
+        self.check_clang_delta_hints(
+            'replace-function-def-with-decl/simple.cpp',
+            '--transformation=replace-function-def-with-decl --preserve-routine=quack',
+            begin_index=0,
+            end_index=2,
+            output_file='replace-function-def-with-decl/simple.cpp.preserve_quack.output',
+        )
 
     def test_replace_function_def_with_decl_simple_preserve_foo(self):
         self.check_clang_delta(
             'replace-function-def-with-decl/simple.cpp',
             '--transformation=replace-function-def-with-decl --preserve-routine=Moo::foo --counter=1 --to-counter=9999 --warn-on-counter-out-of-bounds',
+            output_file='replace-function-def-with-decl/simple.cpp.preserve_foo.output',
+        )
+        self.check_clang_delta_hints(
+            'replace-function-def-with-decl/simple.cpp',
+            '--transformation=replace-function-def-with-decl --preserve-routine=Moo::foo',
+            begin_index=0,
+            end_index=9999,
             output_file='replace-function-def-with-decl/simple.cpp.preserve_foo.output',
         )
 
