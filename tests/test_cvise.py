@@ -96,14 +96,15 @@ def test_interleaving_passes(tmp_path: Path):
     shutil.copy(testcase_path, '.')
     copy_path = Path(testcase_path.name)
 
-    proc = start_cvise(
-        ['-c', 'gcc -c test.c && grep foo test.c', '--pass-group-file', config_path, testcase_path.name]
-    )
+    proc = start_cvise(['-c', 'gcc -c test.c && grep foo test.c', '--pass-group-file', config_path, testcase_path.name])
     stdout, _ = proc.communicate()
     assert proc.returncode == 0
-    assert copy_path.read_text() == """
+    assert (
+        copy_path.read_text()
+        == """
         int foo() {
         }"""
+    )
 
 
 def test_apply_hints(tmp_path: Path):
