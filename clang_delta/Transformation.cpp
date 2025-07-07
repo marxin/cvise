@@ -133,6 +133,7 @@ void Transformation::outputOriginalSource(llvm::raw_ostream &OutStream)
 
 void Transformation::outputHints(llvm::raw_ostream &OutStream)
 {
+  OutStream << Hints->GetVocabularyJson() << "\n";
   for (const auto& Json : Hints->GetHintJsons()) {
     OutStream << Json << "\n";
   }
@@ -496,7 +497,7 @@ const Type *Transformation::getBasePointerElemType(const Type *Ty)
 
 int Transformation::getIndexAsInteger(const Expr *E)
 {
-  Expr::EvalResult Result; 
+  Expr::EvalResult Result;
   if (!E->EvaluateAsInt(Result, *Context))
     TransAssert(0 && "Failed to Evaluate index!");
 

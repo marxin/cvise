@@ -51,6 +51,11 @@ void HintsBuilder::FinishCurrentHint() {
 
 void HintsBuilder::ReverseOrder() { std::reverse(Hints.begin(), Hints.end()); }
 
+std::string HintsBuilder::GetVocabularyJson() const {
+  // FIXME: return a populated array once text replacement hints are supported.
+  return "[]";
+}
+
 std::vector<std::string> HintsBuilder::GetHintJsons() const {
   std::vector<std::string> Jsons;
   Jsons.reserve(Hints.size());

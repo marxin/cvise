@@ -90,7 +90,8 @@ class ClangHintsPass(HintBasedPass):
         hints = []
         # FIXME: Set a timeout.
         with subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True) as proc:
+            vocab = json.loads(next(proc.stdout))
             for line in proc.stdout:
                 if not line.isspace():
                     hints.append(json.loads(line))
-        return HintBundle(hints=hints)
+        return HintBundle(vocabulary=vocab, hints=hints)
