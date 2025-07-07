@@ -44,3 +44,11 @@ def test_inline_ns(tmp_path):
     p, state = init_pass('remove-unused-function', tmp_path, input_path)
 
     assert state is None
+
+
+def test_malformed_code(tmp_path):
+    input_path = tmp_path / 'input.cc'
+    input_path.write_text('!?badbadbad@#')
+    p, state = init_pass('remove-unused-function', tmp_path, input_path)
+
+    assert state is None

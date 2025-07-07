@@ -160,7 +160,7 @@ def test_apply_hints_replacement_discarded_inside_deletion(tmp_file):
     assert new_data == 'Foo  baz'
 
 
-def test_apply_hints_replacement_discarded_inside_deletion(tmp_file):
+def test_apply_hints_deletion_discarded_inside_replacement(tmp_file):
     """Test that a deletion is a no-op if happening inside a to-be-replaced fragment."""
     tmp_file.write_text('Foo bar baz')
     vocab = ['some']
