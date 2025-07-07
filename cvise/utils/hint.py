@@ -92,7 +92,7 @@ def apply_hints(bundle: HintBundle, file: Path) -> str:
         new_data += orig_data[start_pos:left]
         # Skip the original chunk inside the current patch.
         start_pos = right
-        # Insert the replcement value, if provided.
+        # Insert the replacement value, if provided.
         if 'v' in p:
             new_data += hints.vocabulary[p['v']]
     # Add the unmodified chunk after the last patch end.
@@ -122,7 +122,7 @@ def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintB
     with zstandard.open(hints_file_path, 'rt') if hints_file_path.suffix == '.zst' else open(hints_file_path) as f:
         vocab = try_parse_json_line(next(f))
         # Do a lightweight check that'd catch a basic mistake (a hint object coming instead of a vocabulary array). We
-        # don't want to perform ful type/schema checking during loading due to performance concerns.
+        # don't want to perform full type/schema checking during loading due to performance concerns.
         if not isinstance(vocab, list):
             raise RuntimeError(f'Failed to read hint vocabulary: expected array, instead got: {vocab}')
 
