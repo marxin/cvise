@@ -4,6 +4,7 @@ Note that these tests are focused on the Python side of this pass. The clang_del
 tests in clang_delta/tests/test_clang_delta.py."""
 
 from pathlib import Path
+import subprocess
 
 from cvise.passes.clanghints import ClangHintsPass
 from cvise.tests.testabstract import collect_all_transforms
@@ -49,6 +50,30 @@ def test_inline_ns(tmp_path):
 def test_malformed_code(tmp_path):
     input_path = tmp_path / 'input.cc'
     input_path.write_text('!?badbadbad@#')
+    p, state = init_pass('remove-unused-function', tmp_path, input_path)
+
+    assert state is None
+
+
+def test_clang_delta_crash(tmp_path, monkeypatch):
+    """Test the case of clang_delta crashing.
+
+    We simulate this by patching the subprocess API to return a nonzero exit code and an empty output."""
+
+    class StubPopen:
+        def __init__(self, *args, **kwargs):
+            self.stdout = iter([])
+            self.returncode = 1
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    input_path = tmp_path / 'input.c'
+    input_path.touch()
+    monkeypatch.setattr(subprocess, 'Popen', StubPopen)
     p, state = init_pass('remove-unused-function', tmp_path, input_path)
 
     assert state is None
