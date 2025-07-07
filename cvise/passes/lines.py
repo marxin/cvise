@@ -1,6 +1,5 @@
 import json
 import subprocess
-from typing import Sequence
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.hint import HintBundle
