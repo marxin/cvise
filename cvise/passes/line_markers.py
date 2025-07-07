@@ -1,6 +1,7 @@
 import re
 
 from cvise.passes.hint_based import HintBasedPass
+from cvise.utils.hint import HintBundle
 
 
 class LineMarkersPass(HintBasedPass):
@@ -35,4 +36,4 @@ class LineMarkersPass(HintBasedPass):
                 if self.line_regex.search(line):
                     hints.append({'p': [{'l': file_pos, 'r': end_pos}]})
                 file_pos = end_pos
-        return hints
+        return HintBundle(hints=hints)

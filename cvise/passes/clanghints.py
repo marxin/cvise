@@ -8,6 +8,7 @@ from typing import Union
 
 from cvise.passes.abstract import BinaryState
 from cvise.passes.hint_based import HintBasedPass, HintState
+from cvise.utils.hint import HintBundle
 
 
 CLANG_STD_CHOICES = ('c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++2b')
@@ -45,17 +46,19 @@ class ClangHintsPass(HintBasedPass):
         # Choose the best standard unless the user provided one.
         std_choices = [self.user_clang_delta_std] if self.user_clang_delta_std else CLANG_STD_CHOICES
         best_std = None
-        best_hints = []
+        best_hints = None
         for std in std_choices:
             start = time.monotonic()
             hints = self.generate_hints_for_standard(test_case, std)
             took = time.monotonic() - start
             # prefer newer standard if the # of instances is equal
-            if len(hints) >= len(best_hints):
+            if best_hints is None or len(hints.hints) >= len(best_hints.hints):
                 best_std = std
                 best_hints = hints
-            logging.debug('available transformation opportunities for %s: %d, took: %.2f s' % (std, len(hints), took))
-        logging.info('using C++ standard: %s with %d transformation opportunities' % (best_std, len(best_hints)))
+            logging.debug(
+                'available transformation opportunities for %s: %d, took: %.2f s' % (std, len(hints.hints), took)
+            )
+        logging.info('using C++ standard: %s with %d transformation opportunities' % (best_std, len(best_hints.hints)))
 
         # Let the parent class complete the initialization, but create our own state to remember the chosen standard.
         hint_state = self.new_from_hints(best_hints, tmp_dir)
@@ -73,7 +76,7 @@ class ClangHintsPass(HintBasedPass):
         new_state = self.advance_on_success_from_hints(hints, state)
         return ClangState.wrap(new_state, state.clang_std)
 
-    def generate_hints_for_standard(self, test_case, std):
+    def generate_hints_for_standard(self, test_case, std) -> HintBundle:
         cmd = [
             self.external_programs['clang_delta'],
             f'--transformation={self.arg}',
@@ -90,4 +93,4 @@ class ClangHintsPass(HintBasedPass):
             for line in proc.stdout:
                 if not line.isspace():
                     hints.append(json.loads(line))
-        return hints
+        return HintBundle(hints=hints)

@@ -3,6 +3,7 @@ import subprocess
 from typing import Sequence
 
 from cvise.passes.hint_based import HintBasedPass
+from cvise.utils.hint import HintBundle
 
 
 class LinesPass(HintBasedPass):
@@ -16,7 +17,7 @@ class LinesPass(HintBasedPass):
         else:
             return self.generate_topformflat_hints(test_case)
 
-    def generate_hints_for_text_lines(self, test_case: str) -> Sequence[object]:
+    def generate_hints_for_text_lines(self, test_case: str) -> HintBundle:
         """Generate a hint per each line in the input as written."""
         hints = []
         with open(test_case) as in_file:
@@ -25,9 +26,9 @@ class LinesPass(HintBasedPass):
                 end_pos = file_pos + len(line)
                 hints.append({'p': [{'l': file_pos, 'r': end_pos}]})
             file_pos = end_pos
-        return hints
+        return HintBundle(hints=hints)
 
-    def generate_topformflat_hints(self, test_case: str) -> Sequence[object]:
+    def generate_topformflat_hints(self, test_case: str) -> HintBundle:
         """Generate hints via the modified topformflat tool.
 
         A single hint here is, roughly, a curly brace surrounded block at the
@@ -39,4 +40,4 @@ class LinesPass(HintBasedPass):
                 for line in proc.stdout:
                     if not line.isspace():
                         hints.append(json.loads(line))
-        return hints
+        return HintBundle(hints=hints)
