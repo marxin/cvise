@@ -70,6 +70,42 @@ def test_ctrl_c(tmp_path: Path):
         raise
 
 
+def test_interleaving_passes(tmp_path: Path):
+    """Test a pass group config with an interleaving category."""
+    config_path = tmp_path / 'config.json'
+    config_path.write_text("""
+        {"interleaving": [
+            {"pass": "lines", "arg": "0"},
+            {"pass": "lines", "arg": "1"},
+            {"pass": "lines", "arg": "2"}
+         ]
+        }""")
+
+    testcase_path = tmp_path / 'test.c'
+    testcase_path.write_text("""
+        int bar() {
+          return 42;
+        }
+        int foo() {
+          return bar();
+        }
+        int main() {
+          return foo();
+        }
+        """)
+    shutil.copy(testcase_path, '.')
+    copy_path = Path(testcase_path.name)
+
+    proc = start_cvise(
+        ['-c', 'gcc -c test.c && grep foo test.c', '--pass-group-file', config_path, testcase_path.name]
+    )
+    stdout, _ = proc.communicate()
+    assert proc.returncode == 0
+    assert copy_path.read_text() == """
+        int foo() {
+        }"""
+
+
 def test_apply_hints(tmp_path: Path):
     """Test the application of hints via the --action=apply-hints mode."""
     hints_path = tmp_path / 'hints.jsonl'
