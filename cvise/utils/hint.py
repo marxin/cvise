@@ -12,7 +12,7 @@ applied to all heuristics in a uniform way).
 from dataclasses import dataclass
 import json
 from pathlib import Path
-from typing import Any, List, Sequence, TextIO
+from typing import List, Sequence
 import zstandard
 
 
