@@ -47,6 +47,7 @@ def get_share_dir():
     share_dirs = [
         os.path.join('@CMAKE_INSTALL_FULL_DATADIR@', '@cvise_PACKAGE@'),
         destdir + os.path.join('@CMAKE_INSTALL_FULL_DATADIR@', '@cvise_PACKAGE@'),
+        os.path.join(script_path),
         os.path.join(script_path, 'cvise'),
     ]
 
