@@ -349,14 +349,14 @@ class TestManager:
 
         return ''.join(diffed_lines)
 
-    def check_sanity(self, verbose=False):
+    def check_sanity(self):
         logging.debug('perform sanity check... ')
 
         folder = Path(tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}sanity-'))
         test_env = TestEnvironment(None, 0, self.test_script, folder, list(self.test_cases)[0], self.test_cases, None)
         logging.debug(f'sanity check tmpdir = {test_env.folder}')
 
-        returncode = test_env.run_test(verbose)
+        returncode = test_env.run_test(verbose=True)
         if returncode == 0:
             rmfolder(folder)
             logging.debug('sanity check successful')
