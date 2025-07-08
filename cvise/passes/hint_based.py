@@ -61,21 +61,21 @@ class HintBasedPass(AbstractPass):
         hints = self.generate_hints(test_case)
         return self.advance_on_success_from_hints(hints, state)
 
-    def new_from_hints(self, hints: HintBundle, tmp_dir: str) -> Union[HintState, None]:
+    def new_from_hints(self, bundle: HintBundle, tmp_dir: str) -> Union[HintState, None]:
         """Creates a state for pre-generated hints.
 
         Can be used by subclasses which don't follow the typical approach with implementing generate_hints()."""
-        if not hints.hints:
+        if not bundle.hints:
             return None
         hints_file_path = tmp_dir / HINTS_FILE_NAME
-        store_hints(hints, hints_file_path)
-        return HintState.create(len(hints.hints), hints_file_path)
+        store_hints(bundle, hints_file_path)
+        return HintState.create(len(bundle.hints), hints_file_path)
 
-    def advance_on_success_from_hints(self, hints: HintBundle, state: HintState) -> Union[HintState, None]:
+    def advance_on_success_from_hints(self, bundle: HintBundle, state: HintState) -> Union[HintState, None]:
         """Advances the state after a successful reduction, given pre-generated hints.
 
         Can be used by subclasses which don't follow the typical approach with implementing generate_hints()."""
-        if not hints.hints:
+        if not bundle.hints:
             return None
-        store_hints(hints, state.hints_file_path)
-        return state.advance_on_success(len(hints.hints))
+        store_hints(bundle, state.hints_file_path)
+        return state.advance_on_success(len(bundle.hints))

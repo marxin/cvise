@@ -65,9 +65,9 @@ HINT_SCHEMA = {
 }
 
 
-def apply_hints(hints: HintBundle, file: Path) -> str:
+def apply_hints(bundle: HintBundle, file: Path) -> str:
     """Edits the file applying the specified hints to its contents."""
-    patches = sum((h['p'] for h in hints.hints), start=[])
+    patches = sum((h['p'] for h in bundle.hints), start=[])
     merged_patches = merge_overlapping_patches(patches)
 
     with open(file) as f:
@@ -89,13 +89,13 @@ def apply_hints(hints: HintBundle, file: Path) -> str:
     return new_data
 
 
-def store_hints(hints: HintBundle, hints_file_path: Path) -> None:
+def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
     """Serializes hints to the given file.
 
     We currently use the Zstandard compression to reduce the space usage (the empirical compression ratio observed for
     hint JSONs is around 5x..20x)."""
     with zstandard.open(hints_file_path, 'wt') as f:
-        for h in hints.hints:
+        for h in bundle.hints:
             # Skip checks and omit spaces around separators, for the sake of performance.
             json.dump(h, f, check_circular=False, separators=(',', ':'))
             f.write('\n')
