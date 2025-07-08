@@ -4,7 +4,7 @@ from typing import Dict, Sequence
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.tests.testabstract import collect_all_transforms, iterate_pass
-from cvise.utils.hint import HINT_SCHEMA
+from cvise.utils.hint import HintBundle, HINT_SCHEMA
 
 
 class StubHintBasedPass(HintBasedPass):
@@ -15,9 +15,10 @@ class StubHintBasedPass(HintBasedPass):
                 jsonschema.validate(hint, schema=HINT_SCHEMA)
         self.contents_to_hints = contents_to_hints
 
-    def generate_hints(self, test_case: Path) -> Sequence[object]:
+    def generate_hints(self, test_case: Path) -> HintBundle:
         contents = test_case.read_text()
-        return self.contents_to_hints.get(contents, [])
+        hints = self.contents_to_hints.get(contents, [])
+        return HintBundle(hints=hints)
 
 
 def test_hint_based_first_char_once(tmp_path: Path):

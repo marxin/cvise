@@ -1,9 +1,9 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import Sequence, Union
+from typing import Union
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
-from cvise.utils.hint import apply_hints, load_hints, store_hints
+from cvise.utils.hint import apply_hints, HintBundle, load_hints, store_hints
 
 HINTS_FILE_NAME = 'hints.jsonl.zst'
 
@@ -39,7 +39,7 @@ class HintBasedPass(AbstractPass):
     Provides default implementations of new/transform/advance operations, which only require the subclass to implement
     the generate_hints() method."""
 
-    def generate_hints(self, test_case: Path) -> Sequence[object]:
+    def generate_hints(self, test_case: Path) -> HintBundle:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'generate_hints'!")
 
     def new(self, test_case, tmp_dir, **kwargs):
@@ -61,21 +61,21 @@ class HintBasedPass(AbstractPass):
         hints = self.generate_hints(test_case)
         return self.advance_on_success_from_hints(hints, state)
 
-    def new_from_hints(self, hints: Sequence[object], tmp_dir: str) -> Union[HintState, None]:
+    def new_from_hints(self, bundle: HintBundle, tmp_dir: str) -> Union[HintState, None]:
         """Creates a state for pre-generated hints.
 
         Can be used by subclasses which don't follow the typical approach with implementing generate_hints()."""
-        if not hints:
+        if not bundle.hints:
             return None
         hints_file_path = tmp_dir / HINTS_FILE_NAME
-        store_hints(hints, hints_file_path)
-        return HintState.create(len(hints), hints_file_path)
+        store_hints(bundle, hints_file_path)
+        return HintState.create(len(bundle.hints), hints_file_path)
 
-    def advance_on_success_from_hints(self, hints: Sequence[object], state: HintState) -> Union[HintState, None]:
+    def advance_on_success_from_hints(self, bundle: HintBundle, state: HintState) -> Union[HintState, None]:
         """Advances the state after a successful reduction, given pre-generated hints.
 
         Can be used by subclasses which don't follow the typical approach with implementing generate_hints()."""
-        if not hints:
+        if not bundle.hints:
             return None
-        store_hints(hints, state.hints_file_path)
-        return state.advance_on_success(len(hints))
+        store_hints(bundle, state.hints_file_path)
+        return state.advance_on_success(len(bundle.hints))

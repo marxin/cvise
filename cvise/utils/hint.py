@@ -9,10 +9,27 @@ heuristics and to perform reduction more efficiently (as algorithms can now be
 applied to all heuristics in a uniform way).
 """
 
+from dataclasses import dataclass
 import json
 from pathlib import Path
-from typing import Sequence
+from typing import List, Sequence
 import zstandard
+
+
+@dataclass
+class HintBundle:
+    """Stores a collection of hints.
+
+    Its standard serialization format is a newline-separated JSON of the following structure:
+
+      <Hint 1 object>\n
+      <Hint 2 object>\n
+      ...
+    """
+
+    # Hint objects - each item matches the `HINT_SCHEMA`.
+    hints: List[object]
+
 
 # JSON Schemas:
 
@@ -48,9 +65,9 @@ HINT_SCHEMA = {
 }
 
 
-def apply_hints(hints: Sequence[object], file: Path) -> str:
+def apply_hints(bundle: HintBundle, file: Path) -> str:
     """Edits the file applying the specified hints to its contents."""
-    patches = sum((h['p'] for h in hints), start=[])
+    patches = sum((h['p'] for h in bundle.hints), start=[])
     merged_patches = merge_overlapping_patches(patches)
 
     with open(file) as f:
@@ -72,19 +89,19 @@ def apply_hints(hints: Sequence[object], file: Path) -> str:
     return new_data
 
 
-def store_hints(hints: Sequence[object], hints_file_path: Path) -> None:
+def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
     """Serializes hints to the given file.
 
     We currently use the Zstandard compression to reduce the space usage (the empirical compression ratio observed for
     hint JSONs is around 5x..20x)."""
     with zstandard.open(hints_file_path, 'wt') as f:
-        for h in hints:
+        for h in bundle.hints:
             # Skip checks and omit spaces around separators, for the sake of performance.
             json.dump(h, f, check_circular=False, separators=(',', ':'))
             f.write('\n')
 
 
-def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> Sequence[object]:
+def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintBundle:
     """Deserializes hints with the given indices [begin; end) from a file.
 
     Whether the hints file is compressed is determined based on the file extension."""
@@ -97,7 +114,7 @@ def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> Seque
                     hints.append(json.loads(line))
                 except json.decoder.JSONDecodeError as e:
                     raise RuntimeError(f'Failed to decode line "{line}": {e}') from e
-    return hints
+    return HintBundle(hints=hints)
 
 
 def merge_overlapping_patches(patches: Sequence[object]) -> Sequence[object]:
