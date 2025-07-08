@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+from contextlib import nullcontext
 import datetime
 import importlib.util
 from itertools import chain
@@ -475,7 +476,7 @@ def do_reduce(args):
         print(err)
     else:
         time_stop = time.monotonic()
-        with open(args.log_file, 'a') if args.log_file else sys.stderr as fs:
+        with open(args.log_file, 'a') if args.log_file else nullcontext(sys.stderr) as fs:
             fs.write('===< PASS statistics >===\n')
             fs.write(
                 '  %-60s %8s %8s %8s %8s %15s\n'
