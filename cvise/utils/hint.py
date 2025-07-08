@@ -31,7 +31,8 @@ class HintBundle:
     # Hint objects - each item matches the `HINT_SCHEMA`.
     hints: List[object]
     # Strings that hints can refer to.
-    vocabulary: List[str] = field(default_factory=list)  # default to an empty list
+    # Note: a simple "= []" wouldn't be suitable because mutable default values are error-prone in Python.
+    vocabulary: List[str] = field(default_factory=list)
 
 
 # JSON Schemas:

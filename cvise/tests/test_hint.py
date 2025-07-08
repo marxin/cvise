@@ -120,31 +120,31 @@ def test_apply_hints_delete_nested(tmp_file):
 
 def test_apply_hints_replace_with_shorter(tmp_file):
     """Test a hint replacing a fragment with a shorter value."""
-    tmp_file.write_text('Foo bar baz')
-    vocab = ['x']
-    hint = {'p': [{'l': 4, 'r': 7, 'v': 0}]}
+    tmp_file.write_text('Foo foobarbaz baz')
+    vocab = ['xyz']
+    hint = {'p': [{'l': 4, 'r': 13, 'v': 0}]}
     jsonschema.validate(hint, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=[hint])
 
     new_data = apply_hints(bundle, tmp_file)
 
-    assert new_data == 'Foo x baz'
+    assert new_data == 'Foo xyz baz'
 
 
 def test_apply_hints_replace_with_longer(tmp_file):
     """Test a hint replacing a fragment with a longer value."""
     tmp_file.write_text('Foo x baz')
-    vocab = ['x', 'bar']
+    vocab = ['z', 'abacaba']
     hint = {'p': [{'l': 4, 'r': 5, 'v': 1}]}
     jsonschema.validate(hint, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=[hint])
 
     new_data = apply_hints(bundle, tmp_file)
 
-    assert new_data == 'Foo bar baz'
+    assert new_data == 'Foo abacaba baz'
 
 
-def test_apply_hints_replacement_discarded_inside_deletion(tmp_file):
+def test_apply_hints_replacement_inside_deletion(tmp_file):
     """Test that a replacement is a no-op if happening inside a to-be-deleted fragment."""
     tmp_file.write_text('Foo bar baz')
     vocab = ['x']
@@ -160,7 +160,7 @@ def test_apply_hints_replacement_discarded_inside_deletion(tmp_file):
     assert new_data == 'Foo  baz'
 
 
-def test_apply_hints_deletion_discarded_inside_replacement(tmp_file):
+def test_apply_hints_deletion_inside_replacement(tmp_file):
     """Test that a deletion is a no-op if happening inside a to-be-replaced fragment."""
     tmp_file.write_text('Foo bar baz')
     vocab = ['some']
@@ -176,8 +176,11 @@ def test_apply_hints_deletion_discarded_inside_replacement(tmp_file):
     assert new_data == 'Foo some baz'
 
 
-def test_apply_hints_replacement_superseded_by_same_pos_deletion(tmp_file):
-    """Test that a deletion takes precedence over a replacement in the same location."""
+def test_apply_hints_replacement_of_deleted_prefix(tmp_file):
+    """Test that a deletion takes precedence over a replacement of the same substring's prefix.
+
+    This covers the specific implementation detail of conflict resolution, beyond the simple rule "the leftmost hint
+    wins in a group of overlapping hints" that'd suffice for other tests."""
     tmp_file.write_text('Foo bar baz')
     vocab = ['x']
     hint1 = {'p': [{'l': 4, 'r': 5, 'v': 0}]}  # replaces "b" with "x" in "bar"
