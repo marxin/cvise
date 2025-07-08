@@ -18,10 +18,6 @@ PARALLEL_TESTS = 10
 
 
 class StubPass(AbstractPass):
-    def __init__(self):
-        super().__init__()
-        self.max_transforms = None
-
     def new(self, test_case, **kwargs):
         return 0
 
