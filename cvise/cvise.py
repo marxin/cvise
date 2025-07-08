@@ -156,7 +156,6 @@ class CVise:
                     raise CViseError('Unknown pass {}'.format(pass_dict['pass'])) from None
 
                 pass_instance = pass_class(pass_dict.get('arg'), external_programs)
-                pass_instance.max_transforms = None
                 if str(pass_instance) in removed_passes:
                     continue
 

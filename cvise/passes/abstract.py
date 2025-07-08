@@ -71,6 +71,7 @@ class AbstractPass:
     def __init__(self, arg=None, external_programs=None):
         self.external_programs = external_programs
         self.arg = arg
+        self.max_transforms = None
 
     def __repr__(self):
         if self.arg is not None:
