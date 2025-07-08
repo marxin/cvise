@@ -95,7 +95,7 @@ def apply_hints(bundle: HintBundle, file: Path) -> str:
         start_pos = right
         # Insert the replacement value, if provided.
         if 'v' in p:
-            new_data += hints.vocabulary[p['v']]
+            new_data += bundle.vocabulary[p['v']]
     # Add the unmodified chunk after the last patch end.
     new_data += orig_data[start_pos:]
     return new_data
