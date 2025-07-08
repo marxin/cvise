@@ -26,9 +26,8 @@
 // Helper for generating reduction hints - for the background and data format,
 // see //cvise/utils/hint.py.
 //
-// Intended usage:
+// Intended usage for generating a hint (with one or multiple patches):
 //
-//   // Generating a hint with one or multiple patches:
 //   {
 //     auto Scope = Builder.MakeHintScope();
 //     Builder.AddPatch(...);
