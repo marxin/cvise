@@ -349,14 +349,14 @@ class TestManager:
 
         return ''.join(diffed_lines)
 
-    def check_sanity(self, verbose=False):
+    def check_sanity(self):
         logging.debug('perform sanity check... ')
 
         folder = Path(tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}sanity-'))
         test_env = TestEnvironment(None, 0, self.test_script, folder, list(self.test_cases)[0], self.test_cases, None)
         logging.debug(f'sanity check tmpdir = {test_env.folder}')
 
-        returncode = test_env.run_test(verbose)
+        returncode = test_env.run_test(verbose=True)
         if returncode == 0:
             rmfolder(folder)
             logging.debug('sanity check successful')
@@ -606,11 +606,7 @@ class TestManager:
                 self.states = []
                 for pass_id, pass_ in enumerate(self.current_passes):
                     start_time = time.monotonic()
-                    self.states.append(
-                        pass_.new(
-                            self.current_test_case, check_sanity=self.check_sanity, tmp_dir=Path(self.roots[pass_id])
-                        )
-                    )
+                    self.states.append(pass_.new(self.current_test_case, tmp_dir=Path(self.roots[pass_id])))
                     self.pass_statistic.add_initialized(pass_, start_time)
                 self.skip = False
 

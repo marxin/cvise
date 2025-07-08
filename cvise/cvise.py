@@ -184,7 +184,7 @@ class CVise:
     def reduce(self, pass_group, skip_initial):
         self._check_prerequisites(pass_group)
         if not self.skip_interestingness_test_check:
-            self.test_manager.check_sanity(True)
+            self.test_manager.check_sanity()
 
         logging.info(f'===< {os.getpid()} >===')
         logging.info(
