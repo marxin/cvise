@@ -76,11 +76,10 @@ std::vector<std::string> HintsBuilder::GetHintJsons() const {
     for (const auto &P : H.Patches) {
       if (!Array.empty())
         Array += ",";
-      std::string Fields = llvm::formatv(R"txt("l":{0},"r":{1})txt", P.L, P.R);
-      if (P.V.has_value())
-        Fields += llvm::formatv(R"txt(,"v":{0})txt", *P.V);
       Array += '{';
-      Array += std::move(Fields);
+      Array += llvm::formatv(R"txt("l":{0},"r":{1})txt", P.L, P.R);
+      if (P.V.has_value())
+        Array += llvm::formatv(R"txt(,"v":{0})txt", *P.V);
       Array += '}';
     }
     Jsons.push_back(llvm::formatv(R"txt({{"p":[{0}]})txt", Array));
