@@ -1,12 +1,10 @@
 import json
 import logging
-from pathlib import Path
 import shlex
 import subprocess
 import time
 from typing import Union
 
-from cvise.passes.abstract import BinaryState
 from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.hint import HintBundle
 
