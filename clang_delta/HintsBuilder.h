@@ -37,6 +37,7 @@ public:
 
   void ReverseOrder();
 
+  std::string GetVocabularyJson() const;
   std::vector<std::string> GetHintJsons() const;
 
 private:

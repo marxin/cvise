@@ -9,10 +9,10 @@ heuristics and to perform reduction more efficiently (as algorithms can now be
 applied to all heuristics in a uniform way).
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 from pathlib import Path
-from typing import List, Sequence
+from typing import Any, List, Sequence, TextIO
 import zstandard
 
 
@@ -22,6 +22,7 @@ class HintBundle:
 
     Its standard serialization format is a newline-separated JSON of the following structure:
 
+      <Vocabulary array>\n
       <Hint 1 object>\n
       <Hint 2 object>\n
       ...
@@ -29,6 +30,9 @@ class HintBundle:
 
     # Hint objects - each item matches the `HINT_SCHEMA`.
     hints: List[object]
+    # Strings that hints can refer to.
+    # Note: a simple "= []" wouldn't be suitable because mutable default values are error-prone in Python.
+    vocabulary: List[str] = field(default_factory=list)
 
 
 # JSON Schemas:
@@ -45,6 +49,11 @@ HINT_PATCH_SCHEMA = {
         'r': {
             'description': "Right position of the chunk (index of the next character in the text after the chunk's last character). Must be greater than 'l'.",
             'type': 'integer',
+        },
+        'v': {
+            'description': 'Indicates that the chunk needs to be replaced with a new value - the string with the specified index in the vocabulary.',
+            'type': 'integer',
+            'minimum': 0,
         },
     },
     'required': ['l', 'r'],
@@ -82,8 +91,11 @@ def apply_hints(bundle: HintBundle, file: Path) -> str:
         assert left < right <= len(orig_data)
         # Add the unmodified chunk up to the current patch begin.
         new_data += orig_data[start_pos:left]
-        # Delete the chunk inside the current patch.
+        # Skip the original chunk inside the current patch.
         start_pos = right
+        # Insert the replacement value, if provided.
+        if 'v' in p:
+            new_data += bundle.vocabulary[p['v']]
     # Add the unmodified chunk after the last patch end.
     new_data += orig_data[start_pos:]
     return new_data
@@ -95,9 +107,10 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
     We currently use the Zstandard compression to reduce the space usage (the empirical compression ratio observed for
     hint JSONs is around 5x..20x)."""
     with zstandard.open(hints_file_path, 'wt') as f:
+        write_compact_json(bundle.vocabulary, f)
+        f.write('\n')
         for h in bundle.hints:
-            # Skip checks and omit spaces around separators, for the sake of performance.
-            json.dump(h, f, check_circular=False, separators=(',', ':'))
+            write_compact_json(h, f)
             f.write('\n')
 
 
@@ -108,20 +121,40 @@ def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintB
     assert begin_index < end_index
     hints = []
     with zstandard.open(hints_file_path, 'rt') if hints_file_path.suffix == '.zst' else open(hints_file_path) as f:
+        vocab = try_parse_json_line(next(f))
+        # Do a lightweight check that'd catch a basic mistake (a hint object coming instead of a vocabulary array). We
+        # don't want to perform full type/schema checking during loading due to performance concerns.
+        if not isinstance(vocab, list):
+            raise RuntimeError(f'Failed to read hint vocabulary: expected array, instead got: {vocab}')
+
         for i, line in enumerate(f):
             if begin_index <= i < end_index:
-                try:
-                    hints.append(json.loads(line))
-                except json.decoder.JSONDecodeError as e:
-                    raise RuntimeError(f'Failed to decode line "{line}": {e}') from e
-    return HintBundle(hints=hints)
+                hints.append(try_parse_json_line(line))
+    return HintBundle(hints=hints, vocabulary=vocab)
+
+
+def write_compact_json(value: Any, file: TextIO) -> str:
+    """Writes a JSON dump, as a compact representation (without unnecessary spaces), to the file.
+
+    Skips circular structure checks, for performance reasons."""
+    # Specify custom separators - the default ones have spaces after them.
+    return json.dump(value, file, check_circular=False, separators=(',', ':'))
+
+
+def try_parse_json_line(text: str) -> Any:
+    try:
+        return json.loads(text)
+    except json.decoder.JSONDecodeError as e:
+        raise RuntimeError(f'Failed to decode line "{text}": {e}') from e
 
 
 def merge_overlapping_patches(patches: Sequence[object]) -> Sequence[object]:
     """Returns non-overlapping hint patches, merging patches where necessary."""
 
     def sorting_key(patch):
-        return patch['l']
+        is_replacement = 'v' in patch
+        # Among all patches starting in the same location, deletion should take precedence over text replacement.
+        return patch['l'], is_replacement
 
     merged = []
     for patch in sorted(patches, key=sorting_key):
