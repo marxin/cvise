@@ -149,7 +149,7 @@ def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
         type = bundle.vocabulary[h['t']] if 't' in h else ''
         if type not in grouped:
             grouped[type] = HintBundle(vocabulary=bundle.vocabulary, hints=[])
-        # FIXME: drop the 't' property in favor of storing it in the bundle's preamble
+        # FIXME: drop the 't' property in favor of storing it once, in the bundle's preamble
         grouped[type].hints.append(h)
     return grouped
 

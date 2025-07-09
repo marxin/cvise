@@ -109,11 +109,7 @@ def test_hint_based_state_iteration(tmp_path: Path):
 
 
 def test_hint_based_multiple_types(tmp_path: Path):
-    """Test advancing through hints of multiple types.
-
-    Unlike iterate_pass-based tests which pretend that any transformation leads
-    to a successful interestingness test and proceed immediately, here we
-    verify how different hints are attempted."""
+    """Test advancing through hints of multiple types."""
     vocab = ['space_removal', 'b_removal']
     hint_space1 = {'t': 0, 'p': [{'l': 3, 'r': 4}]}
     hint_space2 = {'t': 0, 'p': [{'l': 7, 'r': 8}]}
