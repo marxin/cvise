@@ -41,8 +41,8 @@ public:
   class [[nodiscard]] HintScope {
   public:
     ~HintScope();
-    HintScope(const HintScope&) = delete;
-    HintScope& operator=(const HintScope&) = delete;
+    HintScope(const HintScope &) = delete;
+    HintScope &operator=(const HintScope &) = delete;
 
   private:
     friend class HintsBuilder;

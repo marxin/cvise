@@ -43,9 +43,8 @@ void HintsBuilder::AddPatch(clang::SourceLocation L, int64_t Len,
   Patch P;
   P.L = SourceMgr.getFileOffset(L);
   P.R = P.L + Len;
-  if (!Replacement.empty()) {
+  if (!Replacement.empty())
     P.V = LookupOrCreateVocabId(Replacement);
-  }
   CurrentHint.Patches.push_back(P);
 }
 
@@ -78,9 +77,8 @@ std::vector<std::string> HintsBuilder::GetHintJsons() const {
       if (!Array.empty())
         Array += ",";
       std::string Fields = llvm::formatv(R"txt("l":{0},"r":{1})txt", P.L, P.R);
-      if (P.V.has_value()) {
+      if (P.V.has_value())
         Fields += llvm::formatv(R"txt(,"v":{0})txt", *P.V);
-      }
       Array += '{';
       Array += std::move(Fields);
       Array += '}';
@@ -106,9 +104,8 @@ int64_t HintsBuilder::LookupOrCreateVocabId(const std::string &S) {
   // but we assume the number of unique replacement strings in clang_delta to
   // be small.
   auto It = std::find(Vocab.begin(), Vocab.end(), S);
-  if (It != Vocab.end()) {
+  if (It != Vocab.end())
     return static_cast<int64_t>(It - Vocab.begin());
-  }
   Vocab.push_back(S);
   return static_cast<int64_t>(Vocab.size() - 1);
 }
