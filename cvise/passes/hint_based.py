@@ -2,7 +2,7 @@ from __future__ import annotations
 from copy import copy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, Union
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 from cvise.utils.hint import apply_hints, group_hints_by_type, HintBundle, load_hints, store_hints
@@ -156,7 +156,7 @@ class HintBasedPass(AbstractPass):
         if not bundle.hints:
             return None
         type_to_bundle = group_hints_by_type(bundle)
-        type_to_file_name = store_hints_per_type(state.tmp_dir, type_to_bundle)
+        store_hints_per_type(state.tmp_dir, type_to_bundle)
         return state.advance_on_success(type_to_bundle)
 
 
