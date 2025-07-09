@@ -12,7 +12,7 @@ applied to all heuristics in a uniform way).
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
-from typing import Any, List, Sequence, TextIO
+from typing import Any, Dict, List, Sequence, TextIO
 import zstandard
 
 
@@ -41,6 +41,15 @@ HINT_PATCH_SCHEMA = {
     'description': 'Hint patch object. By default, unless a specific property is specified, the object denotes a simple deletion of the specified chunk.',
     'type': 'object',
     'properties': {
+        't': {
+            'description': (
+                'Indicates the type of the hint, as an index in the vocabulary. The purpose of the type is to let a '
+                'pass split hints into distinct groups, to guide the generic logic that attempts taking consecutive '
+                'ranges of same-typed hints.'
+            ),
+            'type': 'integer',
+            'minimum': 0,
+        },
         'l': {
             'description': 'Left position of the chunk (position is an index of the character in the text)',
             'type': 'integer',
@@ -131,6 +140,18 @@ def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintB
             if begin_index <= i < end_index:
                 hints.append(try_parse_json_line(line))
     return HintBundle(hints=hints, vocabulary=vocab)
+
+
+def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
+    """Splits the bundle into multiple, one per each hint type."""
+    grouped: Dict[str, HintBundle] = {}
+    for h in bundle.hints:
+        type = bundle.vocabulary[h['t']] if 't' in h else ''
+        if type not in grouped:
+            grouped[type] = HintBundle(vocabulary=bundle.vocabulary, hints=[])
+        # FIXME: drop the 't' property in favor of storing it once, in the bundle's preamble
+        grouped[type].hints.append(h)
+    return grouped
 
 
 def write_compact_json(value: Any, file: TextIO) -> str:
