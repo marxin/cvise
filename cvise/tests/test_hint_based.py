@@ -1,6 +1,6 @@
 import jsonschema
 from pathlib import Path
-from typing import Dict, Sequence
+from typing import Dict, List, Sequence, Union
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.tests.testabstract import collect_all_transforms, iterate_pass
@@ -8,17 +8,18 @@ from cvise.utils.hint import HintBundle, HINT_SCHEMA
 
 
 class StubHintBasedPass(HintBasedPass):
-    def __init__(self, contents_to_hints: Dict[str, Sequence[object]]):
+    def __init__(self, contents_to_hints: Dict[str, Sequence[object]], vocabulary: Union[List[str], None] = None):
         super().__init__()
         for hints in contents_to_hints.values():
             for hint in hints:
                 jsonschema.validate(hint, schema=HINT_SCHEMA)
         self.contents_to_hints = contents_to_hints
+        self.vocabulary = vocabulary or []
 
     def generate_hints(self, test_case: Path) -> HintBundle:
         contents = test_case.read_text()
         hints = self.contents_to_hints.get(contents, [])
-        return HintBundle(hints=hints)
+        return HintBundle(vocabulary=self.vocabulary, hints=hints)
 
 
 def test_hint_based_first_char_once(tmp_path: Path):
@@ -105,3 +106,33 @@ def test_hint_based_state_iteration(tmp_path: Path):
     assert 'abf' in all_transforms  # 2345 applied (also 45+2345, with the same result)
     assert ' def' in all_transforms  # 01+12 applied
     assert 'f' in all_transforms  # all hints applied
+
+
+def test_hint_based_multiple_types(tmp_path: Path):
+    """Test advancing through hints of multiple types.
+
+    Unlike iterate_pass-based tests which pretend that any transformation leads
+    to a successful interestingness test and proceed immediately, here we
+    verify how different hints are attempted."""
+    vocab = ['space_removal', 'b_removal']
+    hint_space1 = {'t': 0, 'p': [{'l': 3, 'r': 4}]}
+    hint_space2 = {'t': 0, 'p': [{'l': 7, 'r': 8}]}
+    hint_b1 = {'t': 1, 'p': [{'l': 1, 'r': 2}]}
+    hint_b2 = {'t': 1, 'p': [{'l': 6, 'r': 7}]}
+    pass_ = StubHintBasedPass(
+        {
+            'aba cab a': [hint_b1, hint_space1, hint_b2, hint_space2],
+        },
+        vocabulary=vocab,
+    )
+    test_case = tmp_path / 'input.txt'
+    test_case.write_text('aba cab a')
+
+    state = pass_.new(test_case, tmp_dir=tmp_path)
+    all_transforms = collect_all_transforms(pass_, state, test_case)
+    assert 'abacab a' in all_transforms  # space1 applied
+    assert 'aba caba' in all_transforms  # space2 applied
+    assert 'abacaba' in all_transforms  # space1&2 applied
+    assert 'aa cab a' in all_transforms  # hint_b1 applied
+    assert 'aba ca a' in all_transforms  # hint_b2 applied
+    assert 'aa ca a' in all_transforms  # hint_b1&2 applied

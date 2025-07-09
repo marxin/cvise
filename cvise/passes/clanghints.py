@@ -19,15 +19,14 @@ class ClangState(HintState):
 
     See the comment in ClangHintsPass for the background."""
 
-    def __init__(self, clang_std: str, hint_count: int, hints_file_path: Path, binary_state: BinaryState):
-        super().__init__(hint_count, hints_file_path, binary_state)
-        self.clang_std = clang_std
-
     @staticmethod
     def wrap(parent: Union[HintState, None], clang_std: str) -> Union[HintState, None]:
         if parent is None:
             return None
-        return ClangState(clang_std, parent.hint_count, parent.hints_file_path, parent.binary_state)
+        wrapped = object.__new__(ClangState)
+        wrapped.__dict__.update(parent.__dict__)
+        wrapped.clang_std = clang_std
+        return wrapped
 
 
 class ClangHintsPass(HintBasedPass):
