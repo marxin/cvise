@@ -101,8 +101,8 @@ void HintsBuilder::FinishCurrentHint() {
 
 int64_t HintsBuilder::LookupOrCreateVocabId(const std::string &S) {
   // This implementation adds up to being quadratic of the size of vocabulary,
-  // but we assume the number of unique replacement strings in clang_delta to
-  // be small.
+  // but we assume the number of unique replacement strings in clang_delta to be
+  // small.
   auto It = std::find(Vocab.begin(), Vocab.end(), S);
   if (It != Vocab.end())
     return static_cast<int64_t>(It - Vocab.begin());
