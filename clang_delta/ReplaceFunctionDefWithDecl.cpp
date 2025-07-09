@@ -116,8 +116,9 @@ void ReplaceFunctionDefWithDecl::removeCtorInitializers(
   // struct B : NS::A { B() : NS::A() {} };
   SourceLocation Loc = RewriteHelper->getLocationFromLeftUntil(LocStart, ':');
   Loc = RewriteHelper->getLocationFromLeftUntil(Loc, ')');
-  TheRewriter.RemoveText(SourceRange(Loc.getLocWithOffset(1), 
-                                     LocStart.getLocWithOffset(-1)));
+  SourceRange AfterBracket(Loc.getLocWithOffset(1), LocStart.getLocWithOffset(-1));
+  TheRewriter.RemoveText(AfterBracket);
+  Hints->AddPatch(AfterBracket);
   CXXConstructorDecl::init_const_iterator E = Ctor->init_end();
   --E;
   while (!(*E)->isWritten())
@@ -125,7 +126,9 @@ void ReplaceFunctionDefWithDecl::removeCtorInitializers(
   const CXXCtorInitializer *LastInit = (*E);
   TransAssert(LastInit->isWritten() && "Init is not written!");
   SourceLocation LocEnd = LastInit->getSourceRange().getEnd();
-  TheRewriter.RemoveText(SourceRange(LocStart, LocEnd));
+  SourceRange Inits(LocStart, LocEnd);
+  TheRewriter.RemoveText(Inits);
+  Hints->AddPatch(Inits);
 }
 
 bool ReplaceFunctionDefWithDecl::hasValidOuterLocStart(
@@ -145,9 +148,10 @@ bool ReplaceFunctionDefWithDecl::removeOneInlineKeyword(
        const SourceLocation &StartLoc)
 {
   if (!Str.compare(0, LeadingInlineStr.length(), LeadingInlineStr)) {
-    TheRewriter.RemoveText(SourceRange(
-                  StartLoc,
-                  StartLoc.getLocWithOffset(LeadingInlineStr.length() - 1)));
+    SourceRange R(StartLoc,
+                  StartLoc.getLocWithOffset(LeadingInlineStr.length() - 1));
+    TheRewriter.RemoveText(R);
+    Hints->AddPatch(R);
     return true;
   }
 
@@ -155,9 +159,10 @@ bool ReplaceFunctionDefWithDecl::removeOneInlineKeyword(
   if (Off == std::string::npos)
     return false;
 
-  TheRewriter.RemoveText(SourceRange(
-                StartLoc.getLocWithOffset(Off),
-                StartLoc.getLocWithOffset(Off + InlineStr.length() - 1)));
+  SourceRange R(StartLoc.getLocWithOffset(Off),
+                StartLoc.getLocWithOffset(Off + InlineStr.length() - 1));
+  TheRewriter.RemoveText(R);
+  Hints->AddPatch(R);
   return true;
 }
 
@@ -198,7 +203,9 @@ void ReplaceFunctionDefWithDecl::removeStringBeforeTypeIdentifier(
   }
   EndPos++;
   assert((EndPos != StartPos) && "Bad Type Location?");
-  TheRewriter.RemoveText(StartLoc, EndPos - StartPos);
+  ptrdiff_t Len = EndPos - StartPos;
+  TheRewriter.RemoveText(StartLoc, Len);
+  Hints->AddPatch(StartLoc, Len);
 }
 
 void ReplaceFunctionDefWithDecl::removeInlineKeywordFromOneFunctionDecl(
@@ -241,6 +248,8 @@ void ReplaceFunctionDefWithDecl::removeInlineKeywordFromFunctionDecls(
 void ReplaceFunctionDefWithDecl::rewriteOneFunctionDef(
        const FunctionDecl *FD)
 {
+  auto HintScope = Hints->MakeHintScope();
+
   const CXXMethodDecl *CXXMD = dyn_cast<CXXMethodDecl>(FD);
   if (!CXXMD) {
     RewriteHelper->replaceFunctionDefWithStr(FD, ";");
@@ -264,7 +273,9 @@ void ReplaceFunctionDefWithDecl::rewriteOneFunctionDef(
       //   template <typename T> struct S {template <typename T1> void foo();};
       //   template<typename T> template<typename T1> void S<T>::foo() { }
       if (!hasValidOuterLocStart(FTD, FD)) {
-        TheRewriter.RemoveText(FTD->getSourceRange());
+        auto R = FTD->getSourceRange();
+        TheRewriter.RemoveText(R);
+        Hints->AddPatch(R);
         return;
       }
     }
@@ -275,6 +286,7 @@ void ReplaceFunctionDefWithDecl::rewriteOneFunctionDef(
       LocStart = SrcManager->getFileLoc(LocStart);
     }
     TheRewriter.RemoveText(SourceRange(LocStart, LocEnd));
+    Hints->AddPatch(SourceRange(LocStart, LocEnd));
     return;
   }
 
@@ -294,7 +306,13 @@ void ReplaceFunctionDefWithDecl::doRewriting()
     return;
   }
 
-  TransAssert((TransformationCounter <= 
+  if (ToCounter == std::numeric_limits<int>::max()) {
+    // This special value denotes performing all possible transforms.
+    ToCounter = static_cast<int>(AllValidFunctionDefs.size());
+    if (!ToCounter)
+      return;
+  }
+  TransAssert((TransformationCounter <=
                  static_cast<int>(AllValidFunctionDefs.size())) &&
               "TransformationCounter is larger than the number of defs!");
   TransAssert((ToCounter <= static_cast<int>(AllValidFunctionDefs.size())) &&
@@ -310,6 +328,10 @@ void ReplaceFunctionDefWithDecl::doRewriting()
     TransAssert(FD && "NULL FunctionDecl!");
     rewriteOneFunctionDef(FD);
   }
+
+  // The loop above processes functions in the reverse order, but hints need to
+  // be emitted in the right order.
+  Hints->ReverseOrder();
 }
 
 void ReplaceFunctionDefWithDecl::addOneFunctionDef(const FunctionDecl *FD)

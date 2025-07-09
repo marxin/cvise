@@ -682,6 +682,8 @@ void RemoveUnusedFunction::removeMemberSpecializations(const FunctionDecl *FD)
 
 void RemoveUnusedFunction::removeOneFunctionDeclGroup(const FunctionDecl *FD)
 {
+  auto HintScope = Hints->MakeHintScope();
+
   for (FunctionDecl::redecl_iterator RI = FD->redecls_begin(),
        RE = FD->redecls_end(); RI != RE; ++RI) {
     const FunctionDecl *FDecl = (*RI);
@@ -711,8 +713,6 @@ void RemoveUnusedFunction::removeOneFunctionDeclGroup(const FunctionDecl *FD)
       RewriteHelper->removeDecl((*I).first);
     }
   }
-
-  Hints->FinishCurrentHint();
 }
 
 bool RemoveUnusedFunction::hasAtLeastOneValidLocation(const FunctionDecl *FD)

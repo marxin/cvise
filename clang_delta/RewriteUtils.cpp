@@ -1579,7 +1579,9 @@ bool RewriteUtils::replaceFunctionDefWithStr(const FunctionDecl *FD,
   SourceLocation EndLoc = Range.getEnd();
   if (EndLoc.isMacroID())
     EndLoc = SrcManager->getExpansionLoc(EndLoc);
-  return !TheRewriter->ReplaceText(SourceRange(StartLoc, EndLoc), Str);
+  SourceRange R(StartLoc, EndLoc);
+  Hints->AddPatch(R, Str);
+  return !TheRewriter->ReplaceText(R, Str);
 }
 
 // FIXME: probably we don't need this function, because we could use 
