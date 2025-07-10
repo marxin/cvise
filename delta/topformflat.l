@@ -66,9 +66,9 @@ int whitespace_end_pos = -1;
    * start of the line with possible leading whitespaces, a hash, then some non-newlines.
    * then, possibly, an escaped newline followed by more non-newlines (repeat as needed).
    * finally, a newline */
-("\n"|^)[[:blank:]]*"#".*("\\\n".*)*"\n" {
+^[[:blank:]]*"#".*("\\\n".*)*"\n" {
                 int start_pos = token_end_pos - yyleng;
-                possibleChunkEnd(start_pos);                /* make sure starts on own line */
+                possibleChunkEnd(start_pos - 1);            /* make sure starts on own line */
                 possibleChunkEnd(token_end_pos - 1);        /* minus one to preserve the newline */
                 possibleChunkBegin(token_end_pos);          /* don't eat the newline in the subsequent chunk */
               }
@@ -91,7 +91,7 @@ int whitespace_end_pos = -1;
   (.|\n)      {  }                                          /* ordinary char */
 }
 
-\n            |                                             /* line break, not matched in any other rule */
+"\n"          |                                             /* line break, not matched in any other rule */
 [[:blank:]]+  {                                             /* chunk of whitespaces */
                 int token_start_pos = token_end_pos - yyleng;
                 // Start a new whitespace block, unless the previous one is to be continued.

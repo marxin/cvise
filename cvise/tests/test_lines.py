@@ -430,6 +430,7 @@ def test_macro_level0(tmp_path, input_path):
     write_file(
         input_path,
         """
+        #ifndef FOO
         #define FOO
         int x;
         FOO
@@ -441,9 +442,22 @@ def test_macro_level0(tmp_path, input_path):
     p, state = init_pass('0', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
+    # "#ifndef FOO" deleted
+    assert (
+        """
+        #define FOO
+        int x;
+        FOO
+        #define BAR \\
+          FOO 42
+        int y;
+        """
+        in all_transforms
+    )
     # "#define FOO" deleted
     assert (
         """
+        #ifndef FOO
         int x;
         FOO
         #define BAR \\
@@ -455,6 +469,7 @@ def test_macro_level0(tmp_path, input_path):
     # "int x" deleted
     assert (
         """
+        #ifndef FOO
         #define FOO
 
         FOO
@@ -467,6 +482,7 @@ def test_macro_level0(tmp_path, input_path):
     # FOO usage deleted
     assert (
         """
+        #ifndef FOO
         #define FOO
         int x;
         #define BAR \\
@@ -478,6 +494,7 @@ def test_macro_level0(tmp_path, input_path):
     # "#define BAR" deleted
     assert (
         """
+        #ifndef FOO
         #define FOO
         int x;
         FOO
@@ -488,6 +505,7 @@ def test_macro_level0(tmp_path, input_path):
     # "int y" deleted
     assert (
         """
+        #ifndef FOO
         #define FOO
         int x;
         FOO
@@ -561,6 +579,45 @@ def test_nested_macro_level1(tmp_path, input_path):
         #define AFIELD foo
           AFIELD
         };
+        """
+        in all_transforms
+    )
+
+
+def test_hash_character_not_macro_start(tmp_path, input_path):
+    write_file(
+        input_path,
+        """
+        #define STR(x)  #x
+        #define FOO(a,b)  a ## b
+        char s[] = "#1";
+        """,
+    )
+    p, state = init_pass('0', tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    # "#define STR" removed
+    assert (
+        """
+        #define FOO(a,b)  a ## b
+        char s[] = "#1";
+        """
+        in all_transforms
+    )
+    # "#define FOO" removed
+    assert (
+        """
+        #define STR(x)  #x
+        char s[] = "#1";
+        """
+        in all_transforms
+    )
+    # "char s" removed
+    assert (
+        """
+        #define STR(x)  #x
+        #define FOO(a,b)  a ## b
+
         """
         in all_transforms
     )
