@@ -13,11 +13,15 @@ class CommentsPass(HintBasedPass):
             prog = in_file.read()
 
         hints = []
-        # Remove all multiline comments
-        # Replace /* any number of * if not followed by / or anything but * */
+
+        # Remove all multiline comments - the pattern is:
+        # * first - "/*",
+        # * then - any number of "*" that aren't followed by "/", or of any other characters;
+        # * finally - "*/".
         for m in re.finditer(r'/\*(?:\*(?!/)|[^*])*\*/', prog, flags=re.DOTALL):
             hints.append({'p': [{'l': m.start(), 'r': m.end(), 't': 0}]})
-        # Remove all single line comments
+
+        # Remove all single-line comments.
         for m in re.finditer(r'//.*$', prog, flags=re.MULTILINE):
             hints.append({'p': [{'l': m.start(), 'r': m.end(), 't': 1}]})
 
