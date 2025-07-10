@@ -132,3 +132,55 @@ def test_hint_based_multiple_types(tmp_path: Path):
     assert 'aa cab a' in all_transforms  # hint_b1 applied
     assert 'aba ca a' in all_transforms  # hint_b2 applied
     assert 'aa ca a' in all_transforms  # hint_b1&2 applied
+
+
+def test_hint_based_type1_fewer_than_type2(tmp_path: Path):
+    """Test the scenario there are two hint types, with fewer hints for the first type.
+
+    Verify that subranges of same-typed hints are checked, but differently-typed hints aren't mixed.
+    """
+    vocab = ['type0', 'type1']
+    hint1 = {'t': 0, 'p': [{'l': 0, 'r': 1}]}
+    hint2 = {'t': 1, 'p': [{'l': 1, 'r': 2}]}
+    hint3 = {'t': 1, 'p': [{'l': 2, 'r': 3}]}
+    pass_ = StubHintBasedPass(
+        {
+            'abc': [hint1, hint2, hint3],
+        },
+        vocabulary=vocab,
+    )
+    test_case = tmp_path / 'input.txt'
+    test_case.write_text('abc')
+
+    state = pass_.new(test_case, tmp_dir=tmp_path)
+    all_transforms = collect_all_transforms(pass_, state, test_case)
+    assert 'bc' in all_transforms  # hint1 applied
+    assert 'a' in all_transforms  # hint2&3 applied
+    assert 'c' not in all_transforms  # no attempt to apply different-typed hint1 and hint2
+    assert 'b' not in all_transforms  # no attempt to apply different-typed hint1 and hint3
+
+
+def test_hint_based_type2_fewer_than_type1(tmp_path: Path):
+    """Test the scenario there are two hint types, with fewer hints for the second type.
+
+    Verify that subranges of same-typed hints are checked, but differently-typed hints aren't mixed.
+    """
+    vocab = ['type0', 'type1']
+    hint1 = {'t': 0, 'p': [{'l': 0, 'r': 1}]}
+    hint2 = {'t': 0, 'p': [{'l': 1, 'r': 2}]}
+    hint3 = {'t': 1, 'p': [{'l': 2, 'r': 3}]}
+    pass_ = StubHintBasedPass(
+        {
+            'abc': [hint1, hint2, hint3],
+        },
+        vocabulary=vocab,
+    )
+    test_case = tmp_path / 'input.txt'
+    test_case.write_text('abc')
+
+    state = pass_.new(test_case, tmp_dir=tmp_path)
+    all_transforms = collect_all_transforms(pass_, state, test_case)
+    assert 'c' in all_transforms  # hint1&2 applied
+    assert 'ab' in all_transforms  # hint3 applied
+    assert 'b' not in all_transforms  # no attempt to apply different-typed hint1 and hint3
+    assert 'a' not in all_transforms  # no attempt to apply different-typed hint2 and hint3
