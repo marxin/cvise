@@ -436,7 +436,7 @@ def test_macro_level0(tmp_path, input_path):
         #define BAR \\
           FOO 42
         int y;
-        """
+        """,
     )
     p, state = init_pass('0', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
@@ -508,7 +508,7 @@ def test_nested_macro_level0(tmp_path, input_path):
         #define AFIELD foo
           AFIELD
         #undef AFIELD
-        };"""
+        };""",
     )
     p, state = init_pass('0', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
@@ -528,7 +528,7 @@ def test_nested_macro_level1(tmp_path, input_path):
           AFIELD
         #undef AFIELD
         };
-        """
+        """,
     )
     p, state = init_pass('1', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
