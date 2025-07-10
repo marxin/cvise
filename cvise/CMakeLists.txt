@@ -93,6 +93,7 @@ set(SOURCE_FILES
   "tests/__init__.py"
   "tests/testabstract.py"
   "tests/test_balanced.py"
+  "tests/test_blank.py"
   "tests/test_clanghints.py"
   "tests/test_comments.py"
   "tests/test_hint.py"
