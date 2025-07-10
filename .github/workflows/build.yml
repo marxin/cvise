@@ -53,7 +53,8 @@ jobs:
             ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
             make -j`nproc` VERBOSE=1
     - name: test
-      run: pytest objdir
+      run: pytest
+      working-directory: objdir
 
   ruff:
     runs-on: ubuntu-latest
