@@ -9,6 +9,7 @@ heuristics and to perform reduction more efficiently (as algorithms can now be
 applied to all heuristics in a uniform way).
 """
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
@@ -41,15 +42,6 @@ HINT_PATCH_SCHEMA = {
     'description': 'Hint patch object. By default, unless a specific property is specified, the object denotes a simple deletion of the specified chunk.',
     'type': 'object',
     'properties': {
-        't': {
-            'description': (
-                'Indicates the type of the hint, as an index in the vocabulary. The purpose of the type is to let a '
-                'pass split hints into distinct groups, to guide the generic logic that attempts taking consecutive '
-                'ranges of same-typed hints.'
-            ),
-            'type': 'integer',
-            'minimum': 0,
-        },
         'l': {
             'description': 'Left position of the chunk (position is an index of the character in the text)',
             'type': 'integer',
@@ -68,6 +60,9 @@ HINT_PATCH_SCHEMA = {
     'required': ['l', 'r'],
 }
 
+HINT_PATCH_SCHEMA_STRICT = deepcopy(HINT_PATCH_SCHEMA)
+HINT_PATCH_SCHEMA_STRICT['additionalProperties'] = False
+
 HINT_SCHEMA = {
     'description': 'Hint object - a description of modification(s) of the input',
     'type': 'object',
@@ -78,9 +73,22 @@ HINT_SCHEMA = {
             'items': HINT_PATCH_SCHEMA,
             'minItems': 1,
         },
+        't': {
+            'description': (
+                'Indicates the type of the hint, as an index in the vocabulary. The purpose of the type is to let a '
+                'pass split hints into distinct groups, to guide the generic logic that attempts taking consecutive '
+                'ranges of same-typed hints.'
+            ),
+            'type': 'integer',
+            'minimum': 0,
+        },
     },
     'required': ['p'],
 }
+
+HINT_SCHEMA_STRICT = deepcopy(HINT_SCHEMA)
+HINT_SCHEMA_STRICT['additionalProperties'] = False
+HINT_SCHEMA_STRICT['properties']['p']['items'] = HINT_PATCH_SCHEMA_STRICT
 
 
 def apply_hints(bundle: HintBundle, file: Path) -> str:

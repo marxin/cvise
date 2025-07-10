@@ -1,25 +1,23 @@
-import jsonschema
 from pathlib import Path
 from typing import Dict, List, Sequence, Union
 
 from cvise.passes.hint_based import HintBasedPass
-from cvise.tests.testabstract import collect_all_transforms, iterate_pass
-from cvise.utils.hint import HintBundle, HINT_SCHEMA
+from cvise.tests.testabstract import collect_all_transforms, iterate_pass, validate_hint_bundle
+from cvise.utils.hint import HintBundle
 
 
 class StubHintBasedPass(HintBasedPass):
     def __init__(self, contents_to_hints: Dict[str, Sequence[object]], vocabulary: Union[List[str], None] = None):
         super().__init__()
-        for hints in contents_to_hints.values():
-            for hint in hints:
-                jsonschema.validate(hint, schema=HINT_SCHEMA)
         self.contents_to_hints = contents_to_hints
         self.vocabulary = vocabulary or []
 
     def generate_hints(self, test_case: Path) -> HintBundle:
         contents = test_case.read_text()
         hints = self.contents_to_hints.get(contents, [])
-        return HintBundle(vocabulary=self.vocabulary, hints=hints)
+        bundle = HintBundle(vocabulary=self.vocabulary, hints=hints)
+        validate_hint_bundle(bundle)
+        return bundle
 
 
 def test_hint_based_first_char_once(tmp_path: Path):
