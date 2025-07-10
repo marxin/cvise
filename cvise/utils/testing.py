@@ -606,7 +606,9 @@ class TestManager:
                 self.states = []
                 for pass_id, pass_ in enumerate(self.current_passes):
                     start_time = time.monotonic()
-                    self.states.append(pass_.new(self.current_test_case, tmp_dir=Path(self.roots[pass_id])))
+                    self.states.append(
+                        pass_.new(self.current_test_case, tmp_dir=Path(self.roots[pass_id]), job_timeout=self.timeout)
+                    )
                     self.pass_statistic.add_initialized(pass_, start_time)
                 self.skip = False
 
@@ -688,7 +690,9 @@ class TestManager:
             # for other passes, continue the iteration from where the last advance() stopped.
             old_state = test_env.state if pass_id == job.pass_id else self.states[pass_id]
             self.states[pass_id] = (
-                None if old_state is None else pass_.advance_on_success(test_env.test_case_path, old_state)
+                None
+                if old_state is None
+                else pass_.advance_on_success(test_env.test_case_path, old_state, job_timeout=self.timeout)
             )
         self.pass_statistic.add_success(job.pass_)
 
