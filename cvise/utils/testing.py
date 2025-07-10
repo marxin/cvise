@@ -144,7 +144,7 @@ class PassContext:
     """Stores runtime data for a currently active pass."""
 
     pass_: AbstractPass
-    # Stores pass-specific files to be used during transforms jobs (e.g., hints generated during initialization), and
+    # Stores pass-specific files to be used during transform jobs (e.g., hints generated during initialization), and
     # temporary folders for each transform job.
     temporary_root: Union[Path, None]
     # The pass state as returned by the pass new()/advance()/advance_on_success() methods.
@@ -242,11 +242,13 @@ class TestManager:
         )
 
     def remove_roots(self):
-        if not self.save_temps:
-            for context in self.pass_contexts:
-                if context.temporary_root:
-                    rmfolder(context.temporary_root)
-                    context.temporary_root = None
+        if self.save_temps:
+            return
+        for ctx in self.pass_contexts:
+            if not ctx.temporary_root:
+                continue
+            rmfolder(ctx.temporary_root)
+            ctx.temporary_root = None
 
     def restore_mode(self):
         for test_case in self.test_cases:
@@ -618,10 +620,10 @@ class TestManager:
                             continue
 
                 # create initial states
-                for context in self.pass_contexts:
+                for ctx in self.pass_contexts:
                     start_time = time.monotonic()
-                    context.state = context.pass_.new(self.current_test_case, tmp_dir=context.temporary_root)
-                    self.pass_statistic.add_initialized(context.pass_, start_time)
+                    ctx.state = ctx.pass_.new(self.current_test_case, tmp_dir=ctx.temporary_root)
+                    self.pass_statistic.add_initialized(ctx.pass_, start_time)
                 self.skip = False
 
                 while any(c.state is not None for c in self.pass_contexts) and not self.skip:
