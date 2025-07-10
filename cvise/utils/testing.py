@@ -622,7 +622,9 @@ class TestManager:
                 # create initial states
                 for ctx in self.pass_contexts:
                     start_time = time.monotonic()
-                    ctx.state = ctx.pass_.new(self.current_test_case, tmp_dir=ctx.temporary_root, job_timeout=self.timeout)
+                    ctx.state = ctx.pass_.new(
+                        self.current_test_case, tmp_dir=ctx.temporary_root, job_timeout=self.timeout
+                    )
                     self.pass_statistic.add_initialized(ctx.pass_, start_time)
                 self.skip = False
 
@@ -705,7 +707,9 @@ class TestManager:
 
             old_state = test_env.state if pass_id == job.pass_id else context.state
             context.state = (
-                None if old_state is None else context.pass_.advance_on_success(test_env.test_case_path, old_state, job_timeout=self.timeout)
+                None
+                if old_state is None
+                else context.pass_.advance_on_success(test_env.test_case_path, old_state, job_timeout=self.timeout)
             )
         self.pass_statistic.add_success(job.pass_)
 
