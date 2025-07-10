@@ -585,6 +585,7 @@ def test_nested_macro_level1(tmp_path, input_path):
 
 
 def test_hash_character_not_macro_start(tmp_path, input_path):
+    """Test hash characters aren't mistakenly treated as macro/block start."""
     write_file(
         input_path,
         """
