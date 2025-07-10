@@ -62,6 +62,15 @@ class HintState:
         # Pointer to the current per-type state in the round-robin enumeration.
         self.ptr = 0
 
+    def __repr__(self):
+        parts = []
+        for i, s in enumerate(self.per_type_states):
+            mark = '[*]' if i == self.ptr and len(self.per_type_states) > 1 else ''
+            type_s = s.type + ': ' if s.type else ''
+            b = s.binary_state
+            parts.append(f'{mark}{type_s}{b.index}-{b.end()} out of {b.instances} with step {b.chunk}')
+        return f'HintState({", ".join(parts)})'
+
     @staticmethod
     def create(tmp_dir: Path, type_to_bundle: Dict[str, HintBundle], type_to_file_name: Dict[str, Path]) -> HintState:
         sub_states = []
