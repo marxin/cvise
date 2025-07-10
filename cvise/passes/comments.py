@@ -1,42 +1,30 @@
 import re
 
-from cvise.passes.abstract import AbstractPass, PassResult
+from cvise.passes.hint_based import HintBasedPass
+from cvise.utils.hint import HintBundle
 
 
-class CommentsPass(AbstractPass):
+class CommentsPass(HintBasedPass):
     def check_prerequisites(self):
         return True
 
-    def new(self, test_case, **kwargs):
-        return -2
-
-    def advance(self, test_case, state):
-        return state + 1
-
-    def advance_on_success(self, test_case, state, **kwargs):
-        return state
-
-    def transform(self, test_case, state, process_event_notifier):
+    def generate_hints(self, test_case):
         with open(test_case) as in_file:
             prog = in_file.read()
-            prog2 = prog
 
-        while True:
-            # TODO: remove only the nth comment
-            if state == -2:
-                # Remove all multiline comments
-                # Replace /* any number of * if not followed by / or anything but * */
-                prog2 = re.sub(r'/\*(?:\*(?!/)|[^*])*\*/', '', prog2, flags=re.DOTALL)
-            elif state == -1:
-                # Remove all single line comments
-                prog2 = re.sub(r'//.*$', '', prog2, flags=re.MULTILINE)
-            else:
-                return (PassResult.STOP, state)
+        hints = []
 
-            if prog != prog2:
-                with open(test_case, 'w') as out_file:
-                    out_file.write(prog2)
+        # Remove all multiline comments - the pattern is:
+        # * first - "/*",
+        # * then - any number of "*" that aren't followed by "/", or of any other characters;
+        # * finally - "*/".
+        for m in re.finditer(r'/\*(?:\*(?!/)|[^*])*\*/', prog, flags=re.DOTALL):
+            hints.append({'t': 0, 'p': [{'l': m.start(), 'r': m.end()}]})
 
-                return (PassResult.OK, state)
-            else:
-                state = self.advance(test_case, state)
+        # Remove all single-line comments.
+        for m in re.finditer(r'//.*$', prog, flags=re.MULTILINE):
+            hints.append({'t': 1, 'p': [{'l': m.start(), 'r': m.end()}]})
+
+        # The order must match the 't' indices above.
+        vocab = ['multi-line', 'single-line']
+        return HintBundle(hints=hints, vocabulary=vocab)
