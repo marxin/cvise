@@ -66,7 +66,7 @@ int whitespace_end_pos = -1;
    * start of the line with possible leading whitespaces, a hash, then some non-newlines.
    * then, possibly, an escaped newline followed by more non-newlines (repeat as needed).
    * finally, a newline */
-"\n"?[[:blank:]]*"#".*("\\\n".*)*"\n" {
+("\n"|^)[[:blank:]]*"#".*("\\\n".*)*"\n" {
                 int start_pos = token_end_pos - yyleng;
                 possibleChunkEnd(start_pos);                /* make sure starts on own line */
                 possibleChunkEnd(token_end_pos - 1);        /* minus one to preserve the newline */
