@@ -429,8 +429,7 @@ def test_macro_level0(tmp_path, input_path):
     """Test removal of preprocessor macros with arg=0."""
     write_file(
         input_path,
-        """
-        #ifndef FOO
+        """#ifndef FOO
         #define FOO
         int x;
         FOO
@@ -456,8 +455,7 @@ def test_macro_level0(tmp_path, input_path):
     )
     # "#define FOO" deleted
     assert (
-        """
-        #ifndef FOO
+        """#ifndef FOO
         int x;
         FOO
         #define BAR \\
@@ -468,8 +466,7 @@ def test_macro_level0(tmp_path, input_path):
     )
     # "int x" deleted
     assert (
-        """
-        #ifndef FOO
+        """#ifndef FOO
         #define FOO
 
         FOO
@@ -481,8 +478,7 @@ def test_macro_level0(tmp_path, input_path):
     )
     # FOO usage deleted
     assert (
-        """
-        #ifndef FOO
+        """#ifndef FOO
         #define FOO
         int x;
         #define BAR \\
@@ -493,8 +489,7 @@ def test_macro_level0(tmp_path, input_path):
     )
     # "#define BAR" deleted
     assert (
-        """
-        #ifndef FOO
+        """#ifndef FOO
         #define FOO
         int x;
         FOO
@@ -504,8 +499,7 @@ def test_macro_level0(tmp_path, input_path):
     )
     # "int y" deleted
     assert (
-        """
-        #ifndef FOO
+        """#ifndef FOO
         #define FOO
         int x;
         FOO

@@ -68,7 +68,8 @@ int whitespace_end_pos = -1;
    * finally, a newline */
 ^[[:blank:]]*"#".*("\\\n".*)*"\n" {
                 int start_pos = token_end_pos - yyleng;
-                possibleChunkEnd(start_pos - 1);            /* make sure starts on own line */
+                if (start_pos > 0)
+                  possibleChunkEnd(start_pos - 1);          /* make sure starts on own line */
                 possibleChunkEnd(token_end_pos - 1);        /* minus one to preserve the newline */
                 possibleChunkBegin(token_end_pos);          /* don't eat the newline in the subsequent chunk */
               }
