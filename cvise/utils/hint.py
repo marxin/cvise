@@ -154,12 +154,12 @@ def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
     return grouped
 
 
-def write_compact_json(value: Any, file: TextIO) -> str:
+def write_compact_json(value: Any, file: TextIO) -> None:
     """Writes a JSON dump, as a compact representation (without unnecessary spaces), to the file.
 
     Skips circular structure checks, for performance reasons."""
     # Specify custom separators - the default ones have spaces after them.
-    return json.dump(value, file, check_circular=False, separators=(',', ':'))
+    json.dump(value, file, check_circular=False, separators=(',', ':'))
 
 
 def try_parse_json_line(text: str) -> Any:
