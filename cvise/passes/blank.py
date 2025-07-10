@@ -1,54 +1,29 @@
-import os
 import re
-import shutil
-import tempfile
 
-from cvise.passes.abstract import AbstractPass, PassResult
+from cvise.passes.hint_based import HintBasedPass
+from cvise.utils.hint import HintBundle
 
 
-class BlankPass(AbstractPass):
+class BlankPass(HintBasedPass):
+    PATTERNS = {
+        'blankline': r'^\s*$',
+        'hashline': r'^#',
+    }
+
     def check_prerequisites(self):
         return True
 
-    def new(self, test_case, **kwargs):
-        return 0
-
-    def advance(self, test_case, state):
-        return state + 1
-
-    def advance_on_success(self, test_case, state):
-        return state
-
-    @staticmethod
-    def __transform(test_case, pattern):
-        tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
-            with open(test_case) as in_file:
-                matched = False
-
-                for line in in_file:
+    def generate_hints(self, test_case):
+        hints = []
+        with open(test_case) as in_file:
+            file_pos = 0
+            for line in in_file.readlines():
+                end_pos = file_pos + len(line)
+                for idx, pattern in enumerate(self.PATTERNS.values()):
                     if re.match(pattern, line) is not None:
-                        matched = True
-                    else:
-                        tmp_file.write(line)
+                        hints.append({'p': [{'l': file_pos, 'r': end_pos, 't': idx}]})
+                file_pos = end_pos
 
-        if matched:
-            shutil.move(tmp_file.name, test_case)
-        else:
-            os.unlink(tmp_file.name)
-
-        return matched
-
-    def transform(self, test_case, state, process_event_notifier):
-        patterns = [r'^\s*$', r'^#']
-
-        if state >= len(patterns):
-            return (PassResult.STOP, state)
-        else:
-            success = False
-
-            while not success and state < len(patterns):
-                success = self.__transform(test_case, patterns[state])
-                state += 1
-
-            return (PassResult.OK if success else PassResult.STOP, state)
+        # This relies on Python dictionaries keeping the order of keys stable (true since Python 3.7).
+        vocab = list(self.PATTERNS.keys())
+        return HintBundle(hints=hints, vocabulary=vocab)

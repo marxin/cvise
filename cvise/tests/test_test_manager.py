@@ -24,7 +24,7 @@ class StubPass(AbstractPass):
     def advance(self, test_case, state):
         return state + 1
 
-    def advance_on_success(self, test_case, state):
+    def advance_on_success(self, test_case, state, **kwargs):
         return state
 
 
@@ -68,7 +68,7 @@ class NInvalidThenLinesPass(NaiveLinePass):
 class OneOffLinesPass(NaiveLinePass):
     """Removes a single line but doesn't progress further."""
 
-    def advance_on_success(self, test_case, state):
+    def advance_on_success(self, test_case, state, **kwargs):
         return None
 
 

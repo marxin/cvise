@@ -28,12 +28,18 @@ int nesting = 0;
 // newlines are suppressed
 int threshold = 0;
 
+// indices of bytes of the most recent consecutive whitespace block.
+int whitespace_start_pos = -1;
+int whitespace_end_pos = -1;
+
 // update the position whenever a token is about to be processed
 // (this macro is triggered by Flex prior to executing the matched rule’s action).
 #define YY_USER_ACTION token_end_pos += yyleng;
 
 %}
 
+/* optimize the scanner for performance */
+%option fast
 /* don't try to call yywrap() */
 %option noyywrap
 /* dsw: don't define yyunput() */
@@ -59,16 +65,16 @@ int threshold = 0;
               }
 
   /* parse a preprocessor directive:
-   * a hash, then some non-newlines.  then, possibly, an escaped
-   * newline followed by more non-newlines (repeat as needed).
+   * start of the line with possible leading whitespaces, a hash, then some non-newlines.
+   * then, possibly, an escaped newline followed by more non-newlines (repeat as needed).
    * finally, a newline */
-"#".*("\\\n".*)*"\n" {
-                int hash_pos = token_end_pos - yyleng;
-                possibleChunkEnd(hash_pos);                 /* make sure starts on own line */
-                possibleChunkEnd(token_end_pos);
+^[[:blank:]]*"#".*("\\\n".*)*"\n" {
+                int start_pos = token_end_pos - yyleng;
+                if (start_pos > 0)
+                  possibleChunkEnd(start_pos - 1);          /* make sure starts on own line */
+                possibleChunkEnd(token_end_pos - 1);        /* minus one to preserve the newline */
+                possibleChunkBegin(token_end_pos);          /* don't eat the newline in the subsequent chunk */
               }
-
-"\n"          { }                                           /* not any above case, skip it*/
 
 "//".*"\n"    { }                                           /* C++ comment */
 
@@ -87,6 +93,15 @@ int threshold = 0;
   "\'"        { diag("</CHAR>"); BEGIN(INITIAL); }          /* close tick */
   (.|\n)      {  }                                          /* ordinary char */
 }
+
+"\n"          |                                             /* line break, not matched in any other rule */
+[[:blank:]]+  {                                             /* chunk of whitespaces */
+                int token_start_pos = token_end_pos - yyleng;
+                // Start a new whitespace block, unless the previous one is to be continued.
+                if (token_start_pos != whitespace_end_pos)
+                  whitespace_start_pos = token_start_pos;
+                whitespace_end_pos = token_end_pos;
+              }
 
 .             { }
 
@@ -108,7 +123,10 @@ void possibleChunkEnd(int pos)
 {
   // Only attempt deleting chunks exactly at the specified nesting.
   if (nesting == threshold && chunk_start_pos < pos) {
-    printf("{\"p\":[{\"l\":%d,\"r\":%d}]}\n", chunk_start_pos, pos);
+    // Skip deleting chunks consisting of whitespaces only.
+    if (chunk_start_pos < whitespace_start_pos || pos > whitespace_end_pos) {
+      printf("{\"p\":[{\"l\":%d,\"r\":%d}]}\n", chunk_start_pos, pos);
+    }
   }
   possibleChunkBegin(pos);
 }

@@ -66,7 +66,7 @@ class ClangHintsPass(HintBasedPass):
         # Re-attach the remembered standard.
         return ClangState.wrap(new_state, state.clang_std)
 
-    def advance_on_success(self, test_case, state):
+    def advance_on_success(self, test_case, state, **kwargs):
         # Keep using the same standard as the one chosen in new() - repeating the choose procedure on every successful
         # reduction would be too costly.
         hints = self.generate_hints_for_standard(test_case, state.clang_std)

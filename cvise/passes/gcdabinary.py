@@ -42,7 +42,7 @@ class GCDABinaryPass(AbstractPass):
     def advance(self, test_case, state):
         return state.advance()
 
-    def advance_on_success(self, test_case, state):
+    def advance_on_success(self, test_case, state, **kwargs):
         return self.__create_state(test_case)
 
     def transform(self, test_case, state, process_event_notifier):
