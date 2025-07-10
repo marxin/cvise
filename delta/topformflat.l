@@ -38,6 +38,8 @@ int whitespace_end_pos = -1;
 
 %}
 
+/* optimize the scanner for performance */
+%option fast
 /* don't try to call yywrap() */
 %option noyywrap
 /* dsw: don't define yyunput() */
