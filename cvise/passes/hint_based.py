@@ -71,24 +71,26 @@ class HintState:
         return HintState(tmp_dir, sub_states)
 
     def advance(self) -> Union[HintState, None]:
+        # First, prepare the current type's sub-state to point to the next binary search step.
+        new_substate = self.per_type_states[self.ptr].advance()
+        if new_substate is None and len(self.per_type_states) == 1:
+            # The last type's binary search finished - nothing to be done more.
+            return None
+
+        # Second, create the result with just this sub-state updated/deleted.
         new = HintState(self.tmp_dir, copy(self.per_type_states))
-        new.ptr = self.ptr
-        # Switch to the next hint type in the round-robin fashion, but also prepare the current type's sub-state to
-        # point to the next binary search step.
-        new_substate = new.per_type_states[new.ptr].advance()
         if new_substate is None:
-            del new.per_type_states[new.ptr]
-            if not new.per_type_states:
-                return None
+            del new.per_type_states[self.ptr]
         else:
-            new.per_type_states[new.ptr] = new_substate
-            new.ptr = (new.ptr + 1) % len(new.per_type_states)
-        for _ in range(len(new.per_type_states)):
-            if new.per_type_states[new.ptr] is not None:
-                return new
-            new.ptr = (new.ptr + 1) % len(new.per_type_states)
-        # The current type turned out to be the very last which had a binary search running. Nothing to be done more.
-        return None
+            new.per_type_states[self.ptr] = new_substate
+
+        # Third, set the result's pointer to the next sub-state after the updated/deleted one, in the round-robin
+        # fashion.
+        new.ptr = self.ptr
+        if new_substate is not None:
+            new.ptr += 1
+        new.ptr %= len(new.per_type_states)
+        return new
 
     def advance_on_success(self, type_to_bundle: Dict[str, HintBundle]):
         sub_states = []
