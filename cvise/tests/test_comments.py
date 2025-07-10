@@ -4,6 +4,7 @@ import unittest
 
 from cvise.passes.abstract import PassResult
 from cvise.passes.comments import CommentsPass
+from cvise.tests.testabstract import validate_stored_hints
 
 
 class CommentsTestCase(unittest.TestCase):
@@ -16,6 +17,7 @@ class CommentsTestCase(unittest.TestCase):
             tmp_file.write('This /* contains *** /* two */ /*comments*/!\n')
 
         state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        validate_stored_hints(state)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
@@ -30,6 +32,7 @@ class CommentsTestCase(unittest.TestCase):
             tmp_file.write('This ///contains //two\n //comments\n!\n')
 
         state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        validate_stored_hints(state)
         (_, state) = self.pass_.transform(tmp_file.name, state, None)
 
         with open(tmp_file.name) as variant_file:
@@ -44,6 +47,7 @@ class CommentsTestCase(unittest.TestCase):
             tmp_file.write('/*This*/ ///contains //two\n //comments\n!\n')
 
         state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        validate_stored_hints(state)
         (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         while result == PassResult.OK and state is not None:
@@ -64,6 +68,7 @@ class CommentsTestCase(unittest.TestCase):
             tmp_file.write('/*This*/ ///contains //two\n //comments\n!\n')
 
         state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        validate_stored_hints(state)
         (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         while result == PassResult.OK and state is not None:
