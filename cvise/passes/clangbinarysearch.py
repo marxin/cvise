@@ -43,7 +43,7 @@ class ClangBinarySearchPass(AbstractPass):
     def advance(self, test_case, state):
         return state.advance()
 
-    def advance_on_success(self, test_case, state):
+    def advance_on_success(self, test_case, state, **kwargs):
         instances = state.real_num_instances - state.real_chunk()
         state = state.advance_on_success(instances)
         if state:

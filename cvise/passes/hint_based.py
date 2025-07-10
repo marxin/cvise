@@ -144,7 +144,7 @@ class HintBasedPass(AbstractPass):
     def advance(self, test_case, state):
         return state.advance()
 
-    def advance_on_success(self, test_case, state):
+    def advance_on_success(self, test_case, state, **kwargs):
         hints = self.generate_hints(test_case)
         return self.advance_on_success_from_hints(hints, state)
 
