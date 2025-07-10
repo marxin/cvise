@@ -10,18 +10,16 @@ from cvise.utils.misc import CloseableTemporaryFile
 
 
 class ClangBinarySearchPass(AbstractPass):
-    QUERY_TIMEOUT = 10
-
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
 
-    def detect_best_standard(self, test_case):
+    def detect_best_standard(self, test_case, timeout):
         best = None
         best_count = -1
         for std in ('c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++2b'):
             self.clang_delta_std = std
             start = time.monotonic()
-            instances = self.count_instances(test_case)
+            instances = self.count_instances(test_case, timeout)
             took = time.monotonic() - start
 
             # prefer newer standard if the # of instances is equal
@@ -33,12 +31,12 @@ class ClangBinarySearchPass(AbstractPass):
         # Use the best standard option
         self.clang_delta_std = best
 
-    def new(self, test_case, **kwargs):
+    def new(self, test_case, job_timeout, **kwargs):
         if not self.user_clang_delta_std:
-            self.detect_best_standard(test_case)
+            self.detect_best_standard(test_case, job_timeout)
         else:
             self.clang_delta_std = self.user_clang_delta_std
-        return BinaryState.create(self.count_instances(test_case))
+        return BinaryState.create(self.count_instances(test_case, job_timeout))
 
     def advance(self, test_case, state):
         return state.advance()
@@ -50,7 +48,7 @@ class ClangBinarySearchPass(AbstractPass):
             state.real_num_instances = None
         return state
 
-    def count_instances(self, test_case):
+    def count_instances(self, test_case, timeout):
         assert self.clang_delta_std
         args = [
             self.external_programs['clang_delta'],
@@ -62,11 +60,9 @@ class ClangBinarySearchPass(AbstractPass):
         cmd = args + [test_case]
 
         try:
-            proc = subprocess.run(cmd, text=True, capture_output=True, timeout=self.QUERY_TIMEOUT)
+            proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
         except subprocess.TimeoutExpired:
-            logging.warning(
-                f'clang_delta --query-instances (--std={self.clang_delta_std}) {self.QUERY_TIMEOUT}s timeout reached'
-            )
+            logging.warning(f'clang_delta --query-instances (--std={self.clang_delta_std}) {timeout}s timeout reached')
             return 0
         except subprocess.SubprocessError as e:
             logging.warning(f'clang_delta --query-instances (--std={self.clang_delta_std}) failed: {e}')
