@@ -101,7 +101,7 @@ class AbstractPass:
     def advance(self, test_case, state):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance'!")
 
-    def advance_on_success(self, test_case, state):
+    def advance_on_success(self, test_case, state, **kwargs):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance_on_success'!")
 
     def transform(self, test_case, state, process_event_notifier):

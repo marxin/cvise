@@ -16,7 +16,7 @@ class BlankPass(AbstractPass):
     def advance(self, test_case, state):
         return state + 1
 
-    def advance_on_success(self, test_case, state):
+    def advance_on_success(self, test_case, state, **kwargs):
         return state
 
     @staticmethod

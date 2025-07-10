@@ -48,7 +48,7 @@ class IfPass(AbstractPass):
                 state.value = 0
         return state
 
-    def advance_on_success(self, test_case, state):
+    def advance_on_success(self, test_case, state, **kwargs):
         return state.advance_on_success(self.__count_instances(test_case))
 
     def transform(self, test_case, state, process_event_notifier):

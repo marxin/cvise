@@ -87,7 +87,7 @@ class IntsPass(AbstractPass):
             return None
         return state
 
-    def advance_on_success(self, test_case, state):
+    def advance_on_success(self, test_case, state, **kwargs):
         return self.new(test_case)
 
     def transform(self, test_case, state, process_event_notifier):

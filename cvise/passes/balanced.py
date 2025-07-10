@@ -22,7 +22,7 @@ class BalancedPass(AbstractPass):
     def advance(self, test_case, state):
         return self.__get_next_match(test_case, pos=state[0] + 1)
 
-    def advance_on_success(self, test_case, state):
+    def advance_on_success(self, test_case, state, **kwargs):
         return self.__get_next_match(test_case, pos=state[0])
 
     def __get_config(self):
