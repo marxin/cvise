@@ -19,11 +19,11 @@ class CommentsPass(HintBasedPass):
         # * then - any number of "*" that aren't followed by "/", or of any other characters;
         # * finally - "*/".
         for m in re.finditer(r'/\*(?:\*(?!/)|[^*])*\*/', prog, flags=re.DOTALL):
-            hints.append({'p': [{'l': m.start(), 'r': m.end(), 't': 0}]})
+            hints.append({'t': 0, 'p': [{'l': m.start(), 'r': m.end()}]})
 
         # Remove all single-line comments.
         for m in re.finditer(r'//.*$', prog, flags=re.MULTILINE):
-            hints.append({'p': [{'l': m.start(), 'r': m.end(), 't': 1}]})
+            hints.append({'t': 1, 'p': [{'l': m.start(), 'r': m.end()}]})
 
         # The order must match the 't' indices above.
         vocab = ['multi-line', 'single-line']
