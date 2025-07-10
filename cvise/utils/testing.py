@@ -1,3 +1,4 @@
+from __future__ import annotations
 from concurrent.futures import FIRST_COMPLETED, Future, wait
 from dataclasses import dataclass
 import difflib
@@ -15,7 +16,7 @@ import sys
 import tempfile
 import time
 import traceback
-from typing import List, Union
+from typing import Any, List, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
@@ -139,6 +140,25 @@ class TestEnvironment:
 
 
 @dataclass
+class PassContext:
+    """Stores runtime data for a currently active pass."""
+
+    pass_: AbstractPass
+    # Stores pass-specific files to be used during transform jobs (e.g., hints generated during initialization), and
+    # temporary folders for each transform job.
+    temporary_root: Union[Path, None]
+    # The pass state as returned by the pass new()/advance()/advance_on_success() methods.
+    state: Any
+
+    @staticmethod
+    def create(pass_: AbstractPass) -> PassContext:
+        pass_name = str(pass_).replace('::', '-')
+        root = tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}{pass_name}-')
+        logging.debug(f'Creating pass root folder: {root}')
+        return PassContext(pass_=pass_, temporary_root=Path(root), state=None)
+
+
+@dataclass
 class Job:
     future: Future
     pass_: AbstractPass
@@ -205,7 +225,7 @@ class TestManager:
 
         self.orig_total_file_size = self.total_file_size
         self.cache = {}
-        self.roots = []
+        self.pass_contexts: List[PassContext] = []
         if not self.is_valid_test(self.test_script):
             raise InvalidInterestingnessTestError(self.test_script)
         self.jobs: List[Job] = []
@@ -221,18 +241,14 @@ class TestManager:
             == 0
         )
 
-    def create_roots(self):
-        self.roots = []
-        for pass_ in self.current_passes:
-            pass_name = str(pass_).replace('::', '-')
-            root = tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}{pass_name}-')
-            self.roots.append(root)
-            logging.debug(f'Creating pass root folder: {root}')
-
     def remove_roots(self):
-        if not self.save_temps:
-            for root in self.roots:
-                rmfolder(root)
+        if self.save_temps:
+            return
+        for ctx in self.pass_contexts:
+            if not ctx.temporary_root:
+                continue
+            rmfolder(ctx.temporary_root)
+            ctx.temporary_root = None
 
     def restore_mode(self):
         for test_case in self.test_cases:
@@ -440,7 +456,7 @@ class TestManager:
                     # case, this is done in wait_for_first_success().
                     self.pass_statistic.add_executed(job.pass_, job.start_time, self.parallel_tests)
                     if outcome == PassCheckingOutcome.STOP:
-                        self.states[job.pass_id] = None
+                        self.pass_contexts[job.pass_id].state = None
                     jobs_to_remove.append(job)
 
         for job in jobs_to_remove:
@@ -510,49 +526,49 @@ class TestManager:
                 pass_id = 0
                 self.timeout_count_per_pass = {}
                 self.giveup_reported = False
-                while self.jobs or any(state is not None for state in self.states):
+                while self.jobs or any(c.state is not None for c in self.pass_contexts):
                     # do not create too many states
                     if len(self.jobs) >= self.parallel_tests:
                         wait([job.future for job in self.jobs], return_when=FIRST_COMPLETED)
 
                     quit_loop = self.process_done_futures()
-                    if quit_loop or all(state is None for state in self.states):
+                    if quit_loop or all(c.state is None for c in self.pass_contexts):
                         success = self.wait_for_first_success()
                         self.terminate_all(pool)
                         return success
 
-                    while self.states[pass_id] is None:
-                        pass_id = (pass_id + 1) % len(self.current_passes)
-                    folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=self.roots[pass_id]))
-                    pass_ = self.current_passes[pass_id]
+                    while self.pass_contexts[pass_id].state is None:
+                        pass_id = (pass_id + 1) % len(self.pass_contexts)
+                    context = self.pass_contexts[pass_id]
+                    folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=context.temporary_root))
                     test_env = TestEnvironment(
-                        self.states[pass_id],
+                        context.state,
                         order,
                         self.test_script,
                         folder,
                         self.current_test_case,
                         self.test_cases,
-                        pass_.transform,
+                        context.pass_.transform,
                         self.pid_queue,
                     )
                     future = pool.schedule(test_env.run, timeout=self.timeout)
                     self.jobs.append(
                         Job(
                             future=future,
-                            pass_=pass_,
+                            pass_=context.pass_,
                             pass_id=pass_id,
                             start_time=time.monotonic(),
                             temporary_folder=folder,
                         )
                     )
                     order += 1
-                    self.states[pass_id] = pass_.advance(self.current_test_case, self.states[pass_id])
+                    context.state = context.pass_.advance(self.current_test_case, context.state)
                     # we are at the end of enumeration
-                    if self.states[pass_id] is None:
+                    if context.state is None:
                         success = self.wait_for_first_success()
                         self.terminate_all(pool)
                         return success
-                    pass_id = (pass_id + 1) % len(self.current_passes)
+                    pass_id = (pass_id + 1) % len(self.pass_contexts)
             except:
                 # Abort running jobs - by default the process pool waits for the ongoing jobs' completion.
                 self.terminate_all(pool)
@@ -560,20 +576,21 @@ class TestManager:
 
     def run_passes(self, passes):
         if self.start_with_pass:
-            current_pass_names = [str(pass_) for pass_ in self.current_passes]
+            current_pass_names = [str(c.pass_) for c in self.pass_contexts]
             if self.start_with_pass in current_pass_names:
                 self.start_with_pass = None
             else:
                 return
 
-        self.current_passes = passes
+        self.pass_contexts = []
+        for pass_ in passes:
+            self.pass_contexts.append(PassContext.create(pass_))
         self.jobs = []
         m = Manager()
         self.pid_queue = m.Queue()
-        self.create_roots()
-        cache_key = repr(self.current_passes)
+        cache_key = repr([c.pass_ for c in self.pass_contexts])
 
-        pass_titles = ', '.join(repr(p) for p in self.current_passes)
+        pass_titles = ', '.join(repr(c.pass_) for c in self.pass_contexts)
         logging.info(f'===< {pass_titles} >===')
 
         if self.total_file_size == 0:
@@ -603,14 +620,13 @@ class TestManager:
                             continue
 
                 # create initial states
-                self.states = []
-                for pass_id, pass_ in enumerate(self.current_passes):
+                for ctx in self.pass_contexts:
                     start_time = time.monotonic()
-                    self.states.append(pass_.new(self.current_test_case, tmp_dir=Path(self.roots[pass_id])))
-                    self.pass_statistic.add_initialized(pass_, start_time)
+                    ctx.state = ctx.pass_.new(self.current_test_case, tmp_dir=ctx.temporary_root)
+                    self.pass_statistic.add_initialized(ctx.pass_, start_time)
                 self.skip = False
 
-                while any(state is not None for state in self.states) and not self.skip:
+                while any(c.state is not None for c in self.pass_contexts) and not self.skip:
                     # Ignore more key presses after skip has been detected
                     if not self.skip_key_off and not self.skip:
                         key = logger.pressed_key()
@@ -643,10 +659,10 @@ class TestManager:
 
                     # skip after N transformations if requested
                     skip_rest = self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms
-                    if len(self.current_passes) == 1:  # max-transforms is only supported for non-interleaving passes
+                    if len(self.pass_contexts) == 1:  # max-transforms is only supported for non-interleaving passes
                         if (
-                            self.current_passes[0].max_transforms
-                            and success_count >= self.current_passes[0].max_transforms
+                            self.pass_contexts[0].pass_.max_transforms
+                            and success_count >= self.pass_contexts[0].pass_.max_transforms
                         ):
                             skip_rest = True
                     if skip_rest:
@@ -683,12 +699,12 @@ class TestManager:
                 f"Can't find {self.current_test_case} -- did your interestingness test move it?"
             ) from None
 
-        for pass_id, pass_ in enumerate(self.current_passes):
+        for pass_id, context in enumerate(self.pass_contexts):
             # For the pass that succeeded, continue from the state returned by its transform() that led to the success;
             # for other passes, continue the iteration from where the last advance() stopped.
-            old_state = test_env.state if pass_id == job.pass_id else self.states[pass_id]
-            self.states[pass_id] = (
-                None if old_state is None else pass_.advance_on_success(test_env.test_case_path, old_state)
+            old_state = test_env.state if pass_id == job.pass_id else context.state
+            context.state = (
+                None if old_state is None else context.pass_.advance_on_success(test_env.test_case_path, old_state)
             )
         self.pass_statistic.add_success(job.pass_)
 
