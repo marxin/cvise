@@ -103,7 +103,8 @@ def test_interleaving_passes(tmp_path: Path):
         copy_path.read_text()
         == """
         int foo() {
-        }"""
+        }
+        """
     )
 
 

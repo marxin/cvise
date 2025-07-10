@@ -143,8 +143,6 @@ def test_func_namespace_level1(tmp_path, input_path):
 
 def test_multiline_func_signature_level0(tmp_path, input_path):
     """Test that arg=0 deletes a top-level function despite line breaks in the signature."""
-    # FIXME: Move the ending quotes into a separate line once the heuristic is improved to not produce hints for
-    # whitespace-only chunks.
     write_file(
         input_path,
         """
@@ -160,9 +158,6 @@ def test_multiline_func_signature_level0(tmp_path, input_path):
     assert '' in all_transforms
     # no attempts to partially remove the function
     assert len(all_transforms) == 1
-    # check no transform violates curly brace sequences
-    for s in all_transforms:
-        assert is_valid_brace_sequence(s)
 
 
 def test_multiline_func_signature_level1(tmp_path, input_path):
@@ -190,13 +185,7 @@ def test_multiline_func_signature_level1(tmp_path, input_path):
         in all_transforms
     )
     # the (multi-line) func must be deleted as a whole, not partially
-    # FIXME: Improve the heuristic to not try removing just the opening `namespace {` part,
-    # and replace the assertion here with "len(all_transforms) == 1".
-    for s in all_transforms:
-        assert ('template' in s) == ('f()' in s)
-    # check no transform violates curly brace sequences
-    for s in all_transforms:
-        assert is_valid_brace_sequence(s)
+    assert len(all_transforms) == 1
 
 
 def test_class_with_methods_level0(tmp_path, input_path):
@@ -212,16 +201,13 @@ def test_class_with_methods_level0(tmp_path, input_path):
           int g() {
             return 42;
           }
-        };
-        """,
+        };""",
     )
     p, state = init_pass('0', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
     assert '' in all_transforms
-    # check no transform violates curly brace sequences
-    for s in all_transforms:
-        assert is_valid_brace_sequence(s)
+    assert len(all_transforms) == 1
 
 
 def test_class_with_methods_level1(tmp_path, input_path):
@@ -398,27 +384,24 @@ def test_cpp_comment(tmp_path, input_path):
         input_path,
         """
         int x; // some comment
-        int y;
-        """,
+        int y;""",
     )
     p, state = init_pass('0', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
+    # no attempts to partially remove the comment
     assert (
         """
-        int x;
-        """
+        int x;"""
         in all_transforms
     )
     assert (
         """ // some comment
-        int y;
-        """
+        int y;"""
         in all_transforms
     )
-    # no attempts to partially remove the comment
-    for s in all_transforms:
-        assert ('//' in s) == ('some' in s) == ('comment' in s)
+    assert '' in all_transforms
+    assert len(all_transforms) == 3
 
 
 def test_eof_with_non_recognized_chunk_end(tmp_path, input_path):
@@ -438,6 +421,147 @@ def test_eof_with_non_recognized_chunk_end(tmp_path, input_path):
         """
         #define FOO }
 """
+        in all_transforms
+    )
+
+
+def test_macro_level0(tmp_path, input_path):
+    """Test removal of preprocessor macros with arg=0."""
+    write_file(
+        input_path,
+        """
+        #define FOO
+        int x;
+        FOO
+        #define BAR \\
+          FOO 42
+        int y;
+        """
+    )
+    p, state = init_pass('0', tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    # "#define FOO" deleted
+    assert (
+        """
+        int x;
+        FOO
+        #define BAR \\
+          FOO 42
+        int y;
+        """
+        in all_transforms
+    )
+    # "int x" deleted
+    assert (
+        """
+        #define FOO
+
+        FOO
+        #define BAR \\
+          FOO 42
+        int y;
+        """
+        in all_transforms
+    )
+    # FOO usage deleted
+    assert (
+        """
+        #define FOO
+        int x;
+        #define BAR \\
+          FOO 42
+        int y;
+        """
+        in all_transforms
+    )
+    # "#define BAR" deleted
+    assert (
+        """
+        #define FOO
+        int x;
+        FOO
+        int y;
+        """
+        in all_transforms
+    )
+    # "int y" deleted
+    assert (
+        """
+        #define FOO
+        int x;
+        FOO
+        #define BAR \\
+          FOO 42
+
+        """
+        in all_transforms
+    )
+
+
+def test_nested_macro_level0(tmp_path, input_path):
+    """Test removal of preprocessor macros, placed inside a curly brace block, with arg=0."""
+    write_file(
+        input_path,
+        """
+        class A {
+        #define AFIELD foo
+          AFIELD
+        #undef AFIELD
+        };"""
+    )
+    p, state = init_pass('0', tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    # The macro is removed together with the outer block.
+    assert '' in all_transforms
+    assert len(all_transforms) == 1
+
+
+def test_nested_macro_level1(tmp_path, input_path):
+    """Test removal of preprocessor macros, placed inside a curly brace block, with arg=1."""
+    write_file(
+        input_path,
+        """
+        class A {
+        #define AFIELD foo
+          AFIELD
+        #undef AFIELD
+        };
+        """
+    )
+    p, state = init_pass('1', tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    # "#define AFIELD" deleted
+    assert (
+        """
+        class A {
+          AFIELD
+        #undef AFIELD
+        };
+        """
+        in all_transforms
+    )
+    # AFIELD usage deleted
+    assert (
+        """
+        class A {
+        #define AFIELD foo
+
+        #undef AFIELD
+        };
+        """
+        in all_transforms
+    )
+    # "#undef AFIELD" deleted
+    assert (
+        """
+        class A {
+        #define AFIELD foo
+          AFIELD
+        };
+        """
         in all_transforms
     )
 
