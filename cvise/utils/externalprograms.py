@@ -18,7 +18,7 @@ def find_external_programs():
     for prog, local_folder in programs.items():
         path = None
         if local_folder:
-            local_folder = os.path.join(SCRIPT_PATH, '@cvise_SCRIPT_TO_PACKAGE_PATH@', local_folder)
+            local_folder = os.path.join(SCRIPT_PATH, '@cvise_SCRIPT_TO_PACKAGE_PATH@ FOOBAR', local_folder)
             if platform.system() == 'Windows':
                 for configuration in ['Debug', 'Release']:
                     new_local_folder = os.path.join(local_folder, configuration)
