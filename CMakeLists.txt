@@ -129,6 +129,7 @@ set(cvise_PACKAGE_VERSION           "2.11.0")
 set(cvise_VERSION                   "2.11.0")
 set(cvise_LLVM_VERSION              "${LLVM_PACKAGE_VERSION}")
 set(cvise_SCRIPT_TO_PACKAGE_PATH    "../..")
+set(cvise_SHARE_DIR_SUFFIX          "cvise")
 
 configure_file("cmake_config.h.in" "${PROJECT_BINARY_DIR}/config.h")
 add_definitions("-DHAVE_CONFIG_H")
