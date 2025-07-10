@@ -2,7 +2,7 @@ from __future__ import annotations
 from copy import copy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 from cvise.utils.hint import apply_hints, group_hints_by_type, HintBundle, load_hints, store_hints
@@ -55,7 +55,7 @@ class HintState:
     round-robin fashion. See the comment in the HintBasedPass.
     """
 
-    def __init__(self, tmp_dir: Path, per_type_states: Dict[str, PerTypeHintState]):
+    def __init__(self, tmp_dir: Path, per_type_states: List[PerTypeHintState]):
         self.tmp_dir = tmp_dir
         # Sort the per-type states to have deterministic and repeatable enumeration order.
         self.per_type_states = sorted(per_type_states, key=lambda s: s.type if s else '')
@@ -75,11 +75,18 @@ class HintState:
         new.ptr = self.ptr
         # Switch to the next hint type in the round-robin fashion, but also prepare the current type's sub-state to
         # point to the next binary search step.
-        new.per_type_states[new.ptr] = new.per_type_states[new.ptr].advance()
-        for _ in range(len(new.per_type_states)):
+        new_substate = new.per_type_states[new.ptr].advance()
+        if new_substate is None:
+            del new.per_type_states[new.ptr]
+            if not new.per_type_states:
+                return None
+        else:
+            new.per_type_states[new.ptr] = new_substate
             new.ptr = (new.ptr + 1) % len(new.per_type_states)
+        for _ in range(len(new.per_type_states)):
             if new.per_type_states[new.ptr] is not None:
                 return new
+            new.ptr = (new.ptr + 1) % len(new.per_type_states)
         # The current type turned out to be the very last which had a binary search running. Nothing to be done more.
         return None
 
