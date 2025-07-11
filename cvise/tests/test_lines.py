@@ -1,7 +1,7 @@
 import pytest
 
 from cvise.passes.lines import LinesPass
-from cvise.tests.testabstract import collect_all_transforms
+from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
 
 
@@ -13,6 +13,7 @@ def input_path(tmp_path):
 def init_pass(depth, tmp_dir, input_path):
     pass_ = LinesPass(depth, find_external_programs())
     state = pass_.new(input_path, tmp_dir=tmp_dir)
+    validate_stored_hints(state)
     return pass_, state
 
 

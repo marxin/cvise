@@ -1,6 +1,10 @@
+import jsonschema
 from pathlib import Path
+from typing import Union
 
 from cvise.passes.abstract import AbstractPass, PassResult, ProcessEventNotifier
+from cvise.passes.hint_based import HintState
+from cvise.utils.hint import HINT_SCHEMA_STRICT, HintBundle, load_hints
 
 
 def iterate_pass(current_pass, path, **kwargs):
@@ -22,3 +26,24 @@ def collect_all_transforms(pass_: AbstractPass, state, input_path: Path):
         input_path.write_text(backup)
         state = pass_.advance(input_path, state)
     return all_outputs
+
+
+def validate_stored_hints(state: Union[HintState, None]) -> None:
+    if state is None:
+        return
+    for substate in state.per_type_states:
+        path = state.tmp_dir / substate.hints_file_name
+        bundle = load_hints(path, 0, substate.binary_state.instances)
+        validate_hint_bundle(bundle)
+
+
+def validate_hint_bundle(bundle: HintBundle) -> None:
+    for hint in bundle.hints:
+        jsonschema.validate(hint, HINT_SCHEMA_STRICT)
+        # Also check the things that the JSON Schema cannot enforce.
+        if 't' in hint:
+            assert hint['t'] < len(bundle.vocabulary)
+        for patch in hint['p']:
+            assert patch['l'] < patch['r']
+            if 'v' in patch:
+                assert patch['v'] < len(bundle.vocabulary)

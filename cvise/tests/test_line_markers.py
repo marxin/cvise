@@ -1,7 +1,7 @@
 import pytest
 
 from cvise.passes.line_markers import LineMarkersPass
-from cvise.tests.testabstract import collect_all_transforms
+from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
 
 
 @pytest.fixture
@@ -12,6 +12,7 @@ def input_path(tmp_path):
 def init_pass(tmp_path, input_path):
     pass_ = LineMarkersPass()
     state = pass_.new(input_path, tmp_dir=tmp_path)
+    validate_stored_hints(state)
     return pass_, state
 
 

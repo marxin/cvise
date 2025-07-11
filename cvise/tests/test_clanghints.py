@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 
 from cvise.passes.clanghints import ClangHintsPass
-from cvise.tests.testabstract import collect_all_transforms
+from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
 
 
@@ -19,6 +19,7 @@ def init_pass(transformation, tmp_dir, input_path):
     pass_ = ClangHintsPass(transformation, find_external_programs())
     pass_.user_clang_delta_std = None
     state = pass_.new(input_path, tmp_dir=tmp_dir, job_timeout=100)
+    validate_stored_hints(state)
     return pass_, state
 
 
