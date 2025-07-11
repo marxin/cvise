@@ -18,7 +18,7 @@ def get_data_path(testcase):
 def init_pass(transformation, tmp_dir, input_path):
     pass_ = ClangHintsPass(transformation, find_external_programs())
     pass_.user_clang_delta_std = None
-    state = pass_.new(input_path, tmp_dir=tmp_dir)
+    state = pass_.new(input_path, tmp_dir=tmp_dir, job_timeout=100)
     validate_stored_hints(state)
     return pass_, state
 
@@ -61,20 +61,28 @@ def test_clang_delta_crash(tmp_path, monkeypatch):
 
     We simulate this by patching the subprocess API to return a nonzero exit code and an empty output."""
 
-    class StubPopen:
-        def __init__(self, *args, **kwargs):
-            self.stdout = iter([])
-            self.returncode = 1
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            pass
+    def stub_run(arg, **kwargs):
+        return subprocess.CompletedProcess(arg, returncode=1, stdout='', stderr='')
 
     input_path = tmp_path / 'input.c'
     input_path.touch()
-    monkeypatch.setattr(subprocess, 'Popen', StubPopen)
+    monkeypatch.setattr(subprocess, 'run', stub_run)
+    p, state = init_pass('remove-unused-function', tmp_path, input_path)
+
+    assert state is None
+
+
+def test_clang_delta_timeout(tmp_path, monkeypatch):
+    """Test the case of clang_delta timing out.
+
+    We simulate this by patching the subprocess API to raise a timeout error."""
+
+    def stub_run(args, **kwargs):
+        raise subprocess.TimeoutExpired(args, timeout=0)
+
+    input_path = tmp_path / 'input.c'
+    input_path.touch()
+    monkeypatch.setattr(subprocess, 'run', stub_run)
     p, state = init_pass('remove-unused-function', tmp_path, input_path)
 
     assert state is None

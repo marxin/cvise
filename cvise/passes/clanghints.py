@@ -39,14 +39,14 @@ class ClangHintsPass(HintBasedPass):
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
 
-    def new(self, test_case, tmp_dir, **kwargs):
+    def new(self, test_case, tmp_dir, job_timeout, **kwargs):
         # Choose the best standard unless the user provided one.
         std_choices = [self.user_clang_delta_std] if self.user_clang_delta_std else CLANG_STD_CHOICES
         best_std = None
         best_bundle = None
         for std in std_choices:
             start = time.monotonic()
-            bundle = self.generate_hints_for_standard(test_case, std)
+            bundle = self.generate_hints_for_standard(test_case, std, job_timeout)
             took = time.monotonic() - start
             # prefer newer standard if the # of instances is equal
             if best_bundle is None or len(bundle.hints) >= len(best_bundle.hints):
@@ -66,14 +66,14 @@ class ClangHintsPass(HintBasedPass):
         # Re-attach the remembered standard.
         return ClangState.wrap(new_state, state.clang_std)
 
-    def advance_on_success(self, test_case, state, **kwargs):
+    def advance_on_success(self, test_case, state, job_timeout, **kwargs):
         # Keep using the same standard as the one chosen in new() - repeating the choose procedure on every successful
         # reduction would be too costly.
-        hints = self.generate_hints_for_standard(test_case, state.clang_std)
+        hints = self.generate_hints_for_standard(test_case, state.clang_std, job_timeout)
         new_state = self.advance_on_success_from_hints(hints, state)
         return ClangState.wrap(new_state, state.clang_std)
 
-    def generate_hints_for_standard(self, test_case, std) -> HintBundle:
+    def generate_hints_for_standard(self, test_case: str, std: str, timeout: int) -> HintBundle:
         cmd = [
             self.external_programs['clang_delta'],
             f'--transformation={self.arg}',
@@ -84,14 +84,27 @@ class ClangHintsPass(HintBasedPass):
 
         logging.debug(shlex.join(str(s) for s in cmd))
 
-        hints = []
-        # FIXME: Set a timeout.
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True) as proc:
-            # When reading, gracefully handle EOF because the tool might've failed with no output.
-            vocab_line = next(proc.stdout, None)
-            vocab = json.loads(vocab_line) if vocab_line else []
+        try:
+            proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            logging.warning('clang_delta (--std=%s) %ds timeout reached', std, timeout)
+            return HintBundle(hints=[])
+        except subprocess.SubprocessError as e:
+            logging.warning('clang_delta (--std=%s) failed: %s', std, e)
+            return HintBundle(hints=[])
 
-            for line in proc.stdout:
-                if not line.isspace():
-                    hints.append(json.loads(line))
+        if proc.returncode != 0:
+            logging.warning(
+                'clang_delta (--std=%s) failed with exit code %d: %s', std, proc.returncode, proc.stderr.strip()
+            )
+
+        # When reading, gracefully handle EOF because the tool might've failed with no output.
+        stdout = iter(proc.stdout.splitlines())
+        vocab_line = next(stdout, None)
+        vocab = json.loads(vocab_line) if vocab_line else []
+
+        hints = []
+        for line in stdout:
+            if not line.isspace():
+                hints.append(json.loads(line))
         return HintBundle(vocabulary=vocab, hints=hints)
