@@ -41,3 +41,18 @@ def test_hash_lines_removal(tmp_path: Path, input_path: Path):
     all_transforms = collect_all_transforms(p, state, input_path)
 
     assert 'bar#1\n' in all_transforms
+
+
+def test_no_different_type_removals(tmp_path: Path, input_path: Path):
+    """Verify that a single transform never attempts both empty line and hash-line removals.
+
+    We want these two types of removals to be treated separately because their success rates may be very different, and
+    it can be very ineffective to mix them in reduction attempts.
+    """
+    input_path.write_text('#x\n\n#y\nz\n')
+    p, state = init_pass(tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert '#x\n#y\nz\n' in all_transforms  # removal of empty lines
+    assert '\nz\n' in all_transforms  # removal of hash-lines
+    assert 'z\n' not in all_transforms  # no removal of both
