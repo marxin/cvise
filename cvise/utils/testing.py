@@ -158,8 +158,14 @@ class PassContext:
         return PassContext(pass_=pass_, temporary_root=Path(root), state=None)
 
 
+@unique
+class JobType(Enum):
+    TRANSFORM = auto()
+
+
 @dataclass
 class Job:
+    type: JobType
     future: Future
     pass_: AbstractPass
     pass_id: int
@@ -427,27 +433,30 @@ class TestManager:
         quit_loop = False
         jobs_to_remove = []
         for job in self.jobs:
-            # all items after first successfull (or STOP) should be cancelled
+            # all items after first successfull (or a repeated error) should be cancelled
             if quit_loop:
                 job.future.cancel()
                 jobs_to_remove.append(job)
                 continue
 
-            if job.future.done():
-                if job.future.exception():
-                    # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
-                    if type(job.future.exception()) in (TimeoutError, concurrent.futures.TimeoutError):
-                        self.timeout_count += 1
-                        logging.warning('Test timed out.')
-                        self.save_extra_dir(job.temporary_folder)
-                        if self.timeout_count >= self.MAX_TIMEOUTS:
-                            logging.warning('Maximum number of timeout were reached: %d' % self.MAX_TIMEOUTS)
-                            quit_loop = True
-                        jobs_to_remove.append(job)
-                        continue
-                    else:
-                        raise job.future.exception()
+            if not job.future.done():
+                continue
 
+            if job.future.exception():
+                # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
+                if type(job.future.exception()) in (TimeoutError, concurrent.futures.TimeoutError):
+                    self.timeout_count += 1
+                    logging.warning('Test timed out.')
+                    self.save_extra_dir(job.temporary_folder)
+                    if self.timeout_count >= self.MAX_TIMEOUTS:
+                        logging.warning('Maximum number of timeout were reached: %d' % self.MAX_TIMEOUTS)
+                        quit_loop = True
+                    jobs_to_remove.append(job)
+                    continue
+                else:
+                    raise job.future.exception()
+
+            if job.type == JobType.TRANSFORM:
                 outcome = self.check_pass_result(job)
                 if outcome == PassCheckingOutcome.ACCEPT:
                     quit_loop = True
@@ -458,6 +467,8 @@ class TestManager:
                     if outcome == PassCheckingOutcome.STOP:
                         self.pass_contexts[job.pass_id].state = None
                     jobs_to_remove.append(job)
+            else:
+                raise ValueError(f'Unexpected job type {job.type}')
 
         for job in jobs_to_remove:
             self.release_job(job)
@@ -466,6 +477,8 @@ class TestManager:
 
     def wait_for_first_success(self) -> Union[Job, None]:
         for job in self.jobs:
+            if job.type != JobType.TRANSFORM:
+                continue
             try:
                 while not job.future.done():
                     # wait with a timeout, so that keyboard events can be handled reasonably quickly.
@@ -554,6 +567,7 @@ class TestManager:
                     future = pool.schedule(test_env.run, timeout=self.timeout)
                     self.jobs.append(
                         Job(
+                            type=JobType.TRANSFORM,
                             future=future,
                             pass_=context.pass_,
                             pass_id=pass_id,
