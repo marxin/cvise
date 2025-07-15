@@ -17,9 +17,8 @@ class ClangBinarySearchPass(AbstractPass):
         best = None
         best_count = -1
         for std in ('c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++2b'):
-            self.clang_delta_std = std
             start = time.monotonic()
-            instances = self.count_instances(test_case, timeout)
+            instances = self.count_instances(test_case, std, timeout)
             took = time.monotonic() - start
 
             # prefer newer standard if the # of instances is equal
@@ -29,31 +28,32 @@ class ClangBinarySearchPass(AbstractPass):
             logging.debug('available transformation opportunities for %s: %d, took: %.2f s' % (std, instances, took))
         logging.info('using C++ standard: %s with %d transformation opportunities' % (best, best_count))
         # Use the best standard option
-        self.clang_delta_std = best
+        return best
 
     def new(self, test_case, job_timeout, **kwargs):
         if not self.user_clang_delta_std:
-            self.detect_best_standard(test_case, job_timeout)
+            std = self.detect_best_standard(test_case, job_timeout)
         else:
-            self.clang_delta_std = self.user_clang_delta_std
-        return BinaryState.create(self.count_instances(test_case, job_timeout))
+            std = self.user_clang_delta_std
+        state = BinaryState.create(self.count_instances(test_case, std, job_timeout))
+        return attach_clang_delta_std(state, std)
 
     def advance(self, test_case, state):
-        return state.advance()
+        new_state = state.advance()
+        return attach_clang_delta_std(new_state, state.clang_delta_std)
 
     def advance_on_success(self, test_case, state, **kwargs):
         instances = state.real_num_instances - state.real_chunk()
-        state = state.advance_on_success(instances)
-        if state:
-            state.real_num_instances = None
-        return state
+        new_state = state.advance_on_success(instances)
+        if new_state:
+            new_state.real_num_instances = None
+        return attach_clang_delta_std(new_state, state.clang_delta_std)
 
-    def count_instances(self, test_case, timeout):
-        assert self.clang_delta_std
+    def count_instances(self, test_case, std, timeout):
         args = [
             self.external_programs['clang_delta'],
             f'--query-instances={self.arg}',
-            f'--std={self.clang_delta_std}',
+            f'--std={std}',
         ]
         if self.clang_delta_preserve_routine:
             args.append(f'--preserve-routine="{self.clang_delta_preserve_routine}"')
@@ -62,10 +62,10 @@ class ClangBinarySearchPass(AbstractPass):
         try:
             proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
         except subprocess.TimeoutExpired:
-            logging.warning(f'clang_delta --query-instances (--std={self.clang_delta_std}) {timeout}s timeout reached')
+            logging.warning(f'clang_delta --query-instances (--std={std}) {timeout}s timeout reached')
             return 0
         except subprocess.SubprocessError as e:
-            logging.warning(f'clang_delta --query-instances (--std={self.clang_delta_std}) failed: {e}')
+            logging.warning(f'clang_delta --query-instances (--std={std}) failed: {e}')
             return 0
 
         if proc.returncode != 0:
@@ -101,8 +101,7 @@ class ClangBinarySearchPass(AbstractPass):
                 '--warn-on-counter-out-of-bounds',
                 '--report-instances-count',
             ]
-            if self.clang_delta_std:
-                args.append(f'--std={self.clang_delta_std}')
+            args.append(f'--std={state.clang_delta_std}')
             if self.clang_delta_preserve_routine:
                 args.append(f'--preserve-routine="{self.clang_delta_preserve_routine}"')
             cmd = [self.external_programs['clang_delta']] + args + [test_case]
@@ -120,3 +119,10 @@ class ClangBinarySearchPass(AbstractPass):
                     PassResult.STOP if returncode == 255 else PassResult.ERROR,
                     state,
                 )
+
+
+def attach_clang_delta_std(state, std):
+    if state is None:
+        return None
+    state.clang_delta_std = std
+    return state
