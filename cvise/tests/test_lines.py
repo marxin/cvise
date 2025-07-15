@@ -731,3 +731,51 @@ def test_advance_on_success(tmp_path, input_path):
         bar;
         """
     )
+
+
+def test_arg_none(tmp_path, input_path):
+    """Test that arg=None deletes individual lines as-is."""
+    write_file(
+        input_path,
+        """
+        int f() {
+        }
+
+        int x = 1;
+        """,
+    )
+    p, state = init_pass('None', tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert (
+        """
+        }
+
+        int x = 1;
+        """
+        in all_transforms
+    )
+    assert (
+        """
+        int f() {
+
+        int x = 1;
+        """
+        in all_transforms
+    )
+    assert (
+        """
+        int f() {
+        }
+        int x = 1;
+        """
+        in all_transforms
+    )
+    assert (
+        """
+        int f() {
+        }
+
+        """
+        in all_transforms
+    )

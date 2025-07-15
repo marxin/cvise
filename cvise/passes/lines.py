@@ -24,7 +24,7 @@ class LinesPass(HintBasedPass):
             for line in in_file:
                 end_pos = file_pos + len(line)
                 hints.append({'p': [{'l': file_pos, 'r': end_pos}]})
-            file_pos = end_pos
+                file_pos = end_pos
         return HintBundle(hints=hints)
 
     def generate_topformflat_hints(self, test_case: str) -> HintBundle:
