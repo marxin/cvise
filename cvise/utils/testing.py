@@ -16,7 +16,7 @@ import sys
 import tempfile
 import time
 import traceback
-from typing import Any, List, Union
+from typing import Any, Callable, List, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
@@ -53,6 +53,17 @@ def rmfolder(name):
         shutil.rmtree(name)
     except OSError:
         pass
+
+
+@dataclass
+class InitEnvironment:
+    pass_new: Callable
+    test_case: str
+    tmp_dir: Path
+    job_timeout: int
+
+    def run(self):
+        return self.pass_new(self.test_case, tmp_dir=self.tmp_dir, job_timeout=self.job_timeout)
 
 
 class TestEnvironment:
@@ -139,11 +150,19 @@ class TestEnvironment:
         return returncode
 
 
+@unique
+class PassStage(Enum):
+    BEFORE_INIT = auto()
+    IN_INIT = auto()
+    ENUMERATING = auto()
+
+
 @dataclass
 class PassContext:
     """Stores runtime data for a currently active pass."""
 
     pass_: AbstractPass
+    stage: PassStage
     # Stores pass-specific files to be used during transform jobs (e.g., hints generated during initialization), and
     # temporary folders for each transform job.
     temporary_root: Union[Path, None]
@@ -155,14 +174,15 @@ class PassContext:
         pass_name = str(pass_).replace('::', '-')
         root = tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}{pass_name}-')
         logging.debug(f'Creating pass root folder: {root}')
-        return PassContext(pass_=pass_, temporary_root=Path(root), state=None)
+        return PassContext(pass_=pass_, stage=PassStage.BEFORE_INIT, temporary_root=Path(root), state=None)
 
     def enumeration_finished(self) -> bool:
-        return self.state is None
+        return self.stage == PassStage.ENUMERATING and self.state is None
 
 
 @unique
 class JobType(Enum):
+    INIT = auto()
     TRANSFORM = auto()
 
 
@@ -418,7 +438,7 @@ class TestManager:
                 pass
 
     def release_job(self, job: Job) -> None:
-        if not self.save_temps:
+        if not self.save_temps and job.temporary_folder is not None:
             rmfolder(job.temporary_folder)
         self.jobs.remove(job)
 
@@ -460,7 +480,14 @@ class TestManager:
                 else:
                     raise job.future.exception()
 
-            if job.type == JobType.TRANSFORM:
+            if job.type == JobType.INIT:
+                ctx = self.pass_contexts[job.pass_id]
+                assert ctx.stage == PassStage.IN_INIT
+                ctx.stage = PassStage.ENUMERATING
+                ctx.state = job.future.result()
+                self.pass_statistic.add_initialized(job.pass_, job.start_time)
+                jobs_to_remove.append(job)
+            elif job.type == JobType.TRANSFORM:
                 outcome = self.check_pass_result(job)
                 if outcome == PassCheckingOutcome.ACCEPT:
                     quit_loop = True
@@ -550,6 +577,7 @@ class TestManager:
                     while len(self.jobs) < self.parallel_tests and any(
                         self.can_schedule_for_pass(c) for c in self.pass_contexts
                     ):
+                        self.maybe_schedule_init(pool, next_pass_id)
                         self.maybe_schedule_transform(pool, next_pass_id)
                         next_pass_id = (next_pass_id + 1) % len(self.pass_contexts)
 
@@ -560,6 +588,11 @@ class TestManager:
 
                 success = self.wait_for_first_success()
                 self.terminate_all(pool)
+                # Unfinished initializations will need to be restarted in the next round.
+                for ctx in self.pass_contexts:
+                    if ctx.stage == PassStage.IN_INIT:
+                        ctx.stage = PassStage.BEFORE_INIT
+
                 return success
             except:
                 # Abort running jobs - by default the process pool waits for the ongoing jobs' completion.
@@ -611,15 +644,7 @@ class TestManager:
                             logging.info(f'cache hit for {test_case}')
                             continue
 
-                # create initial states
-                for ctx in self.pass_contexts:
-                    start_time = time.monotonic()
-                    ctx.state = ctx.pass_.new(
-                        self.current_test_case, tmp_dir=ctx.temporary_root, job_timeout=self.timeout
-                    )
-                    self.pass_statistic.add_initialized(ctx.pass_, start_time)
                 self.skip = False
-
                 while any(not c.enumeration_finished() for c in self.pass_contexts) and not self.skip:
                     # Ignore more key presses after skip has been detected
                     if not self.skip_key_off and not self.skip:
@@ -717,7 +742,31 @@ class TestManager:
         logging.info('(' + ', '.join(notes) + ')')
 
     def can_schedule_for_pass(self, ctx: PassContext) -> bool:
-        return ctx.state is not None
+        return ctx.stage == PassStage.BEFORE_INIT or ctx.state is not None
+
+    def maybe_schedule_init(self, pool: pebble.ProcessPool, pass_id: int) -> None:
+        ctx = self.pass_contexts[pass_id]
+        if ctx.stage != PassStage.BEFORE_INIT:
+            return
+
+        env = InitEnvironment(
+            pass_new=ctx.pass_.new,
+            test_case=self.current_test_case,
+            tmp_dir=ctx.temporary_root,
+            job_timeout=self.timeout,
+        )
+        future = pool.schedule(env.run)
+        self.jobs.append(
+            Job(
+                type=JobType.INIT,
+                future=future,
+                pass_=ctx.pass_,
+                pass_id=pass_id,
+                start_time=time.monotonic(),
+                temporary_folder=None,
+            )
+        )
+        ctx.stage = PassStage.IN_INIT
 
     def maybe_schedule_transform(self, pool: pebble.ProcessPool, pass_id: int) -> None:
         ctx = self.pass_contexts[pass_id]
