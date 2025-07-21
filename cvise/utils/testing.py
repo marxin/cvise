@@ -157,6 +157,9 @@ class PassContext:
         logging.debug(f'Creating pass root folder: {root}')
         return PassContext(pass_=pass_, temporary_root=Path(root), state=None)
 
+    def enumeration_finished(self) -> bool:
+        return self.state is None
+
 
 @unique
 class JobType(Enum):
@@ -235,6 +238,7 @@ class TestManager:
         if not self.is_valid_test(self.test_script):
             raise InvalidInterestingnessTestError(self.test_script)
         self.jobs: List[Job] = []
+        self.order: int = 0
 
         self.use_colordiff = (
             sys.stdout.isatty()
@@ -535,54 +539,28 @@ class TestManager:
         assert not self.jobs
         with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
             try:
-                order = 1
-                pass_id = 0
+                self.order = 1
+                next_pass_id = 0
                 self.timeout_count_per_pass = {}
                 self.giveup_reported = False
-                while self.jobs or any(c.state is not None for c in self.pass_contexts):
-                    # do not create too many states
-                    if len(self.jobs) >= self.parallel_tests:
-                        wait([job.future for job in self.jobs], return_when=FIRST_COMPLETED)
+                while self.jobs or any(not c.enumeration_finished() for c in self.pass_contexts):
+                    keyboard_interrupt_monitor.maybe_reraise()
 
-                    quit_loop = self.process_done_futures()
-                    if quit_loop or all(c.state is None for c in self.pass_contexts):
-                        success = self.wait_for_first_success()
-                        self.terminate_all(pool)
-                        return success
+                    # schedule new jobs in the round-robin fashion, as long as there are free workers
+                    while len(self.jobs) < self.parallel_tests and any(
+                        self.can_schedule_for_pass(c) for c in self.pass_contexts
+                    ):
+                        self.maybe_schedule_transform(pool, next_pass_id)
+                        next_pass_id = (next_pass_id + 1) % len(self.pass_contexts)
 
-                    while self.pass_contexts[pass_id].state is None:
-                        pass_id = (pass_id + 1) % len(self.pass_contexts)
-                    context = self.pass_contexts[pass_id]
-                    folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=context.temporary_root))
-                    test_env = TestEnvironment(
-                        context.state,
-                        order,
-                        self.test_script,
-                        folder,
-                        self.current_test_case,
-                        self.test_cases,
-                        context.pass_.transform,
-                        self.pid_queue,
-                    )
-                    future = pool.schedule(test_env.run, timeout=self.timeout)
-                    self.jobs.append(
-                        Job(
-                            type=JobType.TRANSFORM,
-                            future=future,
-                            pass_=context.pass_,
-                            pass_id=pass_id,
-                            start_time=time.monotonic(),
-                            temporary_folder=folder,
-                        )
-                    )
-                    order += 1
-                    context.state = context.pass_.advance(self.current_test_case, context.state)
-                    # we are at the end of enumeration
-                    if context.state is None:
-                        success = self.wait_for_first_success()
-                        self.terminate_all(pool)
-                        return success
-                    pass_id = (pass_id + 1) % len(self.pass_contexts)
+                    # no more jobs could be scheduled at the moment - wait for some results
+                    wait([j.future for j in self.jobs], return_when=FIRST_COMPLETED, timeout=self.EVENT_LOOP_TIMEOUT)
+                    if self.process_done_futures():
+                        break
+
+                success = self.wait_for_first_success()
+                self.terminate_all(pool)
+                return success
             except:
                 # Abort running jobs - by default the process pool waits for the ongoing jobs' completion.
                 self.terminate_all(pool)
@@ -642,7 +620,7 @@ class TestManager:
                     self.pass_statistic.add_initialized(ctx.pass_, start_time)
                 self.skip = False
 
-                while any(c.state is not None for c in self.pass_contexts) and not self.skip:
+                while any(not c.enumeration_finished() for c in self.pass_contexts) and not self.skip:
                     # Ignore more key presses after skip has been detected
                     if not self.skip_key_off and not self.skip:
                         key = logger.pressed_key()
@@ -737,3 +715,38 @@ class TestManager:
             notes.append(str(test_env.test_case))
 
         logging.info('(' + ', '.join(notes) + ')')
+
+    def can_schedule_for_pass(self, ctx: PassContext) -> bool:
+        return ctx.state is not None
+
+    def maybe_schedule_transform(self, pool: pebble.ProcessPool, pass_id: int) -> None:
+        ctx = self.pass_contexts[pass_id]
+        if ctx.state is None:
+            # Not initialized yet or already advanced through all states.
+            return
+
+        folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=ctx.temporary_root))
+        env = TestEnvironment(
+            ctx.state,
+            self.order,
+            self.test_script,
+            folder,
+            self.current_test_case,
+            self.test_cases,
+            ctx.pass_.transform,
+            self.pid_queue,
+        )
+        future = pool.schedule(env.run, timeout=self.timeout)
+        self.jobs.append(
+            Job(
+                type=JobType.TRANSFORM,
+                future=future,
+                pass_=ctx.pass_,
+                pass_id=pass_id,
+                start_time=time.monotonic(),
+                temporary_folder=folder,
+            )
+        )
+
+        self.order += 1
+        ctx.state = ctx.pass_.advance(self.current_test_case, ctx.state)
