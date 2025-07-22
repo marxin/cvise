@@ -528,8 +528,8 @@ def do_apply_hints(args):
         sys.exit('HINT_BEGIN_INDEX must be smaller than HINT_END_INDEX')
     if len(args.test_cases) > 1:
         sys.exit('exactly one TEST_CASE must be supplied')
-    hints = load_hints(Path(args.hints_file), args.hint_begin_index, args.hint_end_index)
-    new_data = apply_hints(hints, Path(args.test_cases[0]))
+    bundle = load_hints(Path(args.hints_file), args.hint_begin_index, args.hint_end_index)
+    new_data = apply_hints([bundle], Path(args.test_cases[0]))
     print(new_data, end='')  # avoid adding an extra newline
 
 

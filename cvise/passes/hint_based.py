@@ -145,8 +145,8 @@ class HintBasedPass(AbstractPass):
         sub_state = state.per_type_states[state.ptr]
         hints_range_begin = sub_state.binary_state.index
         hints_range_end = sub_state.binary_state.end()
-        hints = load_hints(state.tmp_dir / sub_state.hints_file_name, hints_range_begin, hints_range_end)
-        new_data = apply_hints(hints, Path(test_case))
+        bundle = load_hints(state.tmp_dir / sub_state.hints_file_name, hints_range_begin, hints_range_end)
+        new_data = apply_hints([bundle], Path(test_case))
         Path(test_case).write_text(new_data)
         return (PassResult.OK, state)
 
