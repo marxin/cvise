@@ -567,19 +567,15 @@ class TestManager:
         with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
             try:
                 self.order = 1
-                next_pass_id = 0
+                self.next_pass_id = 0
                 self.timeout_count_per_pass = {}
                 self.giveup_reported = False
                 while self.jobs or any(not c.enumeration_finished() for c in self.pass_contexts):
                     keyboard_interrupt_monitor.maybe_reraise()
 
-                    # schedule new jobs in the round-robin fashion, as long as there are free workers
-                    while len(self.jobs) < self.parallel_tests and any(
-                        self.can_schedule_for_pass(c) for c in self.pass_contexts
-                    ):
-                        self.maybe_schedule_init(pool, next_pass_id)
-                        self.maybe_schedule_transform(pool, next_pass_id)
-                        next_pass_id = (next_pass_id + 1) % len(self.pass_contexts)
+                    # schedule new jobs, as long as there are free workers
+                    while len(self.jobs) < self.parallel_tests and self.maybe_schedule_job(pool):
+                        pass
 
                     # no more jobs could be scheduled at the moment - wait for some results
                     wait([j.future for j in self.jobs], return_when=FIRST_COMPLETED, timeout=self.EVENT_LOOP_TIMEOUT)
@@ -741,13 +737,24 @@ class TestManager:
 
         logging.info('(' + ', '.join(notes) + ')')
 
-    def can_schedule_for_pass(self, ctx: PassContext) -> bool:
-        return ctx.stage == PassStage.BEFORE_INIT or ctx.state is not None
+    def maybe_schedule_job(self, pool: pebble.ProcessPool) -> bool:
+        # The order matters below - higher-priority job types come earlier:
+        # 1. Initializing a pass.
+        for pass_id, ctx in enumerate(self.pass_contexts):
+            if ctx.stage == PassStage.BEFORE_INIT:
+                self.schedule_init(pool, pass_id)
+                return True
+        # 2. Attempting a transformation using the next heuristic in the round-robin fashion.
+        if any(ctx.state is not None for ctx in self.pass_contexts):
+            while self.pass_contexts[self.next_pass_id].state is None:
+                self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
+            self.schedule_transform(pool, self.next_pass_id)
+            return True
+        return False
 
-    def maybe_schedule_init(self, pool: pebble.ProcessPool, pass_id: int) -> None:
+    def schedule_init(self, pool: pebble.ProcessPool, pass_id: int) -> None:
         ctx = self.pass_contexts[pass_id]
-        if ctx.stage != PassStage.BEFORE_INIT:
-            return
+        assert ctx.stage == PassStage.BEFORE_INIT
 
         env = InitEnvironment(
             pass_new=ctx.pass_.new,
@@ -766,13 +773,12 @@ class TestManager:
                 temporary_folder=None,
             )
         )
+
         ctx.stage = PassStage.IN_INIT
 
-    def maybe_schedule_transform(self, pool: pebble.ProcessPool, pass_id: int) -> None:
+    def schedule_transform(self, pool: pebble.ProcessPool, pass_id: int) -> None:
         ctx = self.pass_contexts[pass_id]
-        if ctx.state is None:
-            # Not initialized yet or already advanced through all states.
-            return
+        assert ctx.state is not None
 
         folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=ctx.temporary_root))
         env = TestEnvironment(
