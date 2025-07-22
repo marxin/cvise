@@ -21,7 +21,7 @@ def test_apply_hints_delete_prefix(tmp_file):
     jsonschema.validate(hint, schema=HINT_SCHEMA)
     bundle = HintBundle(hints=[hint])
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'bar'
 
@@ -32,7 +32,7 @@ def test_apply_hints_delete_suffix(tmp_file):
     jsonschema.validate(hint, schema=HINT_SCHEMA)
     bundle = HintBundle(hints=[hint])
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'Foo'
 
@@ -43,7 +43,7 @@ def test_apply_hints_delete_middle(tmp_file):
     jsonschema.validate(hint, schema=HINT_SCHEMA)
     bundle = HintBundle(hints=[hint])
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'Foo baz'
 
@@ -57,7 +57,7 @@ def test_apply_hints_delete_middle_multiple(tmp_file):
         jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(hints=hints)
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'Foobarbaz'
 
@@ -68,7 +68,7 @@ def test_apply_hints_delete_all(tmp_file):
     jsonschema.validate(hint, schema=HINT_SCHEMA)
     bundle = HintBundle(hints=[hint])
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == ''
 
@@ -84,7 +84,7 @@ def test_apply_hints_delete_touching(tmp_file):
         jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(hints=hints)
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'Foo baz'
 
@@ -99,7 +99,7 @@ def test_apply_hints_delete_overlapping(tmp_file):
         jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(hints=hints)
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'Foo baz'
 
@@ -113,7 +113,7 @@ def test_apply_hints_delete_nested(tmp_file):
         jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(hints=hints)
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'Foo baz'
 
@@ -126,7 +126,7 @@ def test_apply_hints_replace_with_shorter(tmp_file):
     jsonschema.validate(hint, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=[hint])
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'Foo xyz baz'
 
@@ -139,7 +139,7 @@ def test_apply_hints_replace_with_longer(tmp_file):
     jsonschema.validate(hint, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=[hint])
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'Foo abacaba baz'
 
@@ -155,7 +155,7 @@ def test_apply_hints_replacement_inside_deletion(tmp_file):
         jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=hints)
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'Foo  baz'
 
@@ -171,7 +171,7 @@ def test_apply_hints_deletion_inside_replacement(tmp_file):
         jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=hints)
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'Foo some baz'
 
@@ -190,7 +190,7 @@ def test_apply_hints_replacement_of_deleted_prefix(tmp_file):
         jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=hints)
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'Foo  baz'
 
@@ -207,7 +207,7 @@ def test_apply_hints_replacement_and_deletion_touching(tmp_file):
         jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=hints)
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'Foo somebaz'
 
@@ -226,7 +226,7 @@ def test_apply_hints_overlapping_replacements(tmp_file):
         jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=hints)
 
-    new_data = apply_hints(bundle, tmp_file)
+    new_data = apply_hints([bundle], tmp_file)
 
     assert new_data == 'afoo'
 

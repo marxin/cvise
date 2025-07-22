@@ -9,7 +9,7 @@ heuristics and to perform reduction more efficiently (as algorithms can now be
 applied to all heuristics in a uniform way).
 """
 
-from copy import deepcopy
+from copy import copy, deepcopy
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
@@ -91,9 +91,15 @@ HINT_SCHEMA_STRICT['additionalProperties'] = False
 HINT_SCHEMA_STRICT['properties']['p']['items'] = HINT_PATCH_SCHEMA_STRICT
 
 
-def apply_hints(bundle: HintBundle, file: Path) -> str:
+def apply_hints(bundles: List[HintBundle], file: Path) -> str:
     """Edits the file applying the specified hints to its contents."""
-    patches = sum((h['p'] for h in bundle.hints), start=[])
+    patches = []
+    for bundle in bundles:
+        for hint in bundle.hints:
+            for patch in hint['p']:
+                p = copy(patch)
+                p['_bundle'] = bundle
+                patches.append(p)
     merged_patches = merge_overlapping_patches(patches)
 
     with open(file) as f:
@@ -102,8 +108,9 @@ def apply_hints(bundle: HintBundle, file: Path) -> str:
     new_data = ''
     start_pos = 0
     for p in merged_patches:
-        left = p['l']
-        right = p['r']
+        left: int = p['l']
+        right: int = p['r']
+        bundle: HintBundle = p['_bundle']
         assert start_pos <= left < len(orig_data)
         assert left < right <= len(orig_data)
         # Add the unmodified chunk up to the current patch begin.
