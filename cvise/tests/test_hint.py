@@ -231,6 +231,22 @@ def test_apply_hints_overlapping_replacements(tmp_file):
     assert new_data == 'afoo'
 
 
+def test_apply_hints_multiple_bundles(tmp_file):
+    tmp_file.write_text('foobar')
+    hint02 = {'p': [{'l': 0, 'r': 2}]}
+    hint13 = {'p': [{'l': 1, 'r': 3}]}
+    hint24 = {'p': [{'l': 2, 'r': 4}]}
+    hints = [hint02, hint13, hint24]
+    for h in hints:
+        jsonschema.validate(h, schema=HINT_SCHEMA)
+    bundle1 = HintBundle(hints=[hint13])
+    bundle2 = HintBundle(hints=[hint02, hint24])
+
+    new_data = apply_hints([bundle1, bundle2], tmp_file)
+
+    assert new_data == 'ar'
+
+
 def test_store_load_hints(tmp_hints_file):
     vocab = ['new text']
     hint1 = {'p': [{'l': 0, 'r': 1}]}
