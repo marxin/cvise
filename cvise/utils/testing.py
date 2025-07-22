@@ -726,32 +726,29 @@ class TestManager:
 
     def process_result(self) -> None:
         assert self.success_candidate
+        new_test_case = self.success_candidate.test_case_path
         if self.print_diff:
-            diff_str = self.diff_files(self.current_test_case, self.success_candidate.test_case_path)
+            diff_str = self.diff_files(self.current_test_case, new_test_case)
             if self.use_colordiff:
                 diff_str = subprocess.check_output('colordiff', shell=True, encoding='utf8', input=diff_str)
             logging.info(diff_str)
 
         try:
-            shutil.copy(self.success_candidate.test_case_path, self.current_test_case)
+            shutil.copy(new_test_case, self.current_test_case)
         except FileNotFoundError:
             raise RuntimeError(
                 f"Can't find {self.current_test_case} -- did your interestingness test move it?"
             ) from None
 
-        for pass_id, context in enumerate(self.pass_contexts):
+        for pass_id, ctx in enumerate(self.pass_contexts):
             # For the pass that succeeded, continue from the state returned by its transform() that led to the success;
             # for other passes, continue the iteration from where the last advance() stopped.
 
-            old_state = (
-                self.success_candidate.pass_state if pass_id == self.success_candidate.pass_id else context.state
-            )
-            context.state = (
+            old_state = self.success_candidate.pass_state if pass_id == self.success_candidate.pass_id else ctx.state
+            ctx.state = (
                 None
                 if old_state is None
-                else context.pass_.advance_on_success(
-                    self.success_candidate.test_case_path, old_state, job_timeout=self.timeout
-                )
+                else ctx.pass_.advance_on_success(new_test_case, old_state, job_timeout=self.timeout)
             )
 
         pct = 100 - (self.total_file_size * 100.0 / self.orig_total_file_size)
@@ -761,7 +758,7 @@ class TestManager:
         if self.total_line_count:
             notes.append(f'{self.total_line_count} lines')
         if len(self.test_cases) > 1:
-            notes.append(str(self.success_candidate.test_case_path.name))
+            notes.append(str(new_test_case.name))
 
         self.success_candidate.release()
         self.success_candidate = None
