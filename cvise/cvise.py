@@ -236,13 +236,13 @@ class CVise:
             return False
 
         if interleaving:
-            self.test_manager.run_passes(available_passes)
+            self.test_manager.run_passes(available_passes, interleaving)
         else:
             for p in available_passes:
                 # Exit early if we're already reduced enough
                 if check_threshold and self._met_stopping_threshold():
                     return True
-                self.test_manager.run_passes([p])
+                self.test_manager.run_passes([p], interleaving)
         return check_threshold and self._met_stopping_threshold()
 
     def _met_stopping_threshold(self) -> bool:

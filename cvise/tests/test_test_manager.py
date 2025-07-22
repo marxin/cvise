@@ -205,7 +205,7 @@ def manager(tmp_path, input_file, interestingness_script):
 def test_succeed_via_naive_pass(input_file, manager):
     """Check that we completely empty the file via the naive lines pass."""
     p = NaiveLinePass()
-    manager.run_passes([p])
+    manager.run_passes([p], interleaving=False)
     assert read_file(input_file) == ''
     assert bug_dir_count() == 0
 
@@ -216,7 +216,7 @@ def test_succeed_via_n_one_off_passes(input_file, manager):
     for lines in range(LINES, 0, -1):
         assert count_lines(input_file) == lines
         p = OneOffLinesPass()
-        manager.run_passes([p])
+        manager.run_passes([p], interleaving=False)
         assert count_lines(input_file) == lines - 1
     assert bug_dir_count() == 0
 
@@ -225,7 +225,7 @@ def test_succeed_after_n_invalid_results(input_file, manager):
     """Check that we still succeed even if the first few invocations were unsuccessful."""
     INVALID_N = 15
     p = NInvalidThenLinesPass(INVALID_N)
-    manager.run_passes([p])
+    manager.run_passes([p], interleaving=False)
     assert read_file(input_file) == ''
     assert bug_dir_count() == 0
 
@@ -234,7 +234,7 @@ def test_succeed_after_n_invalid_results(input_file, manager):
 def test_give_up_on_stuck_pass(input_file, manager):
     """Check that we quit if the pass doesn't improve for a long time."""
     p = AlwaysInvalidPass()
-    manager.run_passes([p])
+    manager.run_passes([p], interleaving=False)
     assert read_file(input_file) == INPUT_DATA
     # The "pass got stuck" report.
     assert bug_dir_count() == 1
@@ -243,7 +243,7 @@ def test_give_up_on_stuck_pass(input_file, manager):
 def test_halt_on_unaltered(input_file, manager):
     """Check that we quit if the pass keeps misbehaving."""
     p = AlwaysUnalteredPass()
-    manager.run_passes([p])
+    manager.run_passes([p], interleaving=False)
     assert read_file(input_file) == INPUT_DATA
     # This number of "failed to modify the variant" reports were to be created.
     assert bug_dir_count() == testing.TestManager.MAX_CRASH_DIRS + 1
@@ -252,7 +252,7 @@ def test_halt_on_unaltered(input_file, manager):
 def test_halt_on_unaltered_after_stop(input_file, manager):
     """Check that we quit after the pass' stop, even if it interleaved with a misbehave."""
     p = SlowUnalteredThenStoppingPass()
-    manager.run_passes([p])
+    manager.run_passes([p], interleaving=False)
     assert read_file(input_file) == INPUT_DATA
     # Whether the misbehave ("failed to modify the variant") is detected depends on timing.
     assert bug_dir_count() <= 1
@@ -264,7 +264,7 @@ def test_interleaving_letter_removals(input_file, manager):
     p2 = LetterRemovingPass('b')
     while True:
         value_before = read_file(input_file)
-        manager.run_passes([p1, p2])
+        manager.run_passes([p1, p2], interleaving=True)
         if read_file(input_file) == value_before:
             break
 
@@ -284,7 +284,7 @@ def test_interleaving_letter_removals_large(input_file, manager):
     p3 = LetterRemovingPass('c')
     while True:
         value_before = read_file(input_file)
-        manager.run_passes([p1, p2, p3])
+        manager.run_passes([p1, p2, p3], interleaving=True)
         if read_file(input_file) == value_before:
             break
 

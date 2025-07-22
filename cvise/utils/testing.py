@@ -255,6 +255,7 @@ class TestManager:
         self.orig_total_file_size = self.total_file_size
         self.cache = {}
         self.pass_contexts: List[PassContext] = []
+        self.interleaving: bool = False
         if not self.is_valid_test(self.test_script):
             raise InvalidInterestingnessTestError(self.test_script)
         self.jobs: List[Job] = []
@@ -595,7 +596,9 @@ class TestManager:
                 self.terminate_all(pool)
                 raise
 
-    def run_passes(self, passes):
+    def run_passes(self, passes: List[AbstractPass], interleaving: bool):
+        assert len(passes) == 1 or interleaving
+
         if self.start_with_pass:
             current_pass_names = [str(c.pass_) for c in self.pass_contexts]
             if self.start_with_pass in current_pass_names:
@@ -606,6 +609,7 @@ class TestManager:
         self.pass_contexts = []
         for pass_ in passes:
             self.pass_contexts.append(PassContext.create(pass_))
+        self.interleaving = interleaving
         self.jobs = []
         m = Manager()
         self.pid_queue = m.Queue()
@@ -674,7 +678,8 @@ class TestManager:
 
                     # skip after N transformations if requested
                     skip_rest = self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms
-                    if len(self.pass_contexts) == 1:  # max-transforms is only supported for non-interleaving passes
+                    if not self.interleaving:  # max-transforms is only supported for non-interleaving passes
+                        assert len(self.pass_contexts) == 1
                         if (
                             self.pass_contexts[0].pass_.max_transforms
                             and success_count >= self.pass_contexts[0].pass_.max_transforms
