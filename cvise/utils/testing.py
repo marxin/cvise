@@ -601,6 +601,8 @@ class TestManager:
                 raise
 
     def run_passes(self, passes: List[AbstractPass], interleaving: bool):
+        assert len(passes) == 1 or interleaving
+
         if self.start_with_pass:
             current_pass_names = [str(c.pass_) for c in self.pass_contexts]
             if self.start_with_pass in current_pass_names:
