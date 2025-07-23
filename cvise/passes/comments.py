@@ -9,7 +9,7 @@ class CommentsPass(HintBasedPass):
         return True
 
     def generate_hints(self, test_case):
-        with open(test_case) as in_file:
+        with open(test_case, 'rb') as in_file:
             prog = in_file.read()
 
         hints = []
@@ -18,11 +18,11 @@ class CommentsPass(HintBasedPass):
         # * first - "/*",
         # * then - any number of "*" that aren't followed by "/", or of any other characters;
         # * finally - "*/".
-        for m in re.finditer(r'/\*(?:\*(?!/)|[^*])*\*/', prog, flags=re.DOTALL):
+        for m in re.finditer(rb'/\*(?:\*(?!/)|[^*])*\*/', prog, flags=re.DOTALL):
             hints.append({'t': 0, 'p': [{'l': m.start(), 'r': m.end()}]})
 
         # Remove all single-line comments.
-        for m in re.finditer(r'//.*$', prog, flags=re.MULTILINE):
+        for m in re.finditer(rb'//.*$', prog, flags=re.MULTILINE):
             hints.append({'t': 1, 'p': [{'l': m.start(), 'r': m.end()}]})
 
         # The order must match the 't' indices above.

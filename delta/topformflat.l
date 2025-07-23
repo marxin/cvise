@@ -44,6 +44,8 @@ int whitespace_end_pos = -1;
 %option noyywrap
 /* dsw: don't define yyunput() */
 %option nounput
+/* support all characters, including UTF-8 */
+%option 8bit
 
 /* start condition for strings */
 %x STRING

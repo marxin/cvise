@@ -29,7 +29,7 @@ def test_class(tmp_path):
     all_transforms = collect_all_transforms(p, state, input_path)
 
     expected_path = get_data_path('remove-unused-function/class.output')
-    assert expected_path.read_text() in all_transforms
+    assert expected_path.read_bytes() in all_transforms
 
 
 def test_const(tmp_path):
@@ -37,8 +37,8 @@ def test_const(tmp_path):
     p, state = init_pass('remove-unused-function', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
-    assert get_data_path('remove-unused-function/const.output').read_text() in all_transforms
-    assert get_data_path('remove-unused-function/const.output2').read_text() in all_transforms
+    assert get_data_path('remove-unused-function/const.output').read_bytes() in all_transforms
+    assert get_data_path('remove-unused-function/const.output2').read_bytes() in all_transforms
 
 
 def test_inline_ns(tmp_path):

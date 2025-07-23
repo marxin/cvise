@@ -97,7 +97,7 @@ def test_interleaving_passes(tmp_path: Path):
     copy_path = Path(testcase_path.name)
 
     proc = start_cvise(['-c', 'gcc -c test.c && grep foo test.c', '--pass-group-file', config_path, testcase_path.name])
-    stdout, _ = proc.communicate()
+    proc.communicate()
     assert proc.returncode == 0
     assert (
         copy_path.read_text()
@@ -128,3 +128,20 @@ def test_apply_hints(tmp_path: Path):
     stdout, _ = proc.communicate()
     assert proc.returncode == 0
     assert stdout == 'ad'
+
+
+def test_non_ascii(tmp_path: Path):
+    testcase_path = tmp_path / 'test.c'
+    testcase_path.write_bytes(b"""
+        // nonutf\xff
+        int foo;
+        char *s = "Streichholzsch\xc3\xa4chtelchen";
+        """)
+    shutil.copy(testcase_path, '.')
+    copy_path = Path(testcase_path.name)
+
+    # Also enable diff logging to check it doesn't break on non-unicode.
+    proc = start_cvise(['-c', 'gcc -c test.c && grep foo test.c', testcase_path.name, '--print-diff'])
+    proc.communicate()
+    assert proc.returncode == 0
+    assert copy_path.read_bytes() == b'int foo;\n'

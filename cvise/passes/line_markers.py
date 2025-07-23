@@ -22,14 +22,14 @@ class LineMarkersPass(HintBasedPass):
     system header) and cannot be removed. Also the pass implementation, being a simple regexp, can have false positives.
     """
 
-    line_regex = re.compile('^\\s*#\\s*[0-9]+')
+    line_regex = re.compile(b'^\\s*#\\s*[0-9]+')
 
     def check_prerequisites(self):
         return True
 
     def generate_hints(self, test_case):
         hints = []
-        with open(test_case) as in_file:
+        with open(test_case, 'rb') as in_file:
             file_pos = 0
             for line in in_file.readlines():
                 end_pos = file_pos + len(line)

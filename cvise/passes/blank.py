@@ -6,8 +6,8 @@ from cvise.utils.hint import HintBundle
 
 class BlankPass(HintBasedPass):
     PATTERNS = {
-        'blankline': r'^\s*$',
-        'hashline': r'^#',
+        'blankline': rb'^\s*$',
+        'hashline': rb'^#',
     }
 
     def check_prerequisites(self):
@@ -15,7 +15,7 @@ class BlankPass(HintBasedPass):
 
     def generate_hints(self, test_case):
         hints = []
-        with open(test_case) as in_file:
+        with open(test_case, 'rb') as in_file:
             file_pos = 0
             for line in in_file.readlines():
                 end_pos = file_pos + len(line)

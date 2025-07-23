@@ -40,6 +40,24 @@ def test_all_iteration(tmp_path, input_path):
 
     all_transforms = collect_all_transforms(pass_, state, input_path)
 
-    assert "# 2 'bar.h'\nint x = 2;\n# 4 'x.h'" in all_transforms
-    assert "# 1 'foo.h'\nint x = 2;\n# 4 'x.h'" in all_transforms
-    assert "# 1 'foo.h'\n# 2 'bar.h'\nint x = 2;\n" in all_transforms
+    assert b"# 2 'bar.h'\nint x = 2;\n# 4 'x.h'" in all_transforms
+    assert b"# 1 'foo.h'\nint x = 2;\n# 4 'x.h'" in all_transforms
+    assert b"# 1 'foo.h'\n# 2 'bar.h'\nint x = 2;\n" in all_transforms
+
+
+def test_non_ascii(tmp_path, input_path):
+    input_path.write_bytes(
+        b"""
+        # 1 "Streichholzsch\xc3\xa4chtelchen.h";
+        char t[] = "nonutf\xff";
+        """,
+    )
+    pass_, state = init_pass(tmp_path, input_path)
+    (_, state) = pass_.transform(input_path, state, None)
+
+    assert (
+        input_path.read_bytes()
+        == b"""
+        char t[] = "nonutf\xff";
+        """
+    )

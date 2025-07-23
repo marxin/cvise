@@ -17,33 +17,23 @@ def init_pass(depth, tmp_dir, input_path):
     return pass_, state
 
 
-def read_file(path):
-    with open(path) as f:
-        return f.read()
-
-
-def write_file(path, data):
-    with open(path, 'w') as f:
-        f.write(data)
-
-
 def advance_until(pass_, state, input_path, predicate):
-    backup = read_file(input_path)
+    backup = input_path.read_bytes()
     while True:
         pass_.transform(input_path, state, process_event_notifier=None)
-        if predicate(read_file(input_path)):
+        if predicate(input_path.read_bytes()):
             return state
-        write_file(input_path, backup)
+        input_path.write_bytes(backup)
         state = pass_.advance(input_path, state)
         assert state is not None
 
 
-def is_valid_brace_sequence(s):
+def is_valid_brace_sequence(s: bytes) -> bool:
     balance = 0
     for c in s:
-        if c == '{':
+        if c == ord('{'):
             balance += 1
-        elif c == '}':
+        elif c == ord('}'):
             balance -= 1
         if balance < 0:
             return False
@@ -52,8 +42,7 @@ def is_valid_brace_sequence(s):
 
 def test_func_namespace_level0(tmp_path, input_path):
     """Test that arg=0 deletes top-level functions and namespaces."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         int f() {
           char x;
@@ -67,7 +56,7 @@ def test_func_namespace_level0(tmp_path, input_path):
 
     # removal of the namespace
     assert (
-        """
+        b"""
         int f() {
           char x;
         }
@@ -76,7 +65,7 @@ def test_func_namespace_level0(tmp_path, input_path):
     )
     # removal of f()
     assert (
-        """
+        b"""
         namespace foo {
         }
         """
@@ -89,8 +78,7 @@ def test_func_namespace_level0(tmp_path, input_path):
 
 def test_func_namespace_level1(tmp_path, input_path):
     """Test that arg=1 deletes code inside top-level functions and namespaces."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         int f() {
           char x;
@@ -106,7 +94,7 @@ def test_func_namespace_level1(tmp_path, input_path):
 
     # removal of code inside f()
     assert (
-        """
+        b"""
         int f() {
         }
         namespace foo {
@@ -118,7 +106,7 @@ def test_func_namespace_level1(tmp_path, input_path):
     )
     # removal of code inside foo
     assert (
-        """
+        b"""
         int f() {
           char x;
         }
@@ -129,7 +117,7 @@ def test_func_namespace_level1(tmp_path, input_path):
     )
     # removal of both
     assert (
-        """
+        b"""
         int f() {
         }
         namespace foo {
@@ -144,8 +132,7 @@ def test_func_namespace_level1(tmp_path, input_path):
 
 def test_multiline_func_signature_level0(tmp_path, input_path):
     """Test that arg=0 deletes a top-level function despite line breaks in the signature."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         template <class T>
         SomeVeryLongType
@@ -156,15 +143,14 @@ def test_multiline_func_signature_level0(tmp_path, input_path):
     p, state = init_pass('0', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
-    assert '' in all_transforms
+    assert b'' in all_transforms
     # no attempts to partially remove the function
     assert len(all_transforms) == 1
 
 
 def test_multiline_func_signature_level1(tmp_path, input_path):
     """Test that arg=1 deletes a nested function despite line breaks in the signature."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         namespace {
           template <class T>
@@ -179,7 +165,7 @@ def test_multiline_func_signature_level1(tmp_path, input_path):
     all_transforms = collect_all_transforms(p, state, input_path)
 
     assert (
-        """
+        b"""
         namespace {
         }
         """
@@ -191,8 +177,7 @@ def test_multiline_func_signature_level1(tmp_path, input_path):
 
 def test_class_with_methods_level0(tmp_path, input_path):
     """Test that arg=0 deletes the whole class definition."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         class A {
           void f() {
@@ -207,14 +192,13 @@ def test_class_with_methods_level0(tmp_path, input_path):
     p, state = init_pass('0', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
-    assert '' in all_transforms
+    assert b'' in all_transforms
     assert len(all_transforms) == 1
 
 
 def test_class_with_methods_level1(tmp_path, input_path):
     """Test that arg=1 deletes class methods."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         class A {
           void f() {
@@ -232,7 +216,7 @@ def test_class_with_methods_level1(tmp_path, input_path):
 
     # f() deleted
     assert (
-        """
+        b"""
         class A {
           int g() {
             return 42;
@@ -243,7 +227,7 @@ def test_class_with_methods_level1(tmp_path, input_path):
     )
     # g() deleted
     assert (
-        """
+        b"""
         class A {
           void f() {
             int first;
@@ -255,7 +239,7 @@ def test_class_with_methods_level1(tmp_path, input_path):
     )
     # both f() and g() deleted
     assert (
-        """
+        b"""
         class A {
         };
         """
@@ -268,8 +252,7 @@ def test_class_with_methods_level1(tmp_path, input_path):
 
 def test_class_with_methods_level2(tmp_path, input_path):
     """Test that arg=2 deletes statements in class methods."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         class A {
           void f() {
@@ -287,7 +270,7 @@ def test_class_with_methods_level2(tmp_path, input_path):
 
     # the first statement in f() deleted
     assert (
-        """
+        b"""
         class A {
           void f() {
             int second;
@@ -301,7 +284,7 @@ def test_class_with_methods_level2(tmp_path, input_path):
     )
     # the second statement in f() deleted
     assert (
-        """
+        b"""
         class A {
           void f() {
             int first;
@@ -315,7 +298,7 @@ def test_class_with_methods_level2(tmp_path, input_path):
     )
     # the statement in g() deleted
     assert (
-        """
+        b"""
         class A {
           void f() {
             int first;
@@ -329,7 +312,7 @@ def test_class_with_methods_level2(tmp_path, input_path):
     )
     # all statements in f() and g() deleted
     assert (
-        """
+        b"""
         class A {
           void f() {
           }
@@ -346,8 +329,7 @@ def test_class_with_methods_level2(tmp_path, input_path):
 
 def test_c_comment(tmp_path, input_path):
     """Test that a C comment is deleted as a whole."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         int x; /*
           some
@@ -360,13 +342,13 @@ def test_c_comment(tmp_path, input_path):
     all_transforms = collect_all_transforms(p, state, input_path)
 
     assert (
-        """
+        b"""
         int x;
         """
         in all_transforms
     )
     assert (
-        """ /*
+        b""" /*
           some
           comment
           */
@@ -376,13 +358,12 @@ def test_c_comment(tmp_path, input_path):
     )
     # no attempts to partially remove the comment
     for s in all_transforms:
-        assert ('/*' in s) == ('some' in s) == ('comment' in s) == ('*/' in s)
+        assert (b'/*' in s) == (b'some' in s) == (b'comment' in s) == (b'*/' in s)
 
 
 def test_cpp_comment(tmp_path, input_path):
     """Test that a C++ comment is deleted as a whole."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         int x; // some comment
         int y;""",
@@ -392,23 +373,22 @@ def test_cpp_comment(tmp_path, input_path):
 
     # no attempts to partially remove the comment
     assert (
-        """
+        b"""
         int x;"""
         in all_transforms
     )
     assert (
-        """ // some comment
+        b""" // some comment
         int y;"""
         in all_transforms
     )
-    assert '' in all_transforms
+    assert b'' in all_transforms
     assert len(all_transforms) == 3
 
 
 def test_eof_with_non_recognized_chunk_end(tmp_path, input_path):
     """Test the file terminating with a text that wouldn't be recognized as chunk end."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         #define FOO }
         FOO
@@ -419,7 +399,7 @@ def test_eof_with_non_recognized_chunk_end(tmp_path, input_path):
 
     # FOO was attempted to be deleted
     assert (
-        """
+        b"""
         #define FOO }
 """
         in all_transforms
@@ -428,8 +408,7 @@ def test_eof_with_non_recognized_chunk_end(tmp_path, input_path):
 
 def test_macro_level0(tmp_path, input_path):
     """Test removal of preprocessor macros with arg=0."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """#ifndef FOO
         #define FOO
         int x;
@@ -444,7 +423,7 @@ def test_macro_level0(tmp_path, input_path):
 
     # "#ifndef FOO" deleted
     assert (
-        """
+        b"""
         #define FOO
         int x;
         FOO
@@ -456,7 +435,7 @@ def test_macro_level0(tmp_path, input_path):
     )
     # "#define FOO" deleted
     assert (
-        """#ifndef FOO
+        b"""#ifndef FOO
         int x;
         FOO
         #define BAR \\
@@ -467,7 +446,7 @@ def test_macro_level0(tmp_path, input_path):
     )
     # "int x" deleted
     assert (
-        """#ifndef FOO
+        b"""#ifndef FOO
         #define FOO
 
         FOO
@@ -479,7 +458,7 @@ def test_macro_level0(tmp_path, input_path):
     )
     # FOO usage deleted
     assert (
-        """#ifndef FOO
+        b"""#ifndef FOO
         #define FOO
         int x;
         #define BAR \\
@@ -490,7 +469,7 @@ def test_macro_level0(tmp_path, input_path):
     )
     # "#define BAR" deleted
     assert (
-        """#ifndef FOO
+        b"""#ifndef FOO
         #define FOO
         int x;
         FOO
@@ -500,7 +479,7 @@ def test_macro_level0(tmp_path, input_path):
     )
     # "int y" deleted
     assert (
-        """#ifndef FOO
+        b"""#ifndef FOO
         #define FOO
         int x;
         FOO
@@ -514,8 +493,7 @@ def test_macro_level0(tmp_path, input_path):
 
 def test_nested_macro_level0(tmp_path, input_path):
     """Test removal of preprocessor macros, placed inside a curly brace block, with arg=0."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         class A {
         #define AFIELD foo
@@ -527,14 +505,13 @@ def test_nested_macro_level0(tmp_path, input_path):
     all_transforms = collect_all_transforms(p, state, input_path)
 
     # The macro is removed together with the outer block.
-    assert '' in all_transforms
+    assert b'' in all_transforms
     assert len(all_transforms) == 1
 
 
 def test_nested_macro_level1(tmp_path, input_path):
     """Test removal of preprocessor macros, placed inside a curly brace block, with arg=1."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         class A {
         #define AFIELD foo
@@ -548,7 +525,7 @@ def test_nested_macro_level1(tmp_path, input_path):
 
     # "#define AFIELD" deleted
     assert (
-        """
+        b"""
         class A {
           AFIELD
         #undef AFIELD
@@ -558,7 +535,7 @@ def test_nested_macro_level1(tmp_path, input_path):
     )
     # AFIELD usage deleted
     assert (
-        """
+        b"""
         class A {
         #define AFIELD foo
 
@@ -569,7 +546,7 @@ def test_nested_macro_level1(tmp_path, input_path):
     )
     # "#undef AFIELD" deleted
     assert (
-        """
+        b"""
         class A {
         #define AFIELD foo
           AFIELD
@@ -581,8 +558,7 @@ def test_nested_macro_level1(tmp_path, input_path):
 
 def test_hash_character_not_macro_start(tmp_path, input_path):
     """Test hash characters aren't mistakenly treated as macro/block start."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         #define STR(x)  #x
         #define FOO(a,b)  a ## b
@@ -594,7 +570,7 @@ def test_hash_character_not_macro_start(tmp_path, input_path):
 
     # "#define STR" removed
     assert (
-        """
+        b"""
         #define FOO(a,b)  a ## b
         char s[] = "#1";
         """
@@ -602,7 +578,7 @@ def test_hash_character_not_macro_start(tmp_path, input_path):
     )
     # "#define FOO" removed
     assert (
-        """
+        b"""
         #define STR(x)  #x
         char s[] = "#1";
         """
@@ -610,7 +586,7 @@ def test_hash_character_not_macro_start(tmp_path, input_path):
     )
     # "char s" removed
     assert (
-        """
+        b"""
         #define STR(x)  #x
         #define FOO(a,b)  a ## b
 
@@ -623,8 +599,7 @@ def test_transform_deletes_lines_range(tmp_path, input_path):
     """Test various combinations of line deletion are attempted.
 
     This verifies the code performs the binary search or some similar strategy."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         A;
         B;
@@ -641,7 +616,7 @@ def test_transform_deletes_lines_range(tmp_path, input_path):
 
     # deletion of a half:
     assert (
-        """
+        b"""
         A;
         B;
         C;
@@ -650,7 +625,7 @@ def test_transform_deletes_lines_range(tmp_path, input_path):
         in all_transforms
     )
     assert (
-        """
+        b"""
         E;
         F;
         G;
@@ -660,7 +635,7 @@ def test_transform_deletes_lines_range(tmp_path, input_path):
     )
     # deletion of a quarter:
     assert (
-        """
+        b"""
         C;
         D;
         E;
@@ -671,7 +646,7 @@ def test_transform_deletes_lines_range(tmp_path, input_path):
         in all_transforms
     )
     assert (
-        """
+        b"""
         A;
         B;
         E;
@@ -682,7 +657,7 @@ def test_transform_deletes_lines_range(tmp_path, input_path):
         in all_transforms
     )
     assert (
-        """
+        b"""
         A;
         B;
         C;
@@ -693,7 +668,7 @@ def test_transform_deletes_lines_range(tmp_path, input_path):
         in all_transforms
     )
     assert (
-        """
+        b"""
         A;
         B;
         C;
@@ -707,8 +682,7 @@ def test_transform_deletes_lines_range(tmp_path, input_path):
 
 def test_advance_on_success(tmp_path, input_path):
     """Test the scenario where successful advancements are interleaved with unsuccessful transforms."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         foo;
         bar;
@@ -718,16 +692,16 @@ def test_advance_on_success(tmp_path, input_path):
     p, state = init_pass('0', tmp_path, input_path)
     # Cut 'foo' first, pretending that all previous transforms (e.g., deletion of the whole text) didn't pass the
     # interestingness test.
-    state = advance_until(p, state, input_path, lambda s: 'bar' in s and 'baz' in s)
+    state = advance_until(p, state, input_path, lambda s: b'bar' in s and b'baz' in s)
     p.advance_on_success(input_path, state)
     # Cut 'baz' now, pretending that all transforms in between (e.g, deletion of "bar;") didn't pass the
     # interestingness test.
-    state = advance_until(p, state, input_path, lambda s: 'bar' in s)
+    state = advance_until(p, state, input_path, lambda s: b'bar' in s)
     p.advance_on_success(input_path, state)
 
     assert (
-        read_file(input_path)
-        == """
+        input_path.read_bytes()
+        == b"""
         bar;
         """
     )
@@ -735,8 +709,7 @@ def test_advance_on_success(tmp_path, input_path):
 
 def test_arg_none(tmp_path, input_path):
     """Test that arg=None deletes individual lines as-is."""
-    write_file(
-        input_path,
+    input_path.write_text(
         """
         int f() {
         }
@@ -748,7 +721,7 @@ def test_arg_none(tmp_path, input_path):
     all_transforms = collect_all_transforms(p, state, input_path)
 
     assert (
-        """
+        b"""
         }
 
         int x = 1;
@@ -756,7 +729,7 @@ def test_arg_none(tmp_path, input_path):
         in all_transforms
     )
     assert (
-        """
+        b"""
         int f() {
 
         int x = 1;
@@ -764,7 +737,7 @@ def test_arg_none(tmp_path, input_path):
         in all_transforms
     )
     assert (
-        """
+        b"""
         int f() {
         }
         int x = 1;
@@ -772,10 +745,35 @@ def test_arg_none(tmp_path, input_path):
         in all_transforms
     )
     assert (
-        """
+        b"""
         int f() {
         }
 
+        """
+        in all_transforms
+    )
+
+
+@pytest.mark.parametrize('pass_arg', [0, 'None'])
+def test_non_ascii(tmp_path, input_path, pass_arg):
+    input_path.write_bytes(
+        b"""
+        char *s = "Streichholzsch\xc3\xa4chtelchen";
+        char t[] = "nonutf\xff";
+        """,
+    )
+    p, state = init_pass(str(pass_arg), tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert (
+        b"""
+        char *s = "Streichholzsch\xc3\xa4chtelchen";
+        """
+        in all_transforms
+    )
+    assert (
+        b"""
+        char t[] = "nonutf\xff";
         """
         in all_transforms
     )

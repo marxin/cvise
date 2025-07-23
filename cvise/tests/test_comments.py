@@ -81,3 +81,18 @@ class CommentsTestCase(unittest.TestCase):
             (result, state) = self.pass_.transform(tmp_file.name, state, None)
 
         os.unlink(tmp_file.name)
+
+    def test_non_ascii(self):
+        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as tmp_file:
+            tmp_file.write(b'int x;\n// Streichholzsch\xc3\xa4chtelchen\nchar t[] = "nonutf\xff";\n// \xff\n')
+
+        state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        validate_stored_hints(state)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
+
+        with open(tmp_file.name, 'rb') as variant_file:
+            variant = variant_file.read()
+
+        os.unlink(tmp_file.name)
+
+        self.assertEqual(variant, b'int x;\n\nchar t[] = "nonutf\xff";\n\n')

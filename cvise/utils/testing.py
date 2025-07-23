@@ -28,7 +28,6 @@ from cvise.utils.error import InvalidInterestingnessTestError
 from cvise.utils.error import InvalidTestCaseError
 from cvise.utils.error import PassBugError
 from cvise.utils.error import ZeroSizeError
-from cvise.utils.misc import is_readable_file
 from cvise.utils.readkey import KeyLogger
 import pebble
 import psutil
@@ -63,7 +62,12 @@ class InitEnvironment:
     job_timeout: int
 
     def run(self):
-        return self.pass_new(self.test_case, tmp_dir=self.tmp_dir, job_timeout=self.job_timeout)
+        try:
+            return self.pass_new(self.test_case, tmp_dir=self.tmp_dir, job_timeout=self.job_timeout)
+        except UnicodeDecodeError:
+            # most likely the pass is incompatible with non-UTF files - abort it
+            logging.debug('Skipping pass due to a unicode issue')
+            return None
 
 
 class TestEnvironment:
@@ -127,6 +131,11 @@ class TestEnvironment:
 
             # run test script
             self.exitcode = self.run_test(False)
+            return self
+        except UnicodeDecodeError:
+            # most likely the pass is incompatible with non-UTF files - terminate it
+            logging.debug('Skipping pass due to a unicode issue')
+            self.result = PassResult.STOP
             return self
         except OSError:
             # this can happen when we clean up temporary files for cancelled processes
@@ -341,9 +350,8 @@ class TestManager:
     def get_line_count(files):
         lines = 0
         for file in files:
-            if is_readable_file(file):
-                with open(file) as f:
-                    lines += len([line for line in f.readlines() if line and not line.isspace()])
+            with open(file, 'rb') as f:
+                lines += len([line for line in f.readlines() if line and not line.isspace()])
         return lines
 
     def backup_test_cases(self):
@@ -415,15 +423,19 @@ class TestManager:
 
     @staticmethod
     def diff_files(orig_file, changed_file):
-        with open(orig_file) as f:
+        with open(orig_file, 'rb') as f:
             orig_file_lines = f.readlines()
 
-        with open(changed_file) as f:
+        with open(changed_file, 'rb') as f:
             changed_file_lines = f.readlines()
 
-        diffed_lines = difflib.unified_diff(orig_file_lines, changed_file_lines, str(orig_file), str(changed_file))
+        diffed_lines = difflib.diff_bytes(
+            difflib.unified_diff, orig_file_lines, changed_file_lines, bytes(orig_file), bytes(changed_file)
+        )
+        # Drop invalid UTF sequences from the diff, to make it easy to log.
+        str_lines = [s.decode('utf-8', 'ignore') for s in diffed_lines]
 
-        return ''.join(diffed_lines)
+        return ''.join(str_lines)
 
     def check_sanity(self):
         logging.debug('perform sanity check... ')
@@ -730,7 +742,7 @@ class TestManager:
         if self.print_diff:
             diff_str = self.diff_files(self.current_test_case, new_test_case)
             if self.use_colordiff:
-                diff_str = subprocess.check_output('colordiff', shell=True, encoding='utf8', input=diff_str)
+                diff_str = subprocess.check_output('colordiff', shell=True, input=diff_str)
             logging.info(diff_str)
 
         try:
