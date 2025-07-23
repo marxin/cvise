@@ -23,7 +23,7 @@ if importlib.util.find_spec('cvise') is None:
 import chardet  # noqa: E402
 from cvise.cvise import CVise  # noqa: E402
 from cvise.passes.abstract import AbstractPass  # noqa: E402
-from cvise.utils import misc, statistics, testing  # noqa: E402
+from cvise.utils import statistics, testing  # noqa: E402
 from cvise.utils.error import CViseError  # noqa: E402
 from cvise.utils.error import MissingPassGroupsError  # noqa: E402
 from cvise.utils.externalprograms import find_external_programs  # noqa: E402

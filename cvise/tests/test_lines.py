@@ -1,4 +1,3 @@
-from pathlib import Path
 import pytest
 
 from cvise.passes.lines import LinesPass
