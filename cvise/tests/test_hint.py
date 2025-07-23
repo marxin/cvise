@@ -23,7 +23,7 @@ def test_apply_hints_delete_prefix(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'bar'
+    assert new_data == b'bar'
 
 
 def test_apply_hints_delete_suffix(tmp_file):
@@ -34,7 +34,7 @@ def test_apply_hints_delete_suffix(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'Foo'
+    assert new_data == b'Foo'
 
 
 def test_apply_hints_delete_middle(tmp_file):
@@ -45,7 +45,7 @@ def test_apply_hints_delete_middle(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'Foo baz'
+    assert new_data == b'Foo baz'
 
 
 def test_apply_hints_delete_middle_multiple(tmp_file):
@@ -59,7 +59,7 @@ def test_apply_hints_delete_middle_multiple(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'Foobarbaz'
+    assert new_data == b'Foobarbaz'
 
 
 def test_apply_hints_delete_all(tmp_file):
@@ -70,7 +70,7 @@ def test_apply_hints_delete_all(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == ''
+    assert new_data == b''
 
 
 def test_apply_hints_delete_touching(tmp_file):
@@ -86,7 +86,7 @@ def test_apply_hints_delete_touching(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'Foo baz'
+    assert new_data == b'Foo baz'
 
 
 def test_apply_hints_delete_overlapping(tmp_file):
@@ -101,7 +101,7 @@ def test_apply_hints_delete_overlapping(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'Foo baz'
+    assert new_data == b'Foo baz'
 
 
 def test_apply_hints_delete_nested(tmp_file):
@@ -115,7 +115,7 @@ def test_apply_hints_delete_nested(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'Foo baz'
+    assert new_data == b'Foo baz'
 
 
 def test_apply_hints_replace_with_shorter(tmp_file):
@@ -128,7 +128,7 @@ def test_apply_hints_replace_with_shorter(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'Foo xyz baz'
+    assert new_data == b'Foo xyz baz'
 
 
 def test_apply_hints_replace_with_longer(tmp_file):
@@ -141,7 +141,7 @@ def test_apply_hints_replace_with_longer(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'Foo abacaba baz'
+    assert new_data == b'Foo abacaba baz'
 
 
 def test_apply_hints_replacement_inside_deletion(tmp_file):
@@ -157,7 +157,7 @@ def test_apply_hints_replacement_inside_deletion(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'Foo  baz'
+    assert new_data == b'Foo  baz'
 
 
 def test_apply_hints_deletion_inside_replacement(tmp_file):
@@ -173,7 +173,7 @@ def test_apply_hints_deletion_inside_replacement(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'Foo some baz'
+    assert new_data == b'Foo some baz'
 
 
 def test_apply_hints_replacement_of_deleted_prefix(tmp_file):
@@ -192,7 +192,7 @@ def test_apply_hints_replacement_of_deleted_prefix(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'Foo  baz'
+    assert new_data == b'Foo  baz'
 
 
 def test_apply_hints_replacement_and_deletion_touching(tmp_file):
@@ -209,7 +209,7 @@ def test_apply_hints_replacement_and_deletion_touching(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'Foo somebaz'
+    assert new_data == b'Foo somebaz'
 
 
 def test_apply_hints_overlapping_replacements(tmp_file):
@@ -228,7 +228,7 @@ def test_apply_hints_overlapping_replacements(tmp_file):
 
     new_data = apply_hints([bundle], tmp_file)
 
-    assert new_data == 'afoo'
+    assert new_data == b'afoo'
 
 
 def test_apply_hints_multiple_bundles(tmp_file):
@@ -244,7 +244,35 @@ def test_apply_hints_multiple_bundles(tmp_file):
 
     new_data = apply_hints([bundle1, bundle2], tmp_file)
 
-    assert new_data == 'ar'
+    assert new_data == b'ar'
+
+
+def test_apply_hints_utf8(tmp_file):
+    tmp_file.write_text('Brötchen 🍴')
+    hint1 = {'p': [{'l': 0, 'r': 1}, {'l': 5, 'r': 7}]}
+    hint2 = {'p': [{'l': 10, 'r': 14}]}
+    hints = [hint1]
+    for h in hints:
+        jsonschema.validate(h, schema=HINT_SCHEMA)
+    bundle1 = HintBundle(hints=[hint1])
+    bundle2 = HintBundle(hints=[hint2])
+
+    result1 = apply_hints([bundle1], tmp_file)
+    result2 = apply_hints([bundle2], tmp_file)
+
+    assert result1 == 'röten 🍴'.encode()
+    assert result2 == 'Brötchen '.encode()
+
+
+def test_apply_hints_non_unicode(tmp_file):
+    tmp_file.write_bytes(b'\0F\xffoo')
+    hint = {'p': [{'l': 2, 'r': 3}]}
+    jsonschema.validate(hint, schema=HINT_SCHEMA)
+    bundle = HintBundle(hints=[hint])
+
+    new_data = apply_hints([bundle], tmp_file)
+
+    assert new_data == b'\0Foo'
 
 
 def test_store_load_hints(tmp_hints_file):

@@ -24,7 +24,7 @@ def test_empty_lines_removal(tmp_path: Path, input_path: Path):
     p, state = init_pass(tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
-    assert 'abc\ndef\n' in all_transforms
+    assert b'abc\ndef\n' in all_transforms
 
 
 def test_whitespace_only_lines_removal(tmp_path: Path, input_path: Path):
@@ -32,7 +32,7 @@ def test_whitespace_only_lines_removal(tmp_path: Path, input_path: Path):
     p, state = init_pass(tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
-    assert ' abc \n' in all_transforms
+    assert b' abc \n' in all_transforms
 
 
 def test_hash_lines_removal(tmp_path: Path, input_path: Path):
@@ -40,7 +40,7 @@ def test_hash_lines_removal(tmp_path: Path, input_path: Path):
     p, state = init_pass(tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
-    assert 'bar#1\n' in all_transforms
+    assert b'bar#1\n' in all_transforms
 
 
 def test_no_different_type_removals(tmp_path: Path, input_path: Path):
@@ -53,6 +53,26 @@ def test_no_different_type_removals(tmp_path: Path, input_path: Path):
     p, state = init_pass(tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
-    assert '#x\n#y\nz\n' in all_transforms  # removal of empty lines
-    assert '\nz\n' in all_transforms  # removal of hash-lines
-    assert 'z\n' not in all_transforms  # no removal of both
+    assert b'#x\n#y\nz\n' in all_transforms  # removal of empty lines
+    assert b'\nz\n' in all_transforms  # removal of hash-lines
+    assert b'z\n' not in all_transforms  # no removal of both
+
+
+def test_non_utf8(tmp_path, input_path):
+    input_path.write_bytes(
+        b"""
+        // \xff
+
+        // \xee
+        """,
+    )
+    p, state = init_pass(tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert (
+        b"""
+        // \xff
+        // \xee
+        """
+        in all_transforms
+    )

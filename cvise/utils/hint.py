@@ -91,7 +91,7 @@ HINT_SCHEMA_STRICT['additionalProperties'] = False
 HINT_SCHEMA_STRICT['properties']['p']['items'] = HINT_PATCH_SCHEMA_STRICT
 
 
-def apply_hints(bundles: List[HintBundle], file: Path) -> str:
+def apply_hints(bundles: List[HintBundle], file: Path) -> bytes:
     """Edits the file applying the specified hints to its contents."""
     patches = []
     for bundle in bundles:
@@ -102,10 +102,10 @@ def apply_hints(bundles: List[HintBundle], file: Path) -> str:
                 patches.append(p)
     merged_patches = merge_overlapping_patches(patches)
 
-    with open(file) as f:
+    with open(file, 'rb') as f:
         orig_data = f.read()
 
-    new_data = ''
+    new_data = b''
     start_pos = 0
     for p in merged_patches:
         left: int = p['l']
@@ -119,7 +119,7 @@ def apply_hints(bundles: List[HintBundle], file: Path) -> str:
         start_pos = right
         # Insert the replacement value, if provided.
         if 'v' in p:
-            new_data += bundle.vocabulary[p['v']]
+            new_data += bundle.vocabulary[p['v']].encode()
     # Add the unmodified chunk after the last patch end.
     new_data += orig_data[start_pos:]
     return new_data

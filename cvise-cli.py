@@ -476,43 +476,47 @@ def do_reduce(args):
         print(err)
     else:
         time_stop = time.monotonic()
-        with open(args.log_file, 'a') if args.log_file else nullcontext(sys.stderr) as fs:
-            fs.write('===< PASS statistics >===\n')
+        with open(args.log_file, 'ab') if args.log_file else nullcontext(sys.stderr.buffer) as fs:
+            fs.write(b'===< PASS statistics >===\n')
             fs.write(
-                '  %-60s %8s %8s %8s %8s %15s\n'
-                % (
-                    'pass name',
-                    'time (s)',
-                    'time (%)',
-                    'worked',
-                    'failed',
-                    'total executed',
-                )
+                (
+                    '  %-60s %8s %8s %8s %8s %15s\n'
+                    % (
+                        'pass name',
+                        'time (s)',
+                        'time (%)',
+                        'worked',
+                        'failed',
+                        'total executed',
+                    )
+                ).encode()
             )
 
             for pass_name, pass_data in pass_statistic.sorted_results:
                 fs.write(
-                    '  %-60s %8.2f %8.2f %8d %8d %15d\n'
-                    % (
-                        pass_name,
-                        pass_data.total_seconds,
-                        100.0 * pass_data.total_seconds / (time_stop - time_start),
-                        pass_data.worked,
-                        pass_data.failed,
-                        pass_data.totally_executed,
-                    )
+                    (
+                        '  %-60s %8.2f %8.2f %8d %8d %15d\n'
+                        % (
+                            pass_name,
+                            pass_data.total_seconds,
+                            100.0 * pass_data.total_seconds / (time_stop - time_start),
+                            pass_data.worked,
+                            pass_data.failed,
+                            pass_data.totally_executed,
+                        )
+                    ).encode()
                 )
-            fs.write('\n')
+            fs.write(b'\n')
 
             if not args.no_timing:
-                fs.write(f'Runtime: {round(time_stop - time_start)} seconds\n')
+                fs.write(f'Runtime: {round(time_stop - time_start)} seconds\n'.encode())
 
-            fs.write('Reduced test-cases:\n\n')
+            fs.write(b'Reduced test-cases:\n\n')
             for test_case in sorted(test_manager.test_cases):
-                if misc.is_readable_file(test_case):
-                    print(f'--- {test_case} ---')
-                    with open(test_case) as test_case_file:
-                        fs.write(test_case_file.read() + '\n')
+                print(f'--- {test_case} ---'.encode())
+                with open(test_case, 'rb') as test_case_file:
+                    fs.write(test_case_file.read())
+                    fs.write(b'\n')
             if script:
                 os.unlink(script.name)
 
@@ -530,7 +534,7 @@ def do_apply_hints(args):
         sys.exit('exactly one TEST_CASE must be supplied')
     bundle = load_hints(Path(args.hints_file), args.hint_begin_index, args.hint_end_index)
     new_data = apply_hints([bundle], Path(args.test_cases[0]))
-    print(new_data, end='')  # avoid adding an extra newline
+    sys.stdout.buffer.write(new_data)
 
 
 if __name__ == '__main__':

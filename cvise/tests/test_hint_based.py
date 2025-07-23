@@ -7,13 +7,13 @@ from cvise.utils.hint import HintBundle
 
 
 class StubHintBasedPass(HintBasedPass):
-    def __init__(self, contents_to_hints: Dict[str, Sequence[object]], vocabulary: Union[List[str], None] = None):
+    def __init__(self, contents_to_hints: Dict[bytes, Sequence[object]], vocabulary: Union[List[str], None] = None):
         super().__init__()
         self.contents_to_hints = contents_to_hints
         self.vocabulary = vocabulary or []
 
     def generate_hints(self, test_case: Path) -> HintBundle:
-        contents = test_case.read_text()
+        contents = test_case.read_bytes()
         hints = self.contents_to_hints.get(contents, [])
         bundle = HintBundle(vocabulary=self.vocabulary, hints=hints)
         validate_hint_bundle(bundle)
@@ -25,7 +25,7 @@ def test_hint_based_first_char_once(tmp_path: Path):
     hint = {'p': [{'l': 0, 'r': 1}]}
     pass_ = StubHintBasedPass(
         {
-            'foo': [hint],
+            b'foo': [hint],
         }
     )
     test_case = tmp_path / 'input.txt'
@@ -43,9 +43,9 @@ def test_hint_based_last_char_repeatedly(tmp_path: Path):
     hint_byte2 = {'p': [{'l': 2, 'r': 3}]}
     pass_ = StubHintBasedPass(
         {
-            'foo': [hint_byte2],
-            'fo': [hint_byte1],
-            'f': [hint_byte0],
+            b'foo': [hint_byte2],
+            b'fo': [hint_byte1],
+            b'f': [hint_byte0],
         }
     )
     test_case = tmp_path / 'input.txt'
@@ -67,7 +67,7 @@ def test_hint_based_all_chars_grouped(tmp_path: Path):
     hint_byte2 = {'p': [{'l': 2, 'r': 3}]}
     pass_ = StubHintBasedPass(
         {
-            'foo': [hint_byte0, hint_byte1, hint_byte2],
+            b'foo': [hint_byte0, hint_byte1, hint_byte2],
         }
     )
     test_case = tmp_path / 'input.txt'
@@ -90,7 +90,7 @@ def test_hint_based_state_iteration(tmp_path: Path):
     hint_bytes2345 = {'p': [{'l': 2, 'r': 6}]}
     pass_ = StubHintBasedPass(
         {
-            'abc def': [hint_bytes01, hint_bytes12, hint_bytes45, hint_bytes2345],
+            b'abc def': [hint_bytes01, hint_bytes12, hint_bytes45, hint_bytes2345],
         }
     )
     test_case = tmp_path / 'input.txt'
@@ -98,12 +98,12 @@ def test_hint_based_state_iteration(tmp_path: Path):
 
     state = pass_.new(test_case, tmp_dir=tmp_path)
     all_transforms = collect_all_transforms(pass_, state, test_case)
-    assert 'c def' in all_transforms  # 01 applied
-    assert 'a def' in all_transforms  # 12 applied
-    assert 'abc f' in all_transforms  # 45 applied
-    assert 'abf' in all_transforms  # 2345 applied (also 45+2345, with the same result)
-    assert ' def' in all_transforms  # 01+12 applied
-    assert 'f' in all_transforms  # all hints applied
+    assert b'c def' in all_transforms  # 01 applied
+    assert b'a def' in all_transforms  # 12 applied
+    assert b'abc f' in all_transforms  # 45 applied
+    assert b'abf' in all_transforms  # 2345 applied (also 45+2345, with the same result)
+    assert b' def' in all_transforms  # 01+12 applied
+    assert b'f' in all_transforms  # all hints applied
 
 
 def test_hint_based_multiple_types(tmp_path: Path):
@@ -115,7 +115,7 @@ def test_hint_based_multiple_types(tmp_path: Path):
     hint_b2 = {'t': 1, 'p': [{'l': 6, 'r': 7}]}
     pass_ = StubHintBasedPass(
         {
-            'aba cab a': [hint_b1, hint_space1, hint_b2, hint_space2],
+            b'aba cab a': [hint_b1, hint_space1, hint_b2, hint_space2],
         },
         vocabulary=vocab,
     )
@@ -124,12 +124,12 @@ def test_hint_based_multiple_types(tmp_path: Path):
 
     state = pass_.new(test_case, tmp_dir=tmp_path)
     all_transforms = collect_all_transforms(pass_, state, test_case)
-    assert 'abacab a' in all_transforms  # space1 applied
-    assert 'aba caba' in all_transforms  # space2 applied
-    assert 'abacaba' in all_transforms  # space1&2 applied
-    assert 'aa cab a' in all_transforms  # hint_b1 applied
-    assert 'aba ca a' in all_transforms  # hint_b2 applied
-    assert 'aa ca a' in all_transforms  # hint_b1&2 applied
+    assert b'abacab a' in all_transforms  # space1 applied
+    assert b'aba caba' in all_transforms  # space2 applied
+    assert b'abacaba' in all_transforms  # space1&2 applied
+    assert b'aa cab a' in all_transforms  # hint_b1 applied
+    assert b'aba ca a' in all_transforms  # hint_b2 applied
+    assert b'aa ca a' in all_transforms  # hint_b1&2 applied
 
 
 def test_hint_based_type1_fewer_than_type2(tmp_path: Path):
@@ -143,7 +143,7 @@ def test_hint_based_type1_fewer_than_type2(tmp_path: Path):
     hint3 = {'t': 1, 'p': [{'l': 2, 'r': 3}]}
     pass_ = StubHintBasedPass(
         {
-            'abc': [hint1, hint2, hint3],
+            b'abc': [hint1, hint2, hint3],
         },
         vocabulary=vocab,
     )
@@ -152,10 +152,10 @@ def test_hint_based_type1_fewer_than_type2(tmp_path: Path):
 
     state = pass_.new(test_case, tmp_dir=tmp_path)
     all_transforms = collect_all_transforms(pass_, state, test_case)
-    assert 'bc' in all_transforms  # hint1 applied
-    assert 'a' in all_transforms  # hint2&3 applied
-    assert 'c' not in all_transforms  # no attempt to apply different-typed hint1 and hint2
-    assert 'b' not in all_transforms  # no attempt to apply different-typed hint1 and hint3
+    assert b'bc' in all_transforms  # hint1 applied
+    assert b'a' in all_transforms  # hint2&3 applied
+    assert b'c' not in all_transforms  # no attempt to apply different-typed hint1 and hint2
+    assert b'b' not in all_transforms  # no attempt to apply different-typed hint1 and hint3
 
 
 def test_hint_based_type2_fewer_than_type1(tmp_path: Path):
@@ -169,7 +169,7 @@ def test_hint_based_type2_fewer_than_type1(tmp_path: Path):
     hint3 = {'t': 1, 'p': [{'l': 2, 'r': 3}]}
     pass_ = StubHintBasedPass(
         {
-            'abc': [hint1, hint2, hint3],
+            b'abc': [hint1, hint2, hint3],
         },
         vocabulary=vocab,
     )
@@ -178,7 +178,31 @@ def test_hint_based_type2_fewer_than_type1(tmp_path: Path):
 
     state = pass_.new(test_case, tmp_dir=tmp_path)
     all_transforms = collect_all_transforms(pass_, state, test_case)
-    assert 'c' in all_transforms  # hint1&2 applied
-    assert 'ab' in all_transforms  # hint3 applied
-    assert 'b' not in all_transforms  # no attempt to apply different-typed hint1 and hint3
-    assert 'a' not in all_transforms  # no attempt to apply different-typed hint2 and hint3
+    assert b'c' in all_transforms  # hint1&2 applied
+    assert b'ab' in all_transforms  # hint3 applied
+    assert b'b' not in all_transforms  # no attempt to apply different-typed hint1 and hint3
+    assert b'a' not in all_transforms  # no attempt to apply different-typed hint2 and hint3
+
+
+def test_hint_based_non_utf8(tmp_path: Path):
+    """Test the case of non UTF-8 inputs."""
+    input = b'f\0o\xffo\xc3\x84'
+    hint12 = {'p': [{'l': 1, 'r': 2}]}
+    hint23 = {'p': [{'l': 2, 'r': 3}]}
+    hint34 = {'p': [{'l': 3, 'r': 4}]}
+    hint57 = {'p': [{'l': 5, 'r': 7}]}
+    pass_ = StubHintBasedPass(
+        {
+            input: [hint12, hint23, hint34, hint57],
+        }
+    )
+    test_case = tmp_path / 'input.txt'
+    test_case.write_bytes(input)
+
+    state = pass_.new(test_case, tmp_dir=tmp_path)
+    all_transforms = collect_all_transforms(pass_, state, test_case)
+    assert b'fo\xffo\xc3\x84' in all_transforms  # hint12 applied
+    assert b'f\0\xffo\xc3\x84' in all_transforms  # hint23 applied
+    assert b'f\0oo\xc3\x84' in all_transforms  # hint34 applied
+    assert b'f\0o\xffo' in all_transforms  # hint57 applied
+    assert b'fo' in all_transforms  # all applied
