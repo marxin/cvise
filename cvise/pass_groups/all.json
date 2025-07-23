@@ -189,6 +189,7 @@
     {"pass": "clex", "arg": "rename-toks", "renaming": true},
     {"pass": "clex", "arg": "delete-string"},
     {"pass": "blank"},
+    {"pass": "blank"},
     {"pass": "indent", "arg": "final"}
  ]
 }

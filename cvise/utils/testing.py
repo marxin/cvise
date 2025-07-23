@@ -196,6 +196,31 @@ class Job:
     temporary_folder: Path
 
 
+@dataclass
+class SuccessCandidate:
+    pass_: AbstractPass
+    pass_id: int
+    pass_state: Any
+    tmp_dir: Union[Path, None]
+    test_case_path: Path
+
+    @staticmethod
+    def create_and_take_file(
+        pass_: AbstractPass, pass_id: int, pass_state: Any, test_case_path: Path
+    ) -> SuccessCandidate:
+        tmp_dir = Path(tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}candidate-'))
+        new_test_case_path = tmp_dir / test_case_path.name
+        shutil.move(test_case_path, new_test_case_path)
+        return SuccessCandidate(
+            pass_=pass_, pass_id=pass_id, pass_state=pass_state, tmp_dir=tmp_dir, test_case_path=new_test_case_path
+        )
+
+    def release(self) -> None:
+        if self.tmp_dir is not None:
+            rmfolder(self.tmp_dir)
+        self.tmp_dir = None
+
+
 class TestManager:
     GIVEUP_CONSTANT = 50000
     MAX_TIMEOUTS = 20
@@ -260,6 +285,7 @@ class TestManager:
             raise InvalidInterestingnessTestError(self.test_script)
         self.jobs: List[Job] = []
         self.order: int = 0
+        self.success_candidate: Union[SuccessCandidate, None] = None
 
         self.use_colordiff = (
             sys.stdout.isatty()
@@ -280,6 +306,9 @@ class TestManager:
                 continue
             rmfolder(ctx.temporary_root)
             ctx.temporary_root = None
+        if self.success_candidate:
+            self.success_candidate.release()
+            self.success_candidate = None
 
     def restore_mode(self):
         for test_case in self.test_cases:
@@ -458,7 +487,7 @@ class TestManager:
         quit_loop = False
         jobs_to_remove = []
         for job in self.jobs:
-            # all items after first successfull (or a repeated error) should be cancelled
+            # all items after a repeated error should be cancelled
             if quit_loop:
                 job.future.cancel()
                 jobs_to_remove.append(job)
@@ -487,43 +516,32 @@ class TestManager:
                 ctx.stage = PassStage.ENUMERATING
                 ctx.state = job.future.result()
                 self.pass_statistic.add_initialized(job.pass_, job.start_time)
-                jobs_to_remove.append(job)
             elif job.type == JobType.TRANSFORM:
+                self.pass_statistic.add_executed(job.pass_, job.start_time, self.parallel_tests)
                 outcome = self.check_pass_result(job)
                 if outcome == PassCheckingOutcome.ACCEPT:
-                    quit_loop = True
+                    self.pass_statistic.add_success(job.pass_)
+                    env: TestEnvironment = job.future.result()
+                    if not self.success_candidate:
+                        self.success_candidate = SuccessCandidate.create_and_take_file(
+                            pass_=job.pass_,
+                            pass_id=job.pass_id,
+                            pass_state=env.state,
+                            test_case_path=env.test_case_path,
+                        )
+                elif outcome == PassCheckingOutcome.STOP:
+                    self.pass_contexts[job.pass_id].state = None
                 else:
-                    # account for statistics here as the entry is about to be deleted from self.jobs; for the ACCEPT
-                    # case, this is done in wait_for_first_success().
-                    self.pass_statistic.add_executed(job.pass_, job.start_time, self.parallel_tests)
-                    if outcome == PassCheckingOutcome.STOP:
-                        self.pass_contexts[job.pass_id].state = None
-                    jobs_to_remove.append(job)
+                    self.pass_statistic.add_failure(job.pass_)
             else:
                 raise ValueError(f'Unexpected job type {job.type}')
+
+            jobs_to_remove.append(job)
 
         for job in jobs_to_remove:
             self.release_job(job)
 
         return quit_loop
-
-    def wait_for_first_success(self) -> Union[Job, None]:
-        for job in self.jobs:
-            if job.type != JobType.TRANSFORM:
-                continue
-            try:
-                while not job.future.done():
-                    # wait with a timeout, so that keyboard events can be handled reasonably quickly.
-                    wait([job.future], timeout=self.EVENT_LOOP_TIMEOUT)
-                    keyboard_interrupt_monitor.maybe_reraise()
-                outcome = self.check_pass_result(job)
-                if outcome == PassCheckingOutcome.ACCEPT:
-                    self.pass_statistic.add_executed(job.pass_, job.start_time, self.parallel_tests)
-                    return job
-            # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
-            except (TimeoutError, concurrent.futures.TimeoutError):
-                pass
-        return None
 
     def check_pass_result(self, job: Job):
         test_env: TestEnvironment = job.future.result()
@@ -539,7 +557,6 @@ class TestManager:
                 return PassCheckingOutcome.IGNORE
             return PassCheckingOutcome.ACCEPT
 
-        self.pass_statistic.add_failure(job.pass_)
         if test_env.result == PassResult.OK:
             assert test_env.exitcode
             if self.also_interesting is not None and test_env.exitcode == self.also_interesting:
@@ -563,7 +580,7 @@ class TestManager:
         pool.stop()
         pool.join()
 
-    def run_parallel_tests(self) -> Union[Job, None]:
+    def run_parallel_tests(self) -> None:
         assert not self.jobs
         with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
             try:
@@ -571,6 +588,7 @@ class TestManager:
                 self.next_pass_id = 0
                 self.timeout_count_per_pass = {}
                 self.giveup_reported = False
+                assert self.success_candidate is None
                 while self.jobs or any(not c.enumeration_finished() for c in self.pass_contexts):
                     keyboard_interrupt_monitor.maybe_reraise()
 
@@ -583,14 +601,15 @@ class TestManager:
                     if self.process_done_futures():
                         break
 
-                success = self.wait_for_first_success()
+                    # we've found a successful transformation - proceed with it
+                    if self.success_candidate:
+                        break
+
                 self.terminate_all(pool)
                 # Unfinished initializations will need to be restarted in the next round.
                 for ctx in self.pass_contexts:
                     if ctx.stage == PassStage.IN_INIT:
                         ctx.stage = PassStage.BEFORE_INIT
-
-                return success
             except:
                 # Abort running jobs - by default the process pool waits for the ongoing jobs' completion.
                 self.terminate_all(pool)
@@ -656,11 +675,12 @@ class TestManager:
                             self.log_key_event('toggle print diff')
                             self.print_diff = not self.print_diff
 
-                    success_job = self.run_parallel_tests()
+                    self.run_parallel_tests()
                     self.kill_pid_queue()
 
-                    if success_job:
-                        self.process_result(success_job)
+                    is_success = self.success_candidate is not None
+                    if is_success:
+                        self.process_result()
                         success_count += 1
 
                     # if the file increases significantly, bail out the current pass
@@ -673,7 +693,7 @@ class TestManager:
                         break
 
                     self.release_all_jobs()
-                    if not success_job:
+                    if not is_success:
                         break
 
                     # skip after N transformations if requested
@@ -704,32 +724,32 @@ class TestManager:
             self.remove_roots()
             sys.exit(1)
 
-    def process_result(self, job: Job) -> None:
-        test_env: TestEnvironment = job.future.result()
+    def process_result(self) -> None:
+        assert self.success_candidate
+        new_test_case = self.success_candidate.test_case_path
         if self.print_diff:
-            diff_str = self.diff_files(self.current_test_case, test_env.test_case_path)
+            diff_str = self.diff_files(self.current_test_case, new_test_case)
             if self.use_colordiff:
                 diff_str = subprocess.check_output('colordiff', shell=True, encoding='utf8', input=diff_str)
             logging.info(diff_str)
 
         try:
-            shutil.copy(test_env.test_case_path, self.current_test_case)
+            shutil.copy(new_test_case, self.current_test_case)
         except FileNotFoundError:
             raise RuntimeError(
                 f"Can't find {self.current_test_case} -- did your interestingness test move it?"
             ) from None
 
-        for pass_id, context in enumerate(self.pass_contexts):
+        for pass_id, ctx in enumerate(self.pass_contexts):
             # For the pass that succeeded, continue from the state returned by its transform() that led to the success;
             # for other passes, continue the iteration from where the last advance() stopped.
 
-            old_state = test_env.state if pass_id == job.pass_id else context.state
-            context.state = (
+            old_state = self.success_candidate.pass_state if pass_id == self.success_candidate.pass_id else ctx.state
+            ctx.state = (
                 None
                 if old_state is None
-                else context.pass_.advance_on_success(test_env.test_case_path, old_state, job_timeout=self.timeout)
+                else ctx.pass_.advance_on_success(new_test_case, old_state, job_timeout=self.timeout)
             )
-        self.pass_statistic.add_success(job.pass_)
 
         pct = 100 - (self.total_file_size * 100.0 / self.orig_total_file_size)
         notes = []
@@ -738,7 +758,10 @@ class TestManager:
         if self.total_line_count:
             notes.append(f'{self.total_line_count} lines')
         if len(self.test_cases) > 1:
-            notes.append(str(test_env.test_case))
+            notes.append(str(new_test_case.name))
+
+        self.success_candidate.release()
+        self.success_candidate = None
 
         logging.info('(' + ', '.join(notes) + ')')
 

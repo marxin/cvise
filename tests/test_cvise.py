@@ -37,8 +37,8 @@ def wait_until_file_created(path: Path):
 def test_simple_reduction():
     check_cvise(
         'blocksort-part.c',
-        ['-c', 'gcc -c blocksort-part.c && grep nextHi blocksort-part.c'],
-        ['#define nextHi', '#define  nextHi'],
+        ['-c', r"gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c"],
+        ['#define nextHi'],
     )
 
 
