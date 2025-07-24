@@ -28,6 +28,7 @@ from cvise.utils.error import InvalidInterestingnessTestError
 from cvise.utils.error import InvalidTestCaseError
 from cvise.utils.error import PassBugError
 from cvise.utils.error import ZeroSizeError
+from cvise.utils.folding import FoldingManager, FoldingState
 from cvise.utils.readkey import KeyLogger
 import pebble
 import psutil
@@ -199,8 +200,11 @@ class JobType(Enum):
 class Job:
     type: JobType
     future: Future
-    pass_: AbstractPass
-    pass_id: int
+
+    # If this job executes a method of a pass, these store pointers to it; None otherwise.
+    pass_: Union[AbstractPass, None]
+    pass_id: Union[int, None]
+
     start_time: float
     temporary_folder: Path
 
@@ -295,6 +299,7 @@ class TestManager:
         self.jobs: List[Job] = []
         self.order: int = 0
         self.success_candidate: Union[SuccessCandidate, None] = None
+        self.folding_manager: Union[FoldingManager, None] = None
 
         self.use_colordiff = (
             sys.stdout.isatty()
@@ -534,13 +539,9 @@ class TestManager:
                 if outcome == PassCheckingOutcome.ACCEPT:
                     self.pass_statistic.add_success(job.pass_)
                     env: TestEnvironment = job.future.result()
-                    if not self.success_candidate:
-                        self.success_candidate = SuccessCandidate.create_and_take_file(
-                            pass_=job.pass_,
-                            pass_id=job.pass_id,
-                            pass_state=env.state,
-                            test_case_path=env.test_case_path,
-                        )
+                    self.maybe_update_success_candidate(job.pass_, job.pass_id, env)
+                    if self.interleaving:
+                        self.folding_manager.on_transform_job_success(env.state)
                 elif outcome == PassCheckingOutcome.STOP:
                     self.pass_contexts[job.pass_id].state = None
                 else:
@@ -587,6 +588,24 @@ class TestManager:
             return PassCheckingOutcome.STOP
         return PassCheckingOutcome.IGNORE
 
+    def maybe_update_success_candidate(
+        self, pass_: Union[AbstractPass, None], pass_id: Union[int, None], env: TestEnvironment
+    ) -> None:
+        assert env.success
+        if self.success_candidate and pass_ is not None:
+            # For regular passes, prefer the first-seen candidate (it's likely to be larger); this is different from
+            # folding jobs, which grow over time (accumulating all regular successes like a snowball).
+            return
+        if self.success_candidate:
+            # Make sure to clean up old temporary files.
+            self.success_candidate.release()
+        self.success_candidate = SuccessCandidate.create_and_take_file(
+            pass_=pass_,
+            pass_id=pass_id,
+            pass_state=env.state,
+            test_case_path=env.test_case_path,
+        )
+
     @classmethod
     def terminate_all(cls, pool):
         pool.stop()
@@ -601,6 +620,8 @@ class TestManager:
                 self.timeout_count_per_pass = {}
                 self.giveup_reported = False
                 assert self.success_candidate is None
+                if self.interleaving:
+                    self.folding_manager = FoldingManager()
                 while self.jobs or any(not c.enumeration_finished() for c in self.pass_contexts):
                     keyboard_interrupt_monitor.maybe_reraise()
 
@@ -613,8 +634,8 @@ class TestManager:
                     if self.process_done_futures():
                         break
 
-                    # we've found a successful transformation - proceed with it
-                    if self.success_candidate:
+                    # exit if we found successful transformation(s) and don't want to try better ones
+                    if self.success_candidate and self.should_proceed_with_success_candidate():
                         break
 
                 self.terminate_all(pool)
@@ -777,6 +798,14 @@ class TestManager:
 
         logging.info('(' + ', '.join(notes) + ')')
 
+    def should_proceed_with_success_candidate(self):
+        assert self.success_candidate
+        if not self.interleaving:
+            return True
+        return not self.folding_manager.continue_attempting_folds(
+            self.order, self.parallel_tests, len(self.pass_contexts)
+        )
+
     def maybe_schedule_job(self, pool: pebble.ProcessPool) -> bool:
         # The order matters below - higher-priority job types come earlier:
         # 1. Initializing a pass.
@@ -784,7 +813,14 @@ class TestManager:
             if ctx.stage == PassStage.BEFORE_INIT:
                 self.schedule_init(pool, pass_id)
                 return True
-        # 2. Attempting a transformation using the next heuristic in the round-robin fashion.
+        # 2. Attempting a fold (simultaneous application) of previously discovered successful transformations; only
+        # supported in the "interleaving" pass execution mode.
+        if self.interleaving:
+            folding_state = self.folding_manager.maybe_prepare_folding_job(self.order)
+            if folding_state:
+                self.schedule_fold(pool, folding_state)
+                return True
+        # 3. Attempting a transformation using the next heuristic in the round-robin fashion.
         if any(ctx.state is not None for ctx in self.pass_contexts):
             while self.pass_contexts[self.next_pass_id].state is None:
                 self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
@@ -845,3 +881,31 @@ class TestManager:
 
         self.order += 1
         ctx.state = ctx.pass_.advance(self.current_test_case, ctx.state)
+
+    def schedule_fold(self, pool: pebble.ProcessPool, folding_state: FoldingState) -> None:
+        assert self.interleaving
+
+        folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX + 'folding-'))
+        env = TestEnvironment(
+            folding_state,
+            self.order,
+            self.test_script,
+            folder,
+            self.current_test_case,
+            self.test_cases,
+            FoldingManager.transform,
+            self.pid_queue,
+        )
+        future = pool.schedule(env.run, timeout=self.timeout)
+        self.jobs.append(
+            Job(
+                type=JobType.TRANSFORM,
+                future=future,
+                pass_=None,
+                pass_id=None,
+                start_time=time.monotonic(),
+                temporary_folder=folder,
+            )
+        )
+
+        self.order += 1
