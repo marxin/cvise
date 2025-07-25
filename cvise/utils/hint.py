@@ -238,7 +238,7 @@ def merge_overlapping_patches(patches: Sequence[object]) -> Sequence[object]:
         is_replacement = 'v' in patch
         # Among all patches starting in the same location, use additional criteria:
         # * prefer seeing larger patches first, hence sort by decreasing "r";
-        # * prefer deletion over text replacement.
+        # * (if still a tie) prefer deletion over text replacement.
         return patch['l'], -patch['r'], is_replacement
 
     merged = []
