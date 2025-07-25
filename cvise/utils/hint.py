@@ -13,8 +13,12 @@ from copy import copy, deepcopy
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, TextIO
+from typing import Any, Dict, List, Sequence, TextIO, Tuple
 import zstandard
+
+
+# Currently just a hardcoded constant - the number is reserved for backwards-incompatible format changes in the future.
+FORMAT_NAME = 'cvise_hints_v0'
 
 
 @dataclass
@@ -23,6 +27,7 @@ class HintBundle:
 
     Its standard serialization format is a newline-separated JSON of the following structure:
 
+      <Preamble object>\n
       <Vocabulary array>\n
       <Hint 1 object>\n
       <Hint 2 object>\n
@@ -131,6 +136,8 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
     We currently use the Zstandard compression to reduce the space usage (the empirical compression ratio observed for
     hint JSONs is around 5x..20x)."""
     with zstandard.open(hints_file_path, 'wt') as f:
+        write_compact_json(make_preamble(bundle), f)
+        f.write('\n')
         write_compact_json(bundle.vocabulary, f)
         f.write('\n')
         for h in bundle.hints:
@@ -145,6 +152,8 @@ def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintB
     assert begin_index < end_index
     hints = []
     with zstandard.open(hints_file_path, 'rt') if hints_file_path.suffix == '.zst' else open(hints_file_path) as f:
+        parse_preamble(try_parse_json_line(next(f)))
+
         vocab = try_parse_json_line(next(f))
         # Do a lightweight check that'd catch a basic mistake (a hint object coming instead of a vocabulary array). We
         # don't want to perform full type/schema checking during loading due to performance concerns.
@@ -167,6 +176,22 @@ def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
         # FIXME: drop the 't' property in favor of storing it once, in the bundle's preamble
         grouped[type].hints.append(h)
     return grouped
+
+
+def make_preamble(bundle: HintBundle) -> Dict[str, Any]:
+    return {
+        'format': FORMAT_NAME,
+    }
+
+
+def parse_preamble(json: Any) -> None:
+    if not isinstance(json, dict):
+        raise RuntimeError(f'Failed to parse hint bundle preamble: expected object, instead got {json}')
+    format = json.get('format')
+    if format != FORMAT_NAME:
+        raise RuntimeError(
+            f'Failed to parse hint bundle preamble: expected format "{FORMAT_NAME}", instead got {repr(format)}'
+        )
 
 
 def write_compact_json(value: Any, file: TextIO) -> None:

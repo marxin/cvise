@@ -112,7 +112,8 @@ def test_apply_hints(tmp_path: Path):
     """Test the application of hints via the --action=apply-hints mode."""
     hints_path = tmp_path / 'hints.jsonl'
     hints_path.write_text(
-        """[]
+        """{"format": "cvise_hints_v0"}
+        []
         {"p": [{"l": 0, "r": 1}]}
         {"p": [{"l": 1, "r": 2}]}
         {"p": [{"l": 2, "r": 3}]}
