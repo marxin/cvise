@@ -68,3 +68,27 @@ jobs:
     - run: pip install --break-system-packages ruff
     - run: ruff check --target-version py38
     - run: ruff format --target-version py38 --diff
+
+  pytype:
+    container:
+      image: opensuse/tumbleweed
+
+    steps:
+    - run: zypper -n install clang-devel llvm-devel python3-venv
+    - uses: actions/checkout@v4
+    - name: prepare venv
+      run: |
+            python3 -m venv ~/venv
+            source ~/venv/bin/activate
+            pip install chardet jsonschema pebble psutil pytest pytype zstandard
+    - name: build
+      run: |
+            source ~/venv/bin/activate
+            mkdir objdir
+            cd objdir
+            ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
+            make -j`nproc` VERBOSE=1
+    - name: pytype
+      run: |
+            source ~/venv/bin/activate
+            pytype --keep-going --jobs=auto objdir
