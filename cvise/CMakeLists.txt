@@ -65,6 +65,7 @@ endfunction(configure_one_file)
 set(SOURCE_FILES
   "__init__.py"
   "pass_groups/all.json"
+  "pass_groups/no-interleaving.json"
   "pass_groups/opencl-120.json"
   "pass_groups/delta.json"
   "pass_groups/binary.json"
