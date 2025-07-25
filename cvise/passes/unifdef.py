@@ -11,13 +11,13 @@ class UnIfDefPass(AbstractPass):
     def check_prerequisites(self):
         return self.check_external_program('unifdef')
 
-    def new(self, test_case, **kwargs):
+    def new(self, test_case, *args, **kwargs):
         return 0
 
     def advance(self, test_case, state):
         return state + 1
 
-    def advance_on_success(self, test_case, state, **kwargs):
+    def advance_on_success(self, test_case, state, *args, **kwargs):
         return state
 
     def transform(self, test_case, state, process_event_notifier):

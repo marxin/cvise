@@ -30,7 +30,7 @@ class HintBundle:
     """
 
     # Hint objects - each item matches the `HINT_SCHEMA`.
-    hints: List[object]
+    hints: List[Dict]
     # Strings that hints can refer to.
     # Note: a simple "= []" wouldn't be suitable because mutable default values are error-prone in Python.
     vocabulary: List[str] = field(default_factory=list)
@@ -184,7 +184,7 @@ def try_parse_json_line(text: str) -> Any:
         raise RuntimeError(f'Failed to decode line "{text}": {e}') from e
 
 
-def merge_overlapping_patches(patches: Sequence[object]) -> Sequence[object]:
+def merge_overlapping_patches(patches: Sequence[Dict]) -> Sequence[Dict]:
     """Returns non-overlapping hint patches, merging patches where necessary."""
 
     def sorting_key(patch):
@@ -201,7 +201,7 @@ def merge_overlapping_patches(patches: Sequence[object]) -> Sequence[object]:
     return merged
 
 
-def patches_overlap(first: object, second: object) -> bool:
+def patches_overlap(first: Dict, second: Dict) -> bool:
     """Checks whether two patches overlap.
 
     Only real overlaps (with at least one common character) are counted - False
@@ -210,6 +210,6 @@ def patches_overlap(first: object, second: object) -> bool:
     return max(first['l'], second['l']) < min(first['r'], second['r'])
 
 
-def extend_end_to_fit(patch: object, appended_patch: object) -> None:
+def extend_end_to_fit(patch: Dict, appended_patch: Dict) -> None:
     """Modifies the first patch so that the second patch fits into it."""
     patch['r'] = max(patch['r'], appended_patch['r'])

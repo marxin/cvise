@@ -1,5 +1,6 @@
 import os
 import tempfile
+from typing import Any
 import unittest
 
 from cvise.passes.abstract import ProcessEventNotifier
@@ -83,6 +84,7 @@ class LineMarkersTestCase(unittest.TestCase):
             (_, state) = self.pass_.transform(tmp_file.name, state, self.process_event_notifier)
             with open(tmp_file.name) as variant_file:
                 variant = variant_file.read()
+                state: Any  # workaround type-checkers not seeing the "value" attribute
                 outs.append((state.index, state.value, state.chunk, variant))
             os.unlink(tmp_file.name)
             state = self.pass_.advance(tmp_file.name, state)

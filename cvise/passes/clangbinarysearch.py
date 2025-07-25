@@ -10,6 +10,12 @@ from cvise.utils.misc import CloseableTemporaryFile
 
 
 class ClangBinarySearchPass(AbstractPass):
+    def __init__(self, arg=None, external_programs=None):
+        super().__init__(arg, external_programs)
+        # The actual values are set by the caller in cvise.py.
+        self.user_clang_delta_std = None
+        self.clang_delta_preserve_routine = None
+
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
 
@@ -30,7 +36,7 @@ class ClangBinarySearchPass(AbstractPass):
         # Use the best standard option
         return best
 
-    def new(self, test_case, job_timeout, **kwargs):
+    def new(self, test_case, job_timeout, *args, **kwargs):
         if not self.user_clang_delta_std:
             std = self.detect_best_standard(test_case, job_timeout)
         else:
@@ -42,7 +48,7 @@ class ClangBinarySearchPass(AbstractPass):
         new_state = state.advance()
         return attach_clang_delta_std(new_state, state.clang_delta_std)
 
-    def advance_on_success(self, test_case, state, **kwargs):
+    def advance_on_success(self, test_case, state, *args, **kwargs):
         instances = state.real_num_instances - state.real_chunk()
         new_state = state.advance_on_success(instances)
         if new_state:

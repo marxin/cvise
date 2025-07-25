@@ -32,7 +32,7 @@ class IfPass(AbstractPass):
                         in_multiline = True
         return count
 
-    def new(self, test_case, **kwargs):
+    def new(self, test_case, *args, **kwargs):
         bs = BinaryState.create(self.__count_instances(test_case))
         if bs:
             bs.value = 0
@@ -48,7 +48,7 @@ class IfPass(AbstractPass):
                 state.value = 0
         return state
 
-    def advance_on_success(self, test_case, state, **kwargs):
+    def advance_on_success(self, test_case, state, *args, **kwargs):
         return state.advance_on_success(self.__count_instances(test_case))
 
     def transform(self, test_case, state, process_event_notifier):

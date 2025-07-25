@@ -44,7 +44,7 @@ class SpecialPass(AbstractPass):
 
         return m
 
-    def new(self, test_case, **kwargs):
+    def new(self, test_case, *args, **kwargs):
         config = self.__get_config()
         with open(test_case) as in_file:
             prog = in_file.read()
@@ -61,7 +61,7 @@ class SpecialPass(AbstractPass):
             return None
         return state
 
-    def advance_on_success(self, test_case, state, **kwargs):
+    def advance_on_success(self, test_case, state, *args, **kwargs):
         return self.new(test_case)
 
     def transform(self, test_case, state, process_event_notifier):

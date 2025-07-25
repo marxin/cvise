@@ -10,13 +10,13 @@ class IncludesPass(AbstractPass):
     def check_prerequisites(self):
         return True
 
-    def new(self, test_case, **kwargs):
+    def new(self, test_case, *args, **kwargs):
         return 1
 
     def advance(self, test_case, state):
         return state + 1
 
-    def advance_on_success(self, test_case, state, **kwargs):
+    def advance_on_success(self, test_case, state, *args, **kwargs):
         return state
 
     def transform(self, test_case, state, process_event_notifier):

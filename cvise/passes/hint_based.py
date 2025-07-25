@@ -137,7 +137,7 @@ class HintBasedPass(AbstractPass):
     def generate_hints(self, test_case: Path) -> HintBundle:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'generate_hints'!")
 
-    def new(self, test_case, tmp_dir, **kwargs):
+    def new(self, test_case, tmp_dir, *args, **kwargs):
         hints = self.generate_hints(test_case)
         return self.new_from_hints(hints, tmp_dir)
 
@@ -161,7 +161,7 @@ class HintBasedPass(AbstractPass):
     def advance(self, test_case, state):
         return state.advance()
 
-    def advance_on_success(self, test_case, state, **kwargs):
+    def advance_on_success(self, test_case, state, *args, **kwargs):
         hints = self.generate_hints(test_case)
         return self.advance_on_success_from_hints(hints, state)
 

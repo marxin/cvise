@@ -52,6 +52,6 @@ class FoldingManager:
         return job_order < self.JOB_COUNT_FACTOR * max(parallel_tests, pass_count)
 
     @staticmethod
-    def transform(test_case: Path, state: FoldingState, *args, **kwargs) -> Tuple[PassResult, List[HintState]]:
+    def transform(test_case: Path, state: FoldingState, *args, **kwargs) -> Tuple[PassResult, FoldingState]:
         HintBasedPass.load_and_apply_hints(test_case, state.sub_states)
         return PassResult.OK, state
