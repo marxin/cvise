@@ -43,7 +43,6 @@ jobs:
         sudo wget python3-pip python3-jsonschema python3-zstandard
     - run: zypper -n install sqlite-devel python3
     - run: pip install --break-system-packages pytest-cov
-    - run: zypper se --provide ld
     - uses: rui314/setup-mold@v1
     - run: ld --version
     - run: nproc
@@ -76,7 +75,7 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: zypper -n install clang-devel cmake llvm-devel python312
+    - run: zypper -n install binutils clang-devel cmake llvm-devel python312
     - uses: actions/checkout@v4
     - name: prepare venv
       # Pytype currently only supports Python <=3.12
