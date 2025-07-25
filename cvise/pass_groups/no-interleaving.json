@@ -1,20 +1,4 @@
-{"interleaving_first": [
-    {"pass": "comments", "c": true },
-    {"pass": "line_markers", "c": true },
-    {"pass": "blank"},
-    {"pass": "lines", "arg": "0" },
-    {"pass": "lines", "arg": "1" },
-    {"pass": "lines", "arg": "2" },
-    {"pass": "lines", "arg": "3" },
-    {"pass": "lines", "arg": "4" },
-    {"pass": "lines", "arg": "6" },
-    {"pass": "lines", "arg": "8" },
-    {"pass": "lines", "arg": "10" },
-    {"pass": "lines", "arg": "None" },
-    {"pass": "clanghints", "arg": "replace-function-def-with-decl", "c": true },
-    {"pass": "clanghints", "arg": "remove-unused-function", "c": true }
- ],
- "first": [
+{"first": [
     {"pass": "includes", "c": true },
     {"pass": "unifdef", "exclude": ["windows"], "c": true },
     {"pass": "comments", "c": true },

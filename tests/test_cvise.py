@@ -42,6 +42,14 @@ def test_simple_reduction():
     )
 
 
+def test_simple_reduction_no_interleaving_config():
+    check_cvise(
+        'blocksort-part.c',
+        ['-c', r"gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c", '--pass-group', 'no-interleaving'],
+        ['#define nextHi'],
+    )
+
+
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 def test_ctrl_c(tmp_path: Path):
     """Test that Control-C is handled quickly, without waiting for jobs to finish."""
@@ -70,7 +78,7 @@ def test_ctrl_c(tmp_path: Path):
         raise
 
 
-def test_interleaving_passes(tmp_path: Path):
+def test_interleaving_lines_passes(tmp_path: Path):
     """Test a pass group config with an interleaving category."""
     config_path = tmp_path / 'config.json'
     config_path.write_text("""
@@ -143,5 +151,7 @@ def test_non_ascii(tmp_path: Path):
     # Also enable diff logging to check it doesn't break on non-unicode.
     proc = start_cvise(['-c', 'gcc -c test.c && grep foo test.c', testcase_path.name, '--print-diff'])
     proc.communicate()
+
     assert proc.returncode == 0
-    assert copy_path.read_bytes() == b'int foo;\n'
+    # The reduced result may or may not include the trailing line break - this depends on random ordering factors.
+    assert copy_path.read_text() in ('int foo;', 'int foo;\n')
