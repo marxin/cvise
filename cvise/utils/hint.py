@@ -13,7 +13,7 @@ from copy import copy, deepcopy
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, TextIO, Tuple
+from typing import Any, Dict, List, Sequence, TextIO
 import zstandard
 
 
