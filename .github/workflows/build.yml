@@ -70,6 +70,7 @@ jobs:
     - run: ruff format --target-version py38 --diff
 
   pytype:
+    runs-on: ubuntu-latest
     container:
       image: opensuse/tumbleweed
 
