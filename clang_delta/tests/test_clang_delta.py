@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+from typing import Union
 import unittest
 
 
@@ -26,7 +27,7 @@ def get_testcase_path(testcase: str) -> Path:
     return Path(__file__).parent / testcase
 
 
-def get_expected_output_path(testcase: str, output_file: str = None) -> Path:
+def get_expected_output_path(testcase: str, output_file: Union[str, None] = None) -> Path:
     if not output_file:
         output_file = os.path.splitext(testcase)[0] + '.output'
     return Path(__file__).parent / output_file

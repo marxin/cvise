@@ -18,13 +18,13 @@ PARALLEL_TESTS = 10
 
 
 class StubPass(AbstractPass):
-    def new(self, test_case, **kwargs):
+    def new(self, test_case, *args, **kwargs):
         return 0
 
     def advance(self, test_case, state):
         return state + 1
 
-    def advance_on_success(self, test_case, state, **kwargs):
+    def advance_on_success(self, test_case, state, *args, **kwargs):
         return state
 
 

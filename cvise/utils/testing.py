@@ -58,7 +58,7 @@ def rmfolder(name):
 @dataclass
 class InitEnvironment:
     pass_new: Callable
-    test_case: str
+    test_case: Path
     tmp_dir: Path
     job_timeout: int
 
@@ -206,7 +206,7 @@ class Job:
     pass_id: Union[int, None]
 
     start_time: float
-    temporary_folder: Path
+    temporary_folder: Union[Path, None]
 
 
 @dataclass

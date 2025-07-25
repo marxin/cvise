@@ -14,8 +14,10 @@ class PassResult(Enum):
 
 
 class BinaryState:
-    def __init__(self):
-        pass
+    def __init__(self, instances: int, chunk: int, index: int):
+        self.instances: int = instances
+        self.chunk: int = chunk
+        self.index: int = index
 
     def __repr__(self):
         return f'BinaryState({self.index}-{self.end()}, {self.instances} instances, step: {self.chunk})'
@@ -24,11 +26,7 @@ class BinaryState:
     def create(instances):
         if not instances:
             return None
-        self = BinaryState()
-        self.instances = instances
-        self.chunk = instances
-        self.index = 0
-        return self
+        return BinaryState(instances, chunk=instances, index=0)
 
     def copy(self):
         return copy.copy(self)
@@ -95,13 +93,13 @@ class AbstractPass:
     def check_prerequisites(self):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'check_prerequisites'!")
 
-    def new(self, test_case, tmp_dir):
+    def new(self, test_case, tmp_dir, job_timeout):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'new'!")
 
     def advance(self, test_case, state):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance'!")
 
-    def advance_on_success(self, test_case, state, **kwargs):
+    def advance_on_success(self, test_case, state, job_timeout, **kwargs):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance_on_success'!")
 
     def transform(self, test_case, state, process_event_notifier):

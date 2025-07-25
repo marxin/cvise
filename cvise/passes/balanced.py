@@ -16,13 +16,13 @@ class BalancedPass(AbstractPass):
 
         return m
 
-    def new(self, test_case, **kwargs):
+    def new(self, test_case, *args, **kwargs):
         return self.__get_next_match(test_case, pos=0)
 
     def advance(self, test_case, state):
         return self.__get_next_match(test_case, pos=state[0] + 1)
 
-    def advance_on_success(self, test_case, state, **kwargs):
+    def advance_on_success(self, test_case, state, *args, **kwargs):
         return self.__get_next_match(test_case, pos=state[0])
 
     def __get_config(self):
