@@ -79,7 +79,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: prepare venv
       run: |
-            python3 -m venv ~/venv
+            python3.12 -m venv ~/venv
             source ~/venv/bin/activate
             pip install chardet jsonschema pebble psutil pytest pytype zstandard
     - name: build
