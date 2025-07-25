@@ -75,7 +75,7 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: zypper -n install clang-devel llvm-devel python3-venv
+    - run: zypper -n install clang-devel llvm-devel python3
     - uses: actions/checkout@v4
     - name: prepare venv
       run: |
