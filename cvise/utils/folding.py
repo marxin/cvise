@@ -7,11 +7,13 @@ from typing import Any, List, Tuple, Union
 
 from cvise.passes.abstract import PassResult
 from cvise.passes.hint_based import HintBasedPass, HintState
+from cvise.utils.hint import HintApplicationStats
 
 
 @dataclass
 class FoldingState:
     sub_states: List[HintState]
+    statistics: Union[HintApplicationStats, None] = None
 
 
 class FoldingManager:
@@ -53,5 +55,5 @@ class FoldingManager:
 
     @staticmethod
     def transform(test_case: Path, state: FoldingState, *args, **kwargs) -> Tuple[PassResult, List[HintState]]:
-        HintBasedPass.load_and_apply_hints(test_case, state.sub_states)
+        state.statistics = HintBasedPass.load_and_apply_hints(test_case, state.sub_states)
         return PassResult.OK, state
