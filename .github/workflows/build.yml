@@ -43,6 +43,7 @@ jobs:
         sudo wget python3-pip python3-jsonschema python3-zstandard
     - run: zypper -n install sqlite-devel python3
     - run: pip install --break-system-packages pytest-cov
+    - run: zypper se --provide ld
     - uses: rui314/setup-mold@v1
     - run: ld --version
     - run: nproc
