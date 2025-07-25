@@ -36,14 +36,19 @@ class ClangHintsPass(HintBasedPass):
     advance() calls.
     """
 
+    def __init__(self, arg=None, external_programs=None):
+        super().__init__(arg, external_programs)
+        # The actual value is set by the caller in cvise.py.
+        self.user_clang_delta_std: Union[str, None] = None
+
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
 
-    def new(self, test_case, tmp_dir, job_timeout, **kwargs):
+    def new(self, test_case, tmp_dir, job_timeout, *args, **kwargs):
         # Choose the best standard unless the user provided one.
         std_choices = [self.user_clang_delta_std] if self.user_clang_delta_std else CLANG_STD_CHOICES
         best_std = None
-        best_bundle = None
+        best_bundle: Union[HintBundle, None] = None
         for std in std_choices:
             start = time.monotonic()
             bundle = self.generate_hints_for_standard(test_case, std, job_timeout)
@@ -55,6 +60,7 @@ class ClangHintsPass(HintBasedPass):
             logging.debug(
                 'available transformation opportunities for %s: %d, took: %.2f s' % (std, len(bundle.hints), took)
             )
+        assert best_bundle is not None
         logging.info('using C++ standard: %s with %d transformation opportunities' % (best_std, len(best_bundle.hints)))
 
         # Let the parent class complete the initialization, but create our own state to remember the chosen standard.
@@ -66,7 +72,7 @@ class ClangHintsPass(HintBasedPass):
         # Re-attach the remembered standard.
         return ClangState.wrap(new_state, state.clang_std)
 
-    def advance_on_success(self, test_case, state, job_timeout, **kwargs):
+    def advance_on_success(self, test_case, state, job_timeout, *args, **kwargs):
         # Keep using the same standard as the one chosen in new() - repeating the choose procedure on every successful
         # reduction would be too costly.
         hints = self.generate_hints_for_standard(test_case, state.clang_std, job_timeout)
