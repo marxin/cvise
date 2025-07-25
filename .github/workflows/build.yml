@@ -75,9 +75,10 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: zypper -n install clang-devel llvm-devel python312
+    - run: zypper -n install clang-devel cmake llvm-devel python312
     - uses: actions/checkout@v4
     - name: prepare venv
+      # Pytype currently only supports Python <=3.12
       run: |
             python3.12 -m venv ~/venv
             source ~/venv/bin/activate
