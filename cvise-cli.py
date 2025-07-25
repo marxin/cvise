@@ -533,7 +533,7 @@ def do_apply_hints(args):
     if len(args.test_cases) > 1:
         sys.exit('exactly one TEST_CASE must be supplied')
     bundle = load_hints(Path(args.hints_file), args.hint_begin_index, args.hint_end_index)
-    new_data = apply_hints([bundle], Path(args.test_cases[0]))
+    new_data, stats = apply_hints([bundle], Path(args.test_cases[0]))
     sys.stdout.buffer.write(new_data)
 
 

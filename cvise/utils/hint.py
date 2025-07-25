@@ -13,7 +13,7 @@ from copy import copy, deepcopy
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, TextIO
+from typing import Any, Dict, List, Sequence, TextIO, Tuple
 import zstandard
 
 
@@ -36,6 +36,7 @@ class HintBundle:
 
     # Hint objects - each item matches the `HINT_SCHEMA`.
     hints: List[object]
+    pass_name: str = ''
     # Strings that hints can refer to.
     # Note: a simple "= []" wouldn't be suitable because mutable default values are error-prone in Python.
     vocabulary: List[str] = field(default_factory=list)
@@ -96,7 +97,16 @@ HINT_SCHEMA_STRICT['additionalProperties'] = False
 HINT_SCHEMA_STRICT['properties']['p']['items'] = HINT_PATCH_SCHEMA_STRICT
 
 
-def apply_hints(bundles: List[HintBundle], file: Path) -> bytes:
+@dataclass
+class HintApplicationStats:
+    size_delta_per_pass: Dict[str, int]
+
+    def get_passes_ordered_by_delta(self) -> List[str]:
+        ordered = sorted(self.size_delta_per_pass.items(), key=lambda kv: kv[1])
+        return [kv[0] for kv in ordered]
+
+
+def apply_hints(bundles: List[HintBundle], file: Path) -> Tuple[bytes, HintApplicationStats]:
     """Edits the file applying the specified hints to its contents."""
     patches = []
     for bundle in bundles:
@@ -111,6 +121,7 @@ def apply_hints(bundles: List[HintBundle], file: Path) -> bytes:
         orig_data = f.read()
 
     new_data = b''
+    stats = HintApplicationStats(size_delta_per_pass={})
     start_pos = 0
     for p in merged_patches:
         left: int = p['l']
@@ -122,12 +133,16 @@ def apply_hints(bundles: List[HintBundle], file: Path) -> bytes:
         new_data += orig_data[start_pos:left]
         # Skip the original chunk inside the current patch.
         start_pos = right
+        stats.size_delta_per_pass.setdefault(bundle.pass_name, 0)
+        stats.size_delta_per_pass[bundle.pass_name] -= right - left
         # Insert the replacement value, if provided.
         if 'v' in p:
-            new_data += bundle.vocabulary[p['v']].encode()
+            to_insert = bundle.vocabulary[p['v']].encode()
+            new_data += to_insert
+            stats.size_delta_per_pass[bundle.pass_name] += len(to_insert)
     # Add the unmodified chunk after the last patch end.
     new_data += orig_data[start_pos:]
-    return new_data
+    return new_data, stats
 
 
 def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
@@ -150,20 +165,21 @@ def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintB
 
     Whether the hints file is compressed is determined based on the file extension."""
     assert begin_index < end_index
-    hints = []
+    bundle = HintBundle(hints=[])
     with zstandard.open(hints_file_path, 'rt') if hints_file_path.suffix == '.zst' else open(hints_file_path) as f:
-        parse_preamble(try_parse_json_line(next(f)))
+        parse_preamble(try_parse_json_line(next(f)), bundle)
 
         vocab = try_parse_json_line(next(f))
         # Do a lightweight check that'd catch a basic mistake (a hint object coming instead of a vocabulary array). We
         # don't want to perform full type/schema checking during loading due to performance concerns.
         if not isinstance(vocab, list):
             raise RuntimeError(f'Failed to read hint vocabulary: expected array, instead got: {vocab}')
+        bundle.vocabulary = vocab
 
         for i, line in enumerate(f):
             if begin_index <= i < end_index:
-                hints.append(try_parse_json_line(line))
-    return HintBundle(hints=hints, vocabulary=vocab)
+                bundle.hints.append(try_parse_json_line(line))
+    return bundle
 
 
 def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
@@ -172,19 +188,22 @@ def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
     for h in bundle.hints:
         type = bundle.vocabulary[h['t']] if 't' in h else ''
         if type not in grouped:
-            grouped[type] = HintBundle(vocabulary=bundle.vocabulary, hints=[])
+            grouped[type] = HintBundle(vocabulary=bundle.vocabulary, hints=[], pass_name=bundle.pass_name)
         # FIXME: drop the 't' property in favor of storing it once, in the bundle's preamble
         grouped[type].hints.append(h)
     return grouped
 
 
 def make_preamble(bundle: HintBundle) -> Dict[str, Any]:
-    return {
+    preamble = {
         'format': FORMAT_NAME,
     }
+    if bundle.pass_name:
+        preamble['pass'] = bundle.pass_name
+    return preamble
 
 
-def parse_preamble(json: Any) -> None:
+def parse_preamble(json: Any, bundle: HintBundle) -> None:
     if not isinstance(json, dict):
         raise RuntimeError(f'Failed to parse hint bundle preamble: expected object, instead got {json}')
     format = json.get('format')
@@ -192,6 +211,9 @@ def parse_preamble(json: Any) -> None:
         raise RuntimeError(
             f'Failed to parse hint bundle preamble: expected format "{FORMAT_NAME}", instead got {repr(format)}'
         )
+
+    if 'pass' in json:
+        bundle.pass_name = json['pass']
 
 
 def write_compact_json(value: Any, file: TextIO) -> None:
@@ -214,8 +236,10 @@ def merge_overlapping_patches(patches: Sequence[object]) -> Sequence[object]:
 
     def sorting_key(patch):
         is_replacement = 'v' in patch
-        # Among all patches starting in the same location, deletion should take precedence over text replacement.
-        return patch['l'], is_replacement
+        # Among all patches starting in the same location, use additional criteria:
+        # * prefer seeing larger patches first, hence sort by decreasing "r";
+        # * (if still a tie) prefer deletion over text replacement.
+        return patch['l'], -patch['r'], is_replacement
 
     merged = []
     for patch in sorted(patches, key=sorting_key):

@@ -792,6 +792,12 @@ class TestManager:
             notes.append(f'{self.total_line_count} lines')
         if len(self.test_cases) > 1:
             notes.append(str(new_test_case.name))
+        if len(self.pass_contexts) > 1:
+            if isinstance(self.success_candidate.pass_state, FoldingState):
+                pass_name = ' + '.join(self.success_candidate.pass_state.statistics.get_passes_ordered_by_delta())
+            else:
+                pass_name = repr(self.success_candidate.pass_)
+            notes.append(f'via {pass_name}')
 
         self.success_candidate.release()
         self.success_candidate = None

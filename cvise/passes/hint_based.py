@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, List, Union
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
-from cvise.utils.hint import apply_hints, group_hints_by_type, HintBundle, load_hints, store_hints
+from cvise.utils.hint import apply_hints, group_hints_by_type, HintBundle, HintApplicationStats, load_hints, store_hints
 
 HINTS_FILE_NAME_TEMPLATE = 'hints{type}.jsonl.zst'
 
@@ -146,7 +146,7 @@ class HintBasedPass(AbstractPass):
         return PassResult.OK, state
 
     @staticmethod
-    def load_and_apply_hints(test_case: Path, states: List[HintState]) -> None:
+    def load_and_apply_hints(test_case: Path, states: List[HintState]) -> HintApplicationStats:
         hint_bundles: List[HintBundle] = []
         for state in states:
             sub_state = state.per_type_states[state.ptr]
@@ -155,8 +155,9 @@ class HintBasedPass(AbstractPass):
             hint_bundles.append(
                 load_hints(state.tmp_dir / sub_state.hints_file_name, hints_range_begin, hints_range_end)
             )
-        new_data = apply_hints(hint_bundles, test_case)
+        new_data, stats = apply_hints(hint_bundles, test_case)
         Path(test_case).write_bytes(new_data)
+        return stats
 
     def advance(self, test_case, state):
         return state.advance()
@@ -172,6 +173,7 @@ class HintBasedPass(AbstractPass):
         if not bundle.hints:
             return None
         type_to_bundle = group_hints_by_type(bundle)
+        self.backfill_pass_names(type_to_bundle)
         type_to_file_name = store_hints_per_type(tmp_dir, type_to_bundle)
         return HintState.create(tmp_dir, type_to_bundle, type_to_file_name)
 
@@ -182,8 +184,14 @@ class HintBasedPass(AbstractPass):
         if not bundle.hints:
             return None
         type_to_bundle = group_hints_by_type(bundle)
+        self.backfill_pass_names(type_to_bundle)
         store_hints_per_type(state.tmp_dir, type_to_bundle)
         return state.advance_on_success(type_to_bundle)
+
+    def backfill_pass_names(self, type_to_bundle: Dict[str, HintBundle]) -> None:
+        for bundle in type_to_bundle.values():
+            if not bundle.pass_name:
+                bundle.pass_name = repr(self)
 
 
 def store_hints_per_type(tmp_dir: Path, type_to_bundle: Dict[str, HintBundle]) -> Dict[str, Path]:
