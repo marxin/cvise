@@ -75,7 +75,7 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: zypper -n install binutils clang-devel cmake llvm-devel python312
+    - run: zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python312
     - uses: actions/checkout@v4
     - name: prepare venv
       # Pytype currently only supports Python <=3.12
