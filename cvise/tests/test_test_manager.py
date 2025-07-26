@@ -52,6 +52,15 @@ class AlwaysInvalidPass(StubPass):
         return (PassResult.INVALID, state)
 
 
+class HungPass(StubPass):
+    """A very slow pass, for testing timeouts."""
+
+    def transform(self, test_case, state, process_event_notifier):
+        INFINITY = 1000
+        time.sleep(INFINITY)
+        return (PassResult.INVALID, state)
+
+
 class NInvalidThenLinesPass(NaiveLinePass):
     """Starts removing lines after the first N invalid results."""
 
@@ -128,6 +137,11 @@ def bug_dir_count():
     return len(glob.glob(pattern))
 
 
+def extra_dir_count():
+    pattern = testing.TestManager.EXTRA_DIR_PREFIX + '*'
+    return len(glob.glob(pattern))
+
+
 @pytest.fixture(autouse=True)
 def interrupt_monitor():
     keyboard_interrupt_monitor.init()
@@ -161,8 +175,16 @@ def interestingness_script():
 
 
 @pytest.fixture
-def manager(tmp_path, input_file, interestingness_script):
-    TIMEOUT = 100
+def job_timeout() -> int:
+    """The default job timeout.
+
+    Can be overridden in particular tests.
+    """
+    return 100
+
+
+@pytest.fixture
+def manager(tmp_path, input_file, interestingness_script, job_timeout):
     SAVE_TEMPS = False
     NO_CACHE = False
     SKIP_KEY_OFF = True  # tests shouldn't listen to keyboard
@@ -184,7 +206,7 @@ def manager(tmp_path, input_file, interestingness_script):
     return testing.TestManager(
         pass_statistic,
         script_path,
-        TIMEOUT,
+        job_timeout,
         SAVE_TEMPS,
         [input_file],
         PARALLEL_TESTS,
@@ -256,6 +278,15 @@ def test_halt_on_unaltered_after_stop(input_file, manager):
     assert read_file(input_file) == INPUT_DATA
     # Whether the misbehave ("failed to modify the variant") is detected depends on timing.
     assert bug_dir_count() <= 1
+
+
+@pytest.mark.parametrize('job_timeout', [1])
+def test_give_up_on_repeating_timeouts(input_file, manager):
+    p = HungPass()
+    manager.run_passes([p], interleaving=False)
+    assert extra_dir_count() >= manager.MAX_TIMEOUTS
+    # we should've stopped soon after MAX_TIMEOUTS, at worst a batch of jobs later.
+    assert extra_dir_count() <= 2 * max(manager.MAX_TIMEOUTS, PARALLEL_TESTS)
 
 
 def test_interleaving_letter_removals(input_file, manager):
