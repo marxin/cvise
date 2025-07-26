@@ -241,6 +241,7 @@ class TestManager:
     MAX_EXTRA_DIRS = 25000
     TEMP_PREFIX = 'cvise-'
     BUG_DIR_PREFIX = 'cvise_bug_'
+    EXTRA_DIR_PREFIX = 'cvise_extra_'
     EVENT_LOOP_TIMEOUT = 1  # seconds
 
     def __init__(
@@ -494,7 +495,7 @@ class TestManager:
             self.release_job(self.jobs[0])
 
     def save_extra_dir(self, test_case_path):
-        extra_dir = self.get_extra_dir('cvise_extra_', self.MAX_EXTRA_DIRS)
+        extra_dir = self.get_extra_dir(self.EXTRA_DIR_PREFIX, self.MAX_EXTRA_DIRS)
         if extra_dir is not None:
             os.mkdir(extra_dir)
             shutil.move(test_case_path, extra_dir)
@@ -617,7 +618,7 @@ class TestManager:
             try:
                 self.order = 1
                 self.next_pass_id = 0
-                self.timeout_count_per_pass = {}
+                self.timeout_count = 0
                 self.giveup_reported = False
                 assert self.success_candidate is None
                 if self.interleaving:
