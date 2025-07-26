@@ -1,4 +1,5 @@
 import glob
+import multiprocessing
 import os
 from pathlib import Path
 import pytest
@@ -6,7 +7,9 @@ import time
 from unittest.mock import patch
 
 from cvise.passes.abstract import AbstractPass, PassResult  # noqa: E402
+from cvise.passes.hint_based import HintBasedPass  # noqa: E402
 from cvise.utils import keyboard_interrupt_monitor, statistics, testing  # noqa: E402
+from cvise.utils.hint import HintBundle
 
 
 INPUT_DATA = """foo
@@ -111,6 +114,26 @@ class LetterRemovingPass(StubPass):
                     return (PassResult.OK, state)
                 instances += 1
         return (PassResult.STOP, state)
+
+
+class LetterRemovingHintPass(HintBasedPass):
+    def __init__(self, arg=None):
+        super().__init__(arg)
+
+    def generate_hints(self, test_case: Path):
+        sz = test_case.stat().st_size
+        hints = [{'p': [{'l': i, 'r': i + 1}]} for i in range(sz)]
+        return HintBundle(hints=hints)
+
+
+class TracingHintPass(LetterRemovingHintPass):
+    def __init__(self, queue: multiprocessing.SimpleQueue, arg):
+        super().__init__(arg)
+        self.queue = queue
+
+    def transform(self, test_case, state, *args, **kwargs):
+        self.queue.put(self.arg)
+        return super().transform(test_case, state, *args, **kwargs)
 
 
 def read_file(path):
@@ -289,3 +312,24 @@ def test_interleaving_letter_removals_large(input_file, manager):
             break
 
     assert read_file(input_file) == 'a'
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+@pytest.mark.parametrize('interestingness_script', [r'false {test_case}'])
+def test_interleaving_round_robin_transforms(input_file, manager: testing.TestManager):
+    tracing_queue = multiprocessing.Manager().Queue()
+    passes = [TracingHintPass(tracing_queue, arg=str(i)) for i in range(PARALLEL_TESTS)]
+    manager.run_passes(passes, interleaving=True)
+
+    transform_calls = []
+    while not tracing_queue.empty():
+        transform_calls.append(tracing_queue.get())
+
+    # all passes should've gotten equal number of jobs
+    execs_per_pass = [transform_calls.count(str(i)) for i in range(PARALLEL_TESTS)]
+    assert min(execs_per_pass) == max(execs_per_pass)
+    # we cannot assert the ideal round-robin order (like 123..N123..) because concurrent writes to the queue are racy,
+    # but at least it's almost guaranteed that no pass should be recorded N times in a row.
+    for i in range(len(transform_calls) - PARALLEL_TESTS + 1):
+        slice = transform_calls[i : i + PARALLEL_TESTS]
+        assert min(slice) != max(slice)
