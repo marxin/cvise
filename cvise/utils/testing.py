@@ -832,6 +832,7 @@ class TestManager:
             while self.pass_contexts[self.next_pass_id].state is None:
                 self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
             self.schedule_transform(pool, self.next_pass_id)
+            self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
             return True
         return False
 
