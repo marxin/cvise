@@ -136,7 +136,7 @@ class LetterRemovingHintPass(HintBasedPass):
 
 
 class TracingHintPass(LetterRemovingHintPass):
-    def __init__(self, queue: multiprocessing.SimpleQueue, arg):
+    def __init__(self, queue, arg):
         super().__init__(arg)
         self.queue = queue
 
