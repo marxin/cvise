@@ -186,8 +186,17 @@ class PassContext:
         logging.debug(f'Creating pass root folder: {root}')
         return PassContext(pass_=pass_, stage=PassStage.BEFORE_INIT, temporary_root=Path(root), state=None)
 
-    def enumeration_finished(self) -> bool:
-        return self.stage == PassStage.ENUMERATING and self.state is None
+    def can_init_now(self) -> bool:
+        """Whether the pass' new() method can be scheduled."""
+        return self.stage == PassStage.BEFORE_INIT
+
+    def can_transform_now(self) -> bool:
+        """Whether the pass' transform() method can be scheduled."""
+        return self.stage == PassStage.ENUMERATING and self.state is not None
+
+    def can_start_job_now(self) -> bool:
+        """Whether any of the pass' methods can be scheduled."""
+        return self.can_init_now() or self.can_transform_now()
 
 
 @unique
@@ -501,61 +510,53 @@ class TestManager:
             shutil.move(test_case_path, extra_dir)
             logging.info(f'Created extra directory {extra_dir} for you to look at later')
 
-    def process_done_futures(self):
-        quit_loop = False
+    def process_done_futures(self) -> None:
         jobs_to_remove = []
         for job in self.jobs:
-            # all items after a repeated error should be cancelled
-            if quit_loop:
-                job.future.cancel()
-                jobs_to_remove.append(job)
-                continue
-
             if not job.future.done():
                 continue
-
+            jobs_to_remove.append(job)
             if job.future.exception():
                 # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
                 if type(job.future.exception()) in (TimeoutError, concurrent.futures.TimeoutError):
-                    self.timeout_count += 1
-                    logging.warning('Test timed out.')
-                    self.save_extra_dir(job.temporary_folder)
-                    if self.timeout_count >= self.MAX_TIMEOUTS:
-                        logging.warning('Maximum number of timeout were reached: %d' % self.MAX_TIMEOUTS)
-                        quit_loop = True
-                    jobs_to_remove.append(job)
+                    self.handle_timed_out_job(job)
                     continue
-                else:
-                    raise job.future.exception()
-
+                raise job.future.exception()
             if job.type == JobType.INIT:
-                ctx = self.pass_contexts[job.pass_id]
-                assert ctx.stage == PassStage.IN_INIT
-                ctx.stage = PassStage.ENUMERATING
-                ctx.state = job.future.result()
-                self.pass_statistic.add_initialized(job.pass_, job.start_time)
+                self.handle_finished_init_job(job)
             elif job.type == JobType.TRANSFORM:
-                self.pass_statistic.add_executed(job.pass_, job.start_time, self.parallel_tests)
-                outcome = self.check_pass_result(job)
-                if outcome == PassCheckingOutcome.ACCEPT:
-                    self.pass_statistic.add_success(job.pass_)
-                    env: TestEnvironment = job.future.result()
-                    self.maybe_update_success_candidate(job.pass_, job.pass_id, env)
-                    if self.interleaving:
-                        self.folding_manager.on_transform_job_success(env.state)
-                elif outcome == PassCheckingOutcome.STOP:
-                    self.pass_contexts[job.pass_id].state = None
-                else:
-                    self.pass_statistic.add_failure(job.pass_)
+                self.handle_finished_transform_job(job)
             else:
                 raise ValueError(f'Unexpected job type {job.type}')
-
-            jobs_to_remove.append(job)
 
         for job in jobs_to_remove:
             self.release_job(job)
 
-        return quit_loop
+    def handle_timed_out_job(self, job: Job) -> None:
+        logging.warning('Test timed out.')
+        self.save_extra_dir(job.temporary_folder)
+        self.timeout_count += 1
+
+    def handle_finished_init_job(self, job: Job) -> None:
+        ctx = self.pass_contexts[job.pass_id]
+        assert ctx.stage == PassStage.IN_INIT
+        ctx.stage = PassStage.ENUMERATING
+        ctx.state = job.future.result()
+        self.pass_statistic.add_initialized(job.pass_, job.start_time)
+
+    def handle_finished_transform_job(self, job: Job) -> None:
+        self.pass_statistic.add_executed(job.pass_, job.start_time, self.parallel_tests)
+        outcome = self.check_pass_result(job)
+        if outcome == PassCheckingOutcome.ACCEPT:
+            self.pass_statistic.add_success(job.pass_)
+            env: TestEnvironment = job.future.result()
+            self.maybe_update_success_candidate(job.pass_, job.pass_id, env)
+            if self.interleaving:
+                self.folding_manager.on_transform_job_success(env.state)
+        elif outcome == PassCheckingOutcome.STOP:
+            self.pass_contexts[job.pass_id].state = None
+        else:
+            self.pass_statistic.add_failure(job.pass_)
 
     def check_pass_result(self, job: Job):
         test_env: TestEnvironment = job.future.result()
@@ -623,7 +624,7 @@ class TestManager:
                 assert self.success_candidate is None
                 if self.interleaving:
                     self.folding_manager = FoldingManager()
-                while self.jobs or any(not c.enumeration_finished() for c in self.pass_contexts):
+                while self.jobs or any(c.can_start_job_now() for c in self.pass_contexts):
                     keyboard_interrupt_monitor.maybe_reraise()
 
                     # schedule new jobs, as long as there are free workers
@@ -632,7 +633,9 @@ class TestManager:
 
                     # no more jobs could be scheduled at the moment - wait for some results
                     wait([j.future for j in self.jobs], return_when=FIRST_COMPLETED, timeout=self.EVENT_LOOP_TIMEOUT)
-                    if self.process_done_futures():
+                    self.process_done_futures()
+                    if self.timeout_count >= self.MAX_TIMEOUTS:
+                        logging.warning('Maximum number of timeout were reached: %s', self.MAX_TIMEOUTS)
                         break
 
                     # exit if we found successful transformation(s) and don't want to try better ones
@@ -698,7 +701,7 @@ class TestManager:
                             continue
 
                 self.skip = False
-                while any(not c.enumeration_finished() for c in self.pass_contexts) and not self.skip:
+                while any(c.can_start_job_now() for c in self.pass_contexts) and not self.skip:
                     # Ignore more key presses after skip has been detected
                     if not self.skip_key_off and not self.skip:
                         key = logger.pressed_key()
@@ -819,7 +822,7 @@ class TestManager:
         # The order matters below - higher-priority job types come earlier:
         # 1. Initializing a pass.
         for pass_id, ctx in enumerate(self.pass_contexts):
-            if ctx.stage == PassStage.BEFORE_INIT:
+            if ctx.can_init_now():
                 self.schedule_init(pool, pass_id)
                 return True
         # 2. Attempting a fold (simultaneous application) of previously discovered successful transformations; only
@@ -830,8 +833,8 @@ class TestManager:
                 self.schedule_fold(pool, folding_state)
                 return True
         # 3. Attempting a transformation using the next heuristic in the round-robin fashion.
-        if any(ctx.state is not None for ctx in self.pass_contexts):
-            while self.pass_contexts[self.next_pass_id].state is None:
+        if any(ctx.can_transform_now() for ctx in self.pass_contexts):
+            while not self.pass_contexts[self.next_pass_id].can_transform_now():
                 self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
             self.schedule_transform(pool, self.next_pass_id)
             self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
@@ -840,7 +843,7 @@ class TestManager:
 
     def schedule_init(self, pool: pebble.ProcessPool, pass_id: int) -> None:
         ctx = self.pass_contexts[pass_id]
-        assert ctx.stage == PassStage.BEFORE_INIT
+        assert ctx.can_init_now()
 
         env = InitEnvironment(
             pass_new=ctx.pass_.new,
@@ -864,6 +867,7 @@ class TestManager:
 
     def schedule_transform(self, pool: pebble.ProcessPool, pass_id: int) -> None:
         ctx = self.pass_contexts[pass_id]
+        assert ctx.can_transform_now()
         assert ctx.state is not None
 
         folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=ctx.temporary_root))
