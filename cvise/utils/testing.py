@@ -755,6 +755,8 @@ class TestManager:
             self.remove_roots()
         except KeyboardInterrupt:
             logging.info('Exiting now ...')
+            # Clean temporary files for all jobs and passes.
+            self.release_all_jobs()
             self.remove_roots()
             sys.exit(1)
 
