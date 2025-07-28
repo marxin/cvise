@@ -514,7 +514,7 @@ def do_reduce(args):
 
                 fs.write(b'Reduced test-cases:\n\n')
                 for test_case in sorted(test_manager.test_cases):
-                    print(f'--- {test_case} ---'.encode())
+                    fs.write(f'--- {test_case} ---'.encode())
                     with open(test_case, 'rb') as test_case_file:
                         fs.write(test_case_file.read())
                         fs.write(b'\n')
