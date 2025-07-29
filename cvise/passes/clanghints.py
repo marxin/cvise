@@ -113,10 +113,12 @@ class ClangHintsPass(HintBasedPass):
 
         try:
             proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
-        except subprocess.TimeoutExpired:
-            raise ClangDeltaError(f'clang_delta (--transformation={self.arg} --std={std}) {timeout}s timeout reached')
+        except subprocess.TimeoutExpired as e:
+            raise ClangDeltaError(
+                f'clang_delta (--transformation={self.arg} --std={std}) {timeout}s timeout reached'
+            ) from e
         except subprocess.SubprocessError as e:
-            raise ClangDeltaError(f'clang_delta (--transformation={self.arg} --std={std}) failed: {e}')
+            raise ClangDeltaError(f'clang_delta (--transformation={self.arg} --std={std}) failed: {e}') from e
 
         if proc.returncode != 0:
             stderr = proc.stderr.strip()
