@@ -136,8 +136,6 @@ L?\"(\\.|[^\\"])*\"	{ process_token(TOK_STRING); }
                          do {
                             c = input();
                             ++tok_end_pos;
-                            if (c == '*' || c == EOF)
-                                break;
                          } while (c != '*' && c != EOF);
 
                          if ( c == '*' )
