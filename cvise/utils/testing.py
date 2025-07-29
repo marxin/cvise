@@ -149,9 +149,11 @@ class TestEnvironment:
     def run_test(self, verbose):
         try:
             os.chdir(self.folder)
+            print(f"TestEnvironment.run_test: starting command={self.test_script} dir={self.folder}", file=sys.stderr)
             stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(
                 str(self.test_script), shell=True
             )
+            print(f"TestEnvironment.run_test: finished command={self.test_script} dir={self.folder}", file=sys.stderr)
             if verbose and returncode != 0:
                 logging.debug('stdout:\n' + stdout)
                 logging.debug('stderr:\n' + stderr)
@@ -507,6 +509,7 @@ class TestManager:
         for job in self.jobs:
             # all items after a repeated error should be cancelled
             if quit_loop:
+                print(f"process_done_futures: cancelling job dir={job.temporary_folder}", file=sys.stderr)
                 job.future.cancel()
                 jobs_to_remove.append(job)
                 continue
@@ -609,11 +612,15 @@ class TestManager:
 
     @classmethod
     def terminate_all(cls, pool):
+        print(f"terminate_all: pool.stop", file=sys.stderr)
         pool.stop()
+        print(f"terminate_all: join", file=sys.stderr)
         pool.join()
+        print(f"terminate_all: end", file=sys.stderr)
 
     def run_parallel_tests(self) -> None:
         assert not self.jobs
+        print(f"run_parallel_tests: begin", file=sys.stderr)
         with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
             try:
                 self.order = 1
@@ -633,10 +640,12 @@ class TestManager:
                     # no more jobs could be scheduled at the moment - wait for some results
                     wait([j.future for j in self.jobs], return_when=FIRST_COMPLETED, timeout=self.EVENT_LOOP_TIMEOUT)
                     if self.process_done_futures():
+                        print(f"run_parallel_tests: break with process_done_futures", file=sys.stderr)
                         break
 
                     # exit if we found successful transformation(s) and don't want to try better ones
                     if self.success_candidate and self.should_proceed_with_success_candidate():
+                        print(f"run_parallel_tests: break with success_candidate", file=sys.stderr)
                         break
 
                 self.terminate_all(pool)
@@ -644,9 +653,11 @@ class TestManager:
                 for ctx in self.pass_contexts:
                     if ctx.stage == PassStage.IN_INIT:
                         ctx.stage = PassStage.BEFORE_INIT
+                print(f"run_parallel_tests: end", file=sys.stderr)
             except:
                 # Abort running jobs - by default the process pool waits for the ongoing jobs' completion.
                 self.terminate_all(pool)
+                print(f"run_parallel_tests: end on error", file=sys.stderr)
                 raise
 
     def run_passes(self, passes: List[AbstractPass], interleaving: bool):
@@ -867,6 +878,7 @@ class TestManager:
         assert ctx.state is not None
 
         folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=ctx.temporary_root))
+        print(f"schedule_transform: created folder={folder}", file=sys.stderr)
         env = TestEnvironment(
             ctx.state,
             self.order,
