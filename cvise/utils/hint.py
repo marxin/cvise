@@ -13,12 +13,17 @@ from copy import copy, deepcopy
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, TextIO, Tuple
+from typing import Any, Dict, List, Self, Sequence, TextIO, Tuple
 import zstandard
 
 
 # Currently just a hardcoded constant - the number is reserved for backwards-incompatible format changes in the future.
 FORMAT_NAME = 'cvise_hints_v0'
+
+# Constants for the "grouping" field of HintBundle.
+# We don't use Python 3 "enum" due to performance concerns.
+GROUPING_BINSEARCH = 'binsearch'
+GROUPING_ONEBYONE = 'onebyone'
 
 
 @dataclass
@@ -37,9 +42,17 @@ class HintBundle:
     # Hint objects - each item matches the `HINT_SCHEMA`.
     hints: List[Dict]
     pass_name: str = ''
+    # The strategy of whether&how hints should be attempted in groups (as opposed to trying each independently) - this
+    # is mainly intended as a means of optimization. See the GROUPING_ constants above for allowed values;
+    # GROUPING_BINSEARCH is currently the default behavior.
+    # Note: we don't use Python 3 "enum" due to performance concerns.
+    grouping: str = ''
     # Strings that hints can refer to.
     # Note: a simple "= []" wouldn't be suitable because mutable default values are error-prone in Python.
     vocabulary: List[str] = field(default_factory=list)
+
+    def copy_except_hints(self) -> Self:
+        return HintBundle(hints=[], pass_name=self.pass_name, grouping=self.grouping, vocabulary=self.vocabulary)
 
 
 # JSON Schemas:
@@ -188,7 +201,7 @@ def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
     for h in bundle.hints:
         type = bundle.vocabulary[h['t']] if 't' in h else ''
         if type not in grouped:
-            grouped[type] = HintBundle(vocabulary=bundle.vocabulary, hints=[], pass_name=bundle.pass_name)
+            grouped[type] = bundle.copy_except_hints()
         # FIXME: drop the 't' property in favor of storing it once, in the bundle's preamble
         grouped[type].hints.append(h)
     return grouped
@@ -200,6 +213,8 @@ def make_preamble(bundle: HintBundle) -> Dict[str, Any]:
     }
     if bundle.pass_name:
         preamble['pass'] = bundle.pass_name
+    if bundle.grouping:
+        preamble['grouping'] = bundle.grouping
     return preamble
 
 
@@ -214,6 +229,8 @@ def parse_preamble(json: Any, bundle: HintBundle) -> None:
 
     if 'pass' in json:
         bundle.pass_name = json['pass']
+    if 'grouping' in json:
+        bundle.grouping = json['grouping']
 
 
 def write_compact_json(value: Any, file: TextIO) -> None:

@@ -25,6 +25,10 @@ IS			(u|U|l|L)*
 
 #include <defs.h>
 
+// update the position whenever a token is about to be processed
+// (this macro is triggered by Flex prior to executing the matched rule’s action).
+#define YY_USER_ACTION tok_end_pos += yyleng;
+
 %}
 
 %%
@@ -128,14 +132,20 @@ L?\"(\\.|[^\\"])*\"	{ process_token(TOK_STRING); }
 "/*"        {
                      for ( ; ; )  {
                          int c;
-                         while ( (c = input()) != '*' &&
-                                  c != EOF )
-                             ;    /* eat up text of comment */
+                         /* eat up text of comment */
+                         do {
+                            c = input();
+                            ++tok_end_pos;
+                            if (c == '*' || c == EOF)
+                                break;
+                         } while (c != '*' && c != EOF);
 
                          if ( c == '*' )
                              {
-                             while ( (c = input()) == '*' )
-                                 ;
+                             do {
+                                c = input();
+                                ++tok_end_pos;
+                             } while (c == '*');
                              if ( c == '/' )
                                  break;    /* found the end */
                              }
@@ -156,3 +166,5 @@ L?\"(\\.|[^\\"])*\"	{ process_token(TOK_STRING); }
 %%
 
 int count = 0;
+// index of byte where the current yytext ends in the input.
+int tok_end_pos = 0;
