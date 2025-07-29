@@ -55,12 +55,13 @@ def rmfolder(name):
 
 @dataclass
 class InitEnvironment:
+    """Holds data for executing a Pass' new() method in a worker."""
     pass_new: Callable
     test_case: Path
     tmp_dir: Path
     job_timeout: int
 
-    def run(self):
+    def run(self) -> Any:
         try:
             return self.pass_new(self.test_case, tmp_dir=self.tmp_dir, job_timeout=self.job_timeout)
         except UnicodeDecodeError:
@@ -69,7 +70,25 @@ class InitEnvironment:
             return None
 
 
+@dataclass
+class AdvanceOnSuccessEnvironment:
+    """Holds data for executing a Pass' advance_on_success() method in a worker."""
+    pass_advance_on_success: Callable
+    test_case: Path
+    pass_previous_state: Any
+    job_timeout: int
+
+    def run(self) -> Any:
+        return self.pass_advance_on_success(self.test_case, state=self.pass_previous_state, job_timeout=self.job_timeout)
+
+
 class TestEnvironment:
+    """Holds data for running a Pass' transform() method and the interestingness test in a worker.
+
+    The transform call is optional - in that case, the interestingness test is simply executed for the unchanged input
+    (this is useful for implementing the "sanity check" of the input on the C-Vise startup).
+    """
+
     def __init__(
         self,
         state,
@@ -800,16 +819,15 @@ class TestManager:
                 f"Can't find {self.current_test_case} -- did your interestingness test move it?"
             ) from None
 
-        for pass_id, ctx in enumerate(self.pass_contexts):
-            # For the pass that succeeded, continue from the state returned by its transform() that led to the success;
-            # for other passes, continue the iteration from where the last advance() stopped.
-
-            old_state = self.success_candidate.pass_state if pass_id == self.success_candidate.pass_id else ctx.state
-            ctx.state = (
-                None
-                if old_state is None
-                else ctx.pass_.advance_on_success(new_test_case, old_state, job_timeout=self.timeout)
-            )
+        # For the pass that succeeded, continue from the state returned by its transform() that led to the success; for
+        # other passes, continue the iteration from where the last advance() stopped.
+        if self.success_candidate.pass_id is not None:
+            ctx = self.pass_contexts[self.success_candidate.pass_id]
+            ctx.state = self.success_candidate.pass_state
+        # Next round should reinitialize unfinished passes.
+        for ctx in self.pass_contexts:
+            if ctx.stage == PassStage.ENUMERATING and ctx.state is not None:
+                ctx.stage = PassStage.BEFORE_INIT
 
         pct = 100 - (self.total_file_size * 100.0 / self.orig_total_file_size)
         notes = []
@@ -866,12 +884,21 @@ class TestManager:
         ctx = self.pass_contexts[pass_id]
         assert ctx.can_init_now()
 
-        env = InitEnvironment(
-            pass_new=ctx.pass_.new,
-            test_case=self.current_test_case,
-            tmp_dir=ctx.temporary_root,
-            job_timeout=self.timeout,
-        )
+        # Either initialize the pass from scract, or advance from the previous state.
+        if ctx.state is None:
+            env = InitEnvironment(
+                pass_new=ctx.pass_.new,
+                test_case=self.current_test_case,
+                tmp_dir=ctx.temporary_root,
+                job_timeout=self.timeout,
+            )
+        else:
+            env = AdvanceOnSuccessEnvironment(
+                pass_advance_on_success=ctx.pass_.advance_on_success,
+                test_case=self.current_test_case,
+                pass_previous_state=ctx.state,
+                job_timeout=self.timeout,
+            )
         future = pool.schedule(env.run)
         self.jobs.append(
             Job(
