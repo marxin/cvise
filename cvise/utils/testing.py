@@ -16,7 +16,7 @@ import sys
 import tempfile
 import time
 import traceback
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, List, Mapping, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
@@ -149,9 +149,14 @@ class TestEnvironment:
     def run_test(self, verbose):
         try:
             os.chdir(self.folder)
-            stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(
-                str(self.test_script), shell=True
-            )
+            # Make the job use our custom temp dir instead of the standard one, so that the standard location doesn't
+            # get cluttered with files it might leave undeleted (the process might do this because of an oversight in
+            # the interestingness test, or because C-Vise abruptly kills our job without a chance for a proper cleanup).
+            with tempfile.TemporaryDirectory(dir=self.folder, prefix='overridetmp') as tmp_override:
+                env = override_tmpdir_env(os.environ.copy(), tmp_override)
+                stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(
+                    str(self.test_script), shell=True, env=env
+                )
             if verbose and returncode != 0:
                 logging.debug('stdout:\n' + stdout)
                 logging.debug('stderr:\n' + stderr)
@@ -919,3 +924,10 @@ class TestManager:
         )
 
         self.order += 1
+
+
+def override_tmpdir_env(old_env: Mapping, tmp_override: Path) -> Mapping:
+    new_env = dict(old_env)
+    for var in ('TMPDIR', 'TEMP', 'TMP'):
+        new_env[var] = str(tmp_override)
+    return new_env
