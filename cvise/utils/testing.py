@@ -56,6 +56,7 @@ def rmfolder(name):
 @dataclass
 class InitEnvironment:
     """Holds data for executing a Pass' new() method in a worker."""
+
     pass_new: Callable
     test_case: Path
     tmp_dir: Path
@@ -73,13 +74,16 @@ class InitEnvironment:
 @dataclass
 class AdvanceOnSuccessEnvironment:
     """Holds data for executing a Pass' advance_on_success() method in a worker."""
+
     pass_advance_on_success: Callable
     test_case: Path
     pass_previous_state: Any
     job_timeout: int
 
     def run(self) -> Any:
-        return self.pass_advance_on_success(self.test_case, state=self.pass_previous_state, job_timeout=self.job_timeout)
+        return self.pass_advance_on_success(
+            self.test_case, state=self.pass_previous_state, job_timeout=self.job_timeout
+        )
 
 
 class TestEnvironment:
