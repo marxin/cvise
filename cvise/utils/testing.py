@@ -153,7 +153,7 @@ class TestEnvironment:
             # get cluttered with files it might leave undeleted (the process might do this because of an oversight in
             # the interestingness test, or because C-Vise abruptly kills our job without a chance for a proper cleanup).
             with tempfile.TemporaryDirectory(dir=self.folder, prefix='overridetmp') as tmp_override:
-                env = override_tmpdir_env(os.environ.copy(), tmp_override)
+                env = override_tmpdir_env(os.environ.copy(), Path(tmp_override))
                 stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(
                     str(self.test_script), shell=True, env=env
                 )
