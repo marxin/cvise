@@ -308,20 +308,14 @@ static void rm_toks(int idx) {
 
 static void hints_rm_toks() {
   int i;
-  int which = 0;
-  int sliding_window[n_toks];
-  // See cvise/utils/hint.py for the hint format definition.
-  printf("[\"rm-toks-%d\"]\n", n_toks);
+  // An empty hint vocabulary (see cvise/utils/hint.py for the format).
+  printf("[]\n");
   for (i = 0; i < toks; i++) {
     if (tok_list[i].kind == TOK_WS || tok_list[i].kind == TOK_NEWLINE)
       continue;
-    sliding_window[which % n_toks] = tok_list[i].start_pos;
-    if (which + 1 >= n_toks) {
-      int cut_start = sliding_window[(which + 1) % n_toks];
-      int cut_end = tok_list[i].start_pos + tok_list[i].len;
-      printf("{\"t\":0,\"p\":[{\"l\":%d,\"r\":%d}]}\n", cut_start, cut_end);
-    }
-    which++;
+    int cut_start = tok_list[i].start_pos;
+    int cut_end = tok_list[i].start_pos + tok_list[i].len;
+    printf("{\"p\":[{\"l\":%d,\"r\":%d}]}\n", cut_start, cut_end);
   }
   exit(OK);
 }
@@ -487,11 +481,8 @@ int main(int argc, char *argv[]) {
     int res = sscanf(&cmd[8], "%d", &n_toks);
     assert(res == 1);
     assert(n_toks > 0 && n_toks <= 1000);
-  } else if (strncmp(cmd, "hints-rm-toks-", 8) == 0) {
+  } else if (strcmp(cmd, "hints-rm-toks") == 0) {
     mode = MODE_HINTS_RM_TOKS;
-    int res = sscanf(&cmd[14], "%d", &n_toks);
-    assert(res == 1);
-    assert(n_toks > 0 && n_toks <= 1000);
   } else if (strncmp(cmd, "rm-tok-pattern-", 15) == 0) {
     mode = MODE_RM_TOK_PATTERN;
     int res = sscanf(&cmd[15], "%d", &n_toks);
@@ -542,7 +533,7 @@ int main(int argc, char *argv[]) {
     rm_toks(tok_index);
     __builtin_unreachable();
   case MODE_HINTS_RM_TOKS:
-    hints_rm_toks(tok_index);
+    hints_rm_toks();
     __builtin_unreachable();
   case MODE_RM_TOK_PATTERN:
     rm_tok_pattern(tok_index);
