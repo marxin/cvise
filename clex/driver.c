@@ -306,7 +306,7 @@ static void rm_toks(int idx) {
   }
 }
 
-static void hints_rm_toks() {
+static void hints_rm_toks(void) {
   int i;
   // An empty hint vocabulary (see cvise/utils/hint.py for the format).
   printf("[]\n");
