@@ -33,7 +33,7 @@ class SubsegmentState:
         return f'{self.index}-{self.end()} out of {self.instances}'
 
     @staticmethod
-    def create(instances: int, max_chunk: int) -> Union[Self, None]:
+    def create(instances: int, max_chunk: int):
         if not instances:
             return None
         return SubsegmentState(instances, chunk=min(max_chunk, instances), index=0)
