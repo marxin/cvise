@@ -2,7 +2,6 @@ from pathlib import Path
 
 from cvise.passes.hint_based import HintState, PerTypeHintState
 from cvise.utils.folding import FoldingManager
-from cvise.utils.hint import HintBundle
 
 
 def create_stub_hint_state(type: str) -> HintState:
