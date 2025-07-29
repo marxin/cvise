@@ -32,6 +32,8 @@ struct tok_t {
   char *str;
   enum tok_kind kind;
   int id;
+  int len;
+  int start_pos;
 };
 
 static struct tok_t *tok_list;
@@ -51,6 +53,8 @@ static int add_tok(char *str, enum tok_kind kind) {
   assert(tok_list[toks].str);
   tok_list[toks].kind = kind;
   tok_list[toks].id = -1;
+  tok_list[toks].len = yyleng;
+  tok_list[toks].start_pos = tok_end_pos - yyleng;
   toks++;
   return toks - 1;
 }
@@ -65,6 +69,7 @@ enum mode_t {
   MODE_PRINT,
   MODE_DELETE_STRING,
   MODE_RM_TOKS,
+  MODE_HINTS_RM_TOKS,
   MODE_RM_TOK_PATTERN,
   MODE_SHORTEN_STRING,
   MODE_X_STRING,
@@ -301,6 +306,26 @@ static void rm_toks(int idx) {
   }
 }
 
+static void hints_rm_toks() {
+  int i;
+  int which = 0;
+  int sliding_window[n_toks];
+  // See cvise/utils/hint.py for the hint format definition.
+  printf("[\"rm-toks-%d\"]\n", n_toks);
+  for (i = 0; i < toks; i++) {
+    if (tok_list[i].kind == TOK_WS || tok_list[i].kind == TOK_NEWLINE)
+      continue;
+    sliding_window[which % n_toks] = tok_list[i].start_pos;
+    if (which + 1 >= n_toks) {
+      int cut_start = sliding_window[(which + 1) % n_toks];
+      int cut_end = tok_list[i].start_pos + tok_list[i].len;
+      printf("{\"t\":0,\"p\":[{\"l\":%d,\"r\":%d}]}\n", cut_start, cut_end);
+    }
+    which++;
+  }
+  exit(OK);
+}
+
 static void print_pattern(unsigned char c) {
   int z;
   for (z = 0; z < 8; z++) {
@@ -462,6 +487,11 @@ int main(int argc, char *argv[]) {
     int res = sscanf(&cmd[8], "%d", &n_toks);
     assert(res == 1);
     assert(n_toks > 0 && n_toks <= 1000);
+  } else if (strncmp(cmd, "hints-rm-toks-", 8) == 0) {
+    mode = MODE_HINTS_RM_TOKS;
+    int res = sscanf(&cmd[14], "%d", &n_toks);
+    assert(res == 1);
+    assert(n_toks > 0 && n_toks <= 1000);
   } else if (strncmp(cmd, "rm-tok-pattern-", 15) == 0) {
     mode = MODE_RM_TOK_PATTERN;
     int res = sscanf(&cmd[15], "%d", &n_toks);
@@ -474,7 +504,7 @@ int main(int argc, char *argv[]) {
     assert(0);
   }
 
-  int tok_index;
+  int tok_index = -1;
   int ret = sscanf(argv[2], "%d", &tok_index);
   assert(ret == 1);
   // printf ("file = '%s'\n", argv[3]);
@@ -510,6 +540,9 @@ int main(int argc, char *argv[]) {
     __builtin_unreachable();
   case MODE_RM_TOKS:
     rm_toks(tok_index);
+    __builtin_unreachable();
+  case MODE_HINTS_RM_TOKS:
+    hints_rm_toks(tok_index);
     __builtin_unreachable();
   case MODE_RM_TOK_PATTERN:
     rm_tok_pattern(tok_index);

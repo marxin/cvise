@@ -5,7 +5,15 @@ from pathlib import Path
 from typing import Dict, List, Union
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
-from cvise.utils.hint import apply_hints, group_hints_by_type, HintBundle, HintApplicationStats, load_hints, store_hints
+from cvise.utils.hint import (
+    apply_hints,
+    group_hints_by_type,
+    GROUPING_ONEBYONE,
+    HintBundle,
+    HintApplicationStats,
+    load_hints,
+    store_hints,
+)
 
 HINTS_FILE_NAME_TEMPLATE = 'hints{type}.jsonl.zst'
 
@@ -26,9 +34,13 @@ class PerTypeHintState:
     binary_state: BinaryState
 
     @staticmethod
-    def create(type: str, hint_count: int, hints_file_name: Path) -> PerTypeHintState:
+    def create(type: str, hint_count: int, hints_file_name: Path, grouping: str) -> PerTypeHintState:
         assert hint_count > 0
-        return PerTypeHintState(type=type, hints_file_name=hints_file_name, binary_state=BinaryState.create(hint_count))
+        if grouping == GROUPING_ONEBYONE:
+            binary_state = BinaryState(instances=hint_count, chunk=1, index=0)
+        else:  # GROUPING_BINSEARCH or empty (default) or unknown value
+            binary_state = BinaryState.create(hint_count)
+        return PerTypeHintState(type=type, hints_file_name=hints_file_name, binary_state=binary_state)
 
     def advance(self) -> Union[PerTypeHintState, None]:
         # Move to the next step in the binary search, or to None if this was the last step.
@@ -76,7 +88,9 @@ class HintState:
         sub_states = []
         # Initialize a separate binary search for each group of hints sharing a particular type.
         for type, sub_bundle in type_to_bundle.items():
-            sub_states.append(PerTypeHintState.create(type, len(sub_bundle.hints), type_to_file_name[type]))
+            sub_states.append(
+                PerTypeHintState.create(type, len(sub_bundle.hints), type_to_file_name[type], sub_bundle.grouping)
+            )
         return HintState(tmp_dir, sub_states)
 
     def advance(self) -> Union[HintState, None]:

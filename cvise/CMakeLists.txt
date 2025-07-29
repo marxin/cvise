@@ -77,6 +77,7 @@ set(SOURCE_FILES
   "passes/clangbinarysearch.py"
   "passes/clanghints.py"
   "passes/clex.py"
+  "passes/clexhints.py"
   "passes/comments.py"
   "passes/gcdabinary.py"
   "passes/hint_based.py"
