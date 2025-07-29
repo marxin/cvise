@@ -1,9 +1,10 @@
 import copy
+from dataclasses import dataclass
 from enum import auto, Enum, unique
 import logging
 import shutil
 import subprocess
-from typing import Tuple
+from typing import Self, Tuple, Union
 
 
 @unique
@@ -14,6 +15,53 @@ class PassResult(Enum):
     ERROR = auto()
 
 
+@dataclass
+class SubsegmentState:
+    """Iterates over subsegments of the given instances, with at most the given chunk size.
+
+    Essentially goes through all [i; i+j) for j=1..max_chunk.
+    """
+
+    instances: int
+    chunk: int
+    index: int
+
+    def __repr__(self):
+        return f'SubsegmentState({self.compact_repr()})'
+
+    def compact_repr(self) -> str:
+        return f'{self.index}-{self.end()} out of {self.instances}'
+
+    @staticmethod
+    def create(instances: int, max_chunk: int) -> Union[Self, None]:
+        if not instances:
+            return None
+        return SubsegmentState(instances, chunk=min(max_chunk, instances), index=0)
+
+    def end(self) -> int:
+        return self.index + self.chunk
+
+    def advance(self) -> Union[Self, None]:
+        new = copy.copy(self)
+        new.index += 1
+        if new.index + new.chunk <= new.instances:
+            return new
+        if new.chunk <= 1:
+            return None
+        new.index = 0
+        new.chunk = min(new.chunk - 1, new.instances)
+        return new
+
+    def advance_on_success(self, instances) -> Union[Self, None]:
+        if not instances:
+            return None
+        new = copy.copy(self)
+        new.instances = instances
+        if new.index + new.chunk <= self.instances:
+            return new
+        return new.advance()
+
+
 class BinaryState:
     def __init__(self, instances: int, chunk: int, index: int):
         self.instances: int = instances
@@ -22,6 +70,9 @@ class BinaryState:
 
     def __repr__(self):
         return f'BinaryState({self.index}-{self.end()}, {self.instances} instances, step: {self.chunk})'
+
+    def compact_repr(self) -> str:
+        return f'{self.index}-{self.end()} out of {self.instances} with step {self.chunk}'
 
     @staticmethod
     def create(instances):

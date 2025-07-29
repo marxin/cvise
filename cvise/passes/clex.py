@@ -10,7 +10,6 @@ class ClexPass(AbstractPass):
         return self.check_external_program('clex')
 
     def new(self, test_case, *args, **kwargs):
-        assert 'hints' not in self.arg
         return 0
 
     def advance(self, test_case, state):

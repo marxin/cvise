@@ -1,8 +1,9 @@
 import json
 import subprocess
 
+from cvise.passes.abstract import SubsegmentState
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils.hint import GROUPING_ONEBYONE, HintBundle
+from cvise.utils.hint import HintBundle
 
 
 class ClexHintsPass(HintBasedPass):
@@ -12,12 +13,22 @@ class ClexHintsPass(HintBasedPass):
         return self.check_external_program('clex')
 
     def generate_hints(self, test_case):
-        assert 'hints' in self.arg
+        if self.arg.startswith('rm-toks-'):
+            clex_cmd = 'hints-rm-toks'
+        else:
+            raise ValueError(f'Unexpected arg: {self.arg}')
+        tok_index = '-1'  # unused
+        cmd = [self.external_programs['clex'], clex_cmd, tok_index, str(test_case)]
         hints = []
-        cmd = [self.external_programs['clex'], self.arg, '-1', str(test_case)]
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc:
             vocab = json.loads(next(proc.stdout))
             for line in proc.stdout:
                 if not line.isspace():
                     hints.append(json.loads(line))
-        return HintBundle(vocabulary=vocab, hints=hints, grouping=GROUPING_ONEBYONE)
+        return HintBundle(vocabulary=vocab, hints=hints)
+
+    def create_elementary_state(self, hint_count: int):
+        if self.arg.startswith('rm-toks-'):
+            max_chunk = int(self.arg[len('rm-toks-') :])
+            return SubsegmentState(instances=hint_count, index=0, chunk=max_chunk)
+        raise ValueError(f'Unexpected arg: {self.arg}')
