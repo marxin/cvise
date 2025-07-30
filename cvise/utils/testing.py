@@ -181,21 +181,32 @@ class PassContext:
     temporary_root: Union[Path, None]
     # The pass state as returned by the pass new()/advance()/advance_on_success() methods.
     state: Any
+    # When True, the pass is considered dysfunctional and shouldn't be used anymore.
+    defunct: bool
+    # How many times a job for this pass timed out.
+    timeout_count: int
 
     @staticmethod
     def create(pass_: AbstractPass) -> PassContext:
         pass_name = str(pass_).replace('::', '-')
         root = tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}{pass_name}-')
         logging.debug(f'Creating pass root folder: {root}')
-        return PassContext(pass_=pass_, stage=PassStage.BEFORE_INIT, temporary_root=Path(root), state=None)
+        return PassContext(
+            pass_=pass_,
+            stage=PassStage.BEFORE_INIT,
+            temporary_root=Path(root),
+            state=None,
+            defunct=False,
+            timeout_count=0,
+        )
 
     def can_init_now(self) -> bool:
         """Whether the pass' new() method can be scheduled."""
-        return self.stage == PassStage.BEFORE_INIT
+        return not self.defunct and self.stage == PassStage.BEFORE_INIT
 
     def can_transform_now(self) -> bool:
         """Whether the pass' transform() method can be scheduled."""
-        return self.stage == PassStage.ENUMERATING and self.state is not None
+        return not self.defunct and self.stage == PassStage.ENUMERATING and self.state is not None
 
     def can_start_job_now(self) -> bool:
         """Whether any of the pass' methods can be scheduled."""
@@ -216,6 +227,7 @@ class Job:
     # If this job executes a method of a pass, these store pointers to it; None otherwise.
     pass_: Union[AbstractPass, None]
     pass_id: Union[int, None]
+    pass_name: str
 
     start_time: float
     temporary_folder: Union[Path, None]
@@ -536,9 +548,17 @@ class TestManager:
             self.release_job(job)
 
     def handle_timed_out_job(self, job: Job) -> None:
-        logging.warning('Test timed out.')
+        logging.warning('Test timed out for %s.', job.pass_name)
         self.save_extra_dir(job.temporary_folder)
-        self.timeout_count += 1
+        if job.pass_id is None:
+            # The logic of disabling a pass after repeated timeouts isn't applicable to folding jobs.
+            return
+        ctx = self.pass_contexts[job.pass_id]
+        ctx.timeout_count += 1
+        if ctx.timeout_count < self.MAX_TIMEOUTS or ctx.defunct:
+            return
+        logging.warning('Maximum number of timeout were reached for %s: %s', job.pass_name, self.MAX_TIMEOUTS)
+        ctx.defunct = True
 
     def handle_finished_init_job(self, job: Job) -> None:
         ctx = self.pass_contexts[job.pass_id]
@@ -624,7 +644,6 @@ class TestManager:
             try:
                 self.order = 1
                 self.next_pass_id = 0
-                self.timeout_count = 0
                 self.giveup_reported = False
                 assert self.success_candidate is None
                 if self.interleaving:
@@ -639,9 +658,6 @@ class TestManager:
                     # no more jobs could be scheduled at the moment - wait for some results
                     wait([j.future for j in self.jobs], return_when=FIRST_COMPLETED, timeout=self.EVENT_LOOP_TIMEOUT)
                     self.process_done_futures()
-                    if self.timeout_count >= self.MAX_TIMEOUTS:
-                        logging.warning('Maximum number of timeout were reached: %s', self.MAX_TIMEOUTS)
-                        break
 
                     # exit if we found successful transformation(s) and don't want to try better ones
                     if self.success_candidate and self.should_proceed_with_success_candidate():
@@ -863,6 +879,7 @@ class TestManager:
                 future=future,
                 pass_=ctx.pass_,
                 pass_id=pass_id,
+                pass_name=repr(ctx.pass_),
                 start_time=time.monotonic(),
                 temporary_folder=None,
             )
@@ -893,6 +910,7 @@ class TestManager:
                 future=future,
                 pass_=ctx.pass_,
                 pass_id=pass_id,
+                pass_name=repr(ctx.pass_),
                 start_time=time.monotonic(),
                 temporary_folder=folder,
             )
@@ -922,6 +940,7 @@ class TestManager:
                 future=future,
                 pass_=None,
                 pass_id=None,
+                pass_name='Folding',
                 start_time=time.monotonic(),
                 temporary_folder=folder,
             )
