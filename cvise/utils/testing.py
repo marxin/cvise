@@ -156,8 +156,9 @@ class TestEnvironment:
                     str(self.test_script), shell=True, env=env
                 )
             if verbose and returncode != 0:
-                logging.debug('stdout:\n' + stdout)
-                logging.debug('stderr:\n' + stderr)
+                # Drop invalid UTF sequences.
+                logging.debug('stdout:\n%s', stdout.decode('utf-8', 'ignore'))
+                logging.debug('stderr:\n%s', stderr.decode('utf-8', 'ignore'))
         finally:
             os.chdir(self.pwd)
         return returncode

@@ -183,3 +183,14 @@ def test_non_ascii(tmp_path: Path):
     # The reduced result may or may not include the trailing line break - this depends on random ordering factors.
     assert copy_path.read_text() in ('int foo;', 'int foo;\n')
     assert_subprocess_tmpdir_empty(tmp_path)
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_non_ascii_interestingness_test(tmp_path: Path):
+    """Test no breakage caused by non-UTF-8 characters printed by the interestingness test"""
+    check_cvise(
+        'blocksort-part.c',
+        ['-c', r"printf '\xc3\xa4\xff'; gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c"],
+        ['#define nextHi', '#define nextHi\n'],
+        tmp_path,
+    )
