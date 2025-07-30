@@ -888,7 +888,7 @@ class TestManager:
         ctx = self.pass_contexts[pass_id]
         assert ctx.can_init_now()
 
-        # Either initialize the pass from scract, or advance from the previous state.
+        # Either initialize the pass from scratch, or advance from the previous state.
         if ctx.state is None:
             env = InitEnvironment(
                 pass_new=ctx.pass_.new,
