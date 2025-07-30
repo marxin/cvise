@@ -547,16 +547,18 @@ class TestManager:
     def handle_finished_transform_job(self, job: Job) -> None:
         self.pass_statistic.add_executed(job.pass_, job.start_time, self.parallel_tests)
         outcome = self.check_pass_result(job)
-        if outcome == PassCheckingOutcome.ACCEPT:
-            self.pass_statistic.add_success(job.pass_)
-            env: TestEnvironment = job.future.result()
-            self.maybe_update_success_candidate(job.pass_, job.pass_id, env)
-            if self.interleaving:
-                self.folding_manager.on_transform_job_success(env.state)
-        elif outcome == PassCheckingOutcome.STOP:
+        if outcome == PassCheckingOutcome.STOP:
             self.pass_contexts[job.pass_id].state = None
-        else:
+            return
+        if outcome == PassCheckingOutcome.IGNORE:
             self.pass_statistic.add_failure(job.pass_)
+            return
+        assert outcome == PassCheckingOutcome.ACCEPT
+        self.pass_statistic.add_success(job.pass_)
+        env: TestEnvironment = job.future.result()
+        self.maybe_update_success_candidate(job.pass_, job.pass_id, env)
+        if self.interleaving:
+            self.folding_manager.on_transform_job_success(env.state)
 
     def check_pass_result(self, job: Job):
         test_env: TestEnvironment = job.future.result()
