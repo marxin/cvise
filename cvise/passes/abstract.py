@@ -123,7 +123,9 @@ class ProcessEventNotifier:
     def __init__(self, pid_queue):
         self.pid_queue = pid_queue
 
-    def run_process(self, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, env=None) -> Tuple[bytes, bytes, int]:
+    def run_process(
+        self, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, env=None
+    ) -> Tuple[bytes, bytes, int]:
         if shell:
             assert isinstance(cmd, str)
         proc = subprocess.Popen(
