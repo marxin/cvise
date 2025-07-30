@@ -52,7 +52,7 @@ def test_simple_reduction(tmp_path: Path):
     check_cvise(
         'blocksort-part.c',
         ['-c', r"gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c"],
-        ['#define nextHi', '#define nextHi\n'],
+        ['#define nextHi', '#define nextHi\n', '#define nextHi\\\n'],
         tmp_path,
     )
 
@@ -61,7 +61,7 @@ def test_simple_reduction_no_interleaving_config(tmp_path: Path):
     check_cvise(
         'blocksort-part.c',
         ['-c', r"gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c", '--pass-group', 'no-interleaving'],
-        ['#define nextHi', '#define nextHi\n'],
+        ['#define nextHi', '#define nextHi\n', '#define nextHi\\\n'],
         tmp_path,
     )
 
