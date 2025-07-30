@@ -55,7 +55,7 @@ def rmfolder(name):
 
 @dataclass
 class InitEnvironment:
-    """Holds data for executing a Pass' new() method in a worker."""
+    """Holds data for executing a Pass new() method in a worker."""
 
     pass_new: Callable
     test_case: Path
@@ -73,7 +73,7 @@ class InitEnvironment:
 
 @dataclass
 class AdvanceOnSuccessEnvironment:
-    """Holds data for executing a Pass' advance_on_success() method in a worker."""
+    """Holds data for executing a Pass advance_on_success() method in a worker."""
 
     pass_advance_on_success: Callable
     test_case: Path
@@ -87,7 +87,7 @@ class AdvanceOnSuccessEnvironment:
 
 
 class TestEnvironment:
-    """Holds data for running a Pass' transform() method and the interestingness test in a worker.
+    """Holds data for running a Pass transform() method and the interestingness test in a worker.
 
     The transform call is optional - in that case, the interestingness test is simply executed for the unchanged input
     (this is useful for implementing the "sanity check" of the input on the C-Vise startup).
@@ -224,15 +224,15 @@ class PassContext:
         )
 
     def can_init_now(self) -> bool:
-        """Whether the pass' new() method can be scheduled."""
+        """Whether the pass new() method can be scheduled."""
         return not self.defunct and self.stage == PassStage.BEFORE_INIT
 
     def can_transform_now(self) -> bool:
-        """Whether the pass' transform() method can be scheduled."""
+        """Whether the pass transform() method can be scheduled."""
         return not self.defunct and self.stage == PassStage.ENUMERATING and self.state is not None
 
     def can_start_job_now(self) -> bool:
-        """Whether any of the pass' methods can be scheduled."""
+        """Whether any of the pass methods can be scheduled."""
         return self.can_init_now() or self.can_transform_now()
 
 
