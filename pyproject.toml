@@ -8,7 +8,7 @@ license = { file = "COPYING" }
 requires-python = ">=3.8"
 
 [tool.ruff]
-exclude = ["objdir", "tree-sitter"]
+exclude = ["objdir", "tree-sitter", "tree-sitter-cpp"]
 
 line-length = 120
 
