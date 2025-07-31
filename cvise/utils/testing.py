@@ -16,7 +16,7 @@ import sys
 import tempfile
 import time
 import traceback
-from typing import Any, Callable, List, Mapping, Union
+from typing import Any, Callable, Dict, List, Mapping, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
@@ -204,6 +204,7 @@ class PassContext:
     temporary_root: Union[Path, None]
     # The pass state as returned by the pass new()/advance()/advance_on_success() methods.
     state: Any
+    running_transform_order_to_state: Dict[int, Any]
     # When True, the pass is considered dysfunctional and shouldn't be used anymore.
     defunct: bool
     # How many times a job for this pass timed out.
@@ -219,6 +220,7 @@ class PassContext:
             stage=PassStage.BEFORE_INIT,
             temporary_root=Path(root),
             state=None,
+            running_transform_order_to_state={},
             defunct=False,
             timeout_count=0,
         )
@@ -246,6 +248,7 @@ class JobType(Enum):
 class Job:
     type: JobType
     future: Future
+    order: int
 
     # If this job executes a method of a pass, these store pointers to it; None otherwise.
     pass_: Union[AbstractPass, None]
@@ -258,6 +261,7 @@ class Job:
 
 @dataclass
 class SuccessCandidate:
+    order: int
     pass_: AbstractPass
     pass_id: int
     pass_state: Any
@@ -266,13 +270,18 @@ class SuccessCandidate:
 
     @staticmethod
     def create_and_take_file(
-        pass_: AbstractPass, pass_id: int, pass_state: Any, test_case_path: Path
+        order: int, pass_: AbstractPass, pass_id: int, pass_state: Any, test_case_path: Path
     ) -> SuccessCandidate:
         tmp_dir = Path(tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}candidate-'))
         new_test_case_path = tmp_dir / test_case_path.name
         shutil.move(test_case_path, new_test_case_path)
         return SuccessCandidate(
-            pass_=pass_, pass_id=pass_id, pass_state=pass_state, tmp_dir=tmp_dir, test_case_path=new_test_case_path
+            order=order,
+            pass_=pass_,
+            pass_id=pass_id,
+            pass_state=pass_state,
+            tmp_dir=tmp_dir,
+            test_case_path=new_test_case_path,
         )
 
     def release(self) -> None:
@@ -578,6 +587,7 @@ class TestManager:
             return
         ctx = self.pass_contexts[job.pass_id]
         ctx.timeout_count += 1
+        ctx.running_transform_order_to_state.pop(job.order)
         if ctx.timeout_count < self.MAX_TIMEOUTS or ctx.defunct:
             return
         logging.warning('Maximum number of timeout were reached for %s: %s', job.pass_name, self.MAX_TIMEOUTS)
@@ -592,6 +602,9 @@ class TestManager:
 
     def handle_finished_transform_job(self, job: Job) -> None:
         self.pass_statistic.add_executed(job.pass_, job.start_time, self.parallel_tests)
+        if job.pass_id is not None:
+            self.pass_contexts[job.pass_id].running_transform_order_to_state.pop(job.order)
+
         outcome = self.check_pass_result(job)
         if outcome == PassCheckingOutcome.STOP:
             self.pass_contexts[job.pass_id].state = None
@@ -602,7 +615,7 @@ class TestManager:
         assert outcome == PassCheckingOutcome.ACCEPT
         self.pass_statistic.add_success(job.pass_)
         env: TestEnvironment = job.future.result()
-        self.maybe_update_success_candidate(job.pass_, job.pass_id, env)
+        self.maybe_update_success_candidate(job.order, job.pass_, job.pass_id, env)
         if self.interleaving:
             self.folding_manager.on_transform_job_success(env.state)
 
@@ -639,7 +652,7 @@ class TestManager:
         return PassCheckingOutcome.IGNORE
 
     def maybe_update_success_candidate(
-        self, pass_: Union[AbstractPass, None], pass_id: Union[int, None], env: TestEnvironment
+        self, order: int, pass_: Union[AbstractPass, None], pass_id: Union[int, None], env: TestEnvironment
     ) -> None:
         assert env.success
         if self.success_candidate and pass_ is not None:
@@ -650,6 +663,7 @@ class TestManager:
             # Make sure to clean up old temporary files.
             self.success_candidate.release()
         self.success_candidate = SuccessCandidate.create_and_take_file(
+            order=order,
             pass_=pass_,
             pass_id=pass_id,
             pass_state=env.state,
@@ -687,8 +701,9 @@ class TestManager:
                         break
 
                 self.terminate_all(pool)
-                # Unfinished initializations will need to be restarted in the next round.
                 for ctx in self.pass_contexts:
+                    ctx.running_transform_order_to_state = {}
+                    # Unfinished initializations will need to be restarted in the next round.
                     if ctx.stage == PassStage.IN_INIT:
                         ctx.stage = PassStage.BEFORE_INIT
             except:
@@ -823,13 +838,22 @@ class TestManager:
                 f"Can't find {self.current_test_case} -- did your interestingness test move it?"
             ) from None
 
-        # For the pass that succeeded, continue from the state returned by its transform() that led to the success; for
-        # other passes, continue the iteration from where the last advance() stopped.
-        if self.success_candidate.pass_id is not None:
-            ctx = self.pass_contexts[self.success_candidate.pass_id]
-            ctx.state = self.success_candidate.pass_state
-        # Next round should reinitialize unfinished passes.
-        for ctx in self.pass_contexts:
+        for pass_id, ctx in enumerate(self.pass_contexts):
+            # If there's an earlier state whose check hasn't completed - rewind to this state.
+            rewind_to = (
+                min(ctx.running_transform_order_to_state.keys()) if ctx.running_transform_order_to_state else None
+            )
+            # The only exception is when the earliest job is the one that succeeded - in that case take the state that
+            # its transform() returned.
+            if self.success_candidate.pass_id == pass_id and (
+                rewind_to is None or self.success_candidate.order <= rewind_to
+            ):
+                ctx.state = self.success_candidate.pass_state
+            elif rewind_to is not None:
+                ctx.state = ctx.running_transform_order_to_state[rewind_to]
+            ctx.running_transform_order_to_state = {}
+
+            # Next round should reinitialize unfinished passes.
             if ctx.stage == PassStage.ENUMERATING and ctx.state is not None:
                 ctx.stage = PassStage.BEFORE_INIT
 
@@ -908,6 +932,7 @@ class TestManager:
             Job(
                 type=JobType.INIT,
                 future=future,
+                order=self.order,
                 pass_=ctx.pass_,
                 pass_id=pass_id,
                 pass_name=repr(ctx.pass_),
@@ -917,6 +942,7 @@ class TestManager:
         )
 
         ctx.stage = PassStage.IN_INIT
+        self.order += 1
 
     def schedule_transform(self, pool: pebble.ProcessPool, pass_id: int) -> None:
         ctx = self.pass_contexts[pass_id]
@@ -939,6 +965,7 @@ class TestManager:
             Job(
                 type=JobType.TRANSFORM,
                 future=future,
+                order=self.order,
                 pass_=ctx.pass_,
                 pass_id=pass_id,
                 pass_name=repr(ctx.pass_),
@@ -946,6 +973,8 @@ class TestManager:
                 temporary_folder=folder,
             )
         )
+        assert self.order not in ctx.running_transform_order_to_state
+        ctx.running_transform_order_to_state[self.order] = ctx.state
 
         self.order += 1
         ctx.state = ctx.pass_.advance(self.current_test_case, ctx.state)
@@ -969,6 +998,7 @@ class TestManager:
             Job(
                 type=JobType.TRANSFORM,
                 future=future,
+                order=self.order,
                 pass_=None,
                 pass_id=None,
                 pass_name='Folding',
