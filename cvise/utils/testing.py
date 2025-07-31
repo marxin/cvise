@@ -78,11 +78,15 @@ class AdvanceOnSuccessEnvironment:
     pass_advance_on_success: Callable
     test_case: Path
     pass_previous_state: Any
+    pass_succeeded_state: Any
     job_timeout: int
 
     def run(self) -> Any:
         return self.pass_advance_on_success(
-            self.test_case, state=self.pass_previous_state, job_timeout=self.job_timeout
+            self.test_case,
+            state=self.pass_previous_state,
+            succeeded_state=self.pass_succeeded_state,
+            job_timeout=self.job_timeout,
         )
 
 
@@ -204,6 +208,9 @@ class PassContext:
     temporary_root: Union[Path, None]
     # The pass state as returned by the pass new()/advance()/advance_on_success() methods.
     state: Any
+    # The state that succeeded in the previous batch of jobs - to be passed as succeeded_state to advance_on_success().
+    taken_succeeded_state: Any
+    # Currently running transform jobs, as the (order, state) mapping.
     running_transform_order_to_state: Dict[int, Any]
     # When True, the pass is considered dysfunctional and shouldn't be used anymore.
     defunct: bool
@@ -220,6 +227,7 @@ class PassContext:
             stage=PassStage.BEFORE_INIT,
             temporary_root=Path(root),
             state=None,
+            taken_succeeded_state=None,
             running_transform_order_to_state={},
             defunct=False,
             timeout_count=0,
@@ -685,6 +693,12 @@ class TestManager:
                 assert self.success_candidate is None
                 if self.interleaving:
                     self.folding_manager = FoldingManager()
+                for ctx in self.pass_contexts:
+                    # Clean up the information about previously running jobs.
+                    ctx.running_transform_order_to_state = {}
+                    # Unfinished initializations from the last run will need to be restarted.
+                    if ctx.stage == PassStage.IN_INIT:
+                        ctx.stage = PassStage.BEFORE_INIT
                 while self.jobs or any(c.can_start_job_now() for c in self.pass_contexts):
                     keyboard_interrupt_monitor.maybe_reraise()
 
@@ -701,11 +715,6 @@ class TestManager:
                         break
 
                 self.terminate_all(pool)
-                for ctx in self.pass_contexts:
-                    ctx.running_transform_order_to_state = {}
-                    # Unfinished initializations will need to be restarted in the next round.
-                    if ctx.stage == PassStage.IN_INIT:
-                        ctx.stage = PassStage.BEFORE_INIT
             except:
                 # Abort running jobs - by default the process pool waits for the ongoing jobs' completion.
                 self.terminate_all(pool)
@@ -853,6 +862,11 @@ class TestManager:
                 ctx.state = ctx.running_transform_order_to_state[rewind_to]
             ctx.running_transform_order_to_state = {}
 
+            # Also explicitly remember the state that succeeded - advance_on_success() expects it as a separate argument.
+            ctx.taken_succeeded_state = (
+                self.success_candidate.pass_state if pass_id == self.success_candidate.pass_id else None
+            )
+
             # Next round should reinitialize unfinished passes.
             if ctx.stage == PassStage.ENUMERATING and ctx.state is not None:
                 ctx.stage = PassStage.BEFORE_INIT
@@ -925,6 +939,7 @@ class TestManager:
                 pass_advance_on_success=ctx.pass_.advance_on_success,
                 test_case=self.current_test_case,
                 pass_previous_state=ctx.state,
+                pass_succeeded_state=ctx.taken_succeeded_state,
                 job_timeout=self.timeout,
             )
         future = pool.schedule(env.run)

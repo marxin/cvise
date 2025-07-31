@@ -48,8 +48,8 @@ class ClangBinarySearchPass(AbstractPass):
         new_state = state.advance()
         return attach_clang_delta_std(new_state, state.clang_delta_std)
 
-    def advance_on_success(self, test_case, state, *args, **kwargs):
-        instances = state.real_num_instances - state.real_chunk()
+    def advance_on_success(self, test_case, state, succeeded_state, *args, **kwargs):
+        instances = succeeded_state.real_num_instances - succeeded_state.real_chunk()
         new_state = state.advance_on_success(instances)
         if new_state:
             new_state.real_num_instances = None
