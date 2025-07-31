@@ -24,7 +24,7 @@ class ClexPass(AbstractPass):
             cmd = [self.external_programs['clex'], str(self.arg), str(state), test_case]
             stdout, _stderr, returncode = process_event_notifier.run_process(cmd)
             if returncode == 51:
-                tmp_file.write(stdout)
+                tmp_file.write(stdout.decode())
                 tmp_file.close()
                 shutil.copy(tmp_file.name, test_case)
                 return (PassResult.OK, state)

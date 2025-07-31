@@ -88,10 +88,10 @@ class ClangBinarySearchPass(AbstractPass):
 
     def parse_stderr(self, state, stderr):
         for line in stderr.split('\n'):
-            if line.startswith('Available transformation instances:'):
-                real_num_instances = int(line.split(':')[1])
+            if line.startswith(b'Available transformation instances:'):
+                real_num_instances = int(line.decode().split(':')[1])
                 state.real_num_instances = real_num_instances
-            elif line.startswith('Warning: number of transformation instances exceeded'):
+            elif line.startswith(b'Warning: number of transformation instances exceeded'):
                 # TODO: report?
                 pass
 
@@ -115,7 +115,7 @@ class ClangBinarySearchPass(AbstractPass):
 
             stdout, stderr, returncode = process_event_notifier.run_process(cmd)
             self.parse_stderr(state, stderr)
-            tmp_file.write(stdout)
+            tmp_file.write(stdout.decode())
             tmp_file.close()
             if returncode == 0:
                 shutil.copy(tmp_file.name, test_case)

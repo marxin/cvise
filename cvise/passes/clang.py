@@ -40,7 +40,7 @@ class ClangPass(AbstractPass):
 
             stdout, _, returncode = process_event_notifier.run_process(cmd)
             if returncode == 0:
-                tmp_file.write(stdout)
+                tmp_file.write(stdout.decode())
                 tmp_file.close()
                 shutil.copy(tmp_file.name, test_case)
                 return (PassResult.OK, state)

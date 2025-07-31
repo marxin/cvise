@@ -3,6 +3,7 @@ from enum import auto, Enum, unique
 import logging
 import shutil
 import subprocess
+from typing import Tuple
 
 
 @unique
@@ -122,15 +123,15 @@ class ProcessEventNotifier:
     def __init__(self, pid_queue):
         self.pid_queue = pid_queue
 
-    def run_process(self, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, env=None):
+    def run_process(
+        self, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, env=None
+    ) -> Tuple[bytes, bytes, int]:
         if shell:
             assert isinstance(cmd, str)
         proc = subprocess.Popen(
             cmd,
             stdout=stdout,
             stderr=stderr,
-            universal_newlines=True,
-            encoding='utf8',
             shell=shell,
             env=env,
         )
