@@ -220,6 +220,7 @@ add_subdirectory(clang_delta)
 add_subdirectory(clex)
 add_subdirectory(cvise)
 add_subdirectory(delta)
+add_subdirectory(tree-sitter)
 
 # Copy top-level cvise script
 configure_file(
