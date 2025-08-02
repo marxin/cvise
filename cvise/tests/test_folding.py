@@ -1,14 +1,14 @@
 from pathlib import Path
 
-from cvise.passes.hint_based import HintState
+from cvise.passes.hint_based import HintState, PerTypeHintState
 from cvise.utils.folding import FoldingManager
-from cvise.utils.hint import HintBundle
 
 
 def create_stub_hint_state(type: str) -> HintState:
-    bundle = HintBundle(hints=[{'p': [{'l': 0, 'r': 1}]}])
     fake_path = Path()
-    return HintState.create(fake_path, {type: bundle}, {type: fake_path})
+    return HintState(
+        tmp_dir=fake_path, per_type_states=[PerTypeHintState(type=type, hints_file_name=fake_path, underlying_state=0)]
+    )
 
 
 def test_folding_two():

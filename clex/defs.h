@@ -19,11 +19,13 @@
 extern FILE *yyin;
 extern int yylex(void);
 extern char *yytext;
+extern int yyleng;
 
 /*
  * Stuff that we define within the lex/flex-generated code.
  */
 extern int count;
+extern int tok_end_pos;
 
 enum tok_kind {
   TOK_KEYWORD = 999,

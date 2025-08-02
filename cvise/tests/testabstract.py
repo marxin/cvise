@@ -33,7 +33,7 @@ def validate_stored_hints(state: Union[HintState, None]) -> None:
         return
     for substate in state.per_type_states:
         path = state.tmp_dir / substate.hints_file_name
-        bundle = load_hints(path, 0, substate.binary_state.instances)
+        bundle = load_hints(path, 0, substate.underlying_state.instances)
         validate_hint_bundle(bundle)
 
 
