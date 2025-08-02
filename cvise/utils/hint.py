@@ -11,7 +11,7 @@ applied to all heuristics in a uniform way).
 
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
-import json
+import orjson
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, TextIO, Tuple
 import zstandard
@@ -150,14 +150,15 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
 
     We currently use the Zstandard compression to reduce the space usage (the empirical compression ratio observed for
     hint JSONs is around 5x..20x)."""
-    with zstandard.open(hints_file_path, 'wt') as f:
-        write_compact_json(make_preamble(bundle), f)
-        f.write('\n')
-        write_compact_json(bundle.vocabulary, f)
-        f.write('\n')
-        for h in bundle.hints:
-            write_compact_json(h, f)
-            f.write('\n')
+    with zstandard.open(hints_file_path, 'wb') as f:
+        f.write(write_compact_json(make_preamble(bundle)))
+        f.write(write_compact_json(bundle.vocabulary))
+        buf = b''
+        for i, h in enumerate(bundle.hints):
+            buf += write_compact_json(h)
+            if i % 100 == 0 or i == len(bundle.hints)-1:
+                f.write(buf)
+                buf = b''
 
 
 def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintBundle:
@@ -166,7 +167,7 @@ def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintB
     Whether the hints file is compressed is determined based on the file extension."""
     assert begin_index < end_index
     bundle = HintBundle(hints=[])
-    with zstandard.open(hints_file_path, 'rt') if hints_file_path.suffix == '.zst' else open(hints_file_path) as f:
+    with zstandard.open(hints_file_path, 'rt') if hints_file_path.suffix == '.zst' else open(hints_file_path, 'rt') as f:
         parse_preamble(try_parse_json_line(next(f)), bundle)
 
         vocab = try_parse_json_line(next(f))
@@ -216,18 +217,18 @@ def parse_preamble(json: Any, bundle: HintBundle) -> None:
         bundle.pass_name = json['pass']
 
 
-def write_compact_json(value: Any, file: TextIO) -> None:
+def write_compact_json(value: Any) -> None:
     """Writes a JSON dump, as a compact representation (without unnecessary spaces), to the file.
 
     Skips circular structure checks, for performance reasons."""
     # Specify custom separators - the default ones have spaces after them.
-    json.dump(value, file, check_circular=False, separators=(',', ':'))
+    return orjson.dumps(value, option=orjson.OPT_APPEND_NEWLINE)
 
 
 def try_parse_json_line(text: str) -> Any:
     try:
-        return json.loads(text)
-    except json.decoder.JSONDecodeError as e:
+        return orjson.loads(text)
+    except ValueError as e:
         raise RuntimeError(f'Failed to decode line "{text}": {e}') from e
 
 
