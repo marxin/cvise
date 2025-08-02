@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 import json
 import msgspec
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, TextIO, Tuple
+from typing import Any, Dict, List, Sequence, TextIO, Tuple, Union
 import zstandard
 
 
@@ -107,6 +107,10 @@ class HintApplicationStats:
         return [kv[0] for kv in ordered]
 
 
+# A singleton encoder object, to save time on recreating it.
+json_encoder: Union[msgspec.json.Encoder, None] = None
+
+
 def apply_hints(bundles: List[HintBundle], file: Path) -> Tuple[bytes, HintApplicationStats]:
     """Edits the file applying the specified hints to its contents."""
     patches = []
@@ -150,20 +154,33 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
     """Serializes hints to the given file.
 
     We currently use the Zstandard compression to reduce the space usage (the empirical compression ratio observed for
-    hint JSONs is around 5x..20x)."""
-    encoder = msgspec.json.Encoder()
+    hint JSONs is around 5x..20x).
+    """
+
+    # Use chunks of this or greater size when calling into Zstandard.
+    WRITE_BUFFER = 2 ** 18
+
+    global json_encoder
+    if json_encoder is None:
+        json_encoder = msgspec.json.Encoder()
+
     with zstandard.open(hints_file_path, 'wb') as f:
-        f.write(encoder.encode(make_preamble(bundle)))
-        f.write(b'\n')
-        f.write(encoder.encode(bundle.vocabulary))
-        f.write(b'\n')
         buf = bytearray()
-        for i, h in enumerate(bundle.hints):
-            encoder.encode_into(h, buf, -1)
-            buf.append(ord('\n'))
-            if i % 100 == 0 or i == len(bundle.hints) - 1:
+
+        # "offset=-1" means appending ot the end of the buf
+        json_encoder.encode_into(make_preamble(bundle), buf, -1)
+        buf.append(ord('\n'))
+
+        json_encoder.encode_into(bundle.vocabulary, buf, -1)
+        buf.append(ord('\n'))
+
+        for h in bundle.hints:
+            if len(buf) > WRITE_BUFFER:
                 f.write(buf)
                 buf.clear()
+            json_encoder.encode_into(h, buf, -1)
+            buf.append(ord('\n'))
+        f.write(buf)
 
 
 def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintBundle:
