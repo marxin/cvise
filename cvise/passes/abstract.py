@@ -57,7 +57,7 @@ class SubsegmentState:
             return None
         new = copy.copy(self)
         new.instances = instances
-        if new.index + new.chunk <= self.instances:
+        if new.index + new.chunk <= new.instances:
             return new
         return new.advance()
 
