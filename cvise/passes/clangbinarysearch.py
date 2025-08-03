@@ -87,7 +87,7 @@ class ClangBinarySearchPass(AbstractPass):
             return int(m.group(1))
 
     def parse_stderr(self, state, stderr):
-        for line in stderr.split('\n'):
+        for line in stderr.split(b'\n'):
             if line.startswith(b'Available transformation instances:'):
                 real_num_instances = int(line.decode().split(':')[1])
                 state.real_num_instances = real_num_instances
