@@ -88,6 +88,8 @@ manager:
 
 * [chardet](https://pypi.org/project/chardet/)
 
+* [msgspec](https://pypi.org/project/msgspec/)
+
 * [psutil](https://pypi.org/project/psutil/)
 
 * [zstandard](https://pypi.org/project/zstandard/)
