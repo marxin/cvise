@@ -176,7 +176,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
     OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # XXX figure out how to get "-std=c++17 -fno-rtti" from LLVM.  That's how we
   # get those options in the Automake path...
-  set(COMMON_FLAGS "-Wall -Wextra -Werror -pedantic -Wno-unused-parameter")
+  set(COMMON_FLAGS "-Wall -Wextra -Werror -Wno-unused-parameter")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -std=c++17 -fno-rtti -fno-strict-aliasing")
   if(SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG)
