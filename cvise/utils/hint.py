@@ -158,7 +158,7 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
     """
 
     # Use chunks of this or greater size when calling into Zstandard.
-    WRITE_BUFFER = 2 ** 18
+    WRITE_BUFFER = 2**18
 
     global json_encoder
     if json_encoder is None:
