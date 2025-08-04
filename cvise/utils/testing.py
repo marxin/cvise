@@ -711,9 +711,11 @@ class TestManager:
                     # Unfinished initializations from the last run will need to be restarted.
                     if ctx.stage == PassStage.IN_INIT:
                         ctx.stage = PassStage.BEFORE_INIT
-                    # Previously finished passes are eligible for reinitialization.
+                    # Previously finished passes are eligible for reinitialization (used for "interleaving" mode only -
+                    # in the old single-pass mode we're expected to return to let subsequent passes work).
                     if (
-                        ctx.stage == PassStage.ENUMERATING
+                        self.interleaving
+                        and ctx.stage == PassStage.ENUMERATING
                         and ctx.state is None
                         and pass_id not in self.pass_reinit_queue
                     ):
