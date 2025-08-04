@@ -663,7 +663,7 @@ class TestManager:
                 self.report_pass_bug(job, 'pass error')
                 return PassCheckingOutcome.STOP
 
-        if not self.no_give_up and test_env.order > self.GIVEUP_CONSTANT:
+        if not self.no_give_up and test_env.order - self.current_batch_start_order > self.GIVEUP_CONSTANT:
             if not self.giveup_reported:
                 self.report_pass_bug(job, 'pass got stuck')
                 self.giveup_reported = True
