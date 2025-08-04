@@ -12,6 +12,12 @@ cmake_minimum_required(VERSION 3.14)
 
 # find_package(FLEX) is done by the topmost "CMakeLists.txt" file.
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+    OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pedantic")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic")
+endif()
+
 ###############################################################################
 
 project(clex)

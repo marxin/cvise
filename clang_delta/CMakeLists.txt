@@ -671,6 +671,12 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(clang_delta Version)
 endif()
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+    OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pedantic")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic")
+endif()
+
 if(MSVC)
   set(msvc_warning_flags
     # Disabled warnings.
