@@ -308,6 +308,9 @@ class TestManager:
     BUG_DIR_PREFIX = 'cvise_bug_'
     EXTRA_DIR_PREFIX = 'cvise_extra_'
     EVENT_LOOP_TIMEOUT = 1  # seconds
+    # How often passes should be reinitialized (see maybe_schedule_job()). Chosen at 1% to not slow down the overall
+    # reduction in case reinits don't lead to new discoveries.
+    REINIT_JOB_INTERVAL = 100
 
     def __init__(
         self,
@@ -363,9 +366,16 @@ class TestManager:
         if not self.is_valid_test(self.test_script):
             raise InvalidInterestingnessTestError(self.test_script)
         self.jobs: List[Job] = []
+        # The "order" is an incremental counter for numbering jobs.
         self.order: int = 0
+        # Remembers the "order" that the first job in the current batch (run_parallel_tests()) got.
+        self.current_batch_start_order: int = 0
+        # Identifies the most recent pass reinitialization job (whether in the current batch or not).
+        self.last_reinit_job_order: Union[int, None] = None
         self.success_candidate: Union[SuccessCandidate, None] = None
         self.folding_manager: Union[FoldingManager, None] = None
+        # Ids of passes that are eligible for the reinitialization, in FIFO order.
+        self.pass_reinit_queue: List[int] = []
 
         self.use_colordiff = (
             sys.stdout.isatty()
@@ -688,18 +698,27 @@ class TestManager:
         assert not self.jobs
         with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
             try:
-                self.order = 1
+                self.current_batch_start_order = self.order
                 self.next_pass_id = 0
                 self.giveup_reported = False
                 assert self.success_candidate is None
                 if self.interleaving:
                     self.folding_manager = FoldingManager()
-                for ctx in self.pass_contexts:
+
+                for pass_id, ctx in enumerate(self.pass_contexts):
                     # Clean up the information about previously running jobs.
                     ctx.running_transform_order_to_state = {}
                     # Unfinished initializations from the last run will need to be restarted.
                     if ctx.stage == PassStage.IN_INIT:
                         ctx.stage = PassStage.BEFORE_INIT
+                    # Previously finished passes are eligible for reinitialization.
+                    if (
+                        ctx.stage == PassStage.ENUMERATING
+                        and ctx.state is None
+                        and pass_id not in self.pass_reinit_queue
+                    ):
+                        self.pass_reinit_queue.append(pass_id)
+
                 while self.jobs or any(c.can_start_job_now() for c in self.pass_contexts):
                     keyboard_interrupt_monitor.maybe_reraise()
 
@@ -731,6 +750,9 @@ class TestManager:
             else:
                 return
 
+        self.order = 1
+        self.last_reinit_job_order = None
+        self.pass_reinit_queue = []
         self.pass_contexts = []
         for pass_ in passes:
             self.pass_contexts.append(PassContext.create(pass_))
@@ -897,24 +919,41 @@ class TestManager:
         if not self.interleaving:
             return True
         return not self.folding_manager.continue_attempting_folds(
-            self.order, self.parallel_tests, len(self.pass_contexts)
+            self.order - self.current_batch_start_order, self.parallel_tests, len(self.pass_contexts)
         )
 
     def maybe_schedule_job(self, pool: pebble.ProcessPool) -> bool:
         # The order matters below - higher-priority job types come earlier:
-        # 1. Initializing a pass.
+        # 1. Initializing a pass regularly (at the beginning of the batch of jobs).
         for pass_id, ctx in enumerate(self.pass_contexts):
             if ctx.can_init_now():
                 self.schedule_init(pool, pass_id)
                 return True
-        # 2. Attempting a fold (simultaneous application) of previously discovered successful transformations; only
+        # 2. Reinitializing a previously finished pass.
+        # We throttle reinits (only once out of REINIT_JOB_INTERVAL jobs) because they're only occasionally useful: for
+        # an unused code removal pass it's possible that more unused code after other passes made some deletions,
+        # meanwhile for a comment removal pass there's nothing more to discover after all comments have been removed.
+        # We use a FIFO queue, spanning across multiple job batches, to avoid repeatedly reinitializing some passes and
+        # never getting to others due to throttling.
+        if self.pass_reinit_queue and (
+            self.last_reinit_job_order is None or self.order - self.last_reinit_job_order >= self.REINIT_JOB_INTERVAL
+        ):
+            pass_id = self.pass_reinit_queue.pop(0)
+            ctx = self.pass_contexts[pass_id]
+            assert ctx.stage == PassStage.ENUMERATING
+            assert ctx.state is None
+            ctx.stage = PassStage.BEFORE_INIT
+            self.last_reinit_job_order = self.order
+            self.schedule_init(pool, pass_id)
+            return True
+        # 3. Attempting a fold (simultaneous application) of previously discovered successful transformations; only
         # supported in the "interleaving" pass execution mode.
         if self.interleaving:
-            folding_state = self.folding_manager.maybe_prepare_folding_job(self.order)
+            folding_state = self.folding_manager.maybe_prepare_folding_job(self.order - self.current_batch_start_order)
             if folding_state:
                 self.schedule_fold(pool, folding_state)
                 return True
-        # 3. Attempting a transformation using the next heuristic in the round-robin fashion.
+        # 4. Attempting a transformation using the next heuristic in the round-robin fashion.
         if any(ctx.can_transform_now() for ctx in self.pass_contexts):
             while not self.pass_contexts[self.next_pass_id].can_transform_now():
                 self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
