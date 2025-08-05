@@ -19,7 +19,7 @@ class PassResult(Enum):
 class SubsegmentState:
     """Iterates over subsegments of the given instances, with at most the given chunk size.
 
-    Essentially goes through all [i; i+j) for j=1..max_chunk.
+    Essentially enumerates all ranges of hints of the form [i; i+j), for j=1..max_chunk, i=0..N-j.
     """
 
     instances: int

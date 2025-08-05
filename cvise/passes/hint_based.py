@@ -46,7 +46,7 @@ class PerTypeHintState:
 class HintState:
     """Stores the current state of the HintBasedPass.
 
-    Conceptually, it's representing multple enumerations (by default - binary searches), one for each hint type. These
+    Conceptually, it's representing multiple enumerations (by default - binary searches), one for each hint type. These
     are applied & advanced in a round-robin fashion. See the comment in the HintBasedPass.
     """
 
