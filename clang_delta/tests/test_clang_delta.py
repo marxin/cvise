@@ -1059,14 +1059,14 @@ class TestClangDelta(unittest.TestCase):
         self.check_clang_delta(
             'replace-dependent-typedef/test1.cc',
             '--transformation=replace-dependent-typedef --counter=2',
-            'replace-dependent-typedef/test1.output2'
+            'replace-dependent-typedef/test1.output2',
         )
 
     def test_replace_derived_class_replace_dependent_typedef_1_3(self):
         self.check_clang_delta(
             'replace-dependent-typedef/test1.cc',
             '--transformation=replace-dependent-typedef --counter=3',
-            'replace-dependent-typedef/test1.output3'
+            'replace-dependent-typedef/test1.output3',
         )
 
     def test_replace_derived_class_replace_derived1(self):
