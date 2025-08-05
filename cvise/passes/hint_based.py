@@ -173,9 +173,13 @@ class HintBasedPass(AbstractPass):
         # Initialize a separate enumeration for each group of hints sharing a particular type.
         for type, sub_bundle in type_to_bundle.items():
             underlying = self.create_elementary_state(len(sub_bundle.hints))
+            if underlying is None:
+                continue
             sub_states.append(
                 PerTypeHintState(type=type, hints_file_name=type_to_file_name[type], underlying_state=underlying)
             )
+        if not sub_states:
+            return None
         return HintState(tmp_dir, sub_states)
 
     def advance_on_success_from_hints(self, bundle: HintBundle, state: HintState) -> Union[HintState, None]:

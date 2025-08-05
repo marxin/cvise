@@ -24,6 +24,7 @@ class SubsegmentState:
 
     instances: int
     chunk: int
+    max_chunk: int
     index: int
 
     def __repr__(self):
@@ -33,10 +34,10 @@ class SubsegmentState:
         return f'{self.index}-{self.end()} out of {self.instances}'
 
     @staticmethod
-    def create(instances: int, max_chunk: int):
-        if not instances:
+    def create(instances: int, min_chunk: int, max_chunk: int):
+        if not instances or min_chunk > instances:
             return None
-        return SubsegmentState(instances, chunk=min(max_chunk, instances), index=0)
+        return SubsegmentState(instances, chunk=min_chunk, max_chunk=max_chunk, index=0)
 
     def end(self) -> int:
         return self.index + self.chunk
@@ -46,14 +47,14 @@ class SubsegmentState:
         new.index += 1
         if new.index + new.chunk <= new.instances:
             return new
-        if new.chunk <= 1:
+        if new.chunk == new.max_chunk:
             return None
         new.index = 0
-        new.chunk = min(new.chunk - 1, new.instances)
+        new.chunk += 1
         return new
 
     def advance_on_success(self, instances) -> Union[Self, None]:
-        if not instances:
+        if not instances or self.chunk > instances:
             return None
         new = copy.copy(self)
         new.instances = instances
