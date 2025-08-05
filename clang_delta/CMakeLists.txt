@@ -353,6 +353,8 @@ set(SOURCE_FILES
   "/tests/replace-dependent-typedef/test1.output"
   "/tests/replace-dependent-typedef/test1.output2"
   "/tests/replace-dependent-typedef/test1.output3"
+  "/tests/replace-dependent-typedef/test2.cc"
+  "/tests/replace-dependent-typedef/test2.output"
   "/tests/replace-derived-class/replace-derived1.cpp"
   "/tests/replace-derived-class/replace-derived1.output"
   "/tests/replace-derived-class/replace-derived2.cpp"
