@@ -97,6 +97,7 @@ set(SOURCE_FILES
   "tests/test_balanced.py"
   "tests/test_blank.py"
   "tests/test_clanghints.py"
+  "tests/test_clexhints.py"
   "tests/test_comments.py"
   "tests/test_folding.py"
   "tests/test_hint.py"
