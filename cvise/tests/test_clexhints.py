@@ -101,7 +101,7 @@ void f() {
 ]
 
 TOKENS_REMOVED_8 = [
-    b"\n  \n     \n\n",
+    b'\n  \n     \n\n',
 ]
 
 
