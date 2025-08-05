@@ -13,8 +13,10 @@ class ClexHintsPass(HintBasedPass):
         return self.check_external_program('clex')
 
     def generate_hints(self, test_case):
-        if self.arg.startswith('rm-toks-'):
-            clex_cmd = 'hints-rm-toks'
+        if self.arg.startswith('rm-toks-until-'):
+            # Note that we don't pass the number of tokens to the parser - its job is just to find each token's
+            # boundaries; the number is used for constructing the SubsegmentState instead.
+            clex_cmd = 'hints-toks'
         else:
             raise ValueError(f'Unexpected arg: {self.arg}')
         tok_index = '-1'  # unused
@@ -28,7 +30,7 @@ class ClexHintsPass(HintBasedPass):
         return HintBundle(vocabulary=vocab, hints=hints)
 
     def create_elementary_state(self, hint_count: int):
-        if self.arg.startswith('rm-toks-'):
-            max_chunk = int(self.arg[len('rm-toks-') :])
+        if self.arg.startswith('rm-toks-until-'):
+            max_chunk = int(self.arg[len('rm-toks-until-') :])
             return SubsegmentState(instances=hint_count, index=0, chunk=max_chunk)
         raise ValueError(f'Unexpected arg: {self.arg}')

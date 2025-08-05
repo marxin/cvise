@@ -13,8 +13,8 @@
     {"pass": "lines", "arg": "None" },
     {"pass": "clanghints", "arg": "replace-function-def-with-decl", "c": true },
     {"pass": "clanghints", "arg": "remove-unused-function", "c": true },
-    {"pass": "clexhints", "arg": "rm-toks-32", "include": ["slow"]},
-    {"pass": "clexhints", "arg": "rm-toks-16", "exclude": ["slow"]}
+    {"pass": "clexhints", "arg": "rm-toks-until-32", "include": ["slow"]},
+    {"pass": "clexhints", "arg": "rm-toks-until-16", "exclude": ["slow"]}
  ],
  "first": [
     {"pass": "includes", "c": true },
@@ -144,8 +144,8 @@
     {"pass": "special", "arg": "c", "c": true },
     {"pass": "indent", "arg": "regular"},
     {"pass": "balanced", "arg": "parens-to-zero"},
-    {"pass": "clexhints", "arg": "rm-toks-32", "include": ["slow"]},
-    {"pass": "clexhints", "arg": "rm-toks-16", "exclude": ["slow"]},
+    {"pass": "clexhints", "arg": "rm-toks-until-32", "include": ["slow"]},
+    {"pass": "clexhints", "arg": "rm-toks-until-16", "exclude": ["slow"]},
     {"pass": "clex", "arg": "rm-tok-pattern-8", "include": ["slow"]},
     {"pass": "clex", "arg": "rm-tok-pattern-4", "exclude": ["slow"]},
     {"pass": "clang", "arg": "local-to-global", "c": true},

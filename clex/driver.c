@@ -69,7 +69,7 @@ enum mode_t {
   MODE_PRINT,
   MODE_DELETE_STRING,
   MODE_RM_TOKS,
-  MODE_HINTS_RM_TOKS,
+  MODE_HINTS_TOKS,
   MODE_RM_TOK_PATTERN,
   MODE_SHORTEN_STRING,
   MODE_X_STRING,
@@ -306,7 +306,7 @@ static void rm_toks(int idx) {
   }
 }
 
-static void hints_rm_toks(void) {
+static void hints_toks(void) {
   int i;
   // An empty hint vocabulary (see cvise/utils/hint.py for the format).
   printf("[]\n");
@@ -481,8 +481,8 @@ int main(int argc, char *argv[]) {
     int res = sscanf(&cmd[8], "%d", &n_toks);
     assert(res == 1);
     assert(n_toks > 0 && n_toks <= 1000);
-  } else if (strcmp(cmd, "hints-rm-toks") == 0) {
-    mode = MODE_HINTS_RM_TOKS;
+  } else if (strcmp(cmd, "hints-toks") == 0) {
+    mode = MODE_HINTS_TOKS;
   } else if (strncmp(cmd, "rm-tok-pattern-", 15) == 0) {
     mode = MODE_RM_TOK_PATTERN;
     int res = sscanf(&cmd[15], "%d", &n_toks);
@@ -532,8 +532,8 @@ int main(int argc, char *argv[]) {
   case MODE_RM_TOKS:
     rm_toks(tok_index);
     __builtin_unreachable();
-  case MODE_HINTS_RM_TOKS:
-    hints_rm_toks();
+  case MODE_HINTS_TOKS:
+    hints_toks();
     __builtin_unreachable();
   case MODE_RM_TOK_PATTERN:
     rm_tok_pattern(tok_index);
