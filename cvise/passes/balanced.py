@@ -1,7 +1,7 @@
 from enum import Enum, auto, unique
 from dataclasses import dataclass
 import re
-from typing import List, Tuple, Union
+from typing import List, Union
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import nestedmatcher
