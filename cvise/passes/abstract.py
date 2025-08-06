@@ -21,6 +21,8 @@ class SubsegmentState:
     """Iterates over subsegments of the given instances, with at most the given chunk size.
 
     Essentially enumerates all ranges of hints of the form [i; i+j), for j=1..max_chunk, i=0..N-j.
+    For each chunk size j, it begins from a random position: i=start, then i=start+1, etc., until it makes a "wrapover"
+    to i=0, i=1, ..., until i=start-1; after that, the same is done with the chunk size j+1, and so on.
     """
 
     instances: int
@@ -37,6 +39,7 @@ class SubsegmentState:
 
     @staticmethod
     def create(instances: int, min_chunk: int, max_chunk: int):
+        assert min_chunk > 0
         if min_chunk > instances or min_chunk > max_chunk:
             return None
         start = random.randint(0, instances - min_chunk)
@@ -58,7 +61,7 @@ class SubsegmentState:
         return new
 
     def advance_on_success(self, instances) -> Union[Self, None]:
-        if not instances or self.chunk > instances:
+        if self.chunk > instances:
             return None
         if wrapover := self.index + self.chunk > instances:
             wrapover_to_start = self.index < self.start or self.start == 0
