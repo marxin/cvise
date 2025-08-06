@@ -121,7 +121,7 @@ def test_rm_toks_1(tmp_path, input_path):
     p, state = init_pass('rm-toks-1-to-1', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
-    assert set(TOKENS_REMOVED_1) <= all_transforms
+    assert set(TOKENS_REMOVED_1) == all_transforms
 
 
 def test_rm_toks_2(tmp_path, input_path):
@@ -130,8 +130,7 @@ def test_rm_toks_2(tmp_path, input_path):
     p, state = init_pass('rm-toks-2-to-2', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
-    assert set(TOKENS_REMOVED_2) <= all_transforms
-    assert all_transforms.isdisjoint(set(TOKENS_REMOVED_1))
+    assert set(TOKENS_REMOVED_2) == all_transforms
 
 
 def test_rm_toks_1_to_2(tmp_path, input_path):
@@ -140,8 +139,7 @@ def test_rm_toks_1_to_2(tmp_path, input_path):
     p, state = init_pass('rm-toks-1-to-2', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
-    assert set(TOKENS_REMOVED_2) <= all_transforms
-    assert set(TOKENS_REMOVED_1) <= all_transforms
+    assert set(TOKENS_REMOVED_1) | set(TOKENS_REMOVED_2) == all_transforms
 
 
 def test_rm_toks_16_shorter(tmp_path, input_path):
