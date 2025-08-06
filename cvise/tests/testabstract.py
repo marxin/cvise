@@ -1,6 +1,6 @@
 import jsonschema
 from pathlib import Path
-from typing import Collection, Union
+from typing import Set, Union
 
 from cvise.passes.abstract import AbstractPass, PassResult, ProcessEventNotifier
 from cvise.passes.hint_based import HintState
@@ -17,7 +17,7 @@ def iterate_pass(current_pass, path, **kwargs):
             state = current_pass.advance(path, state)
 
 
-def collect_all_transforms(pass_: AbstractPass, state, input_path: Path) -> Collection[bytes]:
+def collect_all_transforms(pass_: AbstractPass, state, input_path: Path) -> Set[bytes]:
     all_outputs = set()
     backup = input_path.read_bytes()
     while state is not None:

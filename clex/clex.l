@@ -126,7 +126,7 @@ L?\"(\\.|[^\\"])*\"	{ process_token(TOK_STRING); }
 "|"			{ process_token(TOK_OP); }
 "?"			{ process_token(TOK_OP); }
 "#"                     { process_token(TOK_OTHER); }
-"\\"[ \t]*"\n"          { }
+"\\"[ \t]*"\n"          { process_token(TOK_OTHER); }
 "\\"                    { process_token(TOK_OTHER); }
 
 "/*"        {

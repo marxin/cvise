@@ -11,11 +11,9 @@ void f() {
 }
 """
 
-# Note: "\n" is used whenever trailing spaces are involved (they'd be hard to notice and text editors often trim them).
-
 TOKENS_REMOVED_1 = [
     b"""
- f() {
+f() {
     char x;
 }
 """,
@@ -30,17 +28,17 @@ void f) {
 }
 """,
     b"""
-void f( {
+void f({
     char x;
 }
 """,
     b"""
-void f() \n    char x;
+void f() char x;
 }
 """,
     b"""
 void f() {
-     x;
+    x;
 }
 """,
     b"""
@@ -50,19 +48,17 @@ void f() {
 """,
     b"""
 void f() {
-    char x
-}
+    char x}
 """,
     b"""
 void f() {
     char x;
-
 """,
 ]
 
 TOKENS_REMOVED_2 = [
     b"""
- () {
+() {
     char x;
 }
 """,
@@ -72,36 +68,34 @@ void ) {
 }
 """,
     b"""
-void f {
+void f{
     char x;
 }
 """,
     b"""
-void f( \n    char x;
+void f(char x;
 }
 """,
     b"""
-void f() \n     x;
-}
-""",
-    b"""
-void f() {
-     ;
+void f() x;
 }
 """,
     b"""
 void f() {
-    char \n}
+    ;
+}
 """,
     b"""
 void f() {
-    char x
-
+    char }
 """,
+    b"""
+void f() {
+    char x""",
 ]
 
 TOKENS_REMOVED_8 = [
-    b'\n  \n     \n\n',
+    b'\n',
 ]
 
 
