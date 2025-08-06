@@ -314,14 +314,13 @@ static void hints_toks(void) {
     if (tok_list[i].kind == TOK_WS || tok_list[i].kind == TOK_NEWLINE)
       continue;
     int cut_start = tok_list[i].start_pos;
-    int cut_end = tok_list[i].start_pos + tok_list[i].len;
     // Also eat subsequent spaces, so that two consecutive hints remove both
     // tokens with all spaces between them.
     while (i + 1 < toks && (tok_list[i + 1].kind == TOK_WS ||
                             tok_list[i + 1].kind == TOK_NEWLINE)) {
       ++i;
-      cut_end = tok_list[i].start_pos + tok_list[i].len;
     }
+    int cut_end = tok_list[i].start_pos + tok_list[i].len;
     printf("{\"p\":[{\"l\":%d,\"r\":%d}]}\n", cut_start, cut_end);
   }
   exit(OK);
