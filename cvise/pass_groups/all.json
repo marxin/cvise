@@ -12,7 +12,22 @@
     {"pass": "lines", "arg": "10" },
     {"pass": "lines", "arg": "None" },
     {"pass": "clanghints", "arg": "replace-function-def-with-decl", "c": true },
-    {"pass": "clanghints", "arg": "remove-unused-function", "c": true }
+    {"pass": "clanghints", "arg": "remove-unused-function", "c": true },
+    {"pass": "balanced", "arg": "curly"},
+    {"pass": "balanced", "arg": "curly2"},
+    {"pass": "balanced", "arg": "curly3"},
+    {"pass": "balanced", "arg": "parens-to-zero"},
+    {"pass": "balanced", "arg": "parens"},
+    {"pass": "balanced", "arg": "angles"},
+    {"pass": "balanced", "arg": "square"},
+    {"pass": "balanced", "arg": "curly-inside"},
+    {"pass": "balanced", "arg": "parens-inside"},
+    {"pass": "balanced", "arg": "angles-inside"},
+    {"pass": "balanced", "arg": "square-inside"},
+    {"pass": "balanced", "arg": "curly-only"},
+    {"pass": "balanced", "arg": "angles-only"},
+    {"pass": "balanced", "arg": "square-only"},
+    {"pass": "balanced", "arg": "parens-only"}
  ],
  "first": [
     {"pass": "includes", "c": true },

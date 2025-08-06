@@ -1,114 +1,117 @@
-from cvise.passes.abstract import AbstractPass, PassResult
+from enum import Enum, auto, unique
+from dataclasses import dataclass
+import re
+from typing import List, Tuple, Union
+
+from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import nestedmatcher
 from cvise.utils.error import UnknownArgumentError
+from cvise.utils.hint import HintBundle
+
+@unique
+class Deletion(Enum):
+    ALL = auto()
+    ONLY = auto()
+    INSIDE = auto()
 
 
-class BalancedPass(AbstractPass):
+@dataclass
+class Config:
+    search: Tuple[str, str]
+    to_delete: Deletion
+    replacement: str = ''
+    search_prefix: str = ''
+
+
+class BalancedPass(HintBasedPass):
     def check_prerequisites(self):
         return True
 
-    def __get_next_match(self, test_case, pos):
-        with open(test_case) as in_file:
-            prog = in_file.read()
-
+    def generate_hints(self, test_case):
         config = self.__get_config()
-        m = nestedmatcher.find(config['search'], prog, pos=pos, prefix=config['prefix'])
+        open_ch = ord(config.search.value[0])
+        close_ch = ord(config.search.value[1])
+        vocabulary = []
+        if config.replacement:
+            assert config.to_delete == Deletion.ALL
+            vocabulary.append(config.replacement)
 
-        return m
+        with open(test_case, 'rb') as in_file:
+            contents = in_file.read()
+        prefixes = [m.span() for m in re.finditer(config.search_prefix.encode(), contents)] if config.search_prefix else []
+        prefixes_pos = 0
 
-    def new(self, test_case, *args, **kwargs):
-        return self.__get_next_match(test_case, pos=0)
+        def get_touching_prefix(file_pos):
+            nonlocal prefixes_pos
+            while prefixes_pos < len(prefixes) and prefixes[prefixes_pos][1] < file_pos:
+                prefixes_pos += 1
+            if prefixes_pos < len(prefixes) and prefixes[prefixes_pos][1] == file_pos:
+                return prefixes[prefixes_pos][0]
+            return None
 
-    def advance(self, test_case, state):
-        return self.__get_next_match(test_case, pos=state[0] + 1)
+        def create_hint(start_pos, file_pos):
+            if config.to_delete == Deletion.ALL:
+                p = {'l': start_pos, 'r': file_pos + 1}
+                if config.replacement:
+                    p['v'] = 0  # the first (and the only) string from the vocabulary
+                return {'p': [p]}
+            if config.to_delete == Deletion.ONLY:
+                return {'p': [{'l': start_pos, 'r': start_pos + 1}, {'l': file_pos, 'r': file_pos + 1}]}
+            if config.to_delete == Deletion.INSIDE:
+                if file_pos - start_pos <= 1:
+                    return None
+                return {'p': [{'l': start_pos + 1, 'r': file_pos}]}
+            raise ValueError(f'Unexpected config {config}')
 
-    def advance_on_success(self, test_case, state, *args, **kwargs):
-        return self.__get_next_match(test_case, pos=state[0])
+        hints = []
+        # Scan the text left-to-right and maintain active (not yet matched) open brackets in a stack; None denotes a
+        # "bad" open bracket - without the expected prefix.
+        active_stack: List[Union[int, None]] = []
+        for file_pos, ch in enumerate(contents):
+            if ch == open_ch:
+                if config.search_prefix:
+                    active_stack.append(get_touching_prefix(file_pos))
+                else:
+                    active_stack.append(file_pos)
+            elif ch == close_ch and active_stack:
+                start_pos = active_stack.pop()
+                if start_pos is None:
+                    continue
+                if h := create_hint(start_pos, file_pos):
+                    hints.append(h)
+
+        return HintBundle(hints=hints, vocabulary=vocabulary)
 
     def __get_config(self):
-        config = {
-            'search': None,
-            'replace_fn': None,
-            'prefix': '',
-        }
-
-        def replace_all(string, match):
-            return string[0 : match[0]] + string[match[1] :]
-
-        def replace_only(string, match):
-            return string[0 : match[0]] + string[(match[0] + 1) : (match[1] - 1)] + string[match[1] :]
-
-        def replace_inside(string, match):
-            return string[0 : (match[0] + 1)] + string[(match[1] - 1) :]
-
+        BalancedExpr = nestedmatcher.BalancedExpr
         if self.arg == 'square-inside':
-            config['search'] = nestedmatcher.BalancedExpr.squares
-            config['replace_fn'] = replace_inside
-        elif self.arg == 'angles-inside':
-            config['search'] = nestedmatcher.BalancedExpr.angles
-            config['replace_fn'] = replace_inside
-        elif self.arg == 'parens-inside':
-            config['search'] = nestedmatcher.BalancedExpr.parens
-            config['replace_fn'] = replace_inside
-        elif self.arg == 'curly-inside':
-            config['search'] = nestedmatcher.BalancedExpr.curlies
-            config['replace_fn'] = replace_inside
-        elif self.arg == 'square':
-            config['search'] = nestedmatcher.BalancedExpr.squares
-            config['replace_fn'] = replace_all
-        elif self.arg == 'angles':
-            config['search'] = nestedmatcher.BalancedExpr.angles
-            config['replace_fn'] = replace_all
-        elif self.arg == 'parens-to-zero':
-            config['search'] = nestedmatcher.BalancedExpr.parens
-            config['replace_fn'] = lambda string, match: string[0 : match[0]] + '0' + string[match[1] :]
-        elif self.arg == 'parens':
-            config['search'] = nestedmatcher.BalancedExpr.parens
-            config['replace_fn'] = replace_all
-        elif self.arg == 'curly':
-            config['search'] = nestedmatcher.BalancedExpr.curlies
-            config['replace_fn'] = replace_all
-        elif self.arg == 'curly2':
-            config['search'] = nestedmatcher.BalancedExpr.curlies
-            config['replace_fn'] = lambda string, match: string[0 : match[0]] + ';' + string[match[1] :]
-        elif self.arg == 'curly3':
-            config['search'] = nestedmatcher.BalancedExpr.curlies
-            config['replace_fn'] = replace_all
-            config['prefix'] = '=\\s*'
-        elif self.arg == 'parens-only':
-            config['search'] = nestedmatcher.BalancedExpr.parens
-            config['replace_fn'] = replace_only
-        elif self.arg == 'curly-only':
-            config['search'] = nestedmatcher.BalancedExpr.curlies
-            config['replace_fn'] = replace_only
-        elif self.arg == 'angles-only':
-            config['search'] = nestedmatcher.BalancedExpr.angles
-            config['replace_fn'] = replace_only
-        elif self.arg == 'square-only':
-            config['search'] = nestedmatcher.BalancedExpr.squares
-            config['replace_fn'] = replace_only
-        else:
-            raise UnknownArgumentError(self.__class__.__name__, self.arg)
-
-        return config
-
-    def transform(self, test_case, state, process_event_notifier):
-        with open(test_case) as in_file:
-            prog = in_file.read()
-            prog2 = prog
-
-        config = self.__get_config()
-
-        while True:
-            if state is None:
-                return (PassResult.STOP, state)
-            else:
-                prog2 = config['replace_fn'](prog2, state)
-
-                if prog != prog2:
-                    with open(test_case, 'w') as out_file:
-                        out_file.write(prog2)
-
-                    return (PassResult.OK, state)
-                else:
-                    state = self.advance(test_case, state)
+            return Config(search=BalancedExpr.squares, to_delete=Deletion.INSIDE)
+        if self.arg == 'angles-inside':
+            return Config(search=BalancedExpr.angles, to_delete=Deletion.INSIDE)
+        if self.arg == 'parens-inside':
+            return Config(search=BalancedExpr.parens, to_delete=Deletion.INSIDE)
+        if self.arg == 'curly-inside':
+            return Config(search=BalancedExpr.curlies, to_delete=Deletion.INSIDE)
+        if self.arg == 'square':
+            return Config(search=BalancedExpr.squares, to_delete=Deletion.ALL)
+        if self.arg == 'angles':
+            return Config(search=BalancedExpr.angles, to_delete=Deletion.ALL)
+        if self.arg == 'parens-to-zero':
+            return Config(search=BalancedExpr.parens, to_delete=Deletion.ALL, replacement='0')
+        if self.arg == 'parens':
+            return Config(search=BalancedExpr.parens, to_delete=Deletion.ALL)
+        if self.arg == 'curly':
+            return Config(search=BalancedExpr.curlies, to_delete=Deletion.ALL)
+        if self.arg == 'curly2':
+            return Config(search=BalancedExpr.curlies, to_delete=Deletion.ALL, replacement=';')
+        if self.arg == 'curly3':
+            return Config(search=BalancedExpr.curlies, to_delete=Deletion.ALL, search_prefix=r'=\s*')
+        if self.arg == 'parens-only':
+            return Config(search=BalancedExpr.parens, to_delete=Deletion.ONLY)
+        if self.arg == 'curly-only':
+            return Config(search=BalancedExpr.curlies, to_delete=Deletion.ONLY)
+        if self.arg == 'angles-only':
+            return Config(search=BalancedExpr.angles, to_delete=Deletion.ONLY)
+        if self.arg == 'square-only':
+            return Config(search=BalancedExpr.squares, to_delete=Deletion.ONLY)
+        raise UnknownArgumentError(self.__class__.__name__, self.arg)
