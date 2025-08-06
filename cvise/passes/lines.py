@@ -1,4 +1,4 @@
-import json
+import msgspec
 import subprocess
 
 from cvise.passes.hint_based import HintBasedPass
@@ -31,12 +31,14 @@ class LinesPass(HintBasedPass):
         """Generate hints via the modified topformflat tool.
 
         A single hint here is, roughly, a curly brace surrounded block at the
-        nesting level specified by the arg integer."""
+        nesting level specified by the arg integer.
+        """
         hints = []
         cmd = [self.external_programs['topformflat_hints'], self.arg]
+        decoder = msgspec.json.Decoder()
         with open(test_case, 'rb') as in_file:
             with subprocess.Popen(cmd, stdin=in_file, stdout=subprocess.PIPE) as proc:
                 for line in proc.stdout:
                     if not line.isspace():
-                        hints.append(json.loads(line))
+                        hints.append(decoder.decode(line))
         return HintBundle(hints=hints)
