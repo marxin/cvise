@@ -8,6 +8,7 @@ from cvise.utils import nestedmatcher
 from cvise.utils.error import UnknownArgumentError
 from cvise.utils.hint import HintBundle
 
+
 @unique
 class Deletion(Enum):
     ALL = auto()
@@ -17,7 +18,7 @@ class Deletion(Enum):
 
 @dataclass
 class Config:
-    search: Tuple[str, str]
+    search: nestedmatcher.BalancedExpr
     to_delete: Deletion
     replacement: str = ''
     search_prefix: str = ''
@@ -69,10 +70,8 @@ class BalancedPass(HintBasedPass):
         active_stack: List[Union[int, None]] = []
         for file_pos, ch in enumerate(contents):
             if ch == open_ch:
-                if config.search_prefix:
-                    active_stack.append(get_touching_prefix(file_pos))
-                else:
-                    active_stack.append(file_pos)
+                start = get_touching_prefix(file_pos) if config.search_prefix else file_pos
+                active_stack.append(start)
             elif ch == close_ch and active_stack:
                 start_pos = active_stack.pop()
                 if start_pos is None:
