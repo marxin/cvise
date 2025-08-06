@@ -27,7 +27,7 @@ class SubsegmentState:
     chunk: int
     max_chunk: int
     index: int
-    wrapover: int
+    start: int
 
     def __repr__(self):
         return f'SubsegmentState({self.compact_repr()})'
@@ -37,43 +37,40 @@ class SubsegmentState:
 
     @staticmethod
     def create(instances: int, min_chunk: int, max_chunk: int):
-        if not instances or min_chunk > instances:
+        if min_chunk > instances or min_chunk > max_chunk:
             return None
-        shift = SubsegmentState.get_random_shift(instances, min_chunk)
-        return SubsegmentState(instances, chunk=min_chunk, max_chunk=max_chunk, index=shift, wrapover=shift)
-
-    @staticmethod
-    def get_random_shift(instances: int, chunk: int) -> int:
-        return random.randint(0, instances - chunk)
+        start = random.randint(0, instances - min_chunk)
+        return SubsegmentState(instances, chunk=min_chunk, max_chunk=max_chunk, index=start, start=start)
 
     def end(self) -> int:
         return self.index + self.chunk
 
     def advance(self) -> Union[Self, None]:
+        to_start = self.index + 1 == self.start
+        to_wrapover = self.index + 1 + self.chunk > self.instances
+        if to_start or (to_wrapover and self.start == 0):
+            return SubsegmentState.create(self.instances, self.chunk + 1, self.max_chunk)
         new = copy.copy(self)
-        new.index += 1
-        if new.index != new.wrapover and new.index + new.chunk <= new.instances:
-            return new
-        if new.index == new.wrapover or new.wrapover == 0:
-            if new.chunk == new.max_chunk or new.chunk == new.instances:
-                return None
-            new.chunk += 1
-            shift = self.get_random_shift(instances=new.instances, chunk=new.chunk)
-            new.index = shift
-            new.wrapover = shift
-        else:
+        if to_wrapover:
             new.index = 0
+        else:
+            new.index += 1
         return new
 
     def advance_on_success(self, instances) -> Union[Self, None]:
         if not instances or self.chunk > instances:
             return None
+        if wrapover := self.index + self.chunk > instances:
+            wrapover_to_start = self.index < self.start or self.start == 0
+            if wrapover_to_start:
+                return SubsegmentState.create(instances, self.chunk + 1, self.max_chunk)
         new = copy.copy(self)
         new.instances = instances
-        new.wrapover = min(new.wrapover, instances - new.chunk)
-        if new.index + new.chunk <= new.instances:
-            return new
-        return new.advance()
+        if self.start + self.chunk > instances:
+            new.start = 0
+        if wrapover:
+            new.index = 0
+        return new
 
 
 class BinaryState:
