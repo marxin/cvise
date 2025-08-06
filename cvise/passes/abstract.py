@@ -2,6 +2,7 @@ import copy
 from dataclasses import dataclass
 from enum import auto, Enum, unique
 import logging
+import random
 import shutil
 import subprocess
 from typing import Self, Tuple, Union
@@ -26,6 +27,7 @@ class SubsegmentState:
     chunk: int
     max_chunk: int
     index: int
+    wrapover: int
 
     def __repr__(self):
         return f'SubsegmentState({self.compact_repr()})'
@@ -37,7 +39,12 @@ class SubsegmentState:
     def create(instances: int, min_chunk: int, max_chunk: int):
         if not instances or min_chunk > instances:
             return None
-        return SubsegmentState(instances, chunk=min_chunk, max_chunk=max_chunk, index=0)
+        shift = SubsegmentState.get_random_shift(instances, min_chunk)
+        return SubsegmentState(instances, chunk=min_chunk, max_chunk=max_chunk, index=shift, wrapover=shift)
+
+    @staticmethod
+    def get_random_shift(instances: int, chunk: int) -> int:
+        return random.randint(0, instances - chunk)
 
     def end(self) -> int:
         return self.index + self.chunk
@@ -45,12 +52,17 @@ class SubsegmentState:
     def advance(self) -> Union[Self, None]:
         new = copy.copy(self)
         new.index += 1
-        if new.index + new.chunk <= new.instances:
+        if new.index != new.wrapover and new.index + new.chunk <= new.instances:
             return new
-        if new.chunk == new.max_chunk:
-            return None
-        new.index = 0
-        new.chunk += 1
+        if new.index == new.wrapover or new.wrapover == 0:
+            if new.chunk == new.max_chunk or new.chunk == new.instances:
+                return None
+            new.chunk += 1
+            shift = self.get_random_shift(instances=new.instances, chunk=new.chunk)
+            new.index = shift
+            new.wrapover = shift
+        else:
+            new.index = 0
         return new
 
     def advance_on_success(self, instances) -> Union[Self, None]:
@@ -58,6 +70,7 @@ class SubsegmentState:
             return None
         new = copy.copy(self)
         new.instances = instances
+        new.wrapover = min(new.wrapover, instances - new.chunk)
         if new.index + new.chunk <= new.instances:
             return new
         return new.advance()
