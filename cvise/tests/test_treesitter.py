@@ -5,13 +5,16 @@ from cvise.tests.testabstract import collect_all_transforms, validate_stored_hin
 from cvise.utils.externalprograms import find_external_programs
 
 
+REPLACE_FUNC_DEF = 'replace-function-def-with-decl'
+
+
 @pytest.fixture
 def input_path(tmp_path):
     return tmp_path / 'input.cc'
 
 
-def init_pass(tmp_dir, input_path):
-    pass_ = TreeSitterPass(external_programs=find_external_programs())
+def init_pass(arg, tmp_dir, input_path):
+    pass_ = TreeSitterPass(arg, find_external_programs())
     state = pass_.new(input_path, tmp_dir=tmp_dir)
     validate_stored_hints(state)
     return pass_, state
@@ -30,7 +33,7 @@ def test_func_def_simple(tmp_path, input_path):
         }
         """,
     )
-    p, state = init_pass(tmp_path, input_path)
+    p, state = init_pass(REPLACE_FUNC_DEF, tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
     assert (
@@ -80,7 +83,7 @@ def test_func_def_class_method(tmp_path, input_path):
         }
         """,
     )
-    p, state = init_pass(tmp_path, input_path)
+    p, state = init_pass(REPLACE_FUNC_DEF, tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
     assert (
@@ -122,7 +125,7 @@ def test_func_def_class_constructor(tmp_path, input_path):
         A::A(long) : x(2) {}
         """,
     )
-    p, state = init_pass(tmp_path, input_path)
+    p, state = init_pass(REPLACE_FUNC_DEF, tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
     assert (
@@ -177,7 +180,7 @@ def test_func_def_class_destructor(tmp_path, input_path):
         B::~B() {}
         """,
     )
-    p, state = init_pass(tmp_path, input_path)
+    p, state = init_pass(REPLACE_FUNC_DEF, tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
     assert (
@@ -237,7 +240,7 @@ def test_func_def_template(tmp_path, input_path):
         void B::n() {}
         """,
     )
-    p, state = init_pass(tmp_path, input_path)
+    p, state = init_pass(REPLACE_FUNC_DEF, tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
 
     # Just check all transforms being applied at once, for brevity.

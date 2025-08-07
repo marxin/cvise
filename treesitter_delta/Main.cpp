@@ -48,17 +48,19 @@ static bool readFile(const std::string &Path, std::string &Contents) {
 int main(int argc, char *argv[]) {
   std::ios::sync_with_stdio(false); // speed up C++ I/O streams
 
-  if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " input/file/path\n";
+  if (argc != 3) {
+    std::cerr << "Usage: " << argv[0] << " transformation input/file/path\n"
+              << "  transformation: currently only "
+                 "\"replace-function-def-with-decl\"";
     return -1;
   }
-  const std::string InputPath = argv[1];
+  const std::string Transformation = argv[1];
+  const std::string InputPath = argv[2];
 
   // Prepare the common parsing state.
   std::unique_ptr<TSParser, decltype(&ts_parser_delete)> Parser(
       ts_parser_new(), ts_parser_delete);
   ts_parser_set_language(Parser.get(), tree_sitter_cpp());
-  FuncDefWithDeclReplacer funcDefWithDeclReplacer;
 
   // Parse the input.
   std::string Contents;
@@ -77,5 +79,10 @@ int main(int argc, char *argv[]) {
 
   // Run heuristics and emit hints.
   printHintsVocabulary();
-  funcDefWithDeclReplacer.processParsedFile(*Tree);
+  if (Transformation == "replace-function-def-with-decl") {
+    FuncDefWithDeclReplacer().processParsedFile(*Tree);
+  } else {
+    std::cerr << "Unknown transformation: " << Transformation << "\n";
+    return 1;
+  }
 }

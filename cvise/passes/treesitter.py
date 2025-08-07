@@ -12,6 +12,7 @@ class TreeSitterPass(HintBasedPass):
     def generate_hints(self, test_case):
         cmd = [
             self.external_programs['treesitter_delta'],
+            self.arg,
             test_case,
         ]
         proc = subprocess.run(cmd, text=True, capture_output=True)
