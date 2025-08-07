@@ -1,13 +1,15 @@
 #ifndef HINT_DEFS_H
 #define HINT_DEFS_H
 
-// The hints vocabulary.
-inline constexpr const char *HintsVocabulary[] = {
+// The hints vocabulary - the list of strings that hints can refer to.
+inline constexpr const char *HintsVocab[] = {
     "replace-function-def-with-decl",
     ";",
 };
-// The indices must match the order in HintsVocabulary.
-constexpr int ReplaceFuncDefWithDeclVocabIdx = 0;
-constexpr int SemicolonVocabIdx = 1;
+// The order must match the order in HintsVocabulary.
+enum class HintsVocabId {
+  ReplaceFuncDefWithDecl,
+  Semicolon,
+};
 
 #endif

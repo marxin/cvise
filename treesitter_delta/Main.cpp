@@ -14,12 +14,12 @@
 
 static void printHintsVocabulary() {
   std::cout << '[';
-  for (size_t I = 0; I < std::size(HintsVocabulary); ++I) {
+  for (size_t I = 0; I < std::size(HintsVocab); ++I) {
     if (I > 0)
       std::cout << ',';
     // For simplicity, we assume no character needs escaping for JSON (always
     // true for replacement strings in clang_delta).
-    std::cout << '"' << HintsVocabulary[I] << '"';
+    std::cout << '"' << HintsVocab[I] << '"';
   }
   std::cout << "]\n";
 }

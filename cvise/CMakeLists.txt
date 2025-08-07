@@ -112,6 +112,7 @@ set(SOURCE_FILES
   "tests/test_special.py"
   "tests/test_ternary.py"
   "tests/test_test_manager.py"
+  "tests/test_treesitter.py"
   "utils/__init__.py"
   "utils/error.py"
   "utils/externalprograms.py"

@@ -114,9 +114,10 @@ bool FuncDefWithDeclReplacer::overlaps(const Instance &A, const Instance &B) {
 }
 
 void FuncDefWithDeclReplacer::printAsHint(const Instance &Inst) {
-  std::cout << "{\"t\":" << ReplaceFuncDefWithDeclVocabIdx
+  std::cout << "{\"t\":"
+            << static_cast<int>(HintsVocabId::ReplaceFuncDefWithDecl)
             << ",\"p\":[{\"l\":" << Inst.StartByte << ",\"r\":" << Inst.EndByte;
   if (Inst.WriteSemicolon)
-    std::cout << ",\"v\":" << SemicolonVocabIdx;
+    std::cout << ",\"v\":" << static_cast<int>(HintsVocabId::Semicolon);
   std::cout << "}]}\n";
 }
