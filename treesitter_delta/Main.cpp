@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <ios>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -18,7 +19,7 @@ static void printHintsVocabulary() {
     if (I > 0)
       std::cout << ',';
     // For simplicity, we assume no character needs escaping for JSON (always
-    // true for replacement strings in clang_delta).
+    // true for replacement strings in treesitter_delta).
     std::cout << '"' << HintsVocab[I] << '"';
   }
   std::cout << "]\n";
