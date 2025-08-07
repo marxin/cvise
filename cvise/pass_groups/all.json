@@ -13,6 +13,7 @@
     {"pass": "lines", "arg": "None" },
     {"pass": "clanghints", "arg": "replace-function-def-with-decl", "c": true },
     {"pass": "clanghints", "arg": "remove-unused-function", "c": true },
+    {"pass": "treesitter", "c": true },
     {"pass": "clexhints", "arg": "rm-toks-1-to-4"},
     {"pass": "clexhints", "arg": "rm-toks-5-to-8"},
     {"pass": "clexhints", "arg": "rm-toks-9-to-12"},

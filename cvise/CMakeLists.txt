@@ -91,6 +91,7 @@ set(SOURCE_FILES
   "passes/peep.py"
   "passes/special.py"
   "passes/ternary.py"
+  "passes/treesitter.py"
   "passes/unifdef.py"
   "tests/__init__.py"
   "tests/testabstract.py"
