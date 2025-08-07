@@ -2,7 +2,7 @@ from __future__ import annotations
 from copy import copy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 from cvise.utils.hint import apply_hints, group_hints_by_type, HintBundle, HintApplicationStats, load_hints, store_hints
@@ -22,37 +22,32 @@ class PerTypeHintState:
     # Only the base name, not a full path - it's a small optimization (and we anyway need to store the tmp dir in the
     # HintState).
     hints_file_name: Path
-    # State of the binary search over hints with this particular type.
-    binary_state: BinaryState
-
-    @staticmethod
-    def create(type: str, hint_count: int, hints_file_name: Path) -> PerTypeHintState:
-        assert hint_count > 0
-        return PerTypeHintState(type=type, hints_file_name=hints_file_name, binary_state=BinaryState.create(hint_count))
+    # State of the enumeration over hints with this particular type.
+    underlying_state: Any
 
     def advance(self) -> Union[PerTypeHintState, None]:
-        # Move to the next step in the binary search, or to None if this was the last step.
-        next_binary = self.binary_state.advance()
-        if next_binary is None:
+        # Move to the next step in the enumeration, or to None if this was the last step.
+        next = self.underlying_state.advance()
+        if next is None:
             return None
         new = copy(self)
-        new.binary_state = next_binary
+        new.underlying_state = next
         return new
 
     def advance_on_success(self, new_hint_count: int) -> Union[PerTypeHintState, None]:
-        next_binary = self.binary_state.advance_on_success(new_hint_count)
-        if next_binary is None:
+        next = self.underlying_state.advance_on_success(new_hint_count)
+        if next is None:
             return None
         new = copy(self)
-        new.binary_state = next_binary
+        new.underlying_state = next
         return new
 
 
 class HintState:
     """Stores the current state of the HintBasedPass.
 
-    Conceptually, it's representing multple binary searches, one for each hint type. These are applied & advanced in a
-    round-robin fashion. See the comment in the HintBasedPass.
+    Conceptually, it's representing multiple enumerations (by default - binary searches), one for each hint type. These
+    are applied & advanced in a round-robin fashion. See the comment in the HintBasedPass.
     """
 
     def __init__(self, tmp_dir: Path, per_type_states: List[PerTypeHintState]):
@@ -67,23 +62,14 @@ class HintState:
         for i, s in enumerate(self.per_type_states):
             mark = '[*]' if i == self.ptr and len(self.per_type_states) > 1 else ''
             type_s = s.type + ': ' if s.type else ''
-            b = s.binary_state
-            parts.append(f'{mark}{type_s}{b.index}-{b.end()} out of {b.instances} with step {b.chunk}')
+            parts.append(f'{mark}{type_s}{s.underlying_state.compact_repr()}')
         return f'HintState({", ".join(parts)})'
 
-    @staticmethod
-    def create(tmp_dir: Path, type_to_bundle: Dict[str, HintBundle], type_to_file_name: Dict[str, Path]) -> HintState:
-        sub_states = []
-        # Initialize a separate binary search for each group of hints sharing a particular type.
-        for type, sub_bundle in type_to_bundle.items():
-            sub_states.append(PerTypeHintState.create(type, len(sub_bundle.hints), type_to_file_name[type]))
-        return HintState(tmp_dir, sub_states)
-
     def advance(self) -> Union[HintState, None]:
-        # First, prepare the current type's sub-state to point to the next binary search step.
+        # First, prepare the current type's sub-state to point to the next enumeration step.
         new_substate = self.per_type_states[self.ptr].advance()
         if new_substate is None and len(self.per_type_states) == 1:
-            # The last type's binary search finished - nothing to be done more.
+            # The last type's enumeration finished - nothing to be done more.
             return None
 
         # Second, create the result with just this sub-state updated/deleted.
@@ -124,8 +110,9 @@ class HintBasedPass(AbstractPass):
     Provides default implementations of new/transform/advance operations, which only require the subclass to implement
     the generate_hints() method.
 
-    Takes care of managing multiple binary searches, one per each hint type. For example, if the pass generated 10 hints
-    of "comment" type and 40 hints of "function" type, the order of enumeration in this pass' jobs would be:
+    Takes care of managing multiple enumerations, one per each hint type. By default, the enumeration is performed via
+    the binary search. For example, if the pass generated 10 hints of "comment" type and 40 hints of "function" type,
+    the order of enumeration in this pass' jobs would be:
     * transform #1: attempt applying [0..10) "comment" hints;
     * transform #2: attempt applying [0..40) "function" hints;
     * transform #3: attempt applying [0..5) "comment" hints;
@@ -136,6 +123,13 @@ class HintBasedPass(AbstractPass):
 
     def generate_hints(self, test_case: Path) -> HintBundle:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'generate_hints'!")
+
+    def create_elementary_state(self, hint_count: int) -> Any:
+        """Creates a single underlying state for enumerating hints of a particular type.
+
+        Intended to be overridden by subclasses that don't want the default behavior (binary search).
+        """
+        return BinaryState.create(instances=hint_count)
 
     def new(self, test_case, tmp_dir, *args, **kwargs):
         hints = self.generate_hints(test_case)
@@ -150,8 +144,8 @@ class HintBasedPass(AbstractPass):
         hint_bundles: List[HintBundle] = []
         for state in states:
             sub_state = state.per_type_states[state.ptr]
-            hints_range_begin = sub_state.binary_state.index
-            hints_range_end = sub_state.binary_state.end()
+            hints_range_begin = sub_state.underlying_state.index
+            hints_range_end = sub_state.underlying_state.end()
             hint_bundles.append(
                 load_hints(state.tmp_dir / sub_state.hints_file_name, hints_range_begin, hints_range_end)
             )
@@ -175,7 +169,18 @@ class HintBasedPass(AbstractPass):
         type_to_bundle = group_hints_by_type(bundle)
         self.backfill_pass_names(type_to_bundle)
         type_to_file_name = store_hints_per_type(tmp_dir, type_to_bundle)
-        return HintState.create(tmp_dir, type_to_bundle, type_to_file_name)
+        sub_states = []
+        # Initialize a separate enumeration for each group of hints sharing a particular type.
+        for type, sub_bundle in type_to_bundle.items():
+            underlying = self.create_elementary_state(len(sub_bundle.hints))
+            if underlying is None:
+                continue
+            sub_states.append(
+                PerTypeHintState(type=type, hints_file_name=type_to_file_name[type], underlying_state=underlying)
+            )
+        if not sub_states:
+            return None
+        return HintState(tmp_dir, sub_states)
 
     def advance_on_success_from_hints(self, bundle: HintBundle, state: HintState) -> Union[HintState, None]:
         """Advances the state after a successful reduction, given pre-generated hints.

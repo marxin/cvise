@@ -1,9 +1,11 @@
 import copy
+from dataclasses import dataclass
 from enum import auto, Enum, unique
 import logging
+import random
 import shutil
 import subprocess
-from typing import Tuple
+from typing import Self, Tuple, Union
 
 
 @unique
@@ -14,6 +16,66 @@ class PassResult(Enum):
     ERROR = auto()
 
 
+@dataclass
+class SubsegmentState:
+    """Iterates over subsegments of the given instances, with at most the given chunk size.
+
+    Essentially enumerates all ranges of hints of the form [i; i+j), for j=1..max_chunk, i=0..N-j.
+    For each chunk size j, it begins from a random position: i=start, then i=start+1, etc., until it makes a "wrapover"
+    to i=0, i=1, ..., until i=start-1; after that, the same is done with the chunk size j+1, and so on.
+    """
+
+    instances: int
+    chunk: int
+    max_chunk: int
+    index: int
+    start: int
+
+    def __repr__(self):
+        return f'SubsegmentState({self.compact_repr()})'
+
+    def compact_repr(self) -> str:
+        return f'{self.index}-{self.end()} out of {self.instances}'
+
+    @staticmethod
+    def create(instances: int, min_chunk: int, max_chunk: int):
+        assert min_chunk > 0
+        if min_chunk > instances or min_chunk > max_chunk:
+            return None
+        start = random.randint(0, instances - min_chunk)
+        return SubsegmentState(instances, chunk=min_chunk, max_chunk=max_chunk, index=start, start=start)
+
+    def end(self) -> int:
+        return self.index + self.chunk
+
+    def advance(self) -> Union[Self, None]:
+        to_start = self.index + 1 == self.start
+        to_wrapover = self.index + 1 + self.chunk > self.instances
+        if to_start or (to_wrapover and self.start == 0):
+            return SubsegmentState.create(self.instances, self.chunk + 1, self.max_chunk)
+        new = copy.copy(self)
+        if to_wrapover:
+            new.index = 0
+        else:
+            new.index += 1
+        return new
+
+    def advance_on_success(self, instances) -> Union[Self, None]:
+        if self.chunk > instances:
+            return None
+        if wrapover := self.index + self.chunk > instances:
+            wrapover_to_start = self.index < self.start or self.start == 0
+            if wrapover_to_start:
+                return SubsegmentState.create(instances, self.chunk + 1, self.max_chunk)
+        new = copy.copy(self)
+        new.instances = instances
+        if self.start + self.chunk > instances:
+            new.start = 0
+        if wrapover:
+            new.index = 0
+        return new
+
+
 class BinaryState:
     def __init__(self, instances: int, chunk: int, index: int):
         self.instances: int = instances
@@ -22,6 +84,9 @@ class BinaryState:
 
     def __repr__(self):
         return f'BinaryState({self.index}-{self.end()}, {self.instances} instances, step: {self.chunk})'
+
+    def compact_repr(self) -> str:
+        return f'{self.index}-{self.end()} out of {self.instances} with step {self.chunk}'
 
     @staticmethod
     def create(instances):

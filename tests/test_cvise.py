@@ -191,6 +191,6 @@ def test_non_ascii_interestingness_test(tmp_path: Path):
     check_cvise(
         'blocksort-part.c',
         ['-c', r"printf '\xc3\xa4\xff'; gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c"],
-        ['#define nextHi', '#define nextHi\n'],
+        ['#define nextHi'],
         tmp_path,
     )
