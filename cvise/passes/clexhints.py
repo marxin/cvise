@@ -1,4 +1,4 @@
-import json
+import msgspec
 import re
 import subprocess
 
@@ -23,11 +23,12 @@ class ClexHintsPass(HintBasedPass):
         tok_index = '-1'  # unused
         cmd = [self.external_programs['clex'], clex_cmd, tok_index, str(test_case)]
         hints = []
+        decoder = msgspec.json.Decoder()
         with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc:
-            vocab = json.loads(next(proc.stdout))
+            vocab = decoder.decode(next(proc.stdout))
             for line in proc.stdout:
                 if not line.isspace():
-                    hints.append(json.loads(line))
+                    hints.append(decoder.decode(line))
         return HintBundle(vocabulary=vocab, hints=hints)
 
     def create_elementary_state(self, hint_count: int):
