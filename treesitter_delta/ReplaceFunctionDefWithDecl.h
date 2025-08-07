@@ -1,10 +1,10 @@
 #ifndef REPLACE_FUNCTION_FUNC_DEF_WITH_DECL_H
 #define REPLACE_FUNCTION_FUNC_DEF_WITH_DECL_H
 
-#include <tree_sitter/api.h>
-
 #include <cstdint>
 #include <memory>
+
+#include <tree_sitter/api.h>
 
 // Emits hints that deletes function bodies (either replacing them with
 // semicolons or deleting the whole definition altogether).
