@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
   // Run heuristics and emit hints.
   printHintsVocabulary();
   if (Transformation == "replace-function-def-with-decl") {
-    FuncDefWithDeclReplacer().processParsedFile(*Tree);
+    FuncDefWithDeclReplacer().processFile(Contents, *Tree);
   } else {
     std::cerr << "Unknown transformation: " << Transformation << "\n";
     return 1;

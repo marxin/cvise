@@ -4,7 +4,6 @@
 #include "Parsers.h"
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cstdint>
 #include <iostream>
@@ -19,27 +18,54 @@
 constexpr char QueryStr[] = R"(
   (
     function_definition
+    (type_qualifier)* @capture0
     declarator: (
       function_declarator
       declarator: (
         qualified_identifier
-      )? @capture0
+      )? @capture1
     )
-    (field_initializer_list)? @capture1
-    body: (_) @capture2
-  ) @capture3
+    (field_initializer_list)? @capture2
+    body: (_) @capture3
+  ) @capture4
 )";
 
-static void getMatchCaptures(const TSQueryMatch &Match, TSNode &QualId,
+static std::string getNodeText(const TSNode &Node,
+                               const std::string &FileContents) {
+  uint32_t Start = ts_node_start_byte(Node);
+  uint32_t End = ts_node_end_byte(Node);
+  assert(Start <= End);
+  return FileContents.substr(Start, End - Start);
+}
+
+static void getMatchCaptures(const TSQueryMatch &Match,
+                             const std::string &FileContents,
+                             TSNode &ConstexprQual, TSNode &QualId,
                              TSNode &InitList, TSNode &Body, TSNode &FuncDef) {
-  // The capture count and indices must match those specified in QueryStr.
-  std::array<TSNode, 4> Captures{}; // zero-initialize to recognize null nodes
-  for (int I = 0; I < Match.capture_count; ++I)
-    Captures.at(Match.captures[I].index) = Match.captures[I].node;
-  QualId = Captures[0];
-  InitList = Captures[1];
-  Body = Captures[2];
-  FuncDef = Captures[3];
+  for (int I = 0; I < Match.capture_count; ++I) {
+    const TSNode &N = Match.captures[I].node;
+    // The indices must match those specified in QueryStr.
+    switch (Match.captures[I].index) {
+    case 0:
+      if (getNodeText(N, FileContents) == "constexpr")
+        ConstexprQual = N;
+      break;
+    case 1:
+      QualId = N;
+      break;
+    case 2:
+      InitList = N;
+      break;
+    case 3:
+      Body = N;
+      break;
+    case 4:
+      FuncDef = N;
+      break;
+    default:
+      assert(false);
+    }
+  }
 }
 
 static TSNode walkUpTemplateDecls(const TSNode &FuncDef) {
@@ -70,7 +96,8 @@ FuncDefWithDeclReplacer::FuncDefWithDeclReplacer()
 
 FuncDefWithDeclReplacer::~FuncDefWithDeclReplacer() = default;
 
-void FuncDefWithDeclReplacer::processParsedFile(TSTree &Tree) {
+void FuncDefWithDeclReplacer::processFile(const std::string &FileContents,
+                                          TSTree &Tree) {
   std::unique_ptr<TSQueryCursor, decltype(&ts_query_cursor_delete)> Cursor(
       ts_query_cursor_new(), ts_query_cursor_delete);
   ts_query_cursor_exec(Cursor.get(), Query.get(), ts_tree_root_node(&Tree));
@@ -78,8 +105,15 @@ void FuncDefWithDeclReplacer::processParsedFile(TSTree &Tree) {
   std::vector<Instance> AllInst;
   TSQueryMatch Match;
   while (ts_query_cursor_next_match(Cursor.get(), &Match)) {
-    TSNode QualId, InitList, Body, FuncDef;
-    getMatchCaptures(Match, QualId, InitList, Body, FuncDef);
+    TSNode ConstexprQual{}, QualId{}, InitList{}, Body{},
+        FuncDef{}; // zero-initialize to recognize null nodes
+    getMatchCaptures(Match, FileContents, ConstexprQual, QualId, InitList, Body,
+                     FuncDef);
+
+    if (!ts_node_is_null(ConstexprQual)) {
+      // The heuristic isn't applicable to constexpr functions.
+      continue;
+    }
 
     // In the basic case, we replace the function body with a semicolon.
     Instance Inst{

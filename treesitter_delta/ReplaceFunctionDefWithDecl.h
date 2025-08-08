@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 
 #include <tree_sitter/api.h>
 
@@ -12,7 +13,7 @@ class FuncDefWithDeclReplacer {
 public:
   FuncDefWithDeclReplacer();
   ~FuncDefWithDeclReplacer();
-  void processParsedFile(TSTree &Tree);
+  void processFile(const std::string &FileContents, TSTree &Tree);
 
 private:
   struct Instance {

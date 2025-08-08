@@ -27,7 +27,7 @@ def test_func_def_simple(tmp_path, input_path):
           char x;
         }
         namespace foo {
-          int g(int a, int b) {
+          const int g(int a, int b) {
             return x;
           }
         }
@@ -40,7 +40,7 @@ def test_func_def_simple(tmp_path, input_path):
         b"""
         void f() ;
         namespace foo {
-          int g(int a, int b) {
+          const int g(int a, int b) {
             return x;
           }
         }
@@ -53,7 +53,7 @@ def test_func_def_simple(tmp_path, input_path):
           char x;
         }
         namespace foo {
-          int g(int a, int b) ;
+          const int g(int a, int b) ;
         }
         """
         in all_transforms
@@ -62,7 +62,7 @@ def test_func_def_simple(tmp_path, input_path):
         b"""
         void f() ;
         namespace foo {
-          int g(int a, int b) ;
+          const int g(int a, int b) ;
         }
         """
         in all_transforms
@@ -268,3 +268,20 @@ def test_func_def_template(tmp_path, input_path):
         \n        """
         in all_transforms
     )
+
+
+def test_func_def_constexpr(tmp_path, input_path):
+    input_path.write_text(
+        """
+        constexpr int f() {
+          return 42;
+        }
+        constexpr const int g() {
+          return x;
+        }
+        """,
+    )
+    p, state = init_pass(REPLACE_FUNC_DEF, tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert all_transforms == set()
