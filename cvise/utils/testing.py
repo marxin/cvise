@@ -276,10 +276,11 @@ class SuccessCandidate:
     pass_state: Any
     tmp_dir: Union[Path, None]
     test_case_path: Path
+    size_delta: int
 
     @staticmethod
     def create_and_take_file(
-        order: int, pass_: AbstractPass, pass_id: int, pass_state: Any, test_case_path: Path
+        order: int, pass_: AbstractPass, pass_id: int, pass_state: Any, test_case_path: Path, size_delta: int
     ) -> SuccessCandidate:
         tmp_dir = Path(tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}candidate-'))
         new_test_case_path = tmp_dir / test_case_path.name
@@ -291,6 +292,7 @@ class SuccessCandidate:
             pass_state=pass_state,
             tmp_dir=tmp_dir,
             test_case_path=new_test_case_path,
+            size_delta=size_delta,
         )
 
     def release(self) -> None:
@@ -677,6 +679,7 @@ class TestManager:
             pass_id=pass_id,
             pass_state=env.state,
             test_case_path=env.test_case_path,
+            size_delta=-env.size_improvement,
         )
 
     @classmethod
@@ -847,6 +850,16 @@ class TestManager:
             raise RuntimeError(
                 f"Can't find {self.current_test_case} -- did your interestingness test move it?"
             ) from None
+
+        # Update global stats.
+        if isinstance(self.success_candidate.pass_state, FoldingState):
+            self.pass_statistic.add_committed_success(None, self.success_candidate.size_delta)
+            for pass_name, size_delta in self.success_candidate.pass_state.statistics.size_delta_per_pass.items():
+                self.pass_statistic.add_committed_success(pass_name, size_delta)
+        else:
+            self.pass_statistic.add_committed_success(
+                repr(self.success_candidate.pass_), self.success_candidate.size_delta
+            )
 
         for pass_id, ctx in enumerate(self.pass_contexts):
             # If there's an earlier state whose check hasn't completed - rewind to this state.

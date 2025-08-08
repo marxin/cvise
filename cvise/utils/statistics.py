@@ -11,6 +11,7 @@ class SinglePassStatistic:
         self.worked = 0
         self.failed = 0
         self.totally_executed = 0
+        self.total_size_delta = 0
 
 
 class PassStatistic:
@@ -51,11 +52,15 @@ class PassStatistic:
         stat = self.get_stats(pass_)
         stat.failed += 1
 
+    def add_committed_success(self, pass_name: Union[str, None], size_delta: int):
+        stat = self.stats[pass_name] if pass_name is not None else self.folding_stats
+        stat.total_size_delta += size_delta
+
     @property
     def sorted_results(self):
         def sort_statistics(item):
             pass_name, pass_data = item
-            return (-pass_data.total_seconds, pass_name)
+            return (pass_data.total_size_delta, pass_name)
 
         regular_results = sorted(self.stats.items(), key=sort_statistics)
         folding_results = []
