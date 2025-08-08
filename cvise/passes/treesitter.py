@@ -6,6 +6,8 @@ from cvise.utils.hint import HintBundle
 
 
 class TreeSitterPass(HintBasedPass):
+    """A pass that performs reduction using heuristics based on the Tree-sitter parser (via treesitter_delta tool)."""
+
     def check_prerequisites(self):
         return self.check_external_program('treesitter_delta')
 
