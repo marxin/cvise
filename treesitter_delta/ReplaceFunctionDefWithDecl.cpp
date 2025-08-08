@@ -29,6 +29,29 @@ constexpr char QueryStr[] = R"(
   ) @capture4
 )";
 
+namespace {
+
+struct Instance {
+  uint32_t StartByte = 0;
+  uint32_t EndByte = 0;
+  bool WriteSemicolon = false;
+};
+
+} // namespace
+
+static bool overlaps(const Instance &A, const Instance &B) {
+  return std::max(A.StartByte, B.StartByte) < std::min(A.EndByte, B.EndByte);
+}
+
+static void printAsHint(const Instance &Inst) {
+  std::cout << "{\"p\":[{\"l\":" << Inst.StartByte << ",\"r\":" << Inst.EndByte;
+  if (Inst.WriteSemicolon) {
+    // The number here must match the order in the vocabulary printed above.
+    std::cout << ",\"v\":0";
+  }
+  std::cout << "}]}\n";
+}
+
 static std::string getNodeText(const TSNode &Node,
                                const std::string &FileContents) {
   uint32_t Start = ts_node_start_byte(Node);
@@ -92,7 +115,8 @@ FuncDefWithDeclReplacer::FuncDefWithDeclReplacer()
     std::exit(-1);
   }
 
-  // Print the hint vocabulary - in our case it's only the semicolon that the hints can refer to.
+  // Print the hint vocabulary - in our case it's only the semicolon that the
+  // hints can refer to.
   std::cout << "[\";\"]\n";
 }
 
@@ -143,17 +167,4 @@ void FuncDefWithDeclReplacer::processFile(const std::string &FileContents,
 
   for (const auto &Inst : AllInst)
     printAsHint(Inst);
-}
-
-bool FuncDefWithDeclReplacer::overlaps(const Instance &A, const Instance &B) {
-  return std::max(A.StartByte, B.StartByte) < std::min(A.EndByte, B.EndByte);
-}
-
-void FuncDefWithDeclReplacer::printAsHint(const Instance &Inst) {
-  std::cout << "{\"p\":[{\"l\":" << Inst.StartByte << ",\"r\":" << Inst.EndByte;
-  if (Inst.WriteSemicolon) {
-    // The number here must match the order in the vocabulary printed above.
-    std::cout << ",\"v\":0";
-  }
-  std::cout << "}]}\n";
 }

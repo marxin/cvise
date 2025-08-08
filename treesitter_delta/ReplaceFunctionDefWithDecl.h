@@ -1,7 +1,6 @@
 #ifndef REPLACE_FUNCTION_FUNC_DEF_WITH_DECL_H
 #define REPLACE_FUNCTION_FUNC_DEF_WITH_DECL_H
 
-#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -16,15 +15,6 @@ public:
   void processFile(const std::string &FileContents, TSTree &Tree);
 
 private:
-  struct Instance {
-    uint32_t StartByte = 0;
-    uint32_t EndByte = 0;
-    bool WriteSemicolon = false;
-  };
-
-  static bool overlaps(const Instance &A, const Instance &B);
-  static void printAsHint(const Instance &Inst);
-
   std::unique_ptr<TSQuery, decltype(&ts_query_delete)> Query;
 };
 
