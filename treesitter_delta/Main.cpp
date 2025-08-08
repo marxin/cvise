@@ -1,4 +1,3 @@
-#include "HintDefs.h"
 #include "Parsers.h"
 #include "ReplaceFunctionDefWithDecl.h"
 
@@ -12,18 +11,6 @@
 #include <utility>
 
 #include <tree_sitter/api.h>
-
-static void printHintsVocabulary() {
-  std::cout << '[';
-  for (size_t I = 0; I < std::size(HintsVocab); ++I) {
-    if (I > 0)
-      std::cout << ',';
-    // For simplicity, we assume no character needs escaping for JSON (always
-    // true for replacement strings in treesitter_delta).
-    std::cout << '"' << HintsVocab[I] << '"';
-  }
-  std::cout << "]\n";
-}
 
 static bool readFile(const std::string &Path, std::string &Contents) {
   std::error_code Error;
@@ -78,7 +65,6 @@ int main(int argc, char *argv[]) {
   }
 
   // Run heuristics and emit hints.
-  printHintsVocabulary();
   if (Transformation == "replace-function-def-with-decl") {
     FuncDefWithDeclReplacer().processFile(Contents, *Tree);
   } else {

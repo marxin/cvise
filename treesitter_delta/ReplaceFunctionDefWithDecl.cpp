@@ -1,6 +1,5 @@
 #include "ReplaceFunctionDefWithDecl.h"
 
-#include "HintDefs.h"
 #include "Parsers.h"
 
 #include <algorithm>
@@ -92,6 +91,9 @@ FuncDefWithDeclReplacer::FuncDefWithDeclReplacer()
               << " offset " << ErrorOffset << "\n";
     std::exit(-1);
   }
+
+  // Print the hint vocabulary - in our case it's only the semicolon that the hints can refer to.
+  std::cout << "[\";\"]\n";
 }
 
 FuncDefWithDeclReplacer::~FuncDefWithDeclReplacer() = default;
@@ -148,10 +150,10 @@ bool FuncDefWithDeclReplacer::overlaps(const Instance &A, const Instance &B) {
 }
 
 void FuncDefWithDeclReplacer::printAsHint(const Instance &Inst) {
-  std::cout << "{\"t\":"
-            << static_cast<int>(HintsVocabId::ReplaceFuncDefWithDecl)
-            << ",\"p\":[{\"l\":" << Inst.StartByte << ",\"r\":" << Inst.EndByte;
-  if (Inst.WriteSemicolon)
-    std::cout << ",\"v\":" << static_cast<int>(HintsVocabId::Semicolon);
+  std::cout << "{\"p\":[{\"l\":" << Inst.StartByte << ",\"r\":" << Inst.EndByte;
+  if (Inst.WriteSemicolon) {
+    // The number here must match the order in the vocabulary printed above.
+    std::cout << ",\"v\":0";
+  }
   std::cout << "}]}\n";
 }
