@@ -225,6 +225,7 @@ add_subdirectory(cvise)
 add_subdirectory(delta)
 add_subdirectory(tree-sitter)
 add_subdirectory(tree-sitter-cpp)
+add_subdirectory(treesitter_delta)
 
 # Copy top-level cvise script
 configure_file(
