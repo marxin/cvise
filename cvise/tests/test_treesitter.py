@@ -21,6 +21,7 @@ def init_pass(arg, tmp_dir, input_path):
 
 
 def test_func_def_simple(tmp_path, input_path):
+    """Test basic cases for the removal of function bodies."""
     input_path.write_text(
         """
         void f() {
@@ -71,6 +72,7 @@ def test_func_def_simple(tmp_path, input_path):
 
 
 def test_func_def_class_method(tmp_path, input_path):
+    """Test removal of class methods."""
     input_path.write_text(
         """
         class A {
@@ -113,6 +115,7 @@ def test_func_def_class_method(tmp_path, input_path):
 
 
 def test_func_def_class_constructor(tmp_path, input_path):
+    """Test removal of constructor bodies."""
     input_path.write_text(
         """
         class A {
@@ -169,6 +172,7 @@ def test_func_def_class_constructor(tmp_path, input_path):
 
 
 def test_func_def_class_destructor(tmp_path, input_path):
+    """Test removal of destructor bodies."""
     input_path.write_text(
         """
         class A {
@@ -210,6 +214,7 @@ def test_func_def_class_destructor(tmp_path, input_path):
 
 
 def test_func_def_template(tmp_path, input_path):
+    """Test removal of template function bodies."""
     input_path.write_text(
         """
         template <typename T>
@@ -271,6 +276,7 @@ def test_func_def_template(tmp_path, input_path):
 
 
 def test_func_def_constexpr(tmp_path, input_path):
+    """Test no removal happens for constexpr function bodies."""
     input_path.write_text(
         """
         constexpr int f() {
