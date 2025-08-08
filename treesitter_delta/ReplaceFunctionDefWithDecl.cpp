@@ -34,6 +34,7 @@ namespace {
 struct Instance {
   uint32_t StartByte = 0;
   uint32_t EndByte = 0;
+  bool IsTemplate = false;
   bool WriteSemicolon = false;
 };
 
@@ -44,11 +45,11 @@ static bool overlaps(const Instance &A, const Instance &B) {
 }
 
 static void printAsHint(const Instance &Inst) {
-  std::cout << "{\"p\":[{\"l\":" << Inst.StartByte << ",\"r\":" << Inst.EndByte;
-  if (Inst.WriteSemicolon) {
-    // The number here must match the order in the vocabulary printed above.
+  // The numbers here must match the order in the vocabulary printed below.
+  std::cout << "{\"t\":" << (Inst.IsTemplate ? 2 : 1)
+            << ",\"p\":[{\"l\":" << Inst.StartByte << ",\"r\":" << Inst.EndByte;
+  if (Inst.WriteSemicolon)
     std::cout << ",\"v\":0";
-  }
   std::cout << "}]}\n";
 }
 
@@ -91,16 +92,18 @@ static void getMatchCaptures(const TSQueryMatch &Match,
 }
 
 static TSNode walkUpTemplateDecls(const TSNode &FuncDef) {
-  TSNode Ancestor = FuncDef;
+  TSNode Current = FuncDef;
+  TSNode Template{}; // zero-initialize to return null for non-template cases
   for (;;) {
-    TSNode Parent = ts_node_parent(Ancestor);
+    TSNode Parent = ts_node_parent(Current);
     if (ts_node_is_null(Parent) ||
         ts_node_type(Parent) != std::string("template_declaration")) {
       break;
     }
-    Ancestor = Parent;
+    Current = Parent;
+    Template = Parent;
   }
-  return Ancestor;
+  return Template;
 }
 
 FuncDefWithDeclReplacer::FuncDefWithDeclReplacer()
@@ -115,9 +118,8 @@ FuncDefWithDeclReplacer::FuncDefWithDeclReplacer()
     std::exit(-1);
   }
 
-  // Print the hint vocabulary - in our case it's only the semicolon that the
-  // hints can refer to.
-  std::cout << "[\";\"]\n";
+  // Print the hint vocabulary - the strings that hints can refer to.
+  std::cout << "[\";\",\"regular\",\"template-function\"]\n";
 }
 
 FuncDefWithDeclReplacer::~FuncDefWithDeclReplacer() = default;
@@ -141,15 +143,20 @@ void FuncDefWithDeclReplacer::processFile(const std::string &FileContents,
       continue;
     }
 
+    TSNode Template = walkUpTemplateDecls(FuncDef);
+
     // In the basic case, we replace the function body with a semicolon.
     Instance Inst{
         .StartByte = ts_node_start_byte(Body),
         .EndByte = ts_node_end_byte(Body),
+        .IsTemplate = !ts_node_is_null(Template),
         .WriteSemicolon = true,
     };
     if (!ts_node_is_null(QualId)) {
-      // An out-of-line declaration of a member has to be deleted completely.
-      Inst.StartByte = ts_node_start_byte(walkUpTemplateDecls(FuncDef));
+      // An out-of-line member has to be deleted completely. Start from the
+      // "template <" token if it's a function template or a template class'
+      // method or both.
+      Inst.StartByte = ts_node_start_byte(Inst.IsTemplate ? Template : FuncDef);
       Inst.WriteSemicolon = false;
     } else if (!ts_node_is_null(InitList)) {
       // In case of a constructor, initializer lists have to be deleted as well.

@@ -72,7 +72,7 @@ def test_func_def_simple(tmp_path, input_path):
 
 
 def test_func_def_class_method(tmp_path, input_path):
-    """Test removal of class methods."""
+    """Test removal of class methods or their bodies."""
     input_path.write_text(
         """
         class A {
@@ -115,7 +115,7 @@ def test_func_def_class_method(tmp_path, input_path):
 
 
 def test_func_def_class_constructor(tmp_path, input_path):
-    """Test removal of constructor bodies."""
+    """Test removal of constructors or their bodies."""
     input_path.write_text(
         """
         class A {
@@ -172,7 +172,7 @@ def test_func_def_class_constructor(tmp_path, input_path):
 
 
 def test_func_def_class_destructor(tmp_path, input_path):
-    """Test removal of destructor bodies."""
+    """Test removal of destructors or their bodies."""
     input_path.write_text(
         """
         class A {
@@ -213,8 +213,58 @@ def test_func_def_class_destructor(tmp_path, input_path):
     )
 
 
+def test_func_def_regular_and_template_mix(tmp_path, input_path):
+    """Test removals of template functions are tackled separately from other functions."""
+    input_path.write_text(
+        """
+        void f() {}
+
+        template <typename T>
+        void g() {}
+
+        void h() {}
+
+        template <typename T>
+        void k() {}
+        """,
+    )
+    p, state = init_pass(REPLACE_FUNC_DEF, tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    # Regular functions considered in one job.
+    assert (
+        b"""
+        void f() ;
+
+        template <typename T>
+        void g() {}
+
+        void h() ;
+
+        template <typename T>
+        void k() {}
+        """
+        in all_transforms
+    )
+    # Template functions considered in another job.
+    assert (
+        b"""
+        void f() {}
+
+        template <typename T>
+        void g() ;
+
+        void h() {}
+
+        template <typename T>
+        void k() ;
+        """
+        in all_transforms
+    )
+
+
 def test_func_def_template(tmp_path, input_path):
-    """Test removal of template function bodies."""
+    """Test removal of template functions or their bodies."""
     input_path.write_text(
         """
         template <typename T>
