@@ -6,11 +6,7 @@
 
 #include <tree_sitter/api.h>
 
-// Emits hints that deletes contents inside C++ namespaces.
-//
-// Attempts erasing all occurrences of a namespace with the given name at once
-// (assuming that they are intertwined, like one namespace definition containing
-// a class definition and another containing this class' methods).
+// Emits hints that delete contents inside C++ namespaces.
 class NamespaceEraser {
 public:
   NamespaceEraser();
