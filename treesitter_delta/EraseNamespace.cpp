@@ -13,15 +13,18 @@
 
 #include <tree_sitter/api.h>
 
+// Searches namespace definitions and matches their bodies (curly-surrounded
+// blocks).
+constexpr char QueryStr[] = R"(
+  (
+    namespace_definition
+    body: (
+      _ (_)
+    ) @capture0
+  )
+)";
+
 NamespaceEraser::NamespaceEraser() : Query(nullptr, ts_query_delete) {
-  constexpr char QueryStr[] = R"(
-    (
-      namespace_definition
-      body: (
-        _ (_)
-      ) @capture0
-    )
-  )";
   uint32_t ErrorOffset = 0;
   TSQueryError ErrorType = TSQueryErrorNone;
   Query.reset(ts_query_new(tree_sitter_cpp(), QueryStr, std::size(QueryStr) - 1,
