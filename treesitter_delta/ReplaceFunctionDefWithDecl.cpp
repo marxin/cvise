@@ -14,7 +14,13 @@
 
 #include <tree_sitter/api.h>
 
-// The captures here must match constants in getMatchCaptures().
+// Searches for function definition nodes with a nonempty body.
+//
+// Additionally, when present, captures the type qualifier (like "const" or
+// "constexpr"), a declarator that's a qualified declarator (like "A::foo"),
+// and constructor initializer lists.
+//
+// Note: The captures here must match constants in getMatchCaptures().
 constexpr char QueryStr[] = R"(
   (
     function_definition
@@ -32,6 +38,7 @@ constexpr char QueryStr[] = R"(
 
 namespace {
 
+// An instance of a function definition that's a candidate for removal.
 struct Instance {
   uint32_t StartByte = 0;
   uint32_t EndByte = 0;
@@ -47,10 +54,12 @@ static bool overlaps(const Instance &A, const Instance &B) {
 
 static void printAsHint(const Instance &Inst) {
   // The numbers here must match the order in the vocabulary printed below.
-  std::cout << "{\"t\":" << (Inst.IsTemplate ? 2 : 1)
-            << ",\"p\":[{\"l\":" << Inst.StartByte << ",\"r\":" << Inst.EndByte;
+  std::cout
+      << "{\"t\":"
+      << (Inst.IsTemplate ? 2 /* "template-function" */ : 1 /* "regular" */)
+      << ",\"p\":[{\"l\":" << Inst.StartByte << ",\"r\":" << Inst.EndByte;
   if (Inst.WriteSemicolon)
-    std::cout << ",\"v\":0";
+    std::cout << ",\"v\":0"; // ";"
   std::cout << "}]}\n";
 }
 
