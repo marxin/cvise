@@ -1,7 +1,6 @@
 import json
 import subprocess
 
-from cvise.passes.abstract import BinaryState, SubsegmentState
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.hint import HintBundle
 
@@ -35,12 +34,3 @@ class TreeSitterPass(HintBasedPass):
             if not line.isspace():
                 hints.append(json.loads(line))
         return HintBundle(vocabulary=vocab, hints=hints)
-
-    def create_elementary_state(self, hint_count: int):
-        # Override the parent class' default logic - the binary search only makes sense to some heuristic types but not
-        # for all of them.
-        if self.arg == 'erase-namespace':
-            # For this heuristic, just attempt hints one-by-one, without the binary search or other grouping.
-            return SubsegmentState.create(hint_count, 1, 1)
-        # For all other heuristics, use the binary search.
-        return BinaryState.create(instances=hint_count)
