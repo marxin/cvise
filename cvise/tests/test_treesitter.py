@@ -531,6 +531,46 @@ def test_remove_func_special(tmp_path, input_path):
     )
 
 
+def test_remove_func_outofline(tmp_path, input_path):
+    input_path.write_text(
+        """
+        class A {
+          void f();
+          class B {
+            void g();
+          };
+        };
+        void A::f() {}
+        void A::B::g() {}
+        """,
+    )
+    p, state = init_pass(REMOVE_FUNCTION, tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert (
+        b"""
+        class A {
+          \n          class B {
+            void g();
+          };
+        };
+        \n        void A::B::g() {}
+        """
+        in all_transforms
+    )
+    assert (
+        b"""
+        class A {
+          void f();
+          class B {
+            \n          };
+        };
+        void A::f() {}
+        \n        """
+        in all_transforms
+    )
+
+
 def test_remove_func_grouping_related(tmp_path, input_path):
     """Test that function removal attempts removing all instances of a function with a given name."""
     input_path.write_text(
