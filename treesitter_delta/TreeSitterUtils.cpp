@@ -12,3 +12,16 @@ std::string getNodeText(const TSNode &Node, const std::string &FileContents) {
   assert(Start <= End);
   return FileContents.substr(Start, End - Start);
 }
+
+TSNode walkUpNodeWithType(const TSNode &FuncDef, const std::string& NeededType) {
+  TSNode Current = FuncDef;
+  TSNode Template{}; // zero-initialize to return null if the parent doesn't match
+  for (;;) {
+    TSNode Parent = ts_node_parent(Current);
+    if (ts_node_is_null(Parent) || ts_node_type(Parent) != NeededType)
+      break;
+    Current = Parent;
+    Template = Parent;
+  }
+  return Template;
+}

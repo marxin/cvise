@@ -93,21 +93,6 @@ static void getMatchCaptures(const TSQueryMatch &Match,
   }
 }
 
-static TSNode walkUpTemplateDecls(const TSNode &FuncDef) {
-  TSNode Current = FuncDef;
-  TSNode Template{}; // zero-initialize to return null for non-template cases
-  for (;;) {
-    TSNode Parent = ts_node_parent(Current);
-    if (ts_node_is_null(Parent) ||
-        ts_node_type(Parent) != std::string("template_declaration")) {
-      break;
-    }
-    Current = Parent;
-    Template = Parent;
-  }
-  return Template;
-}
-
 FuncDefWithDeclReplacer::FuncDefWithDeclReplacer()
     : Query(nullptr, ts_query_delete) {
   uint32_t ErrorOffset = 0;
@@ -145,7 +130,7 @@ void FuncDefWithDeclReplacer::processFile(const std::string &FileContents,
       continue;
     }
 
-    TSNode Template = walkUpTemplateDecls(FuncDef);
+    TSNode Template = walkUpNodeWithType(FuncDef, "template_declaration");
 
     // In the basic case, we replace the function body with a semicolon.
     Instance Inst{
