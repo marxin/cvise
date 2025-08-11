@@ -1,5 +1,6 @@
 #include "EraseNamespace.h"
 #include "Parsers.h"
+#include "RemoveFunction.h"
 #include "ReplaceFunctionDefWithDecl.h"
 
 #include <filesystem>
@@ -70,6 +71,8 @@ int main(int argc, char *argv[]) {
     FuncDefWithDeclReplacer().processFile(Contents, *Tree);
   } else if (Transformation == "erase-namespace") {
     NamespaceEraser().processFile(Contents, *Tree);
+  } else if (Transformation == "remove-function") {
+    FunctionRemover().processFile(Contents, *Tree);
   } else {
     std::cerr << "Unknown transformation: " << Transformation << "\n";
     return 1;
