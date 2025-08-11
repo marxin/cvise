@@ -15,6 +15,7 @@
     {"pass": "clanghints", "arg": "remove-unused-function", "c": true },
     {"pass": "treesitter", "arg": "replace-function-def-with-decl", "c": true },
     {"pass": "treesitter", "arg": "erase-namespace", "c": true },
+    {"pass": "treesitter", "arg": "remove-function", "c": true },
     {"pass": "balanced", "arg": "curly"},
     {"pass": "balanced", "arg": "curly2"},
     {"pass": "balanced", "arg": "curly3"},

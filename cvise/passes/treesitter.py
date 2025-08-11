@@ -34,4 +34,5 @@ class TreeSitterPass(HintBasedPass):
         for line in stdout:
             if not line.isspace():
                 hints.append(decoder.decode(line))
+        hints.sort(key=lambda h: h['p'][0]['l'])
         return HintBundle(vocabulary=vocab, hints=hints)
