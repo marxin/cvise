@@ -39,7 +39,9 @@ class BalancedPass(HintBasedPass):
 
         with open(test_case, 'rb') as in_file:
             contents = in_file.read()
-        prefixes = [m.span() for m in re.finditer(config.search_prefix.encode(), contents)] if config.search_prefix else []
+        prefixes = (
+            [m.span() for m in re.finditer(config.search_prefix.encode(), contents)] if config.search_prefix else []
+        )
         prefixes_pos = 0
 
         def get_touching_prefix(file_pos):
