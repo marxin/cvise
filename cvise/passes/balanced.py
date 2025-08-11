@@ -62,7 +62,7 @@ class BalancedPass(HintBasedPass):
                 return {'p': [{'l': start_pos, 'r': start_pos + 1}, {'l': file_pos, 'r': file_pos + 1}]}
             if config.to_delete == Deletion.INSIDE:
                 if file_pos - start_pos <= 1:
-                    return None
+                    return None  # don't create an empty hint
                 return {'p': [{'l': start_pos + 1, 'r': file_pos}]}
             raise ValueError(f'Unexpected config {config}')
 
