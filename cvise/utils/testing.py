@@ -575,7 +575,7 @@ class TestManager:
             try:
                 os.mkdir(extra_dir)
                 shutil.move(test_case_path, extra_dir)
-            except (IOError, OSError) as e:
+            except OSError as e:
                 logging.warning('Failed to create extra directory %s: %s', extra_dir, e)
                 # Gracefully handle exceptions here - storing "extra" dirs is not critical for the reduction use case,
                 # and an exception can occur simply due to child processes of the interestingness test creating/deleting
