@@ -1,6 +1,7 @@
 #include "ReplaceFunctionDefWithDecl.h"
 
 #include "Parsers.h"
+#include "TreeSitterUtils.h"
 
 #include <algorithm>
 #include <cassert>
@@ -51,14 +52,6 @@ static void printAsHint(const Instance &Inst) {
   if (Inst.WriteSemicolon)
     std::cout << ",\"v\":0";
   std::cout << "}]}\n";
-}
-
-static std::string getNodeText(const TSNode &Node,
-                               const std::string &FileContents) {
-  uint32_t Start = ts_node_start_byte(Node);
-  uint32_t End = ts_node_end_byte(Node);
-  assert(Start <= End);
-  return FileContents.substr(Start, End - Start);
 }
 
 static void getMatchCaptures(const TSQueryMatch &Match,
