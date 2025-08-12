@@ -53,6 +53,8 @@ class BalancedPass(HintBasedPass):
             return None
 
         def create_hint(start_pos, file_pos):
+            if start_pos is None:
+                return None
             if config.to_delete == Deletion.ALL:
                 p = {'l': start_pos, 'r': file_pos + 1}
                 if config.replacement:
@@ -76,8 +78,6 @@ class BalancedPass(HintBasedPass):
                 active_stack.append(start)
             elif ch == close_ch and active_stack:
                 start_pos = active_stack.pop()
-                if start_pos is None:
-                    continue
                 if h := create_hint(start_pos, file_pos):
                     hints.append(h)
 
