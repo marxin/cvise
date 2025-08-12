@@ -277,3 +277,73 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         self.assertIn(b'(This) (is a () test)!\n', all_transforms)
         self.assertIn(b'(This) ()!\n', all_transforms)
         self.assertIn(b'() ()!\n', all_transforms)
+
+
+class BalancedParensToZeroTestCase(unittest.TestCase):
+    def setUp(self):
+        self.tmp_dir_ = self.enterContext(tempfile.TemporaryDirectory())
+        self.pass_ = BalancedPass('parens-to-zero')
+
+    def test_no_match(self):
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This is a simple test!\n')
+
+        state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        assert state is None
+
+        os.unlink(tmp_file.name)
+
+    def test_simple(self):
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('int x = (10 + y) / 2;\n')
+
+        state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
+
+        with open(tmp_file.name) as variant_file:
+            variant = variant_file.read()
+
+        os.unlink(tmp_file.name)
+
+        self.assertEqual(variant, 'int x = 0 / 2;\n')
+
+
+class BalancedCurly3TestCase(unittest.TestCase):
+    def setUp(self):
+        self.tmp_dir_ = self.enterContext(tempfile.TemporaryDirectory())
+        self.pass_ = BalancedPass('curly3')
+
+    def test_no_match(self):
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('This is a simple test!\n')
+
+        state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        assert state is None
+
+        os.unlink(tmp_file.name)
+
+    def test_simple(self):
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('A a = { x, y };\n')
+
+        state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        (_, state) = self.pass_.transform(tmp_file.name, state, None)
+
+        with open(tmp_file.name) as variant_file:
+            variant = variant_file.read()
+
+        os.unlink(tmp_file.name)
+
+        self.assertEqual(variant, 'A a ;\n')
+
+    def test_nested(self):
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            tmp_file.write('={  = {}};\n')
+
+        state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        all_transforms = collect_all_transforms(self.pass_, state, Path(tmp_file.name))
+
+        os.unlink(tmp_file.name)
+
+        self.assertIn(b'={  };\n', all_transforms)
+        self.assertIn(b';\n', all_transforms)
