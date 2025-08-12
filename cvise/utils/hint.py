@@ -12,8 +12,9 @@ applied to all heuristics in a uniform way).
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
 import json
+import msgspec
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, TextIO, Tuple
+from typing import Any, Dict, List, Sequence, TextIO, Tuple, Union
 import zstandard
 
 
@@ -106,6 +107,10 @@ class HintApplicationStats:
         return [kv[0] for kv in ordered]
 
 
+# A singleton encoder object, to save time on recreating it.
+json_encoder: Union[msgspec.json.Encoder, None] = None
+
+
 def apply_hints(bundles: List[HintBundle], file: Path) -> Tuple[bytes, HintApplicationStats]:
     """Edits the file applying the specified hints to its contents."""
     patches = []
@@ -149,15 +154,33 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
     """Serializes hints to the given file.
 
     We currently use the Zstandard compression to reduce the space usage (the empirical compression ratio observed for
-    hint JSONs is around 5x..20x)."""
-    with zstandard.open(hints_file_path, 'wt') as f:
-        write_compact_json(make_preamble(bundle), f)
-        f.write('\n')
-        write_compact_json(bundle.vocabulary, f)
-        f.write('\n')
+    hint JSONs is around 5x..20x).
+    """
+
+    # Use chunks of this or greater size when calling into Zstandard.
+    WRITE_BUFFER = 2**18
+
+    global json_encoder
+    if json_encoder is None:
+        json_encoder = msgspec.json.Encoder()
+
+    with zstandard.open(hints_file_path, 'wb') as f:
+        buf = bytearray()
+
+        # "offset=-1" means appending ot the end of the buf
+        json_encoder.encode_into(make_preamble(bundle), buf, -1)
+        buf.append(ord('\n'))
+
+        json_encoder.encode_into(bundle.vocabulary, buf, -1)
+        buf.append(ord('\n'))
+
         for h in bundle.hints:
-            write_compact_json(h, f)
-            f.write('\n')
+            if len(buf) > WRITE_BUFFER:
+                f.write(buf)
+                buf.clear()
+            json_encoder.encode_into(h, buf, -1)
+            buf.append(ord('\n'))
+        f.write(buf)
 
 
 def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintBundle:
@@ -167,9 +190,10 @@ def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintB
     assert begin_index < end_index
     bundle = HintBundle(hints=[])
     with zstandard.open(hints_file_path, 'rt') if hints_file_path.suffix == '.zst' else open(hints_file_path) as f:
-        parse_preamble(try_parse_json_line(next(f)), bundle)
+        decoder = msgspec.json.Decoder()
+        parse_preamble(try_parse_json_line(next(f), decoder), bundle)
 
-        vocab = try_parse_json_line(next(f))
+        vocab = try_parse_json_line(next(f), decoder)
         # Do a lightweight check that'd catch a basic mistake (a hint object coming instead of a vocabulary array). We
         # don't want to perform full type/schema checking during loading due to performance concerns.
         if not isinstance(vocab, list):
@@ -178,7 +202,7 @@ def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintB
 
         for i, line in enumerate(f):
             if begin_index <= i < end_index:
-                bundle.hints.append(try_parse_json_line(line))
+                bundle.hints.append(try_parse_json_line(line, decoder))
     return bundle
 
 
@@ -224,10 +248,10 @@ def write_compact_json(value: Any, file: TextIO) -> None:
     json.dump(value, file, check_circular=False, separators=(',', ':'))
 
 
-def try_parse_json_line(text: str) -> Any:
+def try_parse_json_line(text: str, decoder) -> Any:
     try:
-        return json.loads(text)
-    except json.decoder.JSONDecodeError as e:
+        return decoder.decode(text)
+    except msgspec.MsgspecError as e:
         raise RuntimeError(f'Failed to decode line "{text}": {e}') from e
 
 

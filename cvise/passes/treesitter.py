@@ -1,4 +1,4 @@
-import json
+import msgspec
 import subprocess
 
 from cvise.passes.hint_based import HintBasedPass
@@ -27,10 +27,11 @@ class TreeSitterPass(HintBasedPass):
         # When reading, gracefully handle EOF because the tool might've failed with no output.
         stdout = iter(proc.stdout.splitlines())
         vocab_line = next(stdout, None)
-        vocab = json.loads(vocab_line) if vocab_line else []
+        decoder = msgspec.json.Decoder()
+        vocab = decoder.decode(vocab_line) if vocab_line else []
 
         hints = []
         for line in stdout:
             if not line.isspace():
-                hints.append(json.loads(line))
+                hints.append(decoder.decode(line))
         return HintBundle(vocabulary=vocab, hints=hints)
