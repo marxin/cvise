@@ -6,6 +6,7 @@ from cvise.utils.externalprograms import find_external_programs
 
 
 REPLACE_FUNC_DEF = 'replace-function-def-with-decl'
+ERASE_NAMESPACE = 'erase-namespace'
 
 
 @pytest.fixture
@@ -341,3 +342,94 @@ def test_func_def_constexpr(tmp_path, input_path):
     all_transforms = collect_all_transforms(p, state, input_path)
 
     assert all_transforms == set()
+
+
+def test_func_erase_namespace(tmp_path, input_path):
+    """Test the basic case for the removal of namespace contents."""
+    input_path.write_text(
+        """
+        namespace foo {
+        int x;
+        }
+        int y;
+        namespace {
+        int z;
+        }
+        """,
+    )
+    p, state = init_pass(ERASE_NAMESPACE, tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert (
+        b"""
+        namespace foo {}
+        int y;
+        namespace {
+        int z;
+        }
+        """
+        in all_transforms
+    )
+    assert (
+        b"""
+        namespace foo {
+        int x;
+        }
+        int y;
+        namespace {}
+        """
+        in all_transforms
+    )
+
+
+def test_func_erase_namespace_nested(tmp_path, input_path):
+    """Test the removal of contents of nested namespaces."""
+    input_path.write_text(
+        """
+        namespace foo {
+        int x;
+        namespace bar {
+        int y;
+        }
+        }
+        namespace a::b {
+        int z;
+        }
+        """,
+    )
+    p, state = init_pass(ERASE_NAMESPACE, tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert (
+        b"""
+        namespace foo {
+        int x;
+        namespace bar {}
+        }
+        namespace a::b {
+        int z;
+        }
+        """
+        in all_transforms
+    )
+    assert (
+        b"""
+        namespace foo {}
+        namespace a::b {
+        int z;
+        }
+        """
+        in all_transforms
+    )
+    assert (
+        b"""
+        namespace foo {
+        int x;
+        namespace bar {
+        int y;
+        }
+        }
+        namespace a::b {}
+        """
+        in all_transforms
+    )

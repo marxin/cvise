@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 3.14)
 project(treesitter_delta)
 
 add_executable(treesitter_delta
+    EraseNamespace.cpp
     Main.cpp
     ReplaceFunctionDefWithDecl.cpp
     TreeSitterUtils.cpp
