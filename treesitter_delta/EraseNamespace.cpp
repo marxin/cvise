@@ -13,8 +13,8 @@
 
 #include <tree_sitter/api.h>
 
-// Searches namespace definitions and matches their bodies (curly-surrounded
-// blocks).
+// Searches namespace definitions with nonempty bodies (at least one child in
+// the curly-surrounded block). Captures the body.
 constexpr char QueryStr[] = R"(
   (
     namespace_definition
