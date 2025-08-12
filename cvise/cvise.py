@@ -24,6 +24,7 @@ from cvise.passes.lines import LinesPass
 from cvise.passes.peep import PeepPass
 from cvise.passes.special import SpecialPass
 from cvise.passes.ternary import TernaryPass
+from cvise.passes.treesitter import TreeSitterPass
 from cvise.passes.unifdef import UnIfDefPass
 from cvise.utils import keyboard_interrupt_monitor
 from cvise.utils.error import CViseError, PassOptionError
@@ -88,6 +89,7 @@ class CVise:
         'peep': PeepPass,
         'special': SpecialPass,
         'ternary': TernaryPass,
+        'treesitter': TreeSitterPass,
         'unifdef': UnIfDefPass,
     }
 

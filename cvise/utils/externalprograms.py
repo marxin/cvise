@@ -11,6 +11,7 @@ def find_external_programs():
         'clang_delta': 'clang_delta',
         'clex': 'clex',
         'topformflat_hints': 'delta',
+        'treesitter_delta': 'treesitter_delta',
         'unifdef': None,
         'gcov-dump': None,
     }
