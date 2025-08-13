@@ -481,9 +481,10 @@ def do_reduce(args):
                 fs.write(b'===< PASS statistics >===\n')
                 fs.write(
                     (
-                        '  %-60s %8s %8s %8s %8s %15s\n'
+                        '  %-60s %14s %8s %8s %8s %8s %15s\n'
                         % (
                             'pass name',
+                            'bytes reduced',
                             'time (s)',
                             'time (%)',
                             'worked',
@@ -496,9 +497,10 @@ def do_reduce(args):
                 for pass_name, pass_data in pass_statistic.sorted_results:
                     fs.write(
                         (
-                            '  %-60s %8.2f %8.2f %8d %8d %15d\n'
+                            '  %-60s %14d %8.2f %8.2f %8d %8d %15d\n'
                             % (
                                 pass_name,
+                                -pass_data.total_size_delta,
                                 pass_data.total_seconds,
                                 100.0 * pass_data.total_seconds / (time_stop - time_start),
                                 pass_data.worked,
