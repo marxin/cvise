@@ -574,9 +574,17 @@ class TestManager:
     def save_extra_dir(self, test_case_path):
         extra_dir = self.get_extra_dir(self.EXTRA_DIR_PREFIX, self.MAX_EXTRA_DIRS)
         if extra_dir is not None:
-            os.mkdir(extra_dir)
-            shutil.move(test_case_path, extra_dir)
-            logging.info(f'Created extra directory {extra_dir} for you to look at later')
+            try:
+                os.mkdir(extra_dir)
+                shutil.move(test_case_path, extra_dir)
+            except OSError as e:
+                logging.warning('Failed to create extra directory %s: %s', extra_dir, e)
+                # Gracefully handle exceptions here - storing "extra" dirs is not critical for the reduction use case,
+                # and an exception can occur simply due to child processes of the interestingness test creating/deleting
+                # files in its work dir. Just make sure to delete the half-created extra dir.
+                rmfolder(extra_dir)
+            else:
+                logging.info(f'Created extra directory {extra_dir} for you to look at later')
 
     def process_done_futures(self) -> None:
         jobs_to_remove = []
