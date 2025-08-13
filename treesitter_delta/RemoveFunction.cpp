@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <map>
@@ -14,7 +15,6 @@
 #include <utility>
 #include <vector>
 
-#include <sys/types.h>
 #include <tree_sitter/api.h>
 
 // Searches for function declarations and definitions. Captures the function
