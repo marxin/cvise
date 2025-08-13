@@ -223,8 +223,8 @@ add_subdirectory(clang_delta)
 add_subdirectory(clex)
 add_subdirectory(cvise)
 add_subdirectory(delta)
-add_subdirectory(tree-sitter)
-add_subdirectory(tree-sitter-cpp)
+add_subdirectory(tree-sitter EXCLUDE_FROM_ALL)
+add_subdirectory(tree-sitter-cpp EXCLUDE_FROM_ALL)
 add_subdirectory(treesitter_delta)
 
 # Copy top-level cvise script
