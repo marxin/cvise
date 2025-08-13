@@ -6,6 +6,10 @@
 
 #include <tree_sitter/api.h>
 
+// Generates hints that remove C/C++ functions.
+//
+// A single attempt (hint) is made for all definitions/declarations that share
+// the same name; file/namespace/class scopes are ignored.
 class FunctionRemover {
 public:
   FunctionRemover();
