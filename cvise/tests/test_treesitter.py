@@ -7,6 +7,7 @@ from cvise.utils.externalprograms import find_external_programs
 
 REPLACE_FUNC_DEF = 'replace-function-def-with-decl'
 ERASE_NAMESPACE = 'erase-namespace'
+REMOVE_FUNCTION = 'remove-function'
 
 
 @pytest.fixture
@@ -431,5 +432,178 @@ def test_func_erase_namespace_nested(tmp_path, input_path):
         }
         namespace a::b {}
         """
+        in all_transforms
+    )
+
+
+def test_remove_func(tmp_path, input_path):
+    input_path.write_text(
+        """
+        int f() {
+          return 42;
+        }
+        class A {
+          void g() {}
+        };
+        """,
+    )
+    p, state = init_pass(REMOVE_FUNCTION, tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert (
+        b"""
+        \n        class A {
+          void g() {}
+        };
+        """
+        in all_transforms
+    )
+    assert (
+        b"""
+        int f() {
+          return 42;
+        }
+        class A {
+          \n        };
+        """
+        in all_transforms
+    )
+
+
+def test_remove_func_template(tmp_path, input_path):
+    input_path.write_text(
+        """
+        template <typename T>
+        void f() {}
+        template <typename U>
+        template <typename T>
+        void A<U>::g() {}
+        """,
+    )
+    p, state = init_pass(REMOVE_FUNCTION, tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert (
+        b"""
+        \n        template <typename U>
+        template <typename T>
+        void A<U>::g() {}
+        """
+        in all_transforms
+    )
+
+    assert (
+        b"""
+        template <typename T>
+        void f() {}
+        \n        """
+        in all_transforms
+    )
+
+
+def test_remove_func_special(tmp_path, input_path):
+    input_path.write_text(
+        """
+        class A {
+          A() {}
+          ~A() {}
+        };
+        """,
+    )
+    p, state = init_pass(REMOVE_FUNCTION, tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert (
+        b"""
+        class A {
+          \n          ~A() {}
+        };
+        """
+        in all_transforms
+    )
+    assert (
+        b"""
+        class A {
+          A() {}
+          \n        };
+        """
+        in all_transforms
+    )
+
+
+def test_remove_func_outofline(tmp_path, input_path):
+    input_path.write_text(
+        """
+        class A {
+          void f();
+          class B {
+            void g();
+          };
+        };
+        void A::f() {}
+        void A::B::g() {}
+        """,
+    )
+    p, state = init_pass(REMOVE_FUNCTION, tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert (
+        b"""
+        class A {
+          \n          class B {
+            void g();
+          };
+        };
+        \n        void A::B::g() {}
+        """
+        in all_transforms
+    )
+    assert (
+        b"""
+        class A {
+          void f();
+          class B {
+            \n          };
+        };
+        void A::f() {}
+        \n        """
+        in all_transforms
+    )
+
+
+def test_remove_func_grouping_related(tmp_path, input_path):
+    """Test that function removal attempts removing all instances of a function with a given name."""
+    input_path.write_text(
+        """
+        class A {
+          void f() {}
+        };
+        void g() {}
+        class B : public A {
+          void f() {}
+        };
+        class C {
+          class D : public A {
+            void f();
+          };
+        };
+        void C::D::f() {}
+        """,
+    )
+    p, state = init_pass(REMOVE_FUNCTION, tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert (
+        b"""
+        class A {
+          \n        };
+        void g() {}
+        class B : public A {
+          \n        };
+        class C {
+          class D : public A {
+            \n          };
+        };
+        \n        """
         in all_transforms
     )
