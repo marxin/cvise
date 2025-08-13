@@ -1049,6 +1049,26 @@ class TestClangDelta(unittest.TestCase):
     def test_rename_var_rename_var(self):
         self.check_clang_delta('rename-var/rename-var.c', '--transformation=rename-var --counter=1')
 
+    def test_replace_derived_class_replace_dependent_typedef_1_1(self):
+        self.check_clang_delta(
+            'replace-dependent-typedef/test1.cc',
+            '--transformation=replace-dependent-typedef --counter=1',
+        )
+
+    def test_replace_derived_class_replace_dependent_typedef_1_2(self):
+        self.check_clang_delta(
+            'replace-dependent-typedef/test1.cc',
+            '--transformation=replace-dependent-typedef --counter=2',
+            'replace-dependent-typedef/test1.output2',
+        )
+
+    def test_replace_derived_class_replace_dependent_typedef_1_3(self):
+        self.check_clang_delta(
+            'replace-dependent-typedef/test1.cc',
+            '--transformation=replace-dependent-typedef --counter=3',
+            'replace-dependent-typedef/test1.output3',
+        )
+
     def test_replace_derived_class_replace_derived1(self):
         self.check_clang_delta(
             'replace-derived-class/replace-derived1.cpp',

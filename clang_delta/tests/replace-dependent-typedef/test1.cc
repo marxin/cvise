@@ -1,0 +1,12 @@
+typedef long xx_t;
+typedef xx_t xx;
+
+template <class T> struct S { typedef T type; };
+struct A { };
+struct B { typedef S<A>::type type; };
+
+template <typename T>
+struct C {
+  typedef int Inner;
+  typedef C::Inner Bar;
+};
