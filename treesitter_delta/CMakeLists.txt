@@ -6,8 +6,8 @@ project(treesitter_delta)
 
 add_executable(treesitter_delta
     EraseNamespace.cpp
-    RemoveFunction.cpp
     Main.cpp
+    RemoveFunction.cpp
     ReplaceFunctionDefWithDecl.cpp
     TreeSitterUtils.cpp
 )
