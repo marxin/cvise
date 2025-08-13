@@ -97,8 +97,8 @@ static void getMatchCaptures(const TSQueryMatch &Match,
       continue;
     }
     Name = getNodeText(N, FileContents);
-    if (Capture == 2)
-      Name = "~" + Name; // destructor;
+    if (Capture == 2) // destructor
+      Name = "~" + Name;
   }
 }
 
