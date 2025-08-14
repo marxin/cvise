@@ -16,7 +16,7 @@ import sys
 import tempfile
 import time
 import traceback
-from typing import Any, Callable, Dict, List, Mapping, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Set, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
@@ -102,14 +102,14 @@ class TestEnvironment:
         state,
         order,
         test_script,
-        folder,
-        test_case,
-        all_test_cases,
+        folder: Path,
+        test_case: Path,
+        all_test_cases: Set[Path],
         transform,
         pid_queue=None,
     ):
         self.state = state
-        self.folder = folder
+        self.folder: Path = folder
         self.base_size = None
         self.test_script = test_script
         self.exitcode = None
@@ -118,9 +118,9 @@ class TestEnvironment:
         self.transform = transform
         self.pid_queue = pid_queue
         self.pwd = os.getcwd()
-        self.test_case = test_case
+        self.test_case: Path = test_case
         self.base_size = test_case.stat().st_size
-        self.all_test_cases = all_test_cases
+        self.all_test_cases: Set[Path] = all_test_cases
 
         # Copy files to the created folder
         for test_case in all_test_cases:
@@ -132,7 +132,7 @@ class TestEnvironment:
         return self.base_size - self.test_case_path.stat().st_size
 
     @property
-    def test_case_path(self):
+    def test_case_path(self) -> Path:
         return self.folder / self.test_case
 
     @property
@@ -148,9 +148,7 @@ class TestEnvironment:
     def run(self):
         try:
             # transform by state
-            (result, self.state) = self.transform(
-                str(self.test_case_path), self.state, ProcessEventNotifier(self.pid_queue)
-            )
+            (result, self.state) = self.transform(self.test_case_path, self.state, ProcessEventNotifier(self.pid_queue))
             self.result = result
             if self.result != PassResult.OK:
                 return self
@@ -317,10 +315,10 @@ class TestManager:
     def __init__(
         self,
         pass_statistic,
-        test_script,
+        test_script: Path,
         timeout,
         save_temps,
-        test_cases,
+        test_cases: List[Path],
         parallel_tests,
         no_cache,
         skip_key_off,
@@ -334,12 +332,12 @@ class TestManager:
         skip_after_n_transforms,
         stopping_threshold,
     ):
-        self.test_script = Path(test_script).absolute()
+        self.test_script: Path = test_script.absolute()
         self.timeout = timeout
         self.save_temps = save_temps
         self.pass_statistic = pass_statistic
-        self.test_cases = set()
-        self.test_cases_modes = {}
+        self.test_cases: Set[Path] = set()
+        self.test_cases_modes: Dict[Path, int] = {}
         self.parallel_tests = parallel_tests
         self.no_cache = no_cache
         self.skip_key_off = skip_key_off
@@ -407,7 +405,7 @@ class TestManager:
             test_case.chmod(self.test_cases_modes[test_case])
 
     @classmethod
-    def is_valid_test(cls, test_script):
+    def is_valid_test(cls, test_script: Path):
         for mode in {os.F_OK, os.X_OK}:
             if not os.access(test_script, mode):
                 return False
@@ -422,7 +420,7 @@ class TestManager:
         return sorted(self.test_cases, key=lambda x: x.stat().st_size, reverse=True)
 
     @staticmethod
-    def get_file_size(files):
+    def get_file_size(files: Iterable[Path]):
         return sum(f.stat().st_size for f in files)
 
     @property
@@ -430,7 +428,7 @@ class TestManager:
         return self.get_line_count(self.test_cases)
 
     @staticmethod
-    def get_line_count(files):
+    def get_line_count(files: Iterable[Path]):
         lines = 0
         for file in files:
             with open(file, 'rb') as f:
@@ -446,7 +444,7 @@ class TestManager:
                 shutil.copy2(f, orig_file)
 
     @staticmethod
-    def check_file_permissions(path, modes, error):
+    def check_file_permissions(path: Path, modes, error):
         for m in modes:
             if not os.access(path, m):
                 if error is not None:
@@ -457,7 +455,7 @@ class TestManager:
         return True
 
     @staticmethod
-    def get_extra_dir(prefix, max_number):
+    def get_extra_dir(prefix, max_number) -> Union[Path, None]:
         for i in range(0, max_number + 1):
             digits = int(round(math.log10(max_number), 0))
             extra_dir = Path(('{0}{1:0' + str(digits) + 'd}').format(prefix, i))
@@ -492,12 +490,13 @@ class TestManager:
                 f'Please consider tarring up {crash_dir} and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.'
             )
 
-        with (crash_dir / 'PASS_BUG_INFO.TXT').open(mode='w') as info_file:
-            info_file.write(f'Package: {CVise.Info.PACKAGE_STRING}\n')
-            info_file.write(f'Git version: {CVise.Info.GIT_VERSION}\n')
-            info_file.write(f'LLVM version: {CVise.Info.LLVM_VERSION}\n')
-            info_file.write(f'System: {str(platform.uname())}\n')
-            info_file.write(PassBugError.MSG.format(job.pass_, problem, test_env.state, crash_dir))
+        (crash_dir / 'PASS_BUG_INFO.TXT').write_text(
+            f'Package: {CVise.Info.PACKAGE_STRING}\n'
+            + f'Git version: {CVise.Info.GIT_VERSION}\n'
+            + f'LLVM version: {CVise.Info.LLVM_VERSION}\n'
+            + f'System: {str(platform.uname())}\n'
+            + PassBugError.MSG.format(job.pass_, problem, test_env.state, crash_dir)
+        )
 
         if self.die_on_pass_bug:
             raise PassBugError(job.pass_, problem, test_env.state, crash_dir)
@@ -571,7 +570,7 @@ class TestManager:
         while self.jobs:
             self.release_job(self.jobs[0])
 
-    def save_extra_dir(self, test_case_path):
+    def save_extra_dir(self, test_case_path: Path):
         extra_dir = self.get_extra_dir(self.EXTRA_DIR_PREFIX, self.MAX_EXTRA_DIRS)
         if extra_dir is not None:
             try:
@@ -796,15 +795,11 @@ class TestManager:
                     continue
 
                 if not self.no_cache:
-                    with open(test_case, mode='rb+') as tmp_file:
-                        test_case_before_pass = tmp_file.read()
-
-                        if cache_key in self.cache and test_case_before_pass in self.cache[cache_key]:
-                            tmp_file.seek(0)
-                            tmp_file.truncate(0)
-                            tmp_file.write(self.cache[cache_key][test_case_before_pass])
-                            logging.info(f'cache hit for {test_case}')
-                            continue
+                    test_case_before_pass = test_case.read_bytes()
+                    if cache_key in self.cache and test_case_before_pass in self.cache[cache_key]:
+                        test_case.write_bytes(self.cache[cache_key][test_case_before_pass])
+                        logging.info(f'cache hit for {test_case}')
+                        continue
 
                 self.skip = False
                 while any(c.can_start_job_now() for c in self.pass_contexts) and not self.skip:
@@ -854,11 +849,9 @@ class TestManager:
 
                 # Cache result of this pass
                 if not self.no_cache:
-                    with open(test_case, mode='rb') as tmp_file:
-                        if cache_key not in self.cache:
-                            self.cache[cache_key] = {}
-
-                        self.cache[cache_key][test_case_before_pass] = tmp_file.read()
+                    if cache_key not in self.cache:
+                        self.cache[cache_key] = {}
+                    self.cache[cache_key][test_case_before_pass] = test_case.read_bytes()
 
             self.restore_mode()
             self.remove_roots()

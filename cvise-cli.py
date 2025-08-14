@@ -425,13 +425,13 @@ def do_reduce(args):
 
     if args.to_utf8:
         for test_case in args.test_cases:
-            with open(test_case, 'rb') as fd:
-                encoding = chardet.detect(fd.read())['encoding']
-                if encoding not in ('ascii', 'utf-8'):
-                    logging.info(f'Converting {test_case} file ({encoding} encoding) to UTF-8')
-                    data = open(test_case, encoding=encoding).read()
-                    with open(test_case, 'w') as w:
-                        w.write(data)
+            test_case_path = Path(test_case)
+            encoding = chardet.detect(test_case_path.read_bytes())['encoding']
+            if encoding not in ('ascii', 'utf-8'):
+                logging.info(f'Converting {test_case} file ({encoding} encoding) to UTF-8')
+                with open(test_case, encoding=encoding) as f:
+                    data = f.read()
+                test_case_path.write_text(data)
 
     script = None
     if args.commands:
@@ -445,10 +445,10 @@ def do_reduce(args):
     try:
         test_manager = testing.TestManager(
             pass_statistic,
-            args.interestingness_test,
+            Path(args.interestingness_test),
             args.timeout,
             args.save_temps,
-            args.test_cases,
+            [Path(s) for s in args.test_cases],
             args.n,
             args.no_cache,
             args.skip_key_off,
@@ -517,9 +517,8 @@ def do_reduce(args):
                 fs.write(b'Reduced test-cases:\n\n')
                 for test_case in sorted(test_manager.test_cases):
                     fs.write(f'--- {test_case} ---\n'.encode())
-                    with open(test_case, 'rb') as test_case_file:
-                        fs.write(test_case_file.read())
-                        fs.write(b'\n')
+                    fs.write(test_case.read_bytes())
+                    fs.write(b'\n')
     finally:
         if script:
             os.unlink(script.name)

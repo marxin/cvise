@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+from typing import Set
 
 
 class CViseError(Exception):
@@ -23,7 +25,7 @@ class UnknownArgumentError(CViseError):
 
 
 class InvalidFileError(CViseError):
-    def __init__(self, path, error):
+    def __init__(self, path: Path, error):
         self.path = path
         self.error = error
 
@@ -47,7 +49,7 @@ class InvalidTestCaseError(InvalidFileError):
 
 
 class AbsolutePathTestCaseError(CViseError):
-    def __init__(self, path):
+    def __init__(self, path: Path):
         self.path = path
 
     def __str__(self):
@@ -55,7 +57,7 @@ class AbsolutePathTestCaseError(CViseError):
 
 
 class InvalidInterestingnessTestError(InvalidFileError):
-    def __init__(self, path):
+    def __init__(self, path: Path):
         super().__init__(path, None)
 
     def __str__(self):
@@ -63,7 +65,7 @@ class InvalidInterestingnessTestError(InvalidFileError):
 
 
 class ZeroSizeError(CViseError):
-    def __init__(self, test_cases):
+    def __init__(self, test_cases: Set[Path]):
         super().__init__()
         self.test_cases = test_cases
 
@@ -103,7 +105,7 @@ and creating an issue at https://github.com/marxin/cvise/issues and we will try 
 ***************************************************
 """
 
-    def __init__(self, current_pass, problem, state, crash_dir):
+    def __init__(self, current_pass, problem, state, crash_dir: Path):
         super().__init__()
         self.current_pass = current_pass
         self.state = state
@@ -115,7 +117,7 @@ and creating an issue at https://github.com/marxin/cvise/issues and we will try 
 
 
 class InsaneTestCaseError(CViseError):
-    def __init__(self, test_cases, test):
+    def __init__(self, test_cases: Set[Path], test: Path):
         super().__init__()
         self.test_cases = test_cases
         self.test = test

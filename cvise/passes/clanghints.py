@@ -1,5 +1,6 @@
 import logging
 import msgspec
+from pathlib import Path
 import shlex
 import subprocess
 import time
@@ -48,7 +49,7 @@ class ClangHintsPass(HintBasedPass):
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
 
-    def new(self, test_case, tmp_dir, job_timeout, *args, **kwargs):
+    def new(self, test_case: Path, tmp_dir: Path, job_timeout, *args, **kwargs):
         # Choose the best standard unless the user provided one.
         std_choices = [self.user_clang_delta_std] if self.user_clang_delta_std else CLANG_STD_CHOICES
         best_std = None
@@ -84,12 +85,12 @@ class ClangHintsPass(HintBasedPass):
         hint_state = self.new_from_hints(best_bundle, tmp_dir)
         return ClangState.wrap(hint_state, best_std)
 
-    def advance(self, test_case, state):
+    def advance(self, test_case: Path, state):
         new_state = super().advance(test_case, state)
         # Re-attach the remembered standard.
         return ClangState.wrap(new_state, state.clang_std)
 
-    def advance_on_success(self, test_case, state, job_timeout, *args, **kwargs):
+    def advance_on_success(self, test_case: Path, state, job_timeout, *args, **kwargs):
         # Keep using the same standard as the one chosen in new() - repeating the choose procedure on every successful
         # reduction would be too costly.
         try:
@@ -100,13 +101,13 @@ class ClangHintsPass(HintBasedPass):
         new_state = self.advance_on_success_from_hints(hints, state)
         return ClangState.wrap(new_state, state.clang_std)
 
-    def generate_hints_for_standard(self, test_case: str, std: str, timeout: int) -> HintBundle:
+    def generate_hints_for_standard(self, test_case: Path, std: str, timeout: int) -> HintBundle:
         cmd = [
             self.external_programs['clang_delta'],
             f'--transformation={self.arg}',
             f'--std={std}',
             '--generate-hints',
-            test_case,
+            str(test_case),
         ]
 
         logging.debug(shlex.join(str(s) for s in cmd))

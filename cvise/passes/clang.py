@@ -1,9 +1,7 @@
 import logging
-import os
-import shutil
+from pathlib import Path
 
 from cvise.passes.abstract import AbstractPass, PassResult
-from cvise.utils.misc import CloseableTemporaryFile
 
 
 class ClangPass(AbstractPass):
@@ -15,37 +13,33 @@ class ClangPass(AbstractPass):
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
 
-    def new(self, test_case, *args, **kwargs):
+    def new(self, test_case: Path, *args, **kwargs):
         return 1
 
-    def advance(self, test_case, state):
+    def advance(self, test_case: Path, state):
         return state + 1
 
-    def advance_on_success(self, test_case, state, *args, **kwargs):
+    def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return state
 
-    def transform(self, test_case, state, process_event_notifier):
-        tmp = os.path.dirname(test_case)
-        with CloseableTemporaryFile(mode='w', dir=tmp) as tmp_file:
-            args = [
-                self.external_programs['clang_delta'],
-                f'--transformation={self.arg}',
-                f'--counter={state}',
-            ]
-            if self.user_clang_delta_std:
-                args.append(f'--std={self.user_clang_delta_std}')
-            cmd = args + [test_case]
+    def transform(self, test_case: Path, state, process_event_notifier):
+        args = [
+            self.external_programs['clang_delta'],
+            f'--transformation={self.arg}',
+            f'--counter={state}',
+        ]
+        if self.user_clang_delta_std:
+            args.append(f'--std={self.user_clang_delta_std}')
+        cmd = args + [str(test_case)]
 
-            logging.debug(' '.join(cmd))
+        logging.debug(' '.join(cmd))
 
-            stdout, _, returncode = process_event_notifier.run_process(cmd)
-            if returncode == 0:
-                tmp_file.write(stdout.decode())
-                tmp_file.close()
-                shutil.copy(tmp_file.name, test_case)
-                return (PassResult.OK, state)
+        stdout, _, returncode = process_event_notifier.run_process(cmd)
+        if returncode == 0:
+            test_case.write_bytes(stdout)
+            return (PassResult.OK, state)
+        else:
+            if returncode == 255 or returncode == 1:
+                return (PassResult.STOP, state)
             else:
-                if returncode == 255 or returncode == 1:
-                    return (PassResult.STOP, state)
-                else:
-                    return (PassResult.ERROR, state)
+                return (PassResult.ERROR, state)

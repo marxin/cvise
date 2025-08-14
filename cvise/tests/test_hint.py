@@ -1,21 +1,22 @@
 import json
 import jsonschema
+from pathlib import Path
 import pytest
 
 from cvise.utils.hint import apply_hints, HintBundle, load_hints, store_hints, HINT_SCHEMA
 
 
 @pytest.fixture
-def tmp_file(tmp_path):
+def tmp_file(tmp_path: Path) -> Path:
     return tmp_path / 'file.txt'
 
 
 @pytest.fixture
-def tmp_hints_file(tmp_path):
+def tmp_hints_file(tmp_path: Path) -> Path:
     return tmp_path / 'hints.zst'
 
 
-def test_apply_hints_delete_prefix(tmp_file):
+def test_apply_hints_delete_prefix(tmp_file: Path):
     tmp_file.write_text('Foo bar')
     hint = {'p': [{'l': 0, 'r': 4}]}
     jsonschema.validate(hint, schema=HINT_SCHEMA)
@@ -26,7 +27,7 @@ def test_apply_hints_delete_prefix(tmp_file):
     assert new_data == b'bar'
 
 
-def test_apply_hints_delete_suffix(tmp_file):
+def test_apply_hints_delete_suffix(tmp_file: Path):
     tmp_file.write_text('Foo bar')
     hint = {'p': [{'l': 3, 'r': 7}]}
     jsonschema.validate(hint, schema=HINT_SCHEMA)
@@ -37,7 +38,7 @@ def test_apply_hints_delete_suffix(tmp_file):
     assert new_data == b'Foo'
 
 
-def test_apply_hints_delete_middle(tmp_file):
+def test_apply_hints_delete_middle(tmp_file: Path):
     tmp_file.write_text('Foo bar baz')
     hint = {'p': [{'l': 3, 'r': 7}]}
     jsonschema.validate(hint, schema=HINT_SCHEMA)
@@ -48,7 +49,7 @@ def test_apply_hints_delete_middle(tmp_file):
     assert new_data == b'Foo baz'
 
 
-def test_apply_hints_delete_middle_multiple(tmp_file):
+def test_apply_hints_delete_middle_multiple(tmp_file: Path):
     tmp_file.write_text('Foo bar baz')
     hint1 = {'p': [{'l': 3, 'r': 4}]}
     hint2 = {'p': [{'l': 7, 'r': 8}]}
@@ -62,7 +63,7 @@ def test_apply_hints_delete_middle_multiple(tmp_file):
     assert new_data == b'Foobarbaz'
 
 
-def test_apply_hints_delete_all(tmp_file):
+def test_apply_hints_delete_all(tmp_file: Path):
     tmp_file.write_text('Foo bar')
     hint = {'p': [{'l': 0, 'r': 7}]}
     jsonschema.validate(hint, schema=HINT_SCHEMA)
@@ -73,7 +74,7 @@ def test_apply_hints_delete_all(tmp_file):
     assert new_data == b''
 
 
-def test_apply_hints_delete_touching(tmp_file):
+def test_apply_hints_delete_touching(tmp_file: Path):
     tmp_file.write_text('Foo bar baz')
     # It's essentially the deletion of [3..7).
     hint1 = {'p': [{'l': 3, 'r': 4}]}
@@ -89,7 +90,7 @@ def test_apply_hints_delete_touching(tmp_file):
     assert new_data == b'Foo baz'
 
 
-def test_apply_hints_delete_overlapping(tmp_file):
+def test_apply_hints_delete_overlapping(tmp_file: Path):
     tmp_file.write_text('Foo bar baz')
     # It's essentially the deletion of [3..7).
     hint1 = {'p': [{'l': 3, 'r': 6}]}
@@ -104,7 +105,7 @@ def test_apply_hints_delete_overlapping(tmp_file):
     assert new_data == b'Foo baz'
 
 
-def test_apply_hints_delete_nested(tmp_file):
+def test_apply_hints_delete_nested(tmp_file: Path):
     tmp_file.write_text('Foo bar baz')
     hint1 = {'p': [{'l': 4, 'r': 6}]}
     hint2 = {'p': [{'l': 3, 'r': 7}]}
@@ -118,7 +119,7 @@ def test_apply_hints_delete_nested(tmp_file):
     assert new_data == b'Foo baz'
 
 
-def test_apply_hints_replace_with_shorter(tmp_file):
+def test_apply_hints_replace_with_shorter(tmp_file: Path):
     """Test a hint replacing a fragment with a shorter value."""
     tmp_file.write_text('Foo foobarbaz baz')
     vocab = ['xyz']
@@ -131,7 +132,7 @@ def test_apply_hints_replace_with_shorter(tmp_file):
     assert new_data == b'Foo xyz baz'
 
 
-def test_apply_hints_replace_with_longer(tmp_file):
+def test_apply_hints_replace_with_longer(tmp_file: Path):
     """Test a hint replacing a fragment with a longer value."""
     tmp_file.write_text('Foo x baz')
     vocab = ['z', 'abacaba']
@@ -144,7 +145,7 @@ def test_apply_hints_replace_with_longer(tmp_file):
     assert new_data == b'Foo abacaba baz'
 
 
-def test_apply_hints_replacement_inside_deletion(tmp_file):
+def test_apply_hints_replacement_inside_deletion(tmp_file: Path):
     """Test that a replacement is a no-op if happening inside a to-be-deleted fragment."""
     tmp_file.write_text('Foo bar baz')
     vocab = ['x']
@@ -160,7 +161,7 @@ def test_apply_hints_replacement_inside_deletion(tmp_file):
     assert new_data == b'Foo  baz'
 
 
-def test_apply_hints_deletion_inside_replacement(tmp_file):
+def test_apply_hints_deletion_inside_replacement(tmp_file: Path):
     """Test that a deletion is a no-op if happening inside a to-be-replaced fragment."""
     tmp_file.write_text('Foo bar baz')
     vocab = ['some']
@@ -176,7 +177,7 @@ def test_apply_hints_deletion_inside_replacement(tmp_file):
     assert new_data == b'Foo some baz'
 
 
-def test_apply_hints_replacement_of_deleted_prefix(tmp_file):
+def test_apply_hints_replacement_of_deleted_prefix(tmp_file: Path):
     """Test that a deletion takes precedence over a replacement of the same substring's prefix.
 
     This covers the specific implementation detail of conflict resolution, beyond the simple rule "the leftmost hint
@@ -195,7 +196,7 @@ def test_apply_hints_replacement_of_deleted_prefix(tmp_file):
     assert new_data == b'Foo  baz'
 
 
-def test_apply_hints_replacement_and_deletion_touching(tmp_file):
+def test_apply_hints_replacement_and_deletion_touching(tmp_file: Path):
     """Test that deletions and replacements in touching, but not overlapping, fragments are applied independently."""
     tmp_file.write_text('Foo bar baz')
     vocab = ['some']
@@ -212,7 +213,7 @@ def test_apply_hints_replacement_and_deletion_touching(tmp_file):
     assert new_data == b'Foo somebaz'
 
 
-def test_apply_hints_overlapping_replacements(tmp_file):
+def test_apply_hints_overlapping_replacements(tmp_file: Path):
     """Test overlapping replacements are handled gracefully.
 
     As there's no ideal solution for this kind of merge conflict, the main goal is to verify the implementation doesn't
@@ -231,7 +232,7 @@ def test_apply_hints_overlapping_replacements(tmp_file):
     assert new_data == b'afoo'
 
 
-def test_apply_hints_multiple_bundles(tmp_file):
+def test_apply_hints_multiple_bundles(tmp_file: Path):
     tmp_file.write_text('foobar')
     hint02 = {'p': [{'l': 0, 'r': 2}]}
     hint13 = {'p': [{'l': 1, 'r': 3}]}
@@ -247,7 +248,7 @@ def test_apply_hints_multiple_bundles(tmp_file):
     assert new_data == b'ar'
 
 
-def test_apply_hints_utf8(tmp_file):
+def test_apply_hints_utf8(tmp_file: Path):
     tmp_file.write_text('Brötchen 🍴')
     hint1 = {'p': [{'l': 0, 'r': 1}, {'l': 5, 'r': 7}]}
     hint2 = {'p': [{'l': 10, 'r': 14}]}
@@ -264,7 +265,7 @@ def test_apply_hints_utf8(tmp_file):
     assert result2 == 'Brötchen '.encode()
 
 
-def test_apply_hints_non_unicode(tmp_file):
+def test_apply_hints_non_unicode(tmp_file: Path):
     tmp_file.write_bytes(b'\0F\xffoo')
     hint = {'p': [{'l': 2, 'r': 3}]}
     jsonschema.validate(hint, schema=HINT_SCHEMA)
@@ -275,7 +276,7 @@ def test_apply_hints_non_unicode(tmp_file):
     assert new_data == b'\0Foo'
 
 
-def test_apply_hints_statistics(tmp_file):
+def test_apply_hints_statistics(tmp_file: Path):
     tmp_file.write_text('Foo bar baz')
     hint03 = {'p': [{'l': 0, 'r': 3}]}
     hint07 = {'p': [{'l': 0, 'r': 7}]}
@@ -305,7 +306,7 @@ def test_store_load_hints(tmp_hints_file):
     assert load_hints(tmp_hints_file, 1, 2) == HintBundle(vocabulary=vocab, hints=[hint2])
 
 
-def test_hints_storage_compression(tmp_file):
+def test_hints_storage_compression(tmp_file: Path):
     COUNT = 10000
     hints = [{'p': [{'l': i, 'r': i + 1}]} for i in range(COUNT)]
     bundle = HintBundle(hints=hints)

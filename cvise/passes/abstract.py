@@ -2,6 +2,7 @@ import copy
 from dataclasses import dataclass
 from enum import auto, Enum, unique
 import logging
+from pathlib import Path
 import random
 import shutil
 import subprocess
@@ -171,16 +172,16 @@ class AbstractPass:
     def check_prerequisites(self):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'check_prerequisites'!")
 
-    def new(self, test_case, tmp_dir, job_timeout):
+    def new(self, test_case: Path, tmp_dir: Path, job_timeout):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'new'!")
 
-    def advance(self, test_case, state):
+    def advance(self, test_case: Path, state):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance'!")
 
-    def advance_on_success(self, test_case, state, succeeded_state, job_timeout, **kwargs):
+    def advance_on_success(self, test_case: Path, state, succeeded_state, job_timeout, **kwargs):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance_on_success'!")
 
-    def transform(self, test_case, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'transform'!")
 
 

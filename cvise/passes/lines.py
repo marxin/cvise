@@ -1,4 +1,5 @@
 import msgspec
+from pathlib import Path
 import subprocess
 
 from cvise.passes.hint_based import HintBasedPass
@@ -9,14 +10,14 @@ class LinesPass(HintBasedPass):
     def check_prerequisites(self):
         return self.check_external_program('topformflat_hints')
 
-    def generate_hints(self, test_case):
+    def generate_hints(self, test_case: Path):
         if self.arg == 'None':
             # None means no topformflat
             return self.generate_hints_for_text_lines(test_case)
         else:
             return self.generate_topformflat_hints(test_case)
 
-    def generate_hints_for_text_lines(self, test_case: str) -> HintBundle:
+    def generate_hints_for_text_lines(self, test_case: Path) -> HintBundle:
         """Generate a hint per each line in the input as written."""
         hints = []
         with open(test_case, 'rb') as in_file:
@@ -27,7 +28,7 @@ class LinesPass(HintBasedPass):
                 file_pos = end_pos
         return HintBundle(hints=hints)
 
-    def generate_topformflat_hints(self, test_case: str) -> HintBundle:
+    def generate_topformflat_hints(self, test_case: Path) -> HintBundle:
         """Generate hints via the modified topformflat tool.
 
         A single hint here is, roughly, a curly brace surrounded block at the

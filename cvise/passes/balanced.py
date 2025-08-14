@@ -1,5 +1,6 @@
 from enum import Enum, auto, unique
 from dataclasses import dataclass
+from pathlib import Path
 import re
 from typing import List, Union
 
@@ -28,7 +29,7 @@ class BalancedPass(HintBasedPass):
     def check_prerequisites(self):
         return True
 
-    def generate_hints(self, test_case):
+    def generate_hints(self, test_case: Path):
         config = self.__get_config()
         open_ch = ord(config.search.value[0])
         close_ch = ord(config.search.value[1])
@@ -37,8 +38,7 @@ class BalancedPass(HintBasedPass):
             assert config.to_delete == Deletion.ALL
             vocabulary.append(config.replacement)
 
-        with open(test_case, 'rb') as in_file:
-            contents = in_file.read()
+        contents = test_case.read_bytes()
         prefixes = (
             [m.span() for m in re.finditer(config.search_prefix.encode(), contents)] if config.search_prefix else []
         )

@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import tempfile
 import unittest
 
@@ -8,154 +8,112 @@ from cvise.tests.testabstract import iterate_pass
 
 class PeepATestCase(unittest.TestCase):
     def setUp(self):
+        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = PeepPass('a')
 
     def test_a_1(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write("<That's a small test> whether the transformation works!\n")
+        self.input_path.write_text("<That's a small test> whether the transformation works!\n")
 
-        iterate_pass(self.pass_, tmp_file.name)
+        iterate_pass(self.pass_, self.input_path)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, ' whether the transformation works\n')
 
     def test_a_2(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write("{That's a small test} whether the transformation works!\n")
+        self.input_path.write_text("{That's a small test} whether the transformation works!\n")
 
-        iterate_pass(self.pass_, tmp_file.name)
+        iterate_pass(self.pass_, self.input_path)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, ' whether the transformation works\n')
 
     def test_a_3(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write('namespace cvise {Some more content} which is not interesting!\n')
+        self.input_path.write_text('namespace cvise {Some more content} which is not interesting!\n')
 
-        iterate_pass(self.pass_, tmp_file.name)
+        iterate_pass(self.pass_, self.input_path)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, ' which is not interesting\n')
 
     def test_a_4(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write('namespace {Some more content} which is not interesting!\n')
+        self.input_path.write_text('namespace {Some more content} which is not interesting!\n')
 
-        iterate_pass(self.pass_, tmp_file.name)
+        iterate_pass(self.pass_, self.input_path)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, ' which is not interesting\n')
 
     def test_a_5(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write('struct test_t {} test;\n')
+        self.input_path.write_text('struct test_t {} test;\n')
 
-        iterate_pass(self.pass_, tmp_file.name)
+        iterate_pass(self.pass_, self.input_path)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, ' test\n')
 
     def test_success_a(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write('struct test_t {int a;} foo = {1};\n')
+        self.input_path.write_text('struct test_t {int a;} foo = {1};\n')
 
-        state = self.pass_.new(tmp_file.name)
-        (_result, state) = self.pass_.transform(tmp_file.name, state, None)
+        state = self.pass_.new(self.input_path)
+        (_result, state) = self.pass_.transform(self.input_path, state, None)
 
-        iterate_pass(self.pass_, tmp_file.name)
+        iterate_pass(self.pass_, self.input_path)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, ' foo \n')
 
 
 class PeepBTestCase(unittest.TestCase):
     def setUp(self):
+        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = PeepPass('b')
 
     def test_b_1(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write('struct test_t {} test;\n')
+        self.input_path.write_text('struct test_t {} test;\n')
 
-        iterate_pass(self.pass_, tmp_file.name)
+        iterate_pass(self.pass_, self.input_path)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, 'struct  {} ;\n')
 
     def test_success_b(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write('struct test_t {int a;} foo = {1};\n')
+        self.input_path.write_text('struct test_t {int a;} foo = {1};\n')
 
-        state = self.pass_.new(tmp_file.name)
-        (_result, state) = self.pass_.transform(tmp_file.name, state, None)
+        state = self.pass_.new(self.input_path)
+        (_result, state) = self.pass_.transform(self.input_path, state, None)
 
-        iterate_pass(self.pass_, tmp_file.name)
+        iterate_pass(self.pass_, self.input_path)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, 'struct  { ;}  = {};\n')
 
     def test_infinite_loop(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write(',0,')
+        self.input_path.write_text(',0,')
 
-        state = self.pass_.new(tmp_file.name)
-        (_result, state) = self.pass_.transform(tmp_file.name, state, None)
+        state = self.pass_.new(self.input_path)
+        (_result, state) = self.pass_.transform(self.input_path, state, None)
 
-        iterate_pass(self.pass_, tmp_file.name)
+        iterate_pass(self.pass_, self.input_path)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, ',,')
 
 
 class PeepCTestCase(unittest.TestCase):
     def setUp(self):
+        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = PeepPass('c')
 
     def test_c_1(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write('while   (a == b)\n{\n    int a = 4;\n    short b = 5;\n    break;\n}\n\nulong c = 18;\n')
+        self.input_path.write_text(
+            'while   (a == b)\n{\n    int a = 4;\n    short b = 5;\n    break;\n}\n\nulong c = 18;\n'
+        )
 
-        state = self.pass_.new(tmp_file.name)
-        (_, state) = self.pass_.transform(tmp_file.name, state, None)
+        state = self.pass_.new(self.input_path)
+        (_, state) = self.pass_.transform(self.input_path, state, None)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, '{\n    int a = 4;\n    short b = 5;\n    \n}\n\nulong c = 18;\n')

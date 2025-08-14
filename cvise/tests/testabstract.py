@@ -7,7 +7,7 @@ from cvise.passes.hint_based import HintState
 from cvise.utils.hint import HINT_SCHEMA_STRICT, HintBundle, load_hints
 
 
-def iterate_pass(current_pass, path, **kwargs):
+def iterate_pass(current_pass, path: Path, **kwargs) -> None:
     state = current_pass.new(path, **kwargs)
     while state is not None:
         (result, state) = current_pass.transform(path, state, ProcessEventNotifier(None))

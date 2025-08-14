@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import tempfile
 import unittest
 
@@ -9,90 +9,67 @@ from cvise.tests.testabstract import validate_stored_hints
 
 class CommentsTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir_ = self.enterContext(tempfile.TemporaryDirectory())
+        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = CommentsPass()
 
     def test_block(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write('This /* contains *** /* two */ /*comments*/!\n')
+        self.input_path.write_text('This /* contains *** /* two */ /*comments*/!\n')
 
-        state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
         validate_stored_hints(state)
-        (_, state) = self.pass_.transform(tmp_file.name, state, None)
+        (_, state) = self.pass_.transform(self.input_path, state, None)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, 'This  !\n')
 
     def test_line(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write('This ///contains //two\n //comments\n!\n')
+        self.input_path.write_text('This ///contains //two\n //comments\n!\n')
 
-        state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
         validate_stored_hints(state)
-        (_, state) = self.pass_.transform(tmp_file.name, state, None)
+        (_, state) = self.pass_.transform(self.input_path, state, None)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, 'This \n \n!\n')
 
     def test_success(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write('/*This*/ ///contains //two\n //comments\n!\n')
+        self.input_path.write_text('/*This*/ ///contains //two\n //comments\n!\n')
 
-        state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
         validate_stored_hints(state)
-        (result, state) = self.pass_.transform(tmp_file.name, state, None)
+        (result, state) = self.pass_.transform(self.input_path, state, None)
 
         while result == PassResult.OK and state is not None:
-            state = self.pass_.advance_on_success(tmp_file.name, state)
+            state = self.pass_.advance_on_success(self.input_path, state)
             if state is None:
                 break
-            (result, state) = self.pass_.transform(tmp_file.name, state, None)
+            (result, state) = self.pass_.transform(self.input_path, state, None)
 
-        with open(tmp_file.name) as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_text()
         self.assertEqual(variant, ' \n \n!\n')
 
     def test_no_success(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write('/*This*/ ///contains //two\n //comments\n!\n')
+        self.input_path.write_text('/*This*/ ///contains //two\n //comments\n!\n')
 
-        state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
         validate_stored_hints(state)
-        (result, state) = self.pass_.transform(tmp_file.name, state, None)
+        (result, state) = self.pass_.transform(self.input_path, state, None)
 
         while result == PassResult.OK and state is not None:
-            with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-                tmp_file.write('/*This*/ ///contains //two\n //comments\n!\n')
+            self.input_path.write_text('/*This*/ ///contains //two\n //comments\n!\n')
 
-            state = self.pass_.advance(tmp_file.name, state)
+            state = self.pass_.advance(self.input_path, state)
             if state is None:
                 break
-            (result, state) = self.pass_.transform(tmp_file.name, state, None)
-
-        os.unlink(tmp_file.name)
+            (result, state) = self.pass_.transform(self.input_path, state, None)
 
     def test_non_ascii(self):
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as tmp_file:
-            tmp_file.write(b'int x;\n// Streichholzsch\xc3\xa4chtelchen\nchar t[] = "nonutf\xff";\n// \xff\n')
+        self.input_path.write_bytes(b'int x;\n// Streichholzsch\xc3\xa4chtelchen\nchar t[] = "nonutf\xff";\n// \xff\n')
 
-        state = self.pass_.new(tmp_file.name, tmp_dir=self.tmp_dir_)
+        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
         validate_stored_hints(state)
-        (_, state) = self.pass_.transform(tmp_file.name, state, None)
+        (_, state) = self.pass_.transform(self.input_path, state, None)
 
-        with open(tmp_file.name, 'rb') as variant_file:
-            variant = variant_file.read()
-
-        os.unlink(tmp_file.name)
-
+        variant = self.input_path.read_bytes()
         self.assertEqual(variant, b'int x;\n\nchar t[] = "nonutf\xff";\n\n')

@@ -1,4 +1,6 @@
+from pathlib import Path
 import pytest
+from typing import Any, Tuple
 
 from cvise.passes.treesitter import TreeSitterPass
 from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
@@ -11,18 +13,18 @@ REMOVE_FUNCTION = 'remove-function'
 
 
 @pytest.fixture
-def input_path(tmp_path):
+def input_path(tmp_path: Path) -> Path:
     return tmp_path / 'input.cc'
 
 
-def init_pass(arg, tmp_dir, input_path):
+def init_pass(arg, tmp_dir: Path, input_path: Path) -> Tuple[TreeSitterPass, Any]:
     pass_ = TreeSitterPass(arg, find_external_programs())
     state = pass_.new(input_path, tmp_dir=tmp_dir)
     validate_stored_hints(state)
     return pass_, state
 
 
-def test_func_def_simple(tmp_path, input_path):
+def test_func_def_simple(tmp_path: Path, input_path: Path):
     """Test basic cases for the removal of function bodies."""
     input_path.write_text(
         """
@@ -73,7 +75,7 @@ def test_func_def_simple(tmp_path, input_path):
     assert len(all_transforms) == 3
 
 
-def test_func_def_class_method(tmp_path, input_path):
+def test_func_def_class_method(tmp_path: Path, input_path: Path):
     """Test removal of class methods or their bodies."""
     input_path.write_text(
         """
@@ -116,7 +118,7 @@ def test_func_def_class_method(tmp_path, input_path):
     )
 
 
-def test_func_def_class_constructor(tmp_path, input_path):
+def test_func_def_class_constructor(tmp_path: Path, input_path: Path):
     """Test removal of constructors or their bodies."""
     input_path.write_text(
         """
@@ -173,7 +175,7 @@ def test_func_def_class_constructor(tmp_path, input_path):
     )
 
 
-def test_func_def_class_destructor(tmp_path, input_path):
+def test_func_def_class_destructor(tmp_path: Path, input_path: Path):
     """Test removal of destructors or their bodies."""
     input_path.write_text(
         """
@@ -215,7 +217,7 @@ def test_func_def_class_destructor(tmp_path, input_path):
     )
 
 
-def test_func_def_regular_and_template_mix(tmp_path, input_path):
+def test_func_def_regular_and_template_mix(tmp_path: Path, input_path: Path):
     """Test removals of template functions are tackled separately from other functions."""
     input_path.write_text(
         """
@@ -265,7 +267,7 @@ def test_func_def_regular_and_template_mix(tmp_path, input_path):
     )
 
 
-def test_func_def_template(tmp_path, input_path):
+def test_func_def_template(tmp_path: Path, input_path: Path):
     """Test removal of template functions or their bodies."""
     input_path.write_text(
         """
@@ -327,7 +329,7 @@ def test_func_def_template(tmp_path, input_path):
     )
 
 
-def test_func_def_constexpr(tmp_path, input_path):
+def test_func_def_constexpr(tmp_path: Path, input_path: Path):
     """Test no removal happens for constexpr function bodies."""
     input_path.write_text(
         """
@@ -345,7 +347,7 @@ def test_func_def_constexpr(tmp_path, input_path):
     assert all_transforms == set()
 
 
-def test_func_erase_namespace(tmp_path, input_path):
+def test_func_erase_namespace(tmp_path: Path, input_path: Path):
     """Test the basic case for the removal of namespace contents."""
     input_path.write_text(
         """
@@ -383,7 +385,7 @@ def test_func_erase_namespace(tmp_path, input_path):
     )
 
 
-def test_func_erase_namespace_nested(tmp_path, input_path):
+def test_func_erase_namespace_nested(tmp_path: Path, input_path: Path):
     """Test the removal of contents of nested namespaces."""
     input_path.write_text(
         """
@@ -436,7 +438,7 @@ def test_func_erase_namespace_nested(tmp_path, input_path):
     )
 
 
-def test_remove_func(tmp_path, input_path):
+def test_remove_func(tmp_path: Path, input_path: Path):
     input_path.write_text(
         """
         int f() {
@@ -470,7 +472,7 @@ def test_remove_func(tmp_path, input_path):
     )
 
 
-def test_remove_func_template(tmp_path, input_path):
+def test_remove_func_template(tmp_path: Path, input_path: Path):
     input_path.write_text(
         """
         template <typename T>
@@ -501,7 +503,7 @@ def test_remove_func_template(tmp_path, input_path):
     )
 
 
-def test_remove_func_special(tmp_path, input_path):
+def test_remove_func_special(tmp_path: Path, input_path: Path):
     input_path.write_text(
         """
         class A {
@@ -531,7 +533,7 @@ def test_remove_func_special(tmp_path, input_path):
     )
 
 
-def test_remove_func_outofline(tmp_path, input_path):
+def test_remove_func_outofline(tmp_path: Path, input_path: Path):
     input_path.write_text(
         """
         class A {
@@ -571,7 +573,7 @@ def test_remove_func_outofline(tmp_path, input_path):
     )
 
 
-def test_remove_func_grouping_related(tmp_path, input_path):
+def test_remove_func_grouping_related(tmp_path: Path, input_path: Path):
     """Test that function removal attempts removing all instances of a function with a given name."""
     input_path.write_text(
         """

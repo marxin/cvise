@@ -1,3 +1,4 @@
+from pathlib import Path
 import re
 
 from cvise.passes.hint_based import HintBasedPass
@@ -8,10 +9,8 @@ class CommentsPass(HintBasedPass):
     def check_prerequisites(self):
         return True
 
-    def generate_hints(self, test_case):
-        with open(test_case, 'rb') as in_file:
-            prog = in_file.read()
-
+    def generate_hints(self, test_case: Path):
+        prog = test_case.read_bytes()
         hints = []
 
         # Remove all multiline comments - the pattern is:
