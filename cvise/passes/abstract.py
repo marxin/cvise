@@ -95,7 +95,7 @@ class BinaryState:
         return isinstance(other, BinaryState) and self._key() == other._key()
 
     def __hash__(self):
-        return hash(self.key())
+        return hash(self._key())
 
     def _key(self):
         return (self.instances, self.chunk, self.index)
