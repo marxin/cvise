@@ -1,4 +1,6 @@
+from pathlib import Path
 import pytest
+from typing import Any, Tuple
 
 from cvise.passes.lines import LinesPass
 from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
@@ -6,18 +8,18 @@ from cvise.utils.externalprograms import find_external_programs
 
 
 @pytest.fixture
-def input_path(tmp_path):
+def input_path(tmp_path: Path) -> Path:
     return tmp_path / 'input.cc'
 
 
-def init_pass(depth, tmp_dir, input_path):
+def init_pass(depth, tmp_dir: Path, input_path: Path) -> Tuple[LinesPass, Any]:
     pass_ = LinesPass(depth, find_external_programs())
     state = pass_.new(input_path, tmp_dir=tmp_dir)
     validate_stored_hints(state)
     return pass_, state
 
 
-def advance_until(pass_, state, input_path, predicate):
+def advance_until(pass_, state, input_path: Path, predicate):
     backup = input_path.read_bytes()
     while True:
         pass_.transform(input_path, state, process_event_notifier=None)
@@ -40,7 +42,7 @@ def is_valid_brace_sequence(s: bytes) -> bool:
     return balance == 0
 
 
-def test_func_namespace_level0(tmp_path, input_path):
+def test_func_namespace_level0(tmp_path: Path, input_path: Path):
     """Test that arg=0 deletes top-level functions and namespaces."""
     input_path.write_text(
         """
@@ -76,7 +78,7 @@ def test_func_namespace_level0(tmp_path, input_path):
         assert is_valid_brace_sequence(s)
 
 
-def test_func_namespace_level1(tmp_path, input_path):
+def test_func_namespace_level1(tmp_path: Path, input_path: Path):
     """Test that arg=1 deletes code inside top-level functions and namespaces."""
     input_path.write_text(
         """
@@ -130,7 +132,7 @@ def test_func_namespace_level1(tmp_path, input_path):
         assert is_valid_brace_sequence(s)
 
 
-def test_multiline_func_signature_level0(tmp_path, input_path):
+def test_multiline_func_signature_level0(tmp_path: Path, input_path: Path):
     """Test that arg=0 deletes a top-level function despite line breaks in the signature."""
     input_path.write_text(
         """
@@ -148,7 +150,7 @@ def test_multiline_func_signature_level0(tmp_path, input_path):
     assert len(all_transforms) == 1
 
 
-def test_multiline_func_signature_level1(tmp_path, input_path):
+def test_multiline_func_signature_level1(tmp_path: Path, input_path: Path):
     """Test that arg=1 deletes a nested function despite line breaks in the signature."""
     input_path.write_text(
         """
@@ -175,7 +177,7 @@ def test_multiline_func_signature_level1(tmp_path, input_path):
     assert len(all_transforms) == 1
 
 
-def test_class_with_methods_level0(tmp_path, input_path):
+def test_class_with_methods_level0(tmp_path: Path, input_path: Path):
     """Test that arg=0 deletes the whole class definition."""
     input_path.write_text(
         """
@@ -196,7 +198,7 @@ def test_class_with_methods_level0(tmp_path, input_path):
     assert len(all_transforms) == 1
 
 
-def test_class_with_methods_level1(tmp_path, input_path):
+def test_class_with_methods_level1(tmp_path: Path, input_path: Path):
     """Test that arg=1 deletes class methods."""
     input_path.write_text(
         """
@@ -250,7 +252,7 @@ def test_class_with_methods_level1(tmp_path, input_path):
         assert is_valid_brace_sequence(s)
 
 
-def test_class_with_methods_level2(tmp_path, input_path):
+def test_class_with_methods_level2(tmp_path: Path, input_path: Path):
     """Test that arg=2 deletes statements in class methods."""
     input_path.write_text(
         """
@@ -327,7 +329,7 @@ def test_class_with_methods_level2(tmp_path, input_path):
         assert is_valid_brace_sequence(s)
 
 
-def test_c_comment(tmp_path, input_path):
+def test_c_comment(tmp_path: Path, input_path: Path):
     """Test that a C comment is deleted as a whole."""
     input_path.write_text(
         """
@@ -361,7 +363,7 @@ def test_c_comment(tmp_path, input_path):
         assert (b'/*' in s) == (b'some' in s) == (b'comment' in s) == (b'*/' in s)
 
 
-def test_cpp_comment(tmp_path, input_path):
+def test_cpp_comment(tmp_path: Path, input_path: Path):
     """Test that a C++ comment is deleted as a whole."""
     input_path.write_text(
         """
@@ -386,7 +388,7 @@ def test_cpp_comment(tmp_path, input_path):
     assert len(all_transforms) == 3
 
 
-def test_eof_with_non_recognized_chunk_end(tmp_path, input_path):
+def test_eof_with_non_recognized_chunk_end(tmp_path: Path, input_path: Path):
     """Test the file terminating with a text that wouldn't be recognized as chunk end."""
     input_path.write_text(
         """
@@ -406,7 +408,7 @@ def test_eof_with_non_recognized_chunk_end(tmp_path, input_path):
     )
 
 
-def test_macro_level0(tmp_path, input_path):
+def test_macro_level0(tmp_path: Path, input_path: Path):
     """Test removal of preprocessor macros with arg=0."""
     input_path.write_text(
         """#ifndef FOO
@@ -491,7 +493,7 @@ def test_macro_level0(tmp_path, input_path):
     )
 
 
-def test_nested_macro_level0(tmp_path, input_path):
+def test_nested_macro_level0(tmp_path: Path, input_path: Path):
     """Test removal of preprocessor macros, placed inside a curly brace block, with arg=0."""
     input_path.write_text(
         """
@@ -509,7 +511,7 @@ def test_nested_macro_level0(tmp_path, input_path):
     assert len(all_transforms) == 1
 
 
-def test_nested_macro_level1(tmp_path, input_path):
+def test_nested_macro_level1(tmp_path: Path, input_path: Path):
     """Test removal of preprocessor macros, placed inside a curly brace block, with arg=1."""
     input_path.write_text(
         """
@@ -556,7 +558,7 @@ def test_nested_macro_level1(tmp_path, input_path):
     )
 
 
-def test_hash_character_not_macro_start(tmp_path, input_path):
+def test_hash_character_not_macro_start(tmp_path: Path, input_path: Path):
     """Test hash characters aren't mistakenly treated as macro/block start."""
     input_path.write_text(
         """
@@ -595,7 +597,7 @@ def test_hash_character_not_macro_start(tmp_path, input_path):
     )
 
 
-def test_transform_deletes_lines_range(tmp_path, input_path):
+def test_transform_deletes_lines_range(tmp_path: Path, input_path: Path):
     """Test various combinations of line deletion are attempted.
 
     This verifies the code performs the binary search or some similar strategy."""
@@ -680,7 +682,7 @@ def test_transform_deletes_lines_range(tmp_path, input_path):
     )
 
 
-def test_advance_on_success(tmp_path, input_path):
+def test_advance_on_success(tmp_path: Path, input_path: Path):
     """Test the scenario where successful advancements are interleaved with unsuccessful transforms."""
     input_path.write_text(
         """
@@ -707,7 +709,7 @@ def test_advance_on_success(tmp_path, input_path):
     )
 
 
-def test_arg_none(tmp_path, input_path):
+def test_arg_none(tmp_path: Path, input_path: Path):
     """Test that arg=None deletes individual lines as-is."""
     input_path.write_text(
         """
@@ -755,7 +757,7 @@ def test_arg_none(tmp_path, input_path):
 
 
 @pytest.mark.parametrize('pass_arg', [0, 'None'])
-def test_non_ascii(tmp_path, input_path, pass_arg):
+def test_non_ascii(tmp_path: Path, input_path: Path, pass_arg):
     input_path.write_bytes(
         b"""
         char *s = "Streichholzsch\xc3\xa4chtelchen";

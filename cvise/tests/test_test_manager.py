@@ -21,20 +21,20 @@ PARALLEL_TESTS = 10
 
 
 class StubPass(AbstractPass):
-    def new(self, test_case, *args, **kwargs):
+    def new(self, test_case: Path, *args, **kwargs):
         return 0
 
-    def advance(self, test_case, state):
+    def advance(self, test_case: Path, state):
         return state + 1
 
-    def advance_on_success(self, test_case, state, *args, **kwargs):
+    def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return state
 
 
 class NaiveLinePass(StubPass):
     """Simple real-world-like pass that removes a line at a time."""
 
-    def transform(self, test_case, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier):
         with open(test_case) as f:
             lines = f.readlines()
         if not lines:
@@ -51,14 +51,14 @@ class NaiveLinePass(StubPass):
 class AlwaysInvalidPass(StubPass):
     """Never succeeds."""
 
-    def transform(self, test_case, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier):
         return (PassResult.INVALID, state)
 
 
 class HungPass(StubPass):
     """A very slow pass, for testing timeouts."""
 
-    def transform(self, test_case, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier):
         INFINITY = 1000
         time.sleep(INFINITY)
         return (PassResult.INVALID, state)
@@ -71,7 +71,7 @@ class NInvalidThenLinesPass(NaiveLinePass):
         super().__init__()
         self.invalid_n = invalid_n
 
-    def transform(self, test_case, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier):
         if state < self.invalid_n:
             return (PassResult.INVALID, state)
         return super().transform(test_case, state, process_event_notifier)
@@ -80,14 +80,14 @@ class NInvalidThenLinesPass(NaiveLinePass):
 class OneOffLinesPass(NaiveLinePass):
     """Removes a single line but doesn't progress further."""
 
-    def advance_on_success(self, test_case, state, **kwargs):
+    def advance_on_success(self, test_case: Path, state, **kwargs):
         return None
 
 
 class AlwaysUnalteredPass(StubPass):
     """Simulates the "buggy OKs infinite number of times" scenario."""
 
-    def transform(self, test_case, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier):
         return (PassResult.OK, state)
 
 
@@ -96,7 +96,7 @@ class SlowUnalteredThenStoppingPass(StubPass):
 
     DELAY_SECS = 1  # the larger the number, the higher the chance of catching bugs
 
-    def transform(self, test_case, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier):
         if state == 0:
             time.sleep(self.DELAY_SECS)
             return (PassResult.OK, state)
@@ -112,7 +112,7 @@ class LetterRemovingPass(StubPass):
         super().__init__()
         self.letters_to_remove = letters_to_remove
 
-    def transform(self, test_case, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier):
         text = read_file(test_case)
         instances = 0
         for i, c in enumerate(text):
@@ -140,7 +140,7 @@ class TracingHintPass(LetterRemovingHintPass):
         super().__init__(arg)
         self.queue = queue
 
-    def transform(self, test_case, state, *args, **kwargs):
+    def transform(self, test_case: Path, state, *args, **kwargs):
         self.queue.put(self.arg)
         return super().transform(test_case, state, *args, **kwargs)
 
@@ -180,16 +180,15 @@ def cwd_to_tmp_path(tmp_path):
 
 
 @pytest.fixture
-def input_file(tmp_path):
-    RELATIVE_PATH = 'input.txt'
+def input_file(tmp_path: Path) -> Path:
+    RELATIVE_PATH = Path('input.txt')
     path = tmp_path / RELATIVE_PATH
-    with open(path, 'w') as f:
-        f.write(INPUT_DATA)
+    path.write_text(INPUT_DATA)
     return Path(RELATIVE_PATH)
 
 
 @pytest.fixture
-def interestingness_script():
+def interestingness_script() -> str:
     """The default interestingness script, which trivially returns success.
 
     Can be overridden in particular tests."""
@@ -207,7 +206,7 @@ def job_timeout() -> int:
 
 
 @pytest.fixture
-def manager(tmp_path, input_file, interestingness_script, job_timeout):
+def manager(tmp_path: Path, input_file: Path, interestingness_script, job_timeout):
     SAVE_TEMPS = False
     NO_CACHE = False
     SKIP_KEY_OFF = True  # tests shouldn't listen to keyboard
@@ -247,7 +246,7 @@ def manager(tmp_path, input_file, interestingness_script, job_timeout):
     )
 
 
-def test_succeed_via_naive_pass(input_file, manager):
+def test_succeed_via_naive_pass(input_file: Path, manager):
     """Check that we completely empty the file via the naive lines pass."""
     p = NaiveLinePass()
     manager.run_passes([p], interleaving=False)
@@ -255,7 +254,7 @@ def test_succeed_via_naive_pass(input_file, manager):
     assert bug_dir_count() == 0
 
 
-def test_succeed_via_n_one_off_passes(input_file, manager):
+def test_succeed_via_n_one_off_passes(input_file: Path, manager):
     """Check that we succeed after running one-off passes multiple times."""
     LINES = len(INPUT_DATA.splitlines())
     for lines in range(LINES, 0, -1):
@@ -266,7 +265,7 @@ def test_succeed_via_n_one_off_passes(input_file, manager):
     assert bug_dir_count() == 0
 
 
-def test_succeed_after_n_invalid_results(input_file, manager):
+def test_succeed_after_n_invalid_results(input_file: Path, manager):
     """Check that we still succeed even if the first few invocations were unsuccessful."""
     INVALID_N = 15
     p = NInvalidThenLinesPass(INVALID_N)
@@ -276,7 +275,7 @@ def test_succeed_after_n_invalid_results(input_file, manager):
 
 
 @patch('cvise.utils.testing.TestManager.GIVEUP_CONSTANT', 100)
-def test_give_up_on_stuck_pass(input_file, manager):
+def test_give_up_on_stuck_pass(input_file: Path, manager):
     """Check that we quit if the pass doesn't improve for a long time."""
     p = AlwaysInvalidPass()
     manager.run_passes([p], interleaving=False)
@@ -285,7 +284,7 @@ def test_give_up_on_stuck_pass(input_file, manager):
     assert bug_dir_count() == 1
 
 
-def test_halt_on_unaltered(input_file, manager):
+def test_halt_on_unaltered(input_file: Path, manager):
     """Check that we quit if the pass keeps misbehaving."""
     p = AlwaysUnalteredPass()
     manager.run_passes([p], interleaving=False)
@@ -294,7 +293,7 @@ def test_halt_on_unaltered(input_file, manager):
     assert bug_dir_count() == testing.TestManager.MAX_CRASH_DIRS + 1
 
 
-def test_halt_on_unaltered_after_stop(input_file, manager):
+def test_halt_on_unaltered_after_stop(input_file: Path, manager):
     """Check that we quit after the pass' stop, even if it interleaved with a misbehave."""
     p = SlowUnalteredThenStoppingPass()
     manager.run_passes([p], interleaving=False)
@@ -304,7 +303,7 @@ def test_halt_on_unaltered_after_stop(input_file, manager):
 
 
 @pytest.mark.parametrize('job_timeout', [1])
-def test_give_up_on_repeating_timeouts(input_file, manager):
+def test_give_up_on_repeating_timeouts(input_file: Path, manager):
     p = HungPass()
     manager.run_passes([p], interleaving=False)
     assert extra_dir_count() >= manager.MAX_TIMEOUTS
@@ -312,7 +311,7 @@ def test_give_up_on_repeating_timeouts(input_file, manager):
     assert extra_dir_count() <= 2 * max(manager.MAX_TIMEOUTS, PARALLEL_TESTS)
 
 
-def test_interleaving_letter_removals(input_file, manager):
+def test_interleaving_letter_removals(input_file: Path, manager):
     """Test that two different passes executed in interleaving way remove different letters."""
     p1 = LetterRemovingPass('fz')
     p2 = LetterRemovingPass('b')
@@ -327,7 +326,7 @@ def test_interleaving_letter_removals(input_file, manager):
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 @pytest.mark.parametrize('interestingness_script', [r"grep a {test_case} && ! grep '\(.\)\1' {test_case}"])
-def test_interleaving_letter_removals_large(input_file, manager):
+def test_interleaving_letter_removals_large(input_file: Path, manager):
     """Test that multiple passes executed in interleaving way can delete all but one character.
 
     The interestingness test here is "there's the `a` character and no character is repeated twice in a row", which for
@@ -347,7 +346,7 @@ def test_interleaving_letter_removals_large(input_file, manager):
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 @pytest.mark.parametrize('interestingness_script', [r'false {test_case}'])
-def test_interleaving_round_robin_transforms(input_file, manager: testing.TestManager):
+def test_interleaving_round_robin_transforms(manager: testing.TestManager):
     tracing_queue = multiprocessing.Manager().Queue()
     passes = [TracingHintPass(tracing_queue, arg=str(i)) for i in range(PARALLEL_TESTS)]
     manager.run_passes(passes, interleaving=True)

@@ -1,4 +1,6 @@
+from pathlib import Path
 import pytest
+from typing import Any, List, Tuple
 
 from cvise.passes.abstract import SubsegmentState
 from cvise.passes.clexhints import ClexHintsPass
@@ -104,18 +106,18 @@ TOKENS_REMOVED_8 = [
 
 
 @pytest.fixture
-def input_path(tmp_path):
+def input_path(tmp_path: Path) -> Path:
     return tmp_path / 'input.cc'
 
 
-def init_pass(arg, tmp_dir, input_path):
+def init_pass(arg, tmp_dir: Path, input_path: Path) -> Tuple[ClexHintsPass, Any]:
     pass_ = ClexHintsPass(arg, find_external_programs())
     state = pass_.new(input_path, tmp_dir=tmp_dir)
     validate_stored_hints(state)
     return pass_, state
 
 
-def test_rm_toks_1(tmp_path, input_path):
+def test_rm_toks_1(tmp_path: Path, input_path: Path):
     """Test that the "rm-toks" pass with parameter "1" deletes individual tokens."""
     input_path.write_text(INPUT)
     p, state = init_pass('rm-toks-1-to-1', tmp_path, input_path)
@@ -124,7 +126,7 @@ def test_rm_toks_1(tmp_path, input_path):
     assert set(TOKENS_REMOVED_1) == all_transforms
 
 
-def test_rm_toks_2(tmp_path, input_path):
+def test_rm_toks_2(tmp_path: Path, input_path: Path):
     """Test that the "rm-toks" pass with parameter "2" additionally deletes pairs of consecutive tokens."""
     input_path.write_text(INPUT)
     p, state = init_pass('rm-toks-2-to-2', tmp_path, input_path)
@@ -133,7 +135,7 @@ def test_rm_toks_2(tmp_path, input_path):
     assert set(TOKENS_REMOVED_2) == all_transforms
 
 
-def test_rm_toks_1_to_2(tmp_path, input_path):
+def test_rm_toks_1_to_2(tmp_path: Path, input_path: Path):
     """Test that the "rm-toks" pass with parameter "1 to 2" additionally deletes pairs of consecutive tokens."""
     input_path.write_text(INPUT)
     p, state = init_pass('rm-toks-1-to-2', tmp_path, input_path)
@@ -142,7 +144,7 @@ def test_rm_toks_1_to_2(tmp_path, input_path):
     assert set(TOKENS_REMOVED_1) | set(TOKENS_REMOVED_2) == all_transforms
 
 
-def test_rm_toks_16_shorter(tmp_path, input_path):
+def test_rm_toks_16_shorter(tmp_path: Path, input_path: Path):
     """Test that the "rm-toks" pass with parameter "1 to 16" removes all tokens when there's less than 16 of them."""
     input_path.write_text(INPUT)
     p, state = init_pass('rm-toks-1-to-16', tmp_path, input_path)
@@ -153,7 +155,7 @@ def test_rm_toks_16_shorter(tmp_path, input_path):
     assert set(TOKENS_REMOVED_1) <= all_transforms
 
 
-def collect_all_advances(s):
+def collect_all_advances(s: Any) -> List[Any]:
     observed = []
     while s is not None:
         observed.append((s.index, s.end()))

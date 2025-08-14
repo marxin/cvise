@@ -9,23 +9,22 @@ from cvise.passes.ifs import IfPass
 
 class LineMarkersTestCase(unittest.TestCase):
     def setUp(self):
+        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = IfPass(external_programs={'unifdef': 'unifdef'})
         self.process_event_notifier = ProcessEventNotifier(None)
 
     def test_all(self):
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-            tmp_file.write('#if FOO\nint a = 2;\n#endif')
-            tmp_path = Path(tmp_file.name)
+        self.input_path.write_text('#if FOO\nint a = 2;\n#endif')
 
-        state = self.pass_.new(tmp_path)
-        state = self.pass_.advance(tmp_path, state)
-        (_, state) = self.pass_.transform(tmp_path, state, self.process_event_notifier)
+        state = self.pass_.new(self.input_path)
+        state = self.pass_.advance(self.input_path, state)
+        (_, state) = self.pass_.transform(self.input_path, state, self.process_event_notifier)
         self.assertEqual(state.index, 0)
         self.assertEqual(state.instances, 1)
 
-        variant = tmp_path.read_text()
+        variant = self.input_path.read_text()
 
-        tmp_path.unlink()
         self.assertEqual(variant, 'int a = 2;\n')
 
     def test_two_steps(self):
@@ -70,25 +69,19 @@ class LineMarkersTestCase(unittest.TestCase):
             ),
         ]
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tf:
-            tf.write(in_contents)
-            tf_path = Path(tf.name)
+        self.input_path.write_text(in_contents)
 
         outs = []
 
         # perform all iterations. They should iterate through FOO/!FOO x BAR/!BAR.
-        state = self.pass_.new(tf_path)
+        state = self.pass_.new(self.input_path)
         while state:
-            with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-                tmp_file.write(in_contents)
-                tmp_path = Path(tmp_file.name)
+            self.input_path.write_text(in_contents)
 
-            (_, state) = self.pass_.transform(tmp_path, state, self.process_event_notifier)
-            variant = tmp_path.read_text()
+            (_, state) = self.pass_.transform(self.input_path, state, self.process_event_notifier)
+            variant = self.input_path.read_text()
             state: Any  # workaround type-checkers not seeing the "value" attribute
             outs.append((state.index, state.value, state.chunk, variant))
-            tmp_path.unlink()
-            state = self.pass_.advance(tmp_path, state)
+            state = self.pass_.advance(self.input_path, state)
 
-        tf_path.unlink()
         self.assertEqual(expected_outs, outs)

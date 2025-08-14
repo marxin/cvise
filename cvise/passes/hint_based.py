@@ -141,7 +141,7 @@ class HintBasedPass(AbstractPass):
         """
         return BinaryState.create(instances=hint_count)
 
-    def new(self, test_case: Path, tmp_dir, *args, **kwargs):
+    def new(self, test_case: Path, tmp_dir: Path, *args, **kwargs):
         hints = self.generate_hints(test_case)
         return self.new_from_hints(hints, tmp_dir)
 
