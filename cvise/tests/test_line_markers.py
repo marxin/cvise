@@ -21,7 +21,7 @@ def test_all(tmp_path: Path, input_path: Path):
     input_path.write_text("# 1 'foo.h'\n# 2 'bar.h'\n#4   'x.h'")
     pass_, state = init_pass(tmp_path, input_path)
 
-    (_, state) = pass_.transform(input_path, state, None)
+    (_, state) = pass_.transform(input_path, state, process_event_notifier=None, original_test_case=input_path)
 
     assert input_path.read_text() == ''
 
@@ -30,7 +30,7 @@ def test_only_last(tmp_path: Path, input_path: Path):
     input_path.write_text("# 1 'foo.h'\n# 2 'bar.h'\n#4   'x.h\nint x = 2;")
     pass_, state = init_pass(tmp_path, input_path)
 
-    (_, state) = pass_.transform(input_path, state, None)
+    (_, state) = pass_.transform(input_path, state, process_event_notifier=None, original_test_case=input_path)
 
     assert input_path.read_text() == 'int x = 2;'
 
@@ -54,7 +54,7 @@ def test_non_ascii(tmp_path: Path, input_path: Path):
         """,
     )
     pass_, state = init_pass(tmp_path, input_path)
-    (_, state) = pass_.transform(input_path, state, None)
+    (_, state) = pass_.transform(input_path, state, process_event_notifier=None, original_test_case=input_path)
 
     assert (
         input_path.read_bytes()

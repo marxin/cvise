@@ -34,7 +34,7 @@ class StubPass(AbstractPass):
 class NaiveLinePass(StubPass):
     """Simple real-world-like pass that removes a line at a time."""
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, *args, **kwargs):
         with open(test_case) as f:
             lines = f.readlines()
         if not lines:
@@ -51,14 +51,14 @@ class NaiveLinePass(StubPass):
 class AlwaysInvalidPass(StubPass):
     """Never succeeds."""
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, *args, **kwargs):
         return (PassResult.INVALID, state)
 
 
 class HungPass(StubPass):
     """A very slow pass, for testing timeouts."""
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, *args, **kwargs):
         INFINITY = 1000
         time.sleep(INFINITY)
         return (PassResult.INVALID, state)
@@ -71,10 +71,10 @@ class NInvalidThenLinesPass(NaiveLinePass):
         super().__init__()
         self.invalid_n = invalid_n
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, *args, **kwargs):
         if state < self.invalid_n:
             return (PassResult.INVALID, state)
-        return super().transform(test_case, state, process_event_notifier)
+        return super().transform(test_case, state, *args, **kwargs)
 
 
 class OneOffLinesPass(NaiveLinePass):
@@ -87,7 +87,7 @@ class OneOffLinesPass(NaiveLinePass):
 class AlwaysUnalteredPass(StubPass):
     """Simulates the "buggy OKs infinite number of times" scenario."""
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, *args, **kwargs):
         return (PassResult.OK, state)
 
 
@@ -96,7 +96,7 @@ class SlowUnalteredThenStoppingPass(StubPass):
 
     DELAY_SECS = 1  # the larger the number, the higher the chance of catching bugs
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, *args, **kwargs):
         if state == 0:
             time.sleep(self.DELAY_SECS)
             return (PassResult.OK, state)
@@ -112,7 +112,7 @@ class LetterRemovingPass(StubPass):
         super().__init__()
         self.letters_to_remove = letters_to_remove
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, *args, **kwargs):
         text = test_case.read_text()
         instances = 0
         for i, c in enumerate(text):

@@ -23,7 +23,9 @@ class BalancedParensTestCase(unittest.TestCase):
         self.input_path.write_text('This is a (simple) test!\n')
 
         state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
-        (_, state) = self.pass_.transform(self.input_path, state, None)
+        (_, state) = self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+        )
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This is a  test!\n')
@@ -32,7 +34,9 @@ class BalancedParensTestCase(unittest.TestCase):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
         state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
-        (_, state) = self.pass_.transform(self.input_path, state, None)
+        (_, state) = self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+        )
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This !\n')
@@ -43,7 +47,9 @@ class BalancedParensTestCase(unittest.TestCase):
         state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
         # Transform failed
         state = self.pass_.advance(self.input_path, state)
-        (_, state) = self.pass_.transform(self.input_path, state, None)
+        (_, state) = self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+        )
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This (is a  test)!\n')
@@ -65,7 +71,9 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         self.input_path.write_text('This is a (simple) test!\n')
 
         state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
-        (_, state) = self.pass_.transform(self.input_path, state, None)
+        (_, state) = self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+        )
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This is a simple test!\n')
@@ -86,7 +94,9 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
         # Transform failed
         state = self.pass_.advance(self.input_path, state)
-        (_, state) = self.pass_.transform(self.input_path, state, None)
+        (_, state) = self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+        )
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This (is a simple test)!\n')
@@ -105,7 +115,9 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         self.input_path.write_text('(This) (is a (((more)) complex) test)!\n')
 
         state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
-        (result, state) = self.pass_.transform(self.input_path, state, None)
+        (result, state) = self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+        )
 
         iteration = 0
 
@@ -113,7 +125,9 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
             state = self.pass_.advance_on_success(self.input_path, state)
             if state is None:
                 break
-            (result, state) = self.pass_.transform(self.input_path, state, None)
+            (result, state) = self.pass_.transform(
+                self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+            )
             iteration += 1
 
         variant = self.input_path.read_text()
@@ -148,7 +162,9 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         self.input_path.write_text('This is a (simple) test!\n')
 
         state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
-        (_, state) = self.pass_.transform(self.input_path, state, None)
+        (_, state) = self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+        )
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This is a () test!\n')
@@ -157,7 +173,9 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
         state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
-        (_, state) = self.pass_.transform(self.input_path, state, None)
+        (_, state) = self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+        )
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This ()!\n')
@@ -168,7 +186,9 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
         # Transform failed
         state = self.pass_.advance(self.input_path, state)
-        (_, state) = self.pass_.transform(self.input_path, state, None)
+        (_, state) = self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+        )
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This (is a () test)!\n')
@@ -225,7 +245,9 @@ class BalancedParensToZeroTestCase(unittest.TestCase):
         self.input_path.write_text('int x = (10 + y) / 2;\n')
 
         state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
-        (_, state) = self.pass_.transform(self.input_path, state, None)
+        (_, state) = self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+        )
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'int x = 0 / 2;\n')
@@ -247,7 +269,9 @@ class BalancedCurly3TestCase(unittest.TestCase):
         self.input_path.write_text('A a = { x, y };\n')
 
         state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
-        (_, state) = self.pass_.transform(self.input_path, state, None)
+        (_, state) = self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+        )
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'A a ;\n')

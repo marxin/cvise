@@ -22,7 +22,7 @@ class ClangPass(AbstractPass):
     def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return state
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier, *args, **kwargs):
         args = [
             self.external_programs['clang_delta'],
             f'--transformation={self.arg}',
