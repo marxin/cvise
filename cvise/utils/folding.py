@@ -1,6 +1,5 @@
 """Implements logic for folding (merging) multiple successful transformations."""
 
-from copy import copy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, List, Tuple, Union
@@ -10,10 +9,18 @@ from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.hint import HintApplicationStats
 
 
-@dataclass
-class FoldingState:
-    sub_states: List[HintState]
-    statistics: Union[HintApplicationStats, None] = None
+@dataclass(frozen=True)
+class FoldingStateIn:
+    """Input parameters for a folding job's transform."""
+
+    sub_states: Tuple[HintState]
+
+
+@dataclass(frozen=True)
+class FoldingStateOut(FoldingStateIn):
+    """Results returned from a folding job's transform."""
+
+    statistics: HintApplicationStats
 
 
 class FoldingManager:
@@ -36,7 +43,7 @@ class FoldingManager:
             return
         self.folding_candidates.append(state)
 
-    def maybe_prepare_folding_job(self, job_order: int) -> Union[FoldingState, None]:
+    def maybe_prepare_folding_job(self, job_order: int) -> Union[FoldingStateIn, None]:
         if len(self.folding_candidates) < 2:
             # Nothing to fold.
             return None
@@ -48,12 +55,15 @@ class FoldingManager:
             return None
         self.folding_jobs += 1
         self.last_folding_job_size = len(self.folding_candidates)
-        return FoldingState(sub_states=copy(self.folding_candidates))
+        return FoldingStateIn(sub_states=tuple(self.folding_candidates))
 
     def continue_attempting_folds(self, job_order: int, parallel_tests: int, pass_count: int) -> bool:
         return job_order < self.JOB_COUNT_FACTOR * max(parallel_tests, pass_count)
 
     @staticmethod
-    def transform(test_case: Path, state: FoldingState, *args, **kwargs) -> Tuple[PassResult, FoldingState]:
-        state.statistics = HintBasedPass.load_and_apply_hints(test_case, state.sub_states)
-        return PassResult.OK, state
+    def transform(test_case: Path, state: FoldingStateIn, *args, **kwargs) -> Tuple[PassResult, FoldingStateOut]:
+        statistics = HintBasedPass.load_and_apply_hints(test_case, state.sub_states)
+        return PassResult.OK, FoldingStateOut(
+            sub_states=state.sub_states,
+            statistics=statistics,
+        )

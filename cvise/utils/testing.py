@@ -28,7 +28,7 @@ from cvise.utils.error import InvalidInterestingnessTestError
 from cvise.utils.error import InvalidTestCaseError
 from cvise.utils.error import PassBugError
 from cvise.utils.error import ZeroSizeError
-from cvise.utils.folding import FoldingManager, FoldingState
+from cvise.utils.folding import FoldingManager, FoldingStateIn, FoldingStateOut
 from cvise.utils.readkey import KeyLogger
 import pebble
 import psutil
@@ -884,7 +884,7 @@ class TestManager:
             ) from None
 
         # Update global stats.
-        if isinstance(self.success_candidate.pass_state, FoldingState):
+        if isinstance(self.success_candidate.pass_state, FoldingStateOut):
             self.pass_statistic.add_committed_success(None, self.success_candidate.size_delta)
             for pass_name, size_delta in self.success_candidate.pass_state.statistics.size_delta_per_pass.items():
                 self.pass_statistic.add_committed_success(pass_name, size_delta)
@@ -926,7 +926,7 @@ class TestManager:
         if len(self.test_cases) > 1:
             notes.append(str(new_test_case.name))
         if len(self.pass_contexts) > 1:
-            if isinstance(self.success_candidate.pass_state, FoldingState):
+            if isinstance(self.success_candidate.pass_state, FoldingStateOut):
                 pass_name = ' + '.join(self.success_candidate.pass_state.statistics.get_passes_ordered_by_delta())
             else:
                 pass_name = repr(self.success_candidate.pass_)
@@ -1057,7 +1057,7 @@ class TestManager:
         self.order += 1
         ctx.state = ctx.pass_.advance(self.current_test_case, ctx.state)
 
-    def schedule_fold(self, pool: pebble.ProcessPool, folding_state: FoldingState) -> None:
+    def schedule_fold(self, pool: pebble.ProcessPool, folding_state: FoldingStateIn) -> None:
         assert self.interleaving
 
         folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX + 'folding-'))

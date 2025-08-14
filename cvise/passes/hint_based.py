@@ -1,8 +1,7 @@
 from __future__ import annotations
-from copy import copy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Sequence, Tuple, Union
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 from cvise.utils.hint import apply_hints, group_hints_by_type, HintBundle, HintApplicationStats, load_hints, store_hints
@@ -10,7 +9,7 @@ from cvise.utils.hint import apply_hints, group_hints_by_type, HintBundle, HintA
 HINTS_FILE_NAME_TEMPLATE = 'hints{type}.jsonl.zst'
 
 
-@dataclass
+@dataclass(frozen=True)
 class PerTypeHintState:
     """A sub-item of HintState storing information for a particular hint type.
 
@@ -30,19 +29,24 @@ class PerTypeHintState:
         next = self.underlying_state.advance()
         if next is None:
             return None
-        new = copy(self)
-        new.underlying_state = next
-        return new
+        return PerTypeHintState(
+            type=self.type,
+            hints_file_name=self.hints_file_name,
+            underlying_state=next,
+        )
 
     def advance_on_success(self, new_hint_count: int) -> Union[PerTypeHintState, None]:
         next = self.underlying_state.advance_on_success(new_hint_count)
         if next is None:
             return None
-        new = copy(self)
-        new.underlying_state = next
-        return new
+        return PerTypeHintState(
+            type=self.type,
+            hints_file_name=self.hints_file_name,
+            underlying_state=next,
+        )
 
 
+@dataclass(frozen=True)
 class HintState:
     """Stores the current state of the HintBasedPass.
 
@@ -50,12 +54,17 @@ class HintState:
     are applied & advanced in a round-robin fashion. See the comment in the HintBasedPass.
     """
 
-    def __init__(self, tmp_dir: Path, per_type_states: List[PerTypeHintState]):
-        self.tmp_dir = tmp_dir
-        # Sort the per-type states to have deterministic and repeatable enumeration order.
-        self.per_type_states = sorted(per_type_states, key=lambda s: s.type if s else '')
-        # Pointer to the current per-type state in the round-robin enumeration.
-        self.ptr = 0
+    tmp_dir: Path
+    # The enumeration state for each hint type. Sorted by type (in order to have deterministic and repeatable
+    # enumeration order).
+    per_type_states: Tuple[PerTypeHintState]
+    # Pointer to the current per-type state in the round-robin enumeration.
+    ptr: int
+
+    @staticmethod
+    def create(tmp_dir: Path, per_type_states: List[PerTypeHintState]):
+        sorted_states = sorted(per_type_states, key=lambda s: s.type)
+        return HintState(tmp_dir=tmp_dir, per_type_states=tuple(sorted_states), ptr=0)
 
     def __repr__(self):
         parts = []
@@ -73,19 +82,20 @@ class HintState:
             return None
 
         # Second, create the result with just this sub-state updated/deleted.
-        new = HintState(self.tmp_dir, copy(self.per_type_states))
+        new_per_type_states = list(self.per_type_states)
         if new_substate is None:
-            del new.per_type_states[self.ptr]
+            del new_per_type_states[self.ptr]
         else:
-            new.per_type_states[self.ptr] = new_substate
+            new_per_type_states[self.ptr] = new_substate
 
         # Third, set the result's pointer to the next sub-state after the updated/deleted one, in the round-robin
         # fashion.
-        new.ptr = self.ptr
+        new_ptr = self.ptr
         if new_substate is not None:
-            new.ptr += 1
-        new.ptr %= len(new.per_type_states)
-        return new
+            new_ptr += 1
+        new_ptr %= len(new_per_type_states)
+
+        return HintState(tmp_dir=self.tmp_dir, per_type_states=tuple(new_per_type_states), ptr=new_ptr)
 
     def advance_on_success(self, type_to_bundle: Dict[str, HintBundle]):
         sub_states = []
@@ -101,7 +111,7 @@ class HintState:
                 sub_states.append(new_substate)
         if not sub_states:
             return None
-        return HintState(self.tmp_dir, sub_states)
+        return HintState(tmp_dir=self.tmp_dir, per_type_states=tuple(sub_states), ptr=0)
 
 
 class HintBasedPass(AbstractPass):
@@ -140,7 +150,7 @@ class HintBasedPass(AbstractPass):
         return PassResult.OK, state
 
     @staticmethod
-    def load_and_apply_hints(test_case: Path, states: List[HintState]) -> HintApplicationStats:
+    def load_and_apply_hints(test_case: Path, states: Sequence[HintState]) -> HintApplicationStats:
         hint_bundles: List[HintBundle] = []
         for state in states:
             sub_state = state.per_type_states[state.ptr]
@@ -180,7 +190,7 @@ class HintBasedPass(AbstractPass):
             )
         if not sub_states:
             return None
-        return HintState(tmp_dir, sub_states)
+        return HintState.create(tmp_dir, sub_states)
 
     def advance_on_success_from_hints(self, bundle: HintBundle, state: HintState) -> Union[HintState, None]:
         """Advances the state after a successful reduction, given pre-generated hints.
