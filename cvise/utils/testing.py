@@ -318,7 +318,7 @@ class TestManager:
         test_script,
         timeout,
         save_temps,
-        test_cases: List[str],
+        test_cases: List[Path],
         parallel_tests,
         no_cache,
         skip_key_off,

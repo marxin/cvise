@@ -448,7 +448,7 @@ def do_reduce(args):
             args.interestingness_test,
             args.timeout,
             args.save_temps,
-            args.test_cases,
+            [Path(s) for s in args.test_cases],
             args.n,
             args.no_cache,
             args.skip_key_off,
