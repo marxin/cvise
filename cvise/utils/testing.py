@@ -630,6 +630,7 @@ class TestManager:
         self.pass_statistic.add_initialized(job.pass_, job.start_time)
 
     def handle_finished_transform_job(self, job: Job) -> None:
+        env: TestEnvironment = job.future.result()
         self.pass_statistic.add_executed(job.pass_, job.start_time, self.parallel_tests)
         if job.pass_id is not None:
             self.pass_contexts[job.pass_id].running_transform_order_to_state.pop(job.order)
@@ -640,10 +641,11 @@ class TestManager:
             return
         if outcome == PassCheckingOutcome.IGNORE:
             self.pass_statistic.add_failure(job.pass_)
+            if self.interleaving:
+                self.folding_manager.on_transform_job_failure(env.state)
             return
         assert outcome == PassCheckingOutcome.ACCEPT
         self.pass_statistic.add_success(job.pass_)
-        env: TestEnvironment = job.future.result()
         self.maybe_update_success_candidate(job.order, job.pass_, job.pass_id, env)
         if self.interleaving:
             self.folding_manager.on_transform_job_success(env.state)
@@ -972,7 +974,10 @@ class TestManager:
         # 3. Attempting a fold (simultaneous application) of previously discovered successful transformations; only
         # supported in the "interleaving" pass execution mode.
         if self.interleaving:
-            folding_state = self.folding_manager.maybe_prepare_folding_job(self.order - self.current_batch_start_order)
+            folding_state = self.folding_manager.maybe_prepare_folding_job(
+                self.order - self.current_batch_start_order,
+                self.success_candidate.pass_state if self.success_candidate else None,
+            )
             if folding_state:
                 self.schedule_fold(pool, folding_state)
                 return True
