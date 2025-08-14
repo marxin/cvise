@@ -22,7 +22,7 @@ def test_folding_two():
     mgr.on_transform_job_success(state1)
     mgr.on_transform_job_success(state2)
 
-    fold = mgr.maybe_prepare_folding_job(job_order=100)
+    fold = mgr.maybe_prepare_folding_job(job_order=100, best_success_state=None)
     assert fold is not None
     assert fold.sub_states == (state1, state2)
 
@@ -34,14 +34,14 @@ def test_folding_many():
     for s in states:
         mgr.on_transform_job_success(s)
 
-    fold = mgr.maybe_prepare_folding_job(job_order=N + 1)
+    fold = mgr.maybe_prepare_folding_job(job_order=N + 1, best_success_state=None)
     assert fold is not None
     assert fold.sub_states == tuple(states)
 
 
 def test_no_folding_zero_candidates():
     mgr = FoldingManager()
-    fold = mgr.maybe_prepare_folding_job(job_order=100)
+    fold = mgr.maybe_prepare_folding_job(job_order=100, best_success_state=None)
     assert fold is None
 
 
@@ -50,7 +50,7 @@ def test_no_folding_one_candidate():
     mgr = FoldingManager()
     mgr.on_transform_job_success(state)
 
-    fold = mgr.maybe_prepare_folding_job(job_order=100) is None
+    fold = mgr.maybe_prepare_folding_job(job_order=100, best_success_state=None) is None
     assert fold
 
 
@@ -61,9 +61,9 @@ def test_dont_fold_same_twice():
     mgr.on_transform_job_success(state1)
     mgr.on_transform_job_success(state2)
 
-    fold1 = mgr.maybe_prepare_folding_job(job_order=100)
+    fold1 = mgr.maybe_prepare_folding_job(job_order=100, best_success_state=None)
     assert fold1 is not None
-    fold2 = mgr.maybe_prepare_folding_job(job_order=200)
+    fold2 = mgr.maybe_prepare_folding_job(job_order=200, best_success_state=None)
     assert fold2 is None
 
 
@@ -74,13 +74,13 @@ def test_folding_continues_with_new_candidates():
     mgr = FoldingManager()
     mgr.on_transform_job_success(state1)
     mgr.on_transform_job_success(state2)
-    fold1 = mgr.maybe_prepare_folding_job(job_order=100)
+    fold1 = mgr.maybe_prepare_folding_job(job_order=100, best_success_state=None)
     assert fold1 is not None
-    fold2 = mgr.maybe_prepare_folding_job(job_order=200)
+    fold2 = mgr.maybe_prepare_folding_job(job_order=200, best_success_state=None)
     assert fold2 is None
 
     mgr.on_transform_job_success(state3)
-    fold3 = mgr.maybe_prepare_folding_job(job_order=300)
+    fold3 = mgr.maybe_prepare_folding_job(job_order=300, best_success_state=None)
     assert fold3 is not None
 
 
@@ -91,7 +91,7 @@ def test_only_fold_hints():
     mgr.on_transform_job_success(state1)
     mgr.on_transform_job_success(state2)
 
-    fold = mgr.maybe_prepare_folding_job(job_order=100)
+    fold = mgr.maybe_prepare_folding_job(job_order=100, best_success_state=None)
     assert fold is None
 
 
@@ -101,11 +101,11 @@ def test_dont_nest_fold_into_fold():
     mgr = FoldingManager()
     mgr.on_transform_job_success(state1)
     mgr.on_transform_job_success(state2)
-    fold1 = mgr.maybe_prepare_folding_job(job_order=100)
+    fold1 = mgr.maybe_prepare_folding_job(job_order=100, best_success_state=None)
     assert fold1 is not None
     mgr.on_transform_job_success(fold1)
 
-    fold2 = mgr.maybe_prepare_folding_job(job_order=1000)
+    fold2 = mgr.maybe_prepare_folding_job(job_order=1000, best_success_state=None)
     assert fold2 is None
 
 
@@ -117,7 +117,7 @@ def test_dont_fold_too_often():
     folds = []
     for i in range(N):
         mgr.on_transform_job_success(create_stub_hint_state(f'type{i}'))
-        folds.append(mgr.maybe_prepare_folding_job(job_order=N + i))
+        folds.append(mgr.maybe_prepare_folding_job(job_order=N + i, best_success_state=None))
     assert sum(f is not None for f in folds) < MAX_FOLDS
 
 
