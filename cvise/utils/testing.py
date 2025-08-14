@@ -119,7 +119,6 @@ class TestEnvironment:
         self.pid_queue = pid_queue
         self.pwd = os.getcwd()
         self.test_case: Path = test_case
-        self.original_test_case: Path = test_case.resolve()
         self.base_size = test_case.stat().st_size
         self.all_test_cases: Set[Path] = all_test_cases
 
@@ -316,7 +315,7 @@ class TestManager:
     def __init__(
         self,
         pass_statistic,
-        test_script,
+        test_script: Path,
         timeout,
         save_temps,
         test_cases: List[Path],
@@ -333,7 +332,7 @@ class TestManager:
         skip_after_n_transforms,
         stopping_threshold,
     ):
-        self.test_script = Path(test_script).absolute()
+        self.test_script: Path = test_script.absolute()
         self.timeout = timeout
         self.save_temps = save_temps
         self.pass_statistic = pass_statistic
@@ -406,7 +405,7 @@ class TestManager:
             test_case.chmod(self.test_cases_modes[test_case])
 
     @classmethod
-    def is_valid_test(cls, test_script):
+    def is_valid_test(cls, test_script: Path):
         for mode in {os.F_OK, os.X_OK}:
             if not os.access(test_script, mode):
                 return False
@@ -445,7 +444,7 @@ class TestManager:
                 shutil.copy2(f, orig_file)
 
     @staticmethod
-    def check_file_permissions(path, modes, error):
+    def check_file_permissions(path: Path, modes, error):
         for m in modes:
             if not os.access(path, m):
                 if error is not None:
@@ -456,7 +455,7 @@ class TestManager:
         return True
 
     @staticmethod
-    def get_extra_dir(prefix, max_number):
+    def get_extra_dir(prefix, max_number) -> Union[Path, None]:
         for i in range(0, max_number + 1):
             digits = int(round(math.log10(max_number), 0))
             extra_dir = Path(('{0}{1:0' + str(digits) + 'd}').format(prefix, i))
@@ -491,12 +490,13 @@ class TestManager:
                 f'Please consider tarring up {crash_dir} and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.'
             )
 
-        with (crash_dir / 'PASS_BUG_INFO.TXT').open(mode='w') as info_file:
-            info_file.write(f'Package: {CVise.Info.PACKAGE_STRING}\n')
-            info_file.write(f'Git version: {CVise.Info.GIT_VERSION}\n')
-            info_file.write(f'LLVM version: {CVise.Info.LLVM_VERSION}\n')
-            info_file.write(f'System: {str(platform.uname())}\n')
-            info_file.write(PassBugError.MSG.format(job.pass_, problem, test_env.state, crash_dir))
+        (crash_dir / 'PASS_BUG_INFO.TXT').write_text(
+            f'Package: {CVise.Info.PACKAGE_STRING}\n'
+            + f'Git version: {CVise.Info.GIT_VERSION}\n'
+            + f'LLVM version: {CVise.Info.LLVM_VERSION}\n'
+            + f'System: {str(platform.uname())}\n'
+            + PassBugError.MSG.format(job.pass_, problem, test_env.state, crash_dir)
+        )
 
         if self.die_on_pass_bug:
             raise PassBugError(job.pass_, problem, test_env.state, crash_dir)
@@ -570,7 +570,7 @@ class TestManager:
         while self.jobs:
             self.release_job(self.jobs[0])
 
-    def save_extra_dir(self, test_case_path):
+    def save_extra_dir(self, test_case_path: Path):
         extra_dir = self.get_extra_dir(self.EXTRA_DIR_PREFIX, self.MAX_EXTRA_DIRS)
         if extra_dir is not None:
             try:

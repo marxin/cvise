@@ -113,7 +113,7 @@ class LetterRemovingPass(StubPass):
         self.letters_to_remove = letters_to_remove
 
     def transform(self, test_case: Path, state, process_event_notifier):
-        text = read_file(test_case)
+        text = test_case.read_text()
         instances = 0
         for i, c in enumerate(text):
             if c in self.letters_to_remove:
@@ -145,12 +145,7 @@ class TracingHintPass(LetterRemovingHintPass):
         return super().transform(test_case, state, *args, **kwargs)
 
 
-def read_file(path):
-    with open(path) as f:
-        return f.read()
-
-
-def count_lines(path):
+def count_lines(path: Path) -> int:
     with open(path) as f:
         return len(f.readlines())
 
@@ -172,7 +167,7 @@ def interrupt_monitor():
 
 # Run all tests in the temp dir, to prevent artifacts like the cvise_bug_* from appearing in the build directory.
 @pytest.fixture(autouse=True)
-def cwd_to_tmp_path(tmp_path):
+def cwd_to_tmp_path(tmp_path: Path):
     old_cwd = os.getcwd()
     os.chdir(tmp_path)
     yield
@@ -250,7 +245,7 @@ def test_succeed_via_naive_pass(input_file: Path, manager):
     """Check that we completely empty the file via the naive lines pass."""
     p = NaiveLinePass()
     manager.run_passes([p], interleaving=False)
-    assert read_file(input_file) == ''
+    assert input_file.read_text() == ''
     assert bug_dir_count() == 0
 
 
@@ -270,7 +265,7 @@ def test_succeed_after_n_invalid_results(input_file: Path, manager):
     INVALID_N = 15
     p = NInvalidThenLinesPass(INVALID_N)
     manager.run_passes([p], interleaving=False)
-    assert read_file(input_file) == ''
+    assert input_file.read_text() == ''
     assert bug_dir_count() == 0
 
 
@@ -279,7 +274,7 @@ def test_give_up_on_stuck_pass(input_file: Path, manager):
     """Check that we quit if the pass doesn't improve for a long time."""
     p = AlwaysInvalidPass()
     manager.run_passes([p], interleaving=False)
-    assert read_file(input_file) == INPUT_DATA
+    assert input_file.read_text() == INPUT_DATA
     # The "pass got stuck" report.
     assert bug_dir_count() == 1
 
@@ -288,7 +283,7 @@ def test_halt_on_unaltered(input_file: Path, manager):
     """Check that we quit if the pass keeps misbehaving."""
     p = AlwaysUnalteredPass()
     manager.run_passes([p], interleaving=False)
-    assert read_file(input_file) == INPUT_DATA
+    assert input_file.read_text() == INPUT_DATA
     # This number of "failed to modify the variant" reports were to be created.
     assert bug_dir_count() == testing.TestManager.MAX_CRASH_DIRS + 1
 
@@ -297,7 +292,7 @@ def test_halt_on_unaltered_after_stop(input_file: Path, manager):
     """Check that we quit after the pass' stop, even if it interleaved with a misbehave."""
     p = SlowUnalteredThenStoppingPass()
     manager.run_passes([p], interleaving=False)
-    assert read_file(input_file) == INPUT_DATA
+    assert input_file.read_text() == INPUT_DATA
     # Whether the misbehave ("failed to modify the variant") is detected depends on timing.
     assert bug_dir_count() <= 1
 
@@ -316,12 +311,12 @@ def test_interleaving_letter_removals(input_file: Path, manager):
     p1 = LetterRemovingPass('fz')
     p2 = LetterRemovingPass('b')
     while True:
-        value_before = read_file(input_file)
+        value_before = input_file.read_text()
         manager.run_passes([p1, p2], interleaving=True)
-        if read_file(input_file) == value_before:
+        if input_file.read_text() == value_before:
             break
 
-    assert read_file(input_file) == 'oo\nar\na\n'
+    assert input_file.read_text() == 'oo\nar\na\n'
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
@@ -336,12 +331,12 @@ def test_interleaving_letter_removals_large(input_file: Path, manager):
     p2 = LetterRemovingPass('b')
     p3 = LetterRemovingPass('c')
     while True:
-        value_before = read_file(input_file)
+        value_before = input_file.read_text()
         manager.run_passes([p1, p2, p3], interleaving=True)
-        if read_file(input_file) == value_before:
+        if input_file.read_text() == value_before:
             break
 
-    assert read_file(input_file) == 'a'
+    assert input_file.read_text() == 'a'
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')

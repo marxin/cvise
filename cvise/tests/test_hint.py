@@ -7,7 +7,7 @@ from cvise.utils.hint import apply_hints, HintBundle, load_hints, store_hints, H
 
 
 @pytest.fixture
-def tmp_file(tmp_path) -> Path:
+def tmp_file(tmp_path: Path) -> Path:
     return tmp_path / 'file.txt'
 
 

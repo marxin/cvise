@@ -58,7 +58,7 @@ def test_no_different_type_removals(tmp_path: Path, input_path: Path):
     assert b'z\n' not in all_transforms  # no removal of both
 
 
-def test_non_utf8(tmp_path, input_path):
+def test_non_utf8(tmp_path: Path, input_path: Path):
     input_path.write_bytes(
         b"""
         // \xff

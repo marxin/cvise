@@ -445,7 +445,7 @@ def do_reduce(args):
     try:
         test_manager = testing.TestManager(
             pass_statistic,
-            args.interestingness_test,
+            Path(args.interestingness_test),
             args.timeout,
             args.save_temps,
             [Path(s) for s in args.test_cases],
