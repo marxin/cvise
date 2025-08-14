@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -58,7 +57,7 @@ class BalancedParensTestCase(unittest.TestCase):
 
         state = self.pass_.new(tmp_path, tmp_dir=self.tmp_dir_)
         # Transform failed
-        state = self.pass_.advance(tmp_file.name, state)
+        state = self.pass_.advance(tmp_path, state)
         (_, state) = self.pass_.transform(tmp_path, state, None)
 
         variant = tmp_path.read_text()
@@ -118,7 +117,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
 
         state = self.pass_.new(tmp_path, tmp_dir=self.tmp_dir_)
         # Transform failed
-        state = self.pass_.advance(tmp_file.name, state)
+        state = self.pass_.advance(tmp_path, state)
         (_, state) = self.pass_.transform(tmp_path, state, None)
 
         variant = tmp_path.read_text()
@@ -152,7 +151,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         iteration = 0
 
         while result == PassResult.OK:
-            state = self.pass_.advance_on_success(tmp_file.name, state)
+            state = self.pass_.advance_on_success(tmp_path, state)
             if state is None:
                 break
             (result, state) = self.pass_.transform(tmp_path, state, None)
@@ -231,7 +230,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
 
         state = self.pass_.new(tmp_path, tmp_dir=self.tmp_dir_)
         # Transform failed
-        state = self.pass_.advance(tmp_file.name, state)
+        state = self.pass_.advance(tmp_path, state)
         (_, state) = self.pass_.transform(tmp_path, state, None)
 
         variant = tmp_path.read_text()
