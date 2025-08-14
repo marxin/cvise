@@ -49,7 +49,7 @@ class FoldingManager:
         self.folding_candidates: List[HintState] = []
         self.best_successful_fold: Union[FoldingStateOut, None] = None
         self.failed_folds: List[FoldingStateOut] = []
-        self.attempted_folds: Set[Tuple[FoldingStateIn, ...]] = set()
+        self.attempted_folds: Set[FoldingStateIn] = set()
 
     def on_transform_job_success(self, state: Any) -> None:
         if isinstance(state, HintState):
