@@ -148,9 +148,7 @@ class TestEnvironment:
     def run(self):
         try:
             # transform by state
-            (result, self.state) = self.transform(
-                self.test_case_path, self.state, ProcessEventNotifier(self.pid_queue)
-            )
+            (result, self.state) = self.transform(self.test_case_path, self.state, ProcessEventNotifier(self.pid_queue))
             self.result = result
             if self.result != PassResult.OK:
                 return self
