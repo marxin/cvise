@@ -517,9 +517,8 @@ def do_reduce(args):
                 fs.write(b'Reduced test-cases:\n\n')
                 for test_case in sorted(test_manager.test_cases):
                     fs.write(f'--- {test_case} ---\n'.encode())
-                    with open(test_case, 'rb') as test_case_file:
-                        fs.write(test_case_file.read())
-                        fs.write(b'\n')
+                    fs.write(test_case.read_bytes())
+                    fs.write(b'\n')
     finally:
         if script:
             os.unlink(script.name)

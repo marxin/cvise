@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import re
 import tempfile
 
@@ -32,13 +33,13 @@ class IfPass(AbstractPass):
                         in_multiline = True
         return count
 
-    def new(self, test_case, *args, **kwargs):
+    def new(self, test_case: Path, *args, **kwargs):
         bs = BinaryState.create(self.__count_instances(test_case))
         if bs:
             bs.value = 0
         return bs
 
-    def advance(self, test_case, state):
+    def advance(self, test_case: Path, state):
         if state.value == 0:
             state = state.copy()
             state.value = 1
@@ -48,12 +49,11 @@ class IfPass(AbstractPass):
                 state.value = 0
         return state
 
-    def advance_on_success(self, test_case, state, *args, **kwargs):
+    def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return state.advance_on_success(self.__count_instances(test_case))
 
-    def transform(self, test_case, state, process_event_notifier):
-        tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
+    def transform(self, test_case: Path, state, process_event_notifier):
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=test_case.parent) as tmp_file:
             with open(test_case) as in_file:
                 i = 0
                 in_multiline = False
@@ -79,7 +79,7 @@ class IfPass(AbstractPass):
             '2',
             '-k',
             '-o',
-            test_case,
+            str(test_case),
             tmp_file.name,
         ]
         _stdout, _stderr, returncode = process_event_notifier.run_process(cmd)

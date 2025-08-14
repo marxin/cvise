@@ -1,3 +1,4 @@
+from pathlib import Path
 import re
 
 from cvise.passes.hint_based import HintBasedPass
@@ -27,7 +28,7 @@ class LineMarkersPass(HintBasedPass):
     def check_prerequisites(self):
         return True
 
-    def generate_hints(self, test_case):
+    def generate_hints(self, test_case: Path):
         hints = []
         with open(test_case, 'rb') as in_file:
             file_pos = 0

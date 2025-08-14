@@ -122,8 +122,7 @@ def apply_hints(bundles: List[HintBundle], file: Path) -> Tuple[bytes, HintAppli
                 patches.append(p)
     merged_patches = merge_overlapping_patches(patches)
 
-    with open(file, 'rb') as f:
-        orig_data = f.read()
+    orig_data = file.read_bytes()
 
     new_data = b''
     stats = HintApplicationStats(size_delta_per_pass={})

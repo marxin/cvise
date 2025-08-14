@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils import nestedmatcher
 from cvise.utils.error import UnknownArgumentError
@@ -25,7 +27,7 @@ class TernaryPass(AbstractPass):
     def check_prerequisites(self):
         return True
 
-    def __get_next_match(self, test_case, pos):
+    def __get_next_match(self, test_case: Path, pos):
         with open(test_case) as in_file:
             prog = in_file.read()
 
@@ -33,19 +35,18 @@ class TernaryPass(AbstractPass):
 
         return m
 
-    def new(self, test_case, *args, **kwargs):
+    def new(self, test_case: Path, *args, **kwargs):
         return self.__get_next_match(test_case, pos=0)
 
-    def advance(self, test_case, state):
+    def advance(self, test_case: Path, state):
         return self.__get_next_match(test_case, pos=state['all'][0] + 1)
 
-    def advance_on_success(self, test_case, state, *args, **kwargs):
+    def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return self.__get_next_match(test_case, pos=state['all'][0])
 
-    def transform(self, test_case, state, process_event_notifier):
-        with open(test_case) as in_file:
-            prog = in_file.read()
-            prog2 = prog
+    def transform(self, test_case: Path, state, process_event_notifier):
+        prog = test_case.read_text()
+        prog2 = prog
 
         while True:
             if state is None:
@@ -61,9 +62,7 @@ class TernaryPass(AbstractPass):
                 )
 
                 if prog != prog2:
-                    with open(test_case, 'w') as out_file:
-                        out_file.write(prog2)
-
+                    test_case.write_text(prog2)
                     return (PassResult.OK, state)
                 else:
                     state = self.advance(test_case, state)

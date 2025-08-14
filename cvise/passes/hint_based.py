@@ -141,11 +141,11 @@ class HintBasedPass(AbstractPass):
         """
         return BinaryState.create(instances=hint_count)
 
-    def new(self, test_case, tmp_dir, *args, **kwargs):
+    def new(self, test_case: Path, tmp_dir, *args, **kwargs):
         hints = self.generate_hints(test_case)
         return self.new_from_hints(hints, tmp_dir)
 
-    def transform(self, test_case, state: HintState, *args, **kwargs):
+    def transform(self, test_case: Path, state: HintState, *args, **kwargs):
         self.load_and_apply_hints(test_case, [state])
         return PassResult.OK, state
 
@@ -160,13 +160,13 @@ class HintBasedPass(AbstractPass):
                 load_hints(state.tmp_dir / sub_state.hints_file_name, hints_range_begin, hints_range_end)
             )
         new_data, stats = apply_hints(hint_bundles, test_case)
-        Path(test_case).write_bytes(new_data)
+        test_case.write_bytes(new_data)
         return stats
 
-    def advance(self, test_case, state):
+    def advance(self, test_case: Path, state):
         return state.advance()
 
-    def advance_on_success(self, test_case, state, *args, **kwargs):
+    def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         hints = self.generate_hints(test_case)
         return self.advance_on_success_from_hints(hints, state)
 

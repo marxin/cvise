@@ -1,3 +1,4 @@
+from pathlib import Path
 import re
 
 from cvise.passes.abstract import AbstractPass, PassResult
@@ -34,7 +35,7 @@ class SpecialPass(AbstractPass):
 
         return config
 
-    def __get_next_match(self, test_case, pos):
+    def __get_next_match(self, test_case: Path, pos):
         with open(test_case) as in_file:
             prog = in_file.read()
 
@@ -44,7 +45,7 @@ class SpecialPass(AbstractPass):
 
         return m
 
-    def new(self, test_case, *args, **kwargs):
+    def new(self, test_case: Path, *args, **kwargs):
         config = self.__get_config()
         with open(test_case) as in_file:
             prog = in_file.read()
@@ -54,17 +55,17 @@ class SpecialPass(AbstractPass):
                 return None
             return {'modifications': modifications, 'index': 0}
 
-    def advance(self, test_case, state):
+    def advance(self, test_case: Path, state):
         state = state.copy()
         state['index'] += 1
         if state['index'] >= len(state['modifications']):
             return None
         return state
 
-    def advance_on_success(self, test_case, state, *args, **kwargs):
+    def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return self.new(test_case)
 
-    def transform(self, test_case, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier):
         with open(test_case) as in_file:
             data = in_file.read()
             index = state['index']

@@ -16,7 +16,7 @@ import sys
 import tempfile
 import time
 import traceback
-from typing import Any, Callable, Dict, List, Mapping, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Set, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
@@ -149,7 +149,7 @@ class TestEnvironment:
         try:
             # transform by state
             (result, self.state) = self.transform(
-                str(self.test_case_path), self.state, ProcessEventNotifier(self.pid_queue)
+                self.test_case_path, self.state, ProcessEventNotifier(self.pid_queue)
             )
             self.result = result
             if self.result != PassResult.OK:
@@ -320,7 +320,7 @@ class TestManager:
         test_script,
         timeout,
         save_temps,
-        test_cases,
+        test_cases: List[str],
         parallel_tests,
         no_cache,
         skip_key_off,
@@ -338,8 +338,8 @@ class TestManager:
         self.timeout = timeout
         self.save_temps = save_temps
         self.pass_statistic = pass_statistic
-        self.test_cases = set()
-        self.test_cases_modes = {}
+        self.test_cases: Set[Path] = set()
+        self.test_cases_modes: Dict[Path, int] = {}
         self.parallel_tests = parallel_tests
         self.no_cache = no_cache
         self.skip_key_off = skip_key_off
@@ -422,7 +422,7 @@ class TestManager:
         return sorted(self.test_cases, key=lambda x: x.stat().st_size, reverse=True)
 
     @staticmethod
-    def get_file_size(files):
+    def get_file_size(files: Iterable[Path]):
         return sum(f.stat().st_size for f in files)
 
     @property
@@ -430,7 +430,7 @@ class TestManager:
         return self.get_line_count(self.test_cases)
 
     @staticmethod
-    def get_line_count(files):
+    def get_line_count(files: Iterable[Path]):
         lines = 0
         for file in files:
             with open(file, 'rb') as f:
@@ -794,15 +794,11 @@ class TestManager:
                     continue
 
                 if not self.no_cache:
-                    with open(test_case, mode='rb+') as tmp_file:
-                        test_case_before_pass = tmp_file.read()
-
-                        if cache_key in self.cache and test_case_before_pass in self.cache[cache_key]:
-                            tmp_file.seek(0)
-                            tmp_file.truncate(0)
-                            tmp_file.write(self.cache[cache_key][test_case_before_pass])
-                            logging.info(f'cache hit for {test_case}')
-                            continue
+                    test_case_before_pass = test_case.read_bytes()
+                    if cache_key in self.cache and test_case_before_pass in self.cache[cache_key]:
+                        test_case.write_bytes(self.cache[cache_key][test_case_before_pass])
+                        logging.info(f'cache hit for {test_case}')
+                        continue
 
                 self.skip = False
                 while any(c.can_start_job_now() for c in self.pass_contexts) and not self.skip:
@@ -852,11 +848,9 @@ class TestManager:
 
                 # Cache result of this pass
                 if not self.no_cache:
-                    with open(test_case, mode='rb') as tmp_file:
-                        if cache_key not in self.cache:
-                            self.cache[cache_key] = {}
-
-                        self.cache[cache_key][test_case_before_pass] = tmp_file.read()
+                    if cache_key not in self.cache:
+                        self.cache[cache_key] = {}
+                    self.cache[cache_key][test_case_before_pass] = test_case.read_bytes()
 
             self.restore_mode()
             self.remove_roots()

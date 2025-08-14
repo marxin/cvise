@@ -1,8 +1,6 @@
 import logging
-import os
-import shutil
+from pathlib import Path
 import subprocess
-import tempfile
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
@@ -11,10 +9,10 @@ class GCDABinaryPass(AbstractPass):
     def check_prerequisites(self):
         return self.check_external_program('gcov-dump')
 
-    def __create_state(self, test_case):
+    def __create_state(self, test_case: Path):
         try:
             proc = subprocess.run(
-                [self.external_programs['gcov-dump'], '-p', test_case],
+                [self.external_programs['gcov-dump'], '-p', str(test_case)],
                 encoding='utf8',
                 timeout=1,
                 capture_output=True,
@@ -36,26 +34,22 @@ class GCDABinaryPass(AbstractPass):
             logging.warning(f'gcov-dump -p failed: {e}')
             return None
 
-    def new(self, test_case, *args, **kwargs):
+    def new(self, test_case: Path, *args, **kwargs):
         return self.__create_state(test_case)
 
-    def advance(self, test_case, state):
+    def advance(self, test_case: Path, state):
         return state.advance()
 
-    def advance_on_success(self, test_case, state, *args, **kwargs):
+    def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return self.__create_state(test_case)
 
-    def transform(self, test_case, state, process_event_notifier):
-        data = open(test_case, 'rb').read()
+    def transform(self, test_case: Path, state, process_event_notifier):
+        data = test_case.read_bytes()
         old_len = len(data)
         newdata = data[0 : state.functions[state.index]]
         if state.end() < len(state.functions):
             newdata += data[state.functions[state.end()] :]
         assert len(newdata) < old_len
 
-        tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False, dir=tmp) as tmp_file:
-            tmp_file.write(newdata)
-
-        shutil.move(tmp_file.name, test_case)
+        test_case.write_bytes(newdata)
         return (PassResult.OK, state)

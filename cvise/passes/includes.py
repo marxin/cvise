@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import re
 import shutil
 import tempfile
@@ -10,18 +11,17 @@ class IncludesPass(AbstractPass):
     def check_prerequisites(self):
         return True
 
-    def new(self, test_case, *args, **kwargs):
+    def new(self, test_case: Path, *args, **kwargs):
         return 1
 
-    def advance(self, test_case, state):
+    def advance(self, test_case: Path, state):
         return state + 1
 
-    def advance_on_success(self, test_case, state, *args, **kwargs):
+    def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return state
 
-    def transform(self, test_case, state, process_event_notifier):
-        tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
+    def transform(self, test_case: Path, state, process_event_notifier):
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=test_case.parent) as tmp_file:
             with open(test_case) as in_file:
                 includes = 0
                 matched = False

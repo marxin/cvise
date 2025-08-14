@@ -1,4 +1,5 @@
 import msgspec
+from pathlib import Path
 import re
 import subprocess
 
@@ -13,7 +14,7 @@ class ClexHintsPass(HintBasedPass):
     def check_prerequisites(self):
         return self.check_external_program('clex')
 
-    def generate_hints(self, test_case):
+    def generate_hints(self, test_case: Path):
         if self.arg.startswith('rm-toks-'):
             # Note that we don't pass the number of tokens to the parser - its job is just to find each token's
             # boundaries; the number is used for constructing the SubsegmentState instead.

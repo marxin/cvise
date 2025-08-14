@@ -1,5 +1,6 @@
 import filecmp
 import os
+from pathlib import Path
 import shutil
 import subprocess
 import tempfile
@@ -11,18 +12,18 @@ class UnIfDefPass(AbstractPass):
     def check_prerequisites(self):
         return self.check_external_program('unifdef')
 
-    def new(self, test_case, *args, **kwargs):
+    def new(self, test_case: Path, *args, **kwargs):
         return 0
 
-    def advance(self, test_case, state):
+    def advance(self, test_case: Path, state):
         return state + 1
 
-    def advance_on_success(self, test_case, state, *args, **kwargs):
+    def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return state
 
-    def transform(self, test_case, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier):
         try:
-            cmd = [self.external_programs['unifdef'], '-s', test_case]
+            cmd = [self.external_programs['unifdef'], '-s', str(test_case)]
             proc = subprocess.run(cmd, text=True, capture_output=True)
         except subprocess.SubprocessError:
             return (PassResult.ERROR, state)
@@ -34,8 +35,7 @@ class UnIfDefPass(AbstractPass):
 
         deflist = sorted(defs.keys())
 
-        tmp = os.path.dirname(test_case)
-        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=tmp) as tmp_file:
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=test_case.parent) as tmp_file:
             tmp_file.close()
             while True:
                 du = '-D' if state % 2 == 0 else '-U'
@@ -55,15 +55,15 @@ class UnIfDefPass(AbstractPass):
                     f'{du}{def_}',
                     '-o',
                     tmp_file.name,
-                    test_case,
+                    str(test_case),
                 ]
                 _stdout, _stderr, returncode = process_event_notifier.run_process(cmd)
                 if returncode != 0:
                     return (PassResult.ERROR, state)
 
-                if filecmp.cmp(test_case, tmp_file.name, shallow=False):
+                if filecmp.cmp(test_case, Path(tmp_file.name), shallow=False):
                     state += 1
                     continue
 
-                shutil.move(tmp_file.name, test_case)
+                shutil.move(Path(tmp_file.name), test_case)
                 return (PassResult.OK, state)

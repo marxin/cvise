@@ -1,4 +1,5 @@
 import msgspec
+from pathlib import Path
 import subprocess
 
 from cvise.passes.hint_based import HintBasedPass
@@ -11,11 +12,11 @@ class TreeSitterPass(HintBasedPass):
     def check_prerequisites(self):
         return self.check_external_program('treesitter_delta')
 
-    def generate_hints(self, test_case):
+    def generate_hints(self, test_case: Path):
         cmd = [
             self.external_programs['treesitter_delta'],
             self.arg,
-            test_case,
+            str(test_case),
         ]
         proc = subprocess.run(cmd, text=True, capture_output=True)
 

@@ -1,3 +1,4 @@
+from pathlib import Path
 import re
 
 from cvise.passes.abstract import AbstractPass, PassResult
@@ -174,10 +175,10 @@ class PeepPass(AbstractPass):
     def check_prerequisites(self):
         return True
 
-    def new(self, test_case, *args, **kwargs):
+    def new(self, test_case: Path, *args, **kwargs):
         return {'pos': 0, 'regex': 0}
 
-    def advance(self, test_case, state):
+    def advance(self, test_case: Path, state):
         new_state = state.copy()
 
         if self.arg == 'a':
@@ -202,10 +203,10 @@ class PeepPass(AbstractPass):
 
         return new_state
 
-    def advance_on_success(self, test_case, state, *args, **kwargs):
+    def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return state
 
-    def transform(self, test_case, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier):
         with open(test_case) as in_file:
             prog = in_file.read()
             prog2 = prog
