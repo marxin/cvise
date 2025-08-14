@@ -28,11 +28,8 @@ class TernaryPass(AbstractPass):
         return True
 
     def __get_next_match(self, test_case: Path, pos):
-        with open(test_case) as in_file:
-            prog = in_file.read()
-
+        prog = test_case.read_text()
         m = nestedmatcher.search(self.parts, prog, pos=pos)
-
         return m
 
     def new(self, test_case: Path, *args, **kwargs):

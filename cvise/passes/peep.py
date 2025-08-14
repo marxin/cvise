@@ -196,10 +196,9 @@ class PeepPass(AbstractPass):
             new_state['regex'] = 0
             new_state['pos'] += 1
 
-        with open(test_case) as in_file:
-            length = len(in_file.read())
-            if new_state['pos'] >= length:
-                return None
+        length = len(test_case.read_text())
+        if new_state['pos'] >= length:
+            return None
 
         return new_state
 
@@ -207,9 +206,8 @@ class PeepPass(AbstractPass):
         return state
 
     def transform(self, test_case: Path, state, process_event_notifier):
-        with open(test_case) as in_file:
-            prog = in_file.read()
-            prog2 = prog
+        prog = test_case.read_text()
+        prog2 = prog
 
         if state['pos'] > len(prog):
             return (PassResult.STOP, state)
@@ -225,9 +223,7 @@ class PeepPass(AbstractPass):
                 prog2 = prog2[0 : m['all'][0]] + replace + prog2[m['all'][1] :]
 
                 if prog != prog2:
-                    with open(test_case, 'w') as out_file:
-                        out_file.write(prog2)
-
+                    test_case.write_text(prog2)
                     return (PassResult.OK, state)
         elif self.arg == 'b':
             item = self.delimited_regexes_to_replace[state['regex']]
@@ -252,9 +248,7 @@ class PeepPass(AbstractPass):
                 prog2 = prog2[0 : m['delim1'][1]] + replace + prog2[m['delim2'][0] :]
 
                 if prog != prog2:
-                    with open(test_case, 'w') as out_file:
-                        out_file.write(prog2)
-
+                    test_case.write_text(prog2)
                     return (PassResult.OK, state)
         elif self.arg == 'c':
             search = [
@@ -275,9 +269,7 @@ class PeepPass(AbstractPass):
                 prog2 = prog2[0 : m['all'][0]] + body + prog2[m['all'][1] :]
 
                 if prog != prog2:
-                    with open(test_case, 'w') as out_file:
-                        out_file.write(prog2)
-
+                    test_case.write_text(prog2)
                     return (PassResult.OK, state)
         else:
             raise UnknownArgumentError(self.__class__.__name__, self.arg)

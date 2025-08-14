@@ -425,13 +425,13 @@ def do_reduce(args):
 
     if args.to_utf8:
         for test_case in args.test_cases:
-            with open(test_case, 'rb') as fd:
-                encoding = chardet.detect(fd.read())['encoding']
-                if encoding not in ('ascii', 'utf-8'):
-                    logging.info(f'Converting {test_case} file ({encoding} encoding) to UTF-8')
-                    data = open(test_case, encoding=encoding).read()
-                    with open(test_case, 'w') as w:
-                        w.write(data)
+            test_case_path = Path(test_case)
+            encoding = chardet.detect(test_case_path.read_bytes())['encoding']
+            if encoding not in ('ascii', 'utf-8'):
+                logging.info(f'Converting {test_case} file ({encoding} encoding) to UTF-8')
+                with open(test_case, encoding=encoding) as f:
+                    data = f.read()
+                test_case_path.write_text(data)
 
     script = None
     if args.commands:

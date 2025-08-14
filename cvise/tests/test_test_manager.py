@@ -119,7 +119,7 @@ class LetterRemovingPass(StubPass):
             if c in self.letters_to_remove:
                 if instances == state:
                     # Found a matching letter with the expected index; remove it.
-                    Path(test_case).write_text(text[:i] + text[i + 1 :])
+                    test_case.write_text(text[:i] + text[i + 1 :])
                     return (PassResult.OK, state)
                 instances += 1
         return (PassResult.STOP, state)

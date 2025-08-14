@@ -172,7 +172,7 @@ class AbstractPass:
     def check_prerequisites(self):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'check_prerequisites'!")
 
-    def new(self, test_case: Path, tmp_dir, job_timeout):
+    def new(self, test_case: Path, tmp_dir: Path, job_timeout):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'new'!")
 
     def advance(self, test_case: Path, state):

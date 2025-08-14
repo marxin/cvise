@@ -15,7 +15,7 @@ class IfPass(AbstractPass):
     def __macro_continues(line):
         return line.rstrip().endswith('\\')
 
-    def __count_instances(self, test_case):
+    def __count_instances(self, test_case: Path):
         count = 0
         in_multiline = False
         with open(test_case) as in_file:

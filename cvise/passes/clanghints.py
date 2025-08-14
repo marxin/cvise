@@ -49,7 +49,7 @@ class ClangHintsPass(HintBasedPass):
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
 
-    def new(self, test_case: Path, tmp_dir, job_timeout, *args, **kwargs):
+    def new(self, test_case: Path, tmp_dir: Path, job_timeout, *args, **kwargs):
         # Choose the best standard unless the user provided one.
         std_choices = [self.user_clang_delta_std] if self.user_clang_delta_std else CLANG_STD_CHOICES
         best_std = None

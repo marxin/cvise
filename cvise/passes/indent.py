@@ -18,12 +18,10 @@ class IndentPass(AbstractPass):
         return state + 1
 
     def transform(self, test_case: Path, state, process_event_notifier):
-        with open(test_case) as in_file:
-            old = in_file.read()
-
         if state != 0:
             return (PassResult.STOP, state)
 
+        old = test_case.read_text()
         cmd = [self.external_programs['clang-format'], '-i']
 
         if self.arg == 'regular':
@@ -37,9 +35,7 @@ class IndentPass(AbstractPass):
         if returncode != 0:
             return (PassResult.ERROR, state)
 
-        with open(test_case) as in_file:
-            new = in_file.read()
-
+        new = test_case.read_text()
         if old == new:
             return (PassResult.STOP, state)
         else:

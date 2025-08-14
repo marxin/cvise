@@ -36,8 +36,7 @@ class SpecialPass(AbstractPass):
         return config
 
     def __get_next_match(self, test_case: Path, pos):
-        with open(test_case) as in_file:
-            prog = in_file.read()
+        prog = test_case.read_text()
 
         config = self.__get_config()
         regex = re.compile(config['search'], flags=re.DOTALL)
@@ -47,13 +46,12 @@ class SpecialPass(AbstractPass):
 
     def new(self, test_case: Path, *args, **kwargs):
         config = self.__get_config()
-        with open(test_case) as in_file:
-            prog = in_file.read()
-            regex = re.compile(config['search'], flags=re.DOTALL)
-            modifications = list(reversed([(m.span(), config['replace_fn'](m)) for m in regex.finditer(prog)]))
-            if not modifications:
-                return None
-            return {'modifications': modifications, 'index': 0}
+        prog = test_case.read_text()
+        regex = re.compile(config['search'], flags=re.DOTALL)
+        modifications = list(reversed([(m.span(), config['replace_fn'](m)) for m in regex.finditer(prog)]))
+        if not modifications:
+            return None
+        return {'modifications': modifications, 'index': 0}
 
     def advance(self, test_case: Path, state):
         state = state.copy()
@@ -66,11 +64,9 @@ class SpecialPass(AbstractPass):
         return self.new(test_case)
 
     def transform(self, test_case: Path, state, process_event_notifier):
-        with open(test_case) as in_file:
-            data = in_file.read()
-            index = state['index']
-            ((start, end), replacement) = state['modifications'][index]
-            new_data = data[:start] + replacement + data[end:]
-            with open(test_case, 'w') as out_file:
-                out_file.write(new_data)
-                return (PassResult.OK, state)
+        data = test_case.read_text()
+        index = state['index']
+        ((start, end), replacement) = state['modifications'][index]
+        new_data = data[:start] + replacement + data[end:]
+        test_case.write_text(new_data)
+        return (PassResult.OK, state)

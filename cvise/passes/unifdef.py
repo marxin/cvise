@@ -1,5 +1,4 @@
 import filecmp
-import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -36,13 +35,14 @@ class UnIfDefPass(AbstractPass):
         deflist = sorted(defs.keys())
 
         with tempfile.NamedTemporaryFile(mode='w+', delete=False, dir=test_case.parent) as tmp_file:
+            tmp_path = Path(tmp_file.name)
             tmp_file.close()
             while True:
                 du = '-D' if state % 2 == 0 else '-U'
                 n_index = int(state / 2)
 
                 if n_index >= len(deflist):
-                    os.unlink(tmp_file.name)
+                    tmp_path.unlink()
                     return (PassResult.STOP, state)
 
                 def_ = deflist[n_index]
@@ -61,9 +61,9 @@ class UnIfDefPass(AbstractPass):
                 if returncode != 0:
                     return (PassResult.ERROR, state)
 
-                if filecmp.cmp(test_case, Path(tmp_file.name), shallow=False):
+                if filecmp.cmp(test_case, tmp_path, shallow=False):
                     state += 1
                     continue
 
-                shutil.move(Path(tmp_file.name), test_case)
+                shutil.move(tmp_path, test_case)
                 return (PassResult.OK, state)
