@@ -16,7 +16,7 @@ class PassResult(Enum):
     ERROR = auto()
 
 
-@dataclass
+@dataclass(frozen=True)
 class SubsegmentState:
     """Iterates over subsegments of the given instances, with at most the given chunk size.
 
@@ -53,12 +53,13 @@ class SubsegmentState:
         to_wrapover = self.index + 1 + self.chunk > self.instances
         if to_start or (to_wrapover and self.start == 0):
             return SubsegmentState.create(self.instances, self.chunk + 1, self.max_chunk)
-        new = copy.copy(self)
-        if to_wrapover:
-            new.index = 0
-        else:
-            new.index += 1
-        return new
+        return SubsegmentState(
+            instances=self.instances,
+            chunk=self.chunk,
+            max_chunk=self.max_chunk,
+            index=0 if to_wrapover else self.index + 1,
+            start=self.start,
+        )
 
     def advance_on_success(self, instances) -> Union[Self, None]:
         if self.chunk > instances:
@@ -67,13 +68,13 @@ class SubsegmentState:
             wrapover_to_start = self.index < self.start or self.start == 0
             if wrapover_to_start:
                 return SubsegmentState.create(instances, self.chunk + 1, self.max_chunk)
-        new = copy.copy(self)
-        new.instances = instances
-        if self.start + self.chunk > instances:
-            new.start = 0
-        if wrapover:
-            new.index = 0
-        return new
+        return SubsegmentState(
+            instances=instances,
+            chunk=self.chunk,
+            max_chunk=self.max_chunk,
+            index=0 if wrapover else self.index,
+            start=0 if self.start + self.chunk > instances else self.start,
+        )
 
 
 class BinaryState:
@@ -87,6 +88,17 @@ class BinaryState:
 
     def compact_repr(self) -> str:
         return f'{self.index}-{self.end()} out of {self.instances} with step {self.chunk}'
+
+    # FIXME: Remove this and __hash__ in favor of dataclass, once all passes and this class are updated to not
+    # modify/add properties.
+    def __eq__(self, other):
+        return isinstance(other, BinaryState) and self._key() == other._key()
+
+    def __hash__(self):
+        return hash(self.key())
+
+    def _key(self):
+        return (self.instances, self.chunk, self.index)
 
     @staticmethod
     def create(instances):

@@ -1,13 +1,17 @@
 from pathlib import Path
 
+from cvise.passes.abstract import BinaryState
 from cvise.passes.hint_based import HintState, PerTypeHintState
 from cvise.utils.folding import FoldingManager
 
 
 def create_stub_hint_state(type: str) -> HintState:
     fake_path = Path()
+    underlying_state = BinaryState.create(instances=1)
     return HintState(
-        tmp_dir=fake_path, per_type_states=[PerTypeHintState(type=type, hints_file_name=fake_path, underlying_state=0)]
+        tmp_dir=fake_path,
+        per_type_states=(PerTypeHintState(type=type, hints_file_name=fake_path, underlying_state=underlying_state),),
+        ptr=0,
     )
 
 
@@ -20,7 +24,7 @@ def test_folding_two():
 
     fold = mgr.maybe_prepare_folding_job(job_order=100)
     assert fold is not None
-    assert fold.sub_states == [state1, state2]
+    assert fold.sub_states == (state1, state2)
 
 
 def test_folding_many():
@@ -32,7 +36,7 @@ def test_folding_many():
 
     fold = mgr.maybe_prepare_folding_job(job_order=N + 1)
     assert fold is not None
-    assert fold.sub_states == states
+    assert fold.sub_states == tuple(states)
 
 
 def test_no_folding_zero_candidates():
