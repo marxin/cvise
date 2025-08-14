@@ -102,14 +102,14 @@ class TestEnvironment:
         state,
         order,
         test_script,
-        folder,
-        test_case,
-        all_test_cases,
+        folder: Path,
+        test_case: Path,
+        all_test_cases: Set[Path],
         transform,
         pid_queue=None,
     ):
         self.state = state
-        self.folder = folder
+        self.folder: Path = folder
         self.base_size = None
         self.test_script = test_script
         self.exitcode = None
@@ -118,9 +118,10 @@ class TestEnvironment:
         self.transform = transform
         self.pid_queue = pid_queue
         self.pwd = os.getcwd()
-        self.test_case = test_case
+        self.test_case: Path = test_case
+        self.original_test_case: Path = test_case.resolve()
         self.base_size = test_case.stat().st_size
-        self.all_test_cases = all_test_cases
+        self.all_test_cases: Set[Path] = all_test_cases
 
         # Copy files to the created folder
         for test_case in all_test_cases:
@@ -132,7 +133,7 @@ class TestEnvironment:
         return self.base_size - self.test_case_path.stat().st_size
 
     @property
-    def test_case_path(self):
+    def test_case_path(self) -> Path:
         return self.folder / self.test_case
 
     @property
