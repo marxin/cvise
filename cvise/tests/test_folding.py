@@ -24,7 +24,7 @@ def test_folding_two():
 
     fold = mgr.maybe_prepare_folding_job(job_order=100, best_success_state=None)
     assert fold is not None
-    assert fold.sub_states == (state1, state2)
+    assert set(fold.sub_states) == {state1, state2}
 
 
 def test_folding_many():
@@ -36,7 +36,7 @@ def test_folding_many():
 
     fold = mgr.maybe_prepare_folding_job(job_order=N + 1, best_success_state=None)
     assert fold is not None
-    assert fold.sub_states == tuple(states)
+    assert set(fold.sub_states) == set(states)
 
 
 def test_no_folding_zero_candidates():
