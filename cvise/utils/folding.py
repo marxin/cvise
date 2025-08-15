@@ -105,9 +105,9 @@ class FoldingManager:
 
     @staticmethod
     def transform(
-        test_case: Path, state: FoldingStateIn, *args, **kwargs
+        test_case: Path, state: FoldingStateIn, process_event_notifier, original_test_case: Path, *args, **kwargs
     ) -> Tuple[PassResult, Union[FoldingStateOut, None]]:
-        statistics = HintBasedPass.load_and_apply_hints(test_case, state.sub_states)
+        statistics = HintBasedPass.load_and_apply_hints(original_test_case, test_case, state.sub_states)
         return PassResult.OK, FoldingStateOut(
             sub_states=state.sub_states,
             statistics=statistics,

@@ -93,7 +93,7 @@ class ClangBinarySearchPass(AbstractPass):
                 # TODO: report?
                 pass
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier, *args, **kwargs):
         logging.debug(f'TRANSFORM: {state}')
 
         args = [

@@ -63,7 +63,7 @@ class SpecialPass(AbstractPass):
     def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return self.new(test_case)
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, *args, **kwargs):
         data = test_case.read_text()
         index = state['index']
         ((start, end), replacement) = state['modifications'][index]

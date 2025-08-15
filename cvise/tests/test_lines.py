@@ -22,7 +22,7 @@ def init_pass(depth, tmp_dir: Path, input_path: Path) -> Tuple[LinesPass, Any]:
 def advance_until(pass_, state, input_path: Path, predicate):
     backup = input_path.read_bytes()
     while True:
-        pass_.transform(input_path, state, process_event_notifier=None)
+        pass_.transform(input_path, state, process_event_notifier=None, original_test_case=input_path)
         if predicate(input_path.read_bytes()):
             return state
         input_path.write_bytes(backup)

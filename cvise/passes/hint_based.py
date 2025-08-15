@@ -145,12 +145,16 @@ class HintBasedPass(AbstractPass):
         hints = self.generate_hints(test_case)
         return self.new_from_hints(hints, tmp_dir)
 
-    def transform(self, test_case: Path, state: HintState, *args, **kwargs):
-        self.load_and_apply_hints(test_case, [state])
+    def transform(
+        self, test_case: Path, state: HintState, process_event_notifier, original_test_case: Path, *args, **kwargs
+    ):
+        self.load_and_apply_hints(original_test_case, test_case, [state])
         return PassResult.OK, state
 
     @staticmethod
-    def load_and_apply_hints(test_case: Path, states: Sequence[HintState]) -> HintApplicationStats:
+    def load_and_apply_hints(
+        original_test_case: Path, test_case: Path, states: Sequence[HintState]
+    ) -> HintApplicationStats:
         hint_bundles: List[HintBundle] = []
         for state in states:
             sub_state = state.per_type_states[state.ptr]
@@ -159,8 +163,7 @@ class HintBasedPass(AbstractPass):
             hint_bundles.append(
                 load_hints(state.tmp_dir / sub_state.hints_file_name, hints_range_begin, hints_range_end)
             )
-        new_data, stats = apply_hints(hint_bundles, test_case)
-        test_case.write_bytes(new_data)
+        stats = apply_hints(hint_bundles, source_file=original_test_case, destination_file=test_case)
         return stats
 
     def advance(self, test_case: Path, state):

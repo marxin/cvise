@@ -205,7 +205,7 @@ class PeepPass(AbstractPass):
     def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return state
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, *args, **kwargs):
         prog = test_case.read_text()
         prog2 = prog
 

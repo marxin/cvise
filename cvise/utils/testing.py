@@ -21,6 +21,7 @@ import concurrent.futures
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass, PassResult, ProcessEventNotifier, ProcessEventType
+from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import keyboard_interrupt_monitor
 from cvise.utils.error import AbsolutePathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
@@ -105,6 +106,7 @@ class TestEnvironment:
         folder: Path,
         test_case: Path,
         all_test_cases: Set[Path],
+        should_copy_test_cases: bool,
         transform,
         pid_queue=None,
     ):
@@ -119,13 +121,9 @@ class TestEnvironment:
         self.pid_queue = pid_queue
         self.pwd = os.getcwd()
         self.test_case: Path = test_case
+        self.should_copy_test_cases = should_copy_test_cases
         self.base_size = test_case.stat().st_size
         self.all_test_cases: Set[Path] = all_test_cases
-
-        # Copy files to the created folder
-        for test_case in all_test_cases:
-            (self.folder / test_case.parent).mkdir(parents=True, exist_ok=True)
-            shutil.copy2(test_case, self.folder / test_case.parent)
 
     @property
     def size_improvement(self):
@@ -145,10 +143,24 @@ class TestEnvironment:
 
         shutil.copy(self.test_script, dst)
 
+    def copy_test_cases(self):
+        for test_case in self.all_test_cases:
+            (self.folder / test_case.parent).mkdir(parents=True, exist_ok=True)
+            shutil.copy2(test_case, self.folder / test_case.parent)
+
     def run(self):
         try:
+            # If the pass needs this, copy files to the created folder (e.g., hint-based passes don't need this).
+            if self.should_copy_test_cases:
+                self.copy_test_cases()
+
             # transform by state
-            (result, self.state) = self.transform(self.test_case_path, self.state, ProcessEventNotifier(self.pid_queue))
+            (result, self.state) = self.transform(
+                self.test_case_path,
+                self.state,
+                process_event_notifier=ProcessEventNotifier(self.pid_queue),
+                original_test_case=self.test_case.resolve(),
+            )
             self.result = result
             if self.result != PassResult.OK:
                 return self
@@ -523,9 +535,19 @@ class TestManager:
         logging.debug('perform sanity check... ')
 
         folder = Path(tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}sanity-'))
-        test_env = TestEnvironment(None, 0, self.test_script, folder, list(self.test_cases)[0], self.test_cases, None)
+        test_env = TestEnvironment(
+            None,
+            0,
+            self.test_script,
+            folder,
+            list(self.test_cases)[0],
+            self.test_cases,
+            should_copy_test_cases=True,
+            transform=None,
+        )
         logging.debug(f'sanity check tmpdir = {test_env.folder}')
 
+        test_env.copy_test_cases()
         returncode = test_env.run_test(verbose=True)
         if returncode == 0:
             rmfolder(folder)
@@ -1025,6 +1047,10 @@ class TestManager:
         assert ctx.can_transform_now()
         assert ctx.state is not None
 
+        # Whether we should copy input files to the temporary work directory, or the pass does it itself. For now, we
+        # simply hardcode that hint-based passes are capable of this (and they actually need the original files anyway).
+        should_copy_test_cases = not isinstance(ctx.pass_, HintBasedPass)
+
         folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=ctx.temporary_root))
         env = TestEnvironment(
             ctx.state,
@@ -1033,6 +1059,7 @@ class TestManager:
             folder,
             self.current_test_case,
             self.test_cases,
+            should_copy_test_cases,
             ctx.pass_.transform,
             self.pid_queue,
         )
@@ -1058,6 +1085,7 @@ class TestManager:
     def schedule_fold(self, pool: pebble.ProcessPool, folding_state: FoldingStateIn) -> None:
         assert self.interleaving
 
+        should_copy_test_cases = False  # the fold transform creates the files itself
         folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX + 'folding-'))
         env = TestEnvironment(
             folding_state,
@@ -1066,6 +1094,7 @@ class TestManager:
             folder,
             self.current_test_case,
             self.test_cases,
+            should_copy_test_cases,
             FoldingManager.transform,
             self.pid_queue,
         )

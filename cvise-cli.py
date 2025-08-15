@@ -28,6 +28,7 @@ from cvise.utils.error import CViseError  # noqa: E402
 from cvise.utils.error import MissingPassGroupsError  # noqa: E402
 from cvise.utils.externalprograms import find_external_programs  # noqa: E402
 from cvise.utils.hint import apply_hints, load_hints  # noqa: E402
+from cvise.utils.misc import CloseableTemporaryFile  # noqa: E402
 import psutil  # noqa: E402
 
 
@@ -536,8 +537,11 @@ def do_apply_hints(args):
     if len(args.test_cases) > 1:
         sys.exit('exactly one TEST_CASE must be supplied')
     bundle = load_hints(Path(args.hints_file), args.hint_begin_index, args.hint_end_index)
-    new_data, stats = apply_hints([bundle], Path(args.test_cases[0]))
-    sys.stdout.buffer.write(new_data)
+    with CloseableTemporaryFile('wb') as tmp_file:
+        tmp_path = Path(tmp_file.name)
+        tmp_file.close()
+        apply_hints([bundle], source_file=Path(args.test_cases[0]), destination_file=tmp_path)
+        sys.stdout.buffer.write(tmp_path.read_bytes())
 
 
 if __name__ == '__main__':

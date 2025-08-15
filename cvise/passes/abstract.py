@@ -181,7 +181,7 @@ class AbstractPass:
     def advance_on_success(self, test_case: Path, state, succeeded_state, job_timeout, **kwargs):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance_on_success'!")
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier, original_test_case: Path, **kwargs):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'transform'!")
 
 
