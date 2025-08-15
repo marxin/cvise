@@ -163,7 +163,7 @@ class HintBasedPass(AbstractPass):
             hint_bundles.append(
                 load_hints(state.tmp_dir / sub_state.hints_file_name, hints_range_begin, hints_range_end)
             )
-        stats = apply_hints(hint_bundles, source_file=original_test_case, destination_file=test_case)
+        stats = apply_hints(hint_bundles, source_path=original_test_case, destination_path=test_case)
         return stats
 
     def advance(self, test_case: Path, state):
