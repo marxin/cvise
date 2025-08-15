@@ -58,6 +58,11 @@ HINT_PATCH_SCHEMA = {
             'description': "Right position of the chunk (index of the next character in the text after the chunk's last character). Must be greater than 'l'.",
             'type': 'integer',
         },
+        'f': {
+            'description': 'Specifies file where the patch is to be applied - the path is the string with the specified index in the vocabulary. Must be specified iff the input is a directory.',
+            'type': 'integer',
+            'minimum': 0,
+        },
         'v': {
             'description': 'Indicates that the chunk needs to be replaced with a new value - the string with the specified index in the vocabulary.',
             'type': 'integer',
@@ -111,21 +116,42 @@ class HintApplicationStats:
 json_encoder: Union[msgspec.json.Encoder, None] = None
 
 
-def apply_hints(bundles: List[HintBundle], source_file: Path, destination_file: Path) -> HintApplicationStats:
-    """Creates the destination file by applying the specified hints to the contents of the source file."""
-    patches = []
+def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationStats:
+    """Creates the destination file/dir by applying the specified hints to the contents of the source file/dir."""
+    # Take patches from all hints and group them by the file which they're applied to.
+    path_to_patches = {}
     for bundle in bundles:
         for hint in bundle.hints:
             for patch in hint['p']:
                 p = copy(patch)
                 p['_bundle'] = bundle
-                patches.append(p)
-    merged_patches = merge_overlapping_patches(patches)
+                file_rel = Path(bundle.vocabulary[patch['f']]) if 'f' in patch else Path()
+                path_to_patches.setdefault(file_rel, []).append(p)
 
+    # Enumerate all files in the source location and apply corresponding patches, if any, to each.
+    subtree = list(source_path.rglob('*')) if source_path.is_dir() else [source_path]
+    stats = HintApplicationStats(size_delta_per_pass={})
+    for path in subtree:
+        if path.is_dir() or path.is_symlink():
+            continue
+
+        file_rel = path.relative_to(source_path)
+        file_dest = destination_path / file_rel
+        file_dest.parent.mkdir(parents=True, exist_ok=True)
+
+        patches_to_apply = path_to_patches.get(file_rel, [])
+        apply_hint_patches_to_file(patches_to_apply, source_file=path, destination_file=file_dest, stats=stats)
+
+    return stats
+
+
+def apply_hint_patches_to_file(
+    patches: List[Dict], source_file: Path, destination_file: Path, stats: HintApplicationStats
+) -> None:
+    merged_patches = merge_overlapping_patches(patches)
     orig_data = source_file.read_bytes()
 
     new_data = b''
-    stats = HintApplicationStats(size_delta_per_pass={})
     start_pos = 0
     for p in merged_patches:
         left: int = p['l']
@@ -148,7 +174,6 @@ def apply_hints(bundles: List[HintBundle], source_file: Path, destination_file: 
     new_data += orig_data[start_pos:]
 
     destination_file.write_bytes(new_data)
-    return stats
 
 
 def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
