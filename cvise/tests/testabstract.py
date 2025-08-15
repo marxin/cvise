@@ -2,7 +2,7 @@ import jsonschema
 from pathlib import Path
 from typing import Set, Union
 
-from cvise.passes.abstract import AbstractPass, PassResult, ProcessEventNotifier
+from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintState
 from cvise.utils.hint import HINT_SCHEMA_STRICT, HintBundle, load_hints
 from cvise.utils.misc import CloseableTemporaryFile
