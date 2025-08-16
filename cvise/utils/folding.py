@@ -16,6 +16,9 @@ class FoldingStateIn:
 
     sub_states: Tuple[HintState]
 
+    def real_chunk(self) -> int:
+        return sum(s.real_chunk() for s in self.sub_states)
+
 
 @dataclass(frozen=True)
 class FoldingStateOut(FoldingStateIn):

@@ -49,6 +49,9 @@ class SubsegmentState:
     def end(self) -> int:
         return self.index + self.chunk
 
+    def real_chunk(self) -> int:
+        return self.chunk
+
     def advance(self) -> Union[Self, None]:
         to_start = self.index + 1 == self.start
         to_wrapover = self.index + 1 + self.chunk > self.instances

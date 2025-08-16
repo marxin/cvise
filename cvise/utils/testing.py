@@ -16,7 +16,7 @@ import sys
 import tempfile
 import time
 import traceback
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Set, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Set, Tuple, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
@@ -272,31 +272,37 @@ class SuccessCandidate:
     pass_: AbstractPass
     pass_id: int
     pass_state: Any
-    tmp_dir: Union[Path, None]
-    test_case_path: Path
     size_delta: int
+    tmp_dir: Union[Path, None] = None
+    test_case_path: Union[Path, None] = None
 
-    @staticmethod
-    def create_and_take_file(
-        order: int, pass_: AbstractPass, pass_id: int, pass_state: Any, test_case_path: Path, size_delta: int
-    ) -> SuccessCandidate:
-        tmp_dir = Path(tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}candidate-'))
-        new_test_case_path = tmp_dir / test_case_path.name
-        shutil.move(test_case_path, new_test_case_path)
-        return SuccessCandidate(
-            order=order,
-            pass_=pass_,
-            pass_id=pass_id,
-            pass_state=pass_state,
-            tmp_dir=tmp_dir,
-            test_case_path=new_test_case_path,
-            size_delta=size_delta,
-        )
+    def take_file_ownership(self, test_case_path: Path) -> None:
+        assert self.tmp_dir is None
+        assert self.test_case_path is None
+        self.tmp_dir = Path(tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}candidate-'))
+        self.test_case_path = self.tmp_dir / test_case_path.name
+        shutil.move(test_case_path, self.test_case_path)
 
     def release(self) -> None:
         if self.tmp_dir is not None:
             rmfolder(self.tmp_dir)
         self.tmp_dir = None
+        self.test_case_path = None
+
+    def better_than(self, other: SuccessCandidate) -> bool:
+        return self._comparison_key() < other._comparison_key()
+
+    def _comparison_key(self) -> Tuple:
+        # The more reduced the better; if there's nothing reduced or the size grew, treat this as the same case (zero)
+        # to be disambiguated by the other criteria below.
+        reduction = -self.size_delta if self.size_delta < 0 else 0
+        # The more "instances" (e.g., hints) taken for this attempt the better; some of legacy passes don't have this
+        # property, and for them it's always assumed "1 instance taken".
+        taken_instance_count = self.pass_state.real_chunk() if hasattr(self.pass_state, 'real_chunk') else 1
+        return (
+            -reduction,
+            -taken_instance_count,
+        )
 
 
 class TestManager:
@@ -685,21 +691,20 @@ class TestManager:
         self, order: int, pass_: Union[AbstractPass, None], pass_id: Union[int, None], env: TestEnvironment
     ) -> None:
         assert env.success
-        if self.success_candidate and pass_ is not None:
-            # For regular passes, prefer the first-seen candidate (it's likely to be larger); this is different from
-            # folding jobs, which grow over time (accumulating all regular successes like a snowball).
-            return
-        if self.success_candidate:
-            # Make sure to clean up old temporary files.
-            self.success_candidate.release()
-        self.success_candidate = SuccessCandidate.create_and_take_file(
+        new = SuccessCandidate(
             order=order,
             pass_=pass_,
             pass_id=pass_id,
             pass_state=env.state,
-            test_case_path=env.test_case_path,
             size_delta=-env.size_improvement,
         )
+        if self.success_candidate and not new.better_than(self.success_candidate):
+            return
+        if self.success_candidate:
+            # Make sure to clean up old temporary files.
+            self.success_candidate.release()
+        new.take_file_ownership(env.test_case_path)
+        self.success_candidate = new
 
     @classmethod
     def terminate_all(cls, pool):
