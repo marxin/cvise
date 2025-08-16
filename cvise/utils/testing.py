@@ -293,6 +293,9 @@ class SuccessCandidate:
         return self._comparison_key() < other._comparison_key()
 
     def _comparison_key(self) -> Tuple:
+        # We prefer folds over a reduction via a single pass, since folds perform a more diverse transformation of the
+        # test case and since all single-pass successes will eventually end up as part of a fold.
+        is_fold = isinstance(self.pass_state, FoldingStateOut)
         # The more reduced the better; if there's nothing reduced or the size grew, treat this as the same case (zero)
         # to be disambiguated by the other criteria below.
         reduction = -self.size_delta if self.size_delta < 0 else 0
@@ -300,6 +303,7 @@ class SuccessCandidate:
         # property, and for them it's always assumed "1 instance taken".
         taken_instance_count = self.pass_state.real_chunk() if hasattr(self.pass_state, 'real_chunk') else 1
         return (
+            0 if is_fold else 1,
             -reduction,
             -taken_instance_count,
         )
