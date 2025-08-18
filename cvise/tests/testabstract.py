@@ -49,5 +49,6 @@ def validate_hint_bundle(bundle: HintBundle) -> None:
             assert patch['l'] < patch['r']
             if 'f' in patch:
                 assert patch['f'] < len(bundle.vocabulary)
+                assert not Path(bundle.vocabulary[patch['f']]).is_absolute()
             if 'v' in patch:
                 assert patch['v'] < len(bundle.vocabulary)
