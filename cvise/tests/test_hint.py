@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from cvise.utils.hint import apply_hints, HintBundle, load_hints, store_hints, HINT_SCHEMA
+from cvise.tests.testabstract import validate_hint_bundle
 
 
 @pytest.fixture
@@ -278,6 +279,26 @@ def test_apply_hints_non_unicode(tmp_test_case: Path, tmp_transformed_file: Path
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
     assert tmp_transformed_file.read_bytes() == b'\0Foo'
+
+
+def test_apply_hints_dir(tmp_path: Path):
+    input_dir = tmp_path / 'input'
+    input_dir.mkdir()
+    (input_dir / 'foo.h').write_text('unsigned foo;')
+    (input_dir / 'bar.cc').write_text('void bar();')
+    vocab = ['foo.h', 'bar.cc']
+    hint_oo = {'p': [{'l': 10, 'r': 12, 'f': 0}]}
+    hint_un = {'p': [{'l': 0, 'r': 2, 'f': 0}]}
+    hint_ar = {'p': [{'l': 6, 'r': 8, 'f': 1}]}
+    bundle = HintBundle(hints=[hint_oo, hint_un, hint_ar], vocabulary=vocab)
+    validate_hint_bundle(bundle)
+
+    output_dir = tmp_path / 'output'
+    apply_hints([bundle], input_dir, output_dir)
+
+    assert list(output_dir.glob('*')) == [output_dir / 'foo.h', output_dir / 'bar.cc']
+    assert (output_dir / 'foo.h').read_text() == 'signed f;'
+    assert (output_dir / 'bar.cc').read_text() == 'void b();'
 
 
 def test_apply_hints_statistics(tmp_test_case: Path, tmp_transformed_file: Path):
