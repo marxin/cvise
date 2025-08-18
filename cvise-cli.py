@@ -540,7 +540,7 @@ def do_apply_hints(args):
     with CloseableTemporaryFile('wb') as tmp_file:
         tmp_path = Path(tmp_file.name)
         tmp_file.close()
-        apply_hints([bundle], source_file=Path(args.test_cases[0]), destination_file=tmp_path)
+        apply_hints([bundle], source_path=Path(args.test_cases[0]), destination_path=tmp_path)
         sys.stdout.buffer.write(tmp_path.read_bytes())
 
 
