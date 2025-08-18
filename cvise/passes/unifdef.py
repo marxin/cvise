@@ -20,7 +20,7 @@ class UnIfDefPass(AbstractPass):
     def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return state
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier, *args, **kwargs):
         try:
             cmd = [self.external_programs['unifdef'], '-s', str(test_case)]
             proc = subprocess.run(cmd, text=True, capture_output=True)

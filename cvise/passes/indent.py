@@ -17,7 +17,7 @@ class IndentPass(AbstractPass):
     def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return state + 1
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier, *args, **kwargs):
         if state != 0:
             return (PassResult.STOP, state)
 

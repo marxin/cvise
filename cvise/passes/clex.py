@@ -16,7 +16,7 @@ class ClexPass(AbstractPass):
     def advance_on_success(self, test_case: Path, state, *args, **kwargs):
         return state
 
-    def transform(self, test_case: Path, state, process_event_notifier):
+    def transform(self, test_case: Path, state, process_event_notifier, *args, **kwargs):
         cmd = [self.external_programs['clex'], str(self.arg), str(state), str(test_case)]
         stdout, _stderr, returncode = process_event_notifier.run_process(cmd)
         if returncode == 51:

@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 import json
 import msgspec
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, TextIO, Tuple, Union
+from typing import Any, Dict, List, Sequence, TextIO, Union
 import zstandard
 
 
@@ -111,8 +111,8 @@ class HintApplicationStats:
 json_encoder: Union[msgspec.json.Encoder, None] = None
 
 
-def apply_hints(bundles: List[HintBundle], file: Path) -> Tuple[bytes, HintApplicationStats]:
-    """Edits the file applying the specified hints to its contents."""
+def apply_hints(bundles: List[HintBundle], source_file: Path, destination_file: Path) -> HintApplicationStats:
+    """Creates the destination file by applying the specified hints to the contents of the source file."""
     patches = []
     for bundle in bundles:
         for hint in bundle.hints:
@@ -122,7 +122,7 @@ def apply_hints(bundles: List[HintBundle], file: Path) -> Tuple[bytes, HintAppli
                 patches.append(p)
     merged_patches = merge_overlapping_patches(patches)
 
-    orig_data = file.read_bytes()
+    orig_data = source_file.read_bytes()
 
     new_data = b''
     stats = HintApplicationStats(size_delta_per_pass={})
@@ -146,7 +146,9 @@ def apply_hints(bundles: List[HintBundle], file: Path) -> Tuple[bytes, HintAppli
             stats.size_delta_per_pass[bundle.pass_name] += len(to_insert)
     # Add the unmodified chunk after the last patch end.
     new_data += orig_data[start_pos:]
-    return new_data, stats
+
+    destination_file.write_bytes(new_data)
+    return stats
 
 
 def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
