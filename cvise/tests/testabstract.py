@@ -1,6 +1,7 @@
 import jsonschema
 from pathlib import Path
-from typing import Set, Union
+import tempfile
+from typing import Set, Tuple, Union
 
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintState
@@ -26,6 +27,20 @@ def collect_all_transforms(pass_: AbstractPass, state, input_path: Path) -> Set[
         while state is not None:
             pass_.transform(tmp_path, state, process_event_notifier=None, original_test_case=input_path)
             all_outputs.add(tmp_path.read_bytes())
+            state = pass_.advance(input_path, state)
+    return all_outputs
+
+
+def collect_all_transforms_dir(pass_: AbstractPass, state, input_path: Path) -> Set[Tuple[Tuple[Path, bytes]]]:
+    all_outputs = set()
+    while state is not None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            pass_.transform(tmp_path, state, process_event_notifier=None, original_test_case=input_path)
+            contents = tuple(
+                sorted((p.relative_to(tmp_dir), p.read_bytes()) for p in tmp_path.rglob('*') if not p.is_dir())
+            )
+            all_outputs.add(contents)
             state = pass_.advance(input_path, state)
     return all_outputs
 

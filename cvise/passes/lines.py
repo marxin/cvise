@@ -1,6 +1,7 @@
 import msgspec
 from pathlib import Path
 import subprocess
+from typing import Dict, List, Union
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.hint import HintBundle
@@ -11,24 +12,45 @@ class LinesPass(HintBasedPass):
         return self.check_external_program('topformflat_hints')
 
     def generate_hints(self, test_case: Path):
+        vocab = []
+        hints = []
+        decoder = msgspec.json.Decoder()
+        if test_case.is_dir():
+            for path in test_case.rglob('*'):
+                if not path.is_dir():
+                    vocab.append(str(path.relative_to(test_case)))
+                    file_id = len(vocab) - 1
+                    hints += self._generate_hints_for_file(path, decoder, file_id)
+        else:
+            hints += self._generate_hints_for_file(test_case, decoder, file_id=None)
+        return HintBundle(hints=hints, vocabulary=vocab)
+
+    def _generate_hints_for_file(
+        self, file_path: Path, decoder: msgspec.json.Decoder, file_id: Union[int, None]
+    ) -> List[Dict]:
         if self.arg == 'None':
             # None means no topformflat
-            return self.generate_hints_for_text_lines(test_case)
+            return self._generate_hints_for_text_lines(file_path, file_id)
         else:
-            return self.generate_topformflat_hints(test_case)
+            return self._generate_topformflat_hints(file_path, decoder, file_id)
 
-    def generate_hints_for_text_lines(self, test_case: Path) -> HintBundle:
+    def _generate_hints_for_text_lines(self, test_case: Path, file_id: Union[int, None]) -> List[Dict]:
         """Generate a hint per each line in the input as written."""
         hints = []
         with open(test_case, 'rb') as in_file:
             file_pos = 0
             for line in in_file:
                 end_pos = file_pos + len(line)
-                hints.append({'p': [{'l': file_pos, 'r': end_pos}]})
+                patch = {'l': file_pos, 'r': end_pos}
+                if file_id is not None:
+                    patch['f'] = file_id
+                hints.append({'p': [patch]})
                 file_pos = end_pos
-        return HintBundle(hints=hints)
+        return hints
 
-    def generate_topformflat_hints(self, test_case: Path) -> HintBundle:
+    def _generate_topformflat_hints(
+        self, test_case: Path, decoder: msgspec.json.Decoder, file_id: Union[int, None]
+    ) -> List[Dict]:
         """Generate hints via the modified topformflat tool.
 
         A single hint here is, roughly, a curly brace surrounded block at the
@@ -36,10 +58,13 @@ class LinesPass(HintBasedPass):
         """
         hints = []
         cmd = [self.external_programs['topformflat_hints'], self.arg]
-        decoder = msgspec.json.Decoder()
         with open(test_case, 'rb') as in_file:
             with subprocess.Popen(cmd, stdin=in_file, stdout=subprocess.PIPE) as proc:
                 for line in proc.stdout:
                     if not line.isspace():
-                        hints.append(decoder.decode(line))
-        return HintBundle(hints=hints)
+                        hint = decoder.decode(line)
+                        assert len(hint['p']) == 1
+                        if file_id is not None:
+                            hint['p'][0]['f'] = file_id
+                        hints.append(hint)
+        return hints
