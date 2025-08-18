@@ -87,3 +87,18 @@ class CommentsTestCase(unittest.TestCase):
 
         variant = self.input_path.read_bytes()
         self.assertEqual(variant, b'int x;\n\nchar t[] = "nonutf\xff";\n\n')
+
+    def test_multi_file(self):
+        self.input_path.mkdir()
+        (self.input_path / 'foo.h').write_text('// Foo\nint foo;\n')
+        (self.input_path / 'bar.cc').write_text('int\n// bar!\nbar;\n')
+
+        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        output_path = self.tmp_dir / 'transformed_test_case'
+        validate_stored_hints(state)
+        (_, state) = self.pass_.transform(
+            output_path, state, process_event_notifier=None, original_test_case=self.input_path
+        )
+
+        self.assertEqual((output_path / 'foo.h').read_text(), '\nint foo;\n')
+        self.assertEqual((output_path / 'bar.cc').read_text(), 'int\n\nbar;\n')
