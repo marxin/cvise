@@ -47,5 +47,7 @@ def validate_hint_bundle(bundle: HintBundle) -> None:
             assert hint['t'] < len(bundle.vocabulary)
         for patch in hint['p']:
             assert patch['l'] < patch['r']
+            if 'f' in patch:
+                assert patch['f'] < len(bundle.vocabulary)
             if 'v' in patch:
                 assert patch['v'] < len(bundle.vocabulary)
