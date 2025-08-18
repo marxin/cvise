@@ -74,6 +74,9 @@ class HintState:
             parts.append(f'{mark}{type_s}{s.underlying_state.compact_repr()}')
         return f'HintState({", ".join(parts)})'
 
+    def real_chunk(self) -> int:
+        return self.per_type_states[self.ptr].underlying_state.real_chunk()
+
     def advance(self) -> Union[HintState, None]:
         # First, prepare the current type's sub-state to point to the next enumeration step.
         new_substate = self.per_type_states[self.ptr].advance()
