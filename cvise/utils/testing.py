@@ -15,14 +15,13 @@ import subprocess
 import sys
 import tempfile
 import time
-import traceback
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Set, Tuple, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass, PassResult, ProcessEventNotifier, ProcessEventType
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils import keyboard_interrupt_monitor
+from cvise.utils import keyboard_interrupt_monitor, mplogging
 from cvise.utils.error import AbsolutePathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
@@ -173,12 +172,8 @@ class TestEnvironment:
             logging.debug('Skipping pass due to a unicode issue')
             self.result = PassResult.STOP
             return self
-        except OSError:
-            # this can happen when we clean up temporary files for cancelled processes
-            return self
-        except Exception as e:
-            print('Unexpected TestEnvironment::run failure: ' + str(e))
-            traceback.print_exc()
+        except Exception:
+            logging.exception('Unexpected TestEnvironment::run failure')
             return self
 
     def run_test(self, verbose):
@@ -353,6 +348,7 @@ class TestManager:
         start_with_pass,
         skip_after_n_transforms,
         stopping_threshold,
+        mplogger: mplogging.MPLogger,
     ):
         self.test_script: Path = test_script.absolute()
         self.timeout = timeout
@@ -372,6 +368,7 @@ class TestManager:
         self.start_with_pass = start_with_pass
         self.skip_after_n_transforms = skip_after_n_transforms
         self.stopping_threshold = stopping_threshold
+        self.mplogger = mplogger
 
         for test_case in test_cases:
             test_case = Path(test_case)
@@ -409,6 +406,19 @@ class TestManager:
             ).returncode
             == 0
         )
+
+        self.worker_pool: Union[pebble.ProcessPool, None] = None
+
+    def __enter__(self):
+        self.worker_pool = pebble.ProcessPool(
+            max_workers=self.parallel_tests, initializer=self.mplogger.worker_process_initializer()
+        )
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.worker_pool.stop()
+        self.worker_pool.join()
+        self.worker_pool = None
 
     def remove_roots(self):
         if self.save_temps:
@@ -732,58 +742,51 @@ class TestManager:
         new.take_file_ownership(env.test_case_path)
         self.success_candidate = new
 
-    @classmethod
-    def terminate_all(cls, pool):
-        pool.stop()
-        pool.join()
+    def terminate_all(self):
+        for job in self.jobs:
+            self.mplogger.ignore_logs_from_job(job.order)
+            job.future.cancel()
+        self.release_all_jobs()
 
     def run_parallel_tests(self) -> None:
         assert not self.jobs
-        with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
-            try:
-                self.current_batch_start_order = self.order
-                self.next_pass_id = 0
-                self.giveup_reported = False
-                assert self.success_candidate is None
-                if self.interleaving:
-                    self.folding_manager = FoldingManager()
+        self.current_batch_start_order = self.order
+        self.next_pass_id = 0
+        self.giveup_reported = False
+        assert self.success_candidate is None
+        if self.interleaving:
+            self.folding_manager = FoldingManager()
 
-                for pass_id, ctx in enumerate(self.pass_contexts):
-                    # Clean up the information about previously running jobs.
-                    ctx.running_transform_order_to_state = {}
-                    # Unfinished initializations from the last run will need to be restarted.
-                    if ctx.stage == PassStage.IN_INIT:
-                        ctx.stage = PassStage.BEFORE_INIT
-                    # Previously finished passes are eligible for reinitialization (used for "interleaving" mode only -
-                    # in the old single-pass mode we're expected to return to let subsequent passes work).
-                    if (
-                        self.interleaving
-                        and ctx.stage == PassStage.ENUMERATING
-                        and ctx.state is None
-                        and pass_id not in self.pass_reinit_queue
-                    ):
-                        self.pass_reinit_queue.append(pass_id)
+        for pass_id, ctx in enumerate(self.pass_contexts):
+            # Clean up the information about previously running jobs.
+            ctx.running_transform_order_to_state = {}
+            # Unfinished initializations from the last run will need to be restarted.
+            if ctx.stage == PassStage.IN_INIT:
+                ctx.stage = PassStage.BEFORE_INIT
+            # Previously finished passes are eligible for reinitialization (used for "interleaving" mode only -
+            # in the old single-pass mode we're expected to return to let subsequent passes work).
+            if (
+                self.interleaving
+                and ctx.stage == PassStage.ENUMERATING
+                and ctx.state is None
+                and pass_id not in self.pass_reinit_queue
+            ):
+                self.pass_reinit_queue.append(pass_id)
 
-                while self.jobs or any(c.can_start_job_now() for c in self.pass_contexts):
-                    keyboard_interrupt_monitor.maybe_reraise()
+        while self.jobs or any(c.can_start_job_now() for c in self.pass_contexts):
+            keyboard_interrupt_monitor.maybe_reraise()
 
-                    # schedule new jobs, as long as there are free workers
-                    while len(self.jobs) < self.parallel_tests and self.maybe_schedule_job(pool):
-                        pass
+            # schedule new jobs, as long as there are free workers
+            while len(self.jobs) < self.parallel_tests and self.maybe_schedule_job(self.worker_pool):
+                pass
 
-                    # no more jobs could be scheduled at the moment - wait for some results
-                    wait([j.future for j in self.jobs], return_when=FIRST_COMPLETED, timeout=self.EVENT_LOOP_TIMEOUT)
-                    self.process_done_futures()
+            # no more jobs could be scheduled at the moment - wait for some results
+            wait([j.future for j in self.jobs], return_when=FIRST_COMPLETED, timeout=self.EVENT_LOOP_TIMEOUT)
+            self.process_done_futures()
 
-                    # exit if we found successful transformation(s) and don't want to try better ones
-                    if self.success_candidate and self.should_proceed_with_success_candidate():
-                        break
-
-                self.terminate_all(pool)
-            except:
-                # Abort running jobs - by default the process pool waits for the ongoing jobs' completion.
-                self.terminate_all(pool)
-                raise
+            # exit if we found successful transformation(s) and don't want to try better ones
+            if self.success_candidate and self.should_proceed_with_success_candidate():
+                break
 
     def run_passes(self, passes: List[AbstractPass], interleaving: bool):
         assert len(passes) == 1 or interleaving
@@ -844,7 +847,10 @@ class TestManager:
                             self.log_key_event('toggle print diff')
                             self.print_diff = not self.print_diff
 
-                    self.run_parallel_tests()
+                    try:
+                        self.run_parallel_tests()
+                    finally:
+                        self.terminate_all()
                     self.kill_pid_queue()
 
                     is_success = self.success_candidate is not None
@@ -861,7 +867,6 @@ class TestManager:
                         )
                         break
 
-                    self.release_all_jobs()
                     if not is_success:
                         break
 
@@ -889,7 +894,7 @@ class TestManager:
         except KeyboardInterrupt:
             logging.info('Exiting now ...')
             # Clean temporary files for all jobs and passes.
-            self.release_all_jobs()
+            self.terminate_all()
             self.remove_roots()
             sys.exit(1)
 
@@ -1034,7 +1039,7 @@ class TestManager:
                 pass_succeeded_state=ctx.taken_succeeded_state,
                 job_timeout=self.timeout,
             )
-        future = pool.schedule(env.run)
+        future = pool.schedule(self.mplogger.worker_process_job_wrapper, args=[self.order, env.run])
         self.jobs.append(
             Job(
                 type=JobType.INIT,
@@ -1072,7 +1077,9 @@ class TestManager:
             ctx.pass_.transform,
             self.pid_queue,
         )
-        future = pool.schedule(env.run, timeout=self.timeout)
+        future = pool.schedule(
+            self.mplogger.worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout
+        )
         self.jobs.append(
             Job(
                 type=JobType.TRANSFORM,
@@ -1107,7 +1114,9 @@ class TestManager:
             FoldingManager.transform,
             self.pid_queue,
         )
-        future = pool.schedule(env.run, timeout=self.timeout)
+        future = pool.schedule(
+            self.mplogger.worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout
+        )
         self.jobs.append(
             Job(
                 type=JobType.TRANSFORM,
