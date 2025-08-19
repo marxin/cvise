@@ -31,14 +31,14 @@ def collect_all_transforms(pass_: AbstractPass, state, input_path: Path) -> Set[
     return all_outputs
 
 
-def collect_all_transforms_dir(pass_: AbstractPass, state, input_path: Path) -> Set[Tuple[Tuple[Path, bytes]]]:
+def collect_all_transforms_dir(pass_: AbstractPass, state, input_path: Path) -> Set[Tuple[Tuple[str, bytes]]]:
     all_outputs = set()
     while state is not None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
             pass_.transform(tmp_path, state, process_event_notifier=None, original_test_case=input_path)
             contents = tuple(
-                sorted((p.relative_to(tmp_dir), p.read_bytes()) for p in tmp_path.rglob('*') if not p.is_dir())
+                sorted((str(p.relative_to(tmp_dir)), p.read_bytes()) for p in tmp_path.rglob('*') if not p.is_dir())
             )
             all_outputs.add(contents)
             state = pass_.advance(input_path, state)

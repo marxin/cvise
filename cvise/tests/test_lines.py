@@ -789,11 +789,11 @@ def test_multi_file_arg_none(tmp_path: Path):
     p, state = init_pass('None', tmp_path, input_dir)
     all_transforms = collect_all_transforms_dir(p, state, input_dir)
 
-    assert ((Path('./bar.h'), b'x = 1;\n'), (Path('./foo.cc'), b'char\nbar() {}\n')) in all_transforms
-    assert ((Path('./bar.h'), b'int\n'), (Path('./foo.cc'), b'char\nbar() {}\n')) in all_transforms
-    assert ((Path('./bar.h'), b'int\nx = 1;\n'), (Path('./foo.cc'), b'bar() {}\n')) in all_transforms
-    assert ((Path('./bar.h'), b'int\nx = 1;\n'), (Path('./foo.cc'), b'char\n')) in all_transforms
-    assert ((Path('./bar.h'), b''), (Path('./foo.cc'), b'')) in all_transforms
+    assert (('./bar.h', b'x = 1;\n'), ('./foo.cc', b'char\nbar() {}\n')) in all_transforms
+    assert (('./bar.h', b'int\n'), ('./foo.cc', b'char\nbar() {}\n')) in all_transforms
+    assert (('./bar.h', b'int\nx = 1;\n'), ('./foo.cc', b'bar() {}\n')) in all_transforms
+    assert (('./bar.h', b'int\nx = 1;\n'), ('./foo.cc', b'char\n')) in all_transforms
+    assert (('./bar.h', b''), ('./foo.cc', b'')) in all_transforms
 
 
 def test_multi_file_arg_0(tmp_path: Path):
@@ -804,11 +804,11 @@ def test_multi_file_arg_0(tmp_path: Path):
     p, state = init_pass('0', tmp_path, input_dir)
     all_transforms = collect_all_transforms_dir(p, state, input_dir)
 
-    assert ((Path('./bar.cc'), b'\nvoid g() {\n}\n'), (Path('./foo.cc'), b'int x;\nnamespace {\n}\n')) in all_transforms
-    assert ((Path('./bar.cc'), b'void f() {\n}\n'), (Path('./foo.cc'), b'int x;\nnamespace {\n}\n')) in all_transforms
+    assert (('./bar.cc', b'\nvoid g() {\n}\n'), ('./foo.cc', b'int x;\nnamespace {\n}\n')) in all_transforms
+    assert (('./bar.cc', b'void f() {\n}\n'), ('./foo.cc', b'int x;\nnamespace {\n}\n')) in all_transforms
     assert (
-        (Path('./bar.cc'), b'void f() {\n}\nvoid g() {\n}\n'),
-        (Path('./foo.cc'), b'\nnamespace {\n}\n'),
+        ('./bar.cc', b'void f() {\n}\nvoid g() {\n}\n'),
+        ('./foo.cc', b'\nnamespace {\n}\n'),
     ) in all_transforms
-    assert ((Path('./bar.cc'), b'void f() {\n}\nvoid g() {\n}\n'), (Path('./foo.cc'), b'int x;\n')) in all_transforms
-    assert ((Path('./bar.cc'), b'\n'), (Path('./foo.cc'), b'\n')) in all_transforms
+    assert (('./bar.cc', b'void f() {\n}\nvoid g() {\n}\n'), ('./foo.cc', b'int x;\n')) in all_transforms
+    assert (('./bar.cc', b'\n'), ('./foo.cc', b'\n')) in all_transforms
