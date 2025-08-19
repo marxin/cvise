@@ -424,15 +424,16 @@ def do_reduce(args):
         args.test_cases.insert(0, args.interestingness_test)
         args.interestingness_test = None
 
+    test_cases = [Path(s) for s in args.test_cases]
+
     if args.to_utf8:
-        for test_case in args.test_cases:
-            test_case_path = Path(test_case)
-            encoding = chardet.detect(test_case_path.read_bytes())['encoding']
+        for test_case in test_cases:
+            encoding = chardet.detect(test_case.read_bytes())['encoding']
             if encoding not in ('ascii', 'utf-8'):
                 logging.info(f'Converting {test_case} file ({encoding} encoding) to UTF-8')
                 with open(test_case, encoding=encoding) as f:
                     data = f.read()
-                test_case_path.write_text(data)
+                test_case.write_text(data)
 
     script = None
     if args.commands:
@@ -445,12 +446,12 @@ def do_reduce(args):
 
     try:
         with mplogging.MPLogger(args.n) as mplogger:
-            test_manager = testing.TestManager(
+            with testing.TestManager(
                 pass_statistic,
                 Path(args.interestingness_test),
                 args.timeout,
                 args.save_temps,
-                [Path(s) for s in args.test_cases],
+                test_cases,
                 args.n,
                 args.no_cache,
                 args.skip_key_off,
@@ -464,20 +465,19 @@ def do_reduce(args):
                 args.skip_after_n_transforms,
                 args.stopping_threshold,
                 mplogger,
-            )
+            ) as test_manager:
+                reducer = CVise(test_manager, args.skip_interestingness_test_check)
 
-            reducer = CVise(test_manager, args.skip_interestingness_test_check)
+                reducer.tidy = args.tidy
 
-            reducer.tidy = args.tidy
+                # Track runtime
+                time_start = time.monotonic()
 
-            # Track runtime
-            time_start = time.monotonic()
-
-            try:
-                reducer.reduce(pass_group, skip_initial=args.skip_initial_passes)
-            except CViseError as err:
-                print(err)
-                return
+                try:
+                    reducer.reduce(pass_group, skip_initial=args.skip_initial_passes)
+                except CViseError as err:
+                    print(err)
+                    return
 
         time_stop = time.monotonic()
         with open(args.log_file, 'ab') if args.log_file else nullcontext(sys.stderr.buffer) as fs:
@@ -518,7 +518,7 @@ def do_reduce(args):
                 fs.write(f'Runtime: {round(time_stop - time_start)} seconds\n'.encode())
 
             fs.write(b'Reduced test-cases:\n\n')
-            for test_case in sorted(test_manager.test_cases):
+            for test_case in sorted(test_cases):
                 fs.write(f'--- {test_case} ---\n'.encode())
                 fs.write(test_case.read_bytes())
                 fs.write(b'\n')
