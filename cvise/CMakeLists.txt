@@ -120,6 +120,7 @@ set(SOURCE_FILES
   "utils/hint.py"
   "utils/keyboard_interrupt_monitor.py"
   "utils/misc.py"
+  "utils/mplogging.py"
   "utils/nestedmatcher.py"
   "utils/readkey.py"
   "utils/statistics.py"

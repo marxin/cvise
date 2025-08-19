@@ -23,7 +23,7 @@ if importlib.util.find_spec('cvise') is None:
 import chardet  # noqa: E402
 from cvise.cvise import CVise  # noqa: E402
 from cvise.passes.abstract import AbstractPass  # noqa: E402
-from cvise.utils import statistics, testing  # noqa: E402
+from cvise.utils import mplogging, statistics, testing  # noqa: E402
 from cvise.utils.error import CViseError  # noqa: E402
 from cvise.utils.error import MissingPassGroupsError  # noqa: E402
 from cvise.utils.externalprograms import find_external_programs  # noqa: E402
@@ -444,82 +444,84 @@ def do_reduce(args):
         args.interestingness_test = script.name
 
     try:
-        test_manager = testing.TestManager(
-            pass_statistic,
-            Path(args.interestingness_test),
-            args.timeout,
-            args.save_temps,
-            [Path(s) for s in args.test_cases],
-            args.n,
-            args.no_cache,
-            args.skip_key_off,
-            args.shaddap,
-            args.die_on_pass_bug,
-            args.print_diff,
-            args.max_improvement,
-            args.no_give_up,
-            args.also_interesting,
-            args.start_with_pass,
-            args.skip_after_n_transforms,
-            args.stopping_threshold,
-        )
+        with mplogging.MPLogger(args.n) as mplogger:
+            test_manager = testing.TestManager(
+                pass_statistic,
+                Path(args.interestingness_test),
+                args.timeout,
+                args.save_temps,
+                [Path(s) for s in args.test_cases],
+                args.n,
+                args.no_cache,
+                args.skip_key_off,
+                args.shaddap,
+                args.die_on_pass_bug,
+                args.print_diff,
+                args.max_improvement,
+                args.no_give_up,
+                args.also_interesting,
+                args.start_with_pass,
+                args.skip_after_n_transforms,
+                args.stopping_threshold,
+                mplogger,
+            )
 
-        reducer = CVise(test_manager, args.skip_interestingness_test_check)
+            reducer = CVise(test_manager, args.skip_interestingness_test_check)
 
-        reducer.tidy = args.tidy
+            reducer.tidy = args.tidy
 
-        # Track runtime
-        time_start = time.monotonic()
+            # Track runtime
+            time_start = time.monotonic()
 
-        try:
-            reducer.reduce(pass_group, skip_initial=args.skip_initial_passes)
-        except CViseError as err:
-            time_stop = time.monotonic()
-            print(err)
-        else:
-            time_stop = time.monotonic()
-            with open(args.log_file, 'ab') if args.log_file else nullcontext(sys.stderr.buffer) as fs:
-                fs.write(b'===< PASS statistics >===\n')
+            try:
+                reducer.reduce(pass_group, skip_initial=args.skip_initial_passes)
+            except CViseError as err:
+                print(err)
+                return
+
+        time_stop = time.monotonic()
+        with open(args.log_file, 'ab') if args.log_file else nullcontext(sys.stderr.buffer) as fs:
+            fs.write(b'===< PASS statistics >===\n')
+            fs.write(
+                (
+                    '  %-60s %14s %8s %8s %8s %8s %15s\n'
+                    % (
+                        'pass name',
+                        'bytes reduced',
+                        'time (s)',
+                        'time (%)',
+                        'worked',
+                        'failed',
+                        'total executed',
+                    )
+                ).encode()
+            )
+
+            for pass_name, pass_data in pass_statistic.sorted_results:
                 fs.write(
                     (
-                        '  %-60s %14s %8s %8s %8s %8s %15s\n'
+                        '  %-60s %14d %8.2f %8.2f %8d %8d %15d\n'
                         % (
-                            'pass name',
-                            'bytes reduced',
-                            'time (s)',
-                            'time (%)',
-                            'worked',
-                            'failed',
-                            'total executed',
+                            pass_name,
+                            -pass_data.total_size_delta,
+                            pass_data.total_seconds,
+                            100.0 * pass_data.total_seconds / (time_stop - time_start),
+                            pass_data.worked,
+                            pass_data.failed,
+                            pass_data.totally_executed,
                         )
                     ).encode()
                 )
+            fs.write(b'\n')
 
-                for pass_name, pass_data in pass_statistic.sorted_results:
-                    fs.write(
-                        (
-                            '  %-60s %14d %8.2f %8.2f %8d %8d %15d\n'
-                            % (
-                                pass_name,
-                                -pass_data.total_size_delta,
-                                pass_data.total_seconds,
-                                100.0 * pass_data.total_seconds / (time_stop - time_start),
-                                pass_data.worked,
-                                pass_data.failed,
-                                pass_data.totally_executed,
-                            )
-                        ).encode()
-                    )
+            if not args.no_timing:
+                fs.write(f'Runtime: {round(time_stop - time_start)} seconds\n'.encode())
+
+            fs.write(b'Reduced test-cases:\n\n')
+            for test_case in sorted(test_manager.test_cases):
+                fs.write(f'--- {test_case} ---\n'.encode())
+                fs.write(test_case.read_bytes())
                 fs.write(b'\n')
-
-                if not args.no_timing:
-                    fs.write(f'Runtime: {round(time_stop - time_start)} seconds\n'.encode())
-
-                fs.write(b'Reduced test-cases:\n\n')
-                for test_case in sorted(test_manager.test_cases):
-                    fs.write(f'--- {test_case} ---\n'.encode())
-                    fs.write(test_case.read_bytes())
-                    fs.write(b'\n')
     finally:
         if script:
             os.unlink(script.name)

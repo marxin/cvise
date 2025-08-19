@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from cvise.passes.abstract import AbstractPass, PassResult  # noqa: E402
 from cvise.passes.hint_based import HintBasedPass  # noqa: E402
-from cvise.utils import keyboard_interrupt_monitor, statistics, testing  # noqa: E402
+from cvise.utils import keyboard_interrupt_monitor, mplogging, statistics, testing  # noqa: E402
 from cvise.utils.hint import HintBundle
 
 
@@ -238,6 +238,7 @@ def manager(tmp_path: Path, input_file: Path, interestingness_script, job_timeou
         START_WITH_PASS,
         SKIP_AFTER_N_TRANSFORMS,
         STOPPING_THRESHOLD,
+        mplogging.MPLogger(PARALLEL_TESTS),
     )
 
 
