@@ -172,8 +172,8 @@ class TestEnvironment:
             logging.debug('Skipping pass due to a unicode issue')
             self.result = PassResult.STOP
             return self
-        except Exception as e:
-            logging.exception(f'Unexpected TestEnvironment::run failure')
+        except Exception:
+            logging.exception('Unexpected TestEnvironment::run failure')
             return self
 
     def run_test(self, verbose):
