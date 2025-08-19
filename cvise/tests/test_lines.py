@@ -3,7 +3,7 @@ import pytest
 from typing import Any, Tuple
 
 from cvise.passes.lines import LinesPass
-from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
+from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
 
 
@@ -779,3 +779,36 @@ def test_non_ascii(tmp_path: Path, input_path: Path, pass_arg):
         """
         in all_transforms
     )
+
+
+def test_multi_file_arg_none(tmp_path: Path):
+    input_dir = tmp_path / 'test_case'
+    input_dir.mkdir()
+    (input_dir / 'bar.h').write_text('int\nx = 1;\n')
+    (input_dir / 'foo.cc').write_text('char\nbar() {}\n')
+    p, state = init_pass('None', tmp_path, input_dir)
+    all_transforms = collect_all_transforms_dir(p, state, input_dir)
+
+    assert (('bar.h', b'x = 1;\n'), ('foo.cc', b'char\nbar() {}\n')) in all_transforms
+    assert (('bar.h', b'int\n'), ('foo.cc', b'char\nbar() {}\n')) in all_transforms
+    assert (('bar.h', b'int\nx = 1;\n'), ('foo.cc', b'bar() {}\n')) in all_transforms
+    assert (('bar.h', b'int\nx = 1;\n'), ('foo.cc', b'char\n')) in all_transforms
+    assert (('bar.h', b''), ('foo.cc', b'')) in all_transforms
+
+
+def test_multi_file_arg_0(tmp_path: Path):
+    input_dir = tmp_path / 'test_case'
+    input_dir.mkdir()
+    (input_dir / 'bar.cc').write_text('void f() {\n}\nvoid g() {\n}\n')
+    (input_dir / 'foo.cc').write_text('int x;\nnamespace {\n}\n')
+    p, state = init_pass('0', tmp_path, input_dir)
+    all_transforms = collect_all_transforms_dir(p, state, input_dir)
+
+    assert (('bar.cc', b'\nvoid g() {\n}\n'), ('foo.cc', b'int x;\nnamespace {\n}\n')) in all_transforms
+    assert (('bar.cc', b'void f() {\n}\n'), ('foo.cc', b'int x;\nnamespace {\n}\n')) in all_transforms
+    assert (
+        ('bar.cc', b'void f() {\n}\nvoid g() {\n}\n'),
+        ('foo.cc', b'\nnamespace {\n}\n'),
+    ) in all_transforms
+    assert (('bar.cc', b'void f() {\n}\nvoid g() {\n}\n'), ('foo.cc', b'int x;\n')) in all_transforms
+    assert (('bar.cc', b'\n'), ('foo.cc', b'\n')) in all_transforms
