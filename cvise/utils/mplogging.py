@@ -1,6 +1,7 @@
 """Collects logs from multiprocessing workers and filters out canceled workers."""
 
 from collections import deque
+from dataclasses import dataclass
 import logging
 import multiprocessing
 import threading
@@ -45,9 +46,7 @@ class MPLogger:
 
     def worker_process_initializer(self) -> Callable:
         """Returns a function to be called in a worker process in order to collect logs from it via IPC."""
-        level = logging.getLogger().getEffectiveLevel()
-        queue = self._queue
-        return lambda: _init_in_worker_process(level, queue)
+        return _WorkerProcessInitializer(logging_level=logging.getLogger().getEffectiveLevel(), queue=self._queue)
 
     @staticmethod
     def worker_process_job_wrapper(job_order: int, func: Callable) -> Any:
@@ -81,6 +80,20 @@ class MPLogger:
             raise
 
 
+@dataclass
+class _WorkerProcessInitializer:
+    """The function-like object returned by worker_process_initializer()."""
+
+    logging_level: int
+    queue: multiprocessing.SimpleQueue
+
+    def __call__(self):
+        root = logging.getLogger()
+        root.setLevel(self.logging_level)
+        root.handlers.clear()
+        root.addHandler(_QueueAppendingHandler(self.queue))
+
+
 class _QueueAppendingHandler(logging.Handler):
     """Sends all logs into the IPC queue."""
 
@@ -105,10 +118,3 @@ class _JobOrderAttachingFilter(logging.Filter):
     def filter(self, record: logging.LogRecord):
         record.job_order = self._job_order
         return True
-
-
-def _init_in_worker_process(level: int, queue: multiprocessing.SimpleQueue):
-    root = logging.getLogger()
-    root.setLevel(level)
-    root.handlers.clear()
-    root.addHandler(_QueueAppendingHandler(queue))
