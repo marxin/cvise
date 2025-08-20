@@ -129,7 +129,8 @@ def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: 
                 path_to_patches.setdefault(file_rel, []).append(p)
 
     # Enumerate all files in the source location and apply corresponding patches, if any, to each.
-    subtree = list(source_path.rglob('*')) if source_path.is_dir() else [source_path]
+    is_dir = source_path.is_dir()
+    subtree = list(source_path.rglob('*')) if is_dir else [source_path]
     stats = HintApplicationStats(size_delta_per_pass={})
     for path in subtree:
         if path.is_dir() or path.is_symlink():
@@ -137,7 +138,8 @@ def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: 
 
         file_rel = path.relative_to(source_path)
         file_dest = destination_path / file_rel
-        file_dest.parent.mkdir(parents=True, exist_ok=True)
+        if is_dir:
+            _mkdir_up_to(file_dest.parent, destination_path)
 
         patches_to_apply = path_to_patches.get(file_rel, [])
         apply_hint_patches_to_file(patches_to_apply, source_file=path, destination_file=file_dest, stats=stats)
@@ -312,3 +314,15 @@ def patches_overlap(first: Dict, second: Dict) -> bool:
 def extend_end_to_fit(patch: Dict, appended_patch: Dict) -> None:
     """Modifies the first patch so that the second patch fits into it."""
     patch['r'] = max(patch['r'], appended_patch['r'])
+
+
+def _mkdir_up_to(dir_to_create: Path, last_parent_dir: Path) -> None:
+    """Similar to Path.mkdir(parents=True), but stops at the given ancestor directory.
+
+    We use it to avoid canceled-but-not-killed-yet C-Vise jobs recreating temporary work directories that the C-Vise
+    main process has deleted.
+    """
+    assert dir_to_create.is_relative_to(last_parent_dir)
+    if dir_to_create != last_parent_dir:
+        _mkdir_up_to(dir_to_create.parent, last_parent_dir)
+    dir_to_create.mkdir(exist_ok=True)
