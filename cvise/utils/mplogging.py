@@ -37,7 +37,6 @@ class MPLogger:
         # all remaining items and quits.
         self._queue.put(None)
         self._thread.join(timeout=60)  # semi-arbitrary timeout to prevent even theoretical possibility of deadlocks
-        self._queue.close()
 
     def ignore_logs_from_job(self, job_order: int):
         with self._lock:
