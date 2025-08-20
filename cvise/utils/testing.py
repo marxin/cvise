@@ -1,5 +1,6 @@
 from __future__ import annotations
 from concurrent.futures import FIRST_COMPLETED, Future, wait
+import contextlib
 from dataclasses import dataclass
 import difflib
 from enum import auto, Enum, unique
@@ -15,14 +16,13 @@ import subprocess
 import sys
 import tempfile
 import time
-import traceback
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Set, Tuple, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass, PassResult, ProcessEventNotifier, ProcessEventType
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils import keyboard_interrupt_monitor
+from cvise.utils import keyboard_interrupt_monitor, mplogging
 from cvise.utils.error import AbsolutePathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
@@ -173,12 +173,8 @@ class TestEnvironment:
             logging.debug('Skipping pass due to a unicode issue')
             self.result = PassResult.STOP
             return self
-        except OSError:
-            # this can happen when we clean up temporary files for cancelled processes
-            return self
-        except Exception as e:
-            print('Unexpected TestEnvironment::run failure: ' + str(e))
-            traceback.print_exc()
+        except Exception:
+            logging.exception('Unexpected TestEnvironment::run failure')
             return self
 
     def run_test(self, verbose):
@@ -372,6 +368,7 @@ class TestManager:
         self.start_with_pass = start_with_pass
         self.skip_after_n_transforms = skip_after_n_transforms
         self.stopping_threshold = stopping_threshold
+        self.exit_stack = contextlib.ExitStack()
 
         for test_case in test_cases:
             test_case = Path(test_case)
@@ -409,6 +406,15 @@ class TestManager:
             ).returncode
             == 0
         )
+
+        self.mplogger = mplogging.MPLogger(self.parallel_tests)
+
+    def __enter__(self):
+        self.exit_stack.enter_context(self.mplogger)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.exit_stack.__exit__(exc_type, exc_val, exc_tb)
 
     def remove_roots(self):
         if self.save_temps:
@@ -732,14 +738,18 @@ class TestManager:
         new.take_file_ownership(env.test_case_path)
         self.success_candidate = new
 
-    @classmethod
-    def terminate_all(cls, pool):
+    def terminate_all(self, pool):
+        for job in self.jobs:
+            self.mplogger.ignore_logs_from_job(job.order)
         pool.stop()
         pool.join()
 
     def run_parallel_tests(self) -> None:
         assert not self.jobs
-        with pebble.ProcessPool(max_workers=self.parallel_tests) as pool:
+        with pebble.ProcessPool(
+            max_workers=self.parallel_tests,
+            initializer=self.mplogger.worker_process_initializer(),
+        ) as pool:
             try:
                 self.current_batch_start_order = self.order
                 self.next_pass_id = 0
@@ -1034,7 +1044,7 @@ class TestManager:
                 pass_succeeded_state=ctx.taken_succeeded_state,
                 job_timeout=self.timeout,
             )
-        future = pool.schedule(env.run)
+        future = pool.schedule(self.mplogger.worker_process_job_wrapper, args=[self.order, env.run])
         self.jobs.append(
             Job(
                 type=JobType.INIT,
@@ -1072,7 +1082,9 @@ class TestManager:
             ctx.pass_.transform,
             self.pid_queue,
         )
-        future = pool.schedule(env.run, timeout=self.timeout)
+        future = pool.schedule(
+            self.mplogger.worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout
+        )
         self.jobs.append(
             Job(
                 type=JobType.TRANSFORM,
@@ -1107,7 +1119,9 @@ class TestManager:
             FoldingManager.transform,
             self.pid_queue,
         )
-        future = pool.schedule(env.run, timeout=self.timeout)
+        future = pool.schedule(
+            self.mplogger.worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout
+        )
         self.jobs.append(
             Job(
                 type=JobType.TRANSFORM,
