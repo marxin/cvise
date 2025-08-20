@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from cvise.passes.abstract import AbstractPass, PassResult  # noqa: E402
 from cvise.passes.hint_based import HintBasedPass  # noqa: E402
-from cvise.utils import keyboard_interrupt_monitor, mplogging, statistics, testing  # noqa: E402
+from cvise.utils import keyboard_interrupt_monitor, statistics, testing  # noqa: E402
 from cvise.utils.hint import HintBundle
 
 
@@ -220,7 +220,7 @@ def manager(tmp_path: Path, input_file: Path, interestingness_script, job_timeou
     script_path.write_text(interestingness_script.format(test_case=input_file))
     script_path.chmod(0o744)
 
-    return testing.TestManager(
+    with testing.TestManager(
         pass_statistic,
         script_path,
         job_timeout,
@@ -238,8 +238,8 @@ def manager(tmp_path: Path, input_file: Path, interestingness_script, job_timeou
         START_WITH_PASS,
         SKIP_AFTER_N_TRANSFORMS,
         STOPPING_THRESHOLD,
-        mplogging.MPLogger(PARALLEL_TESTS),
-    )
+    ) as test_manager:
+        yield test_manager
 
 
 def test_succeed_via_naive_pass(input_file: Path, manager):

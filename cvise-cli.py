@@ -23,7 +23,7 @@ if importlib.util.find_spec('cvise') is None:
 import chardet  # noqa: E402
 from cvise.cvise import CVise  # noqa: E402
 from cvise.passes.abstract import AbstractPass  # noqa: E402
-from cvise.utils import mplogging, statistics, testing  # noqa: E402
+from cvise.utils import statistics, testing  # noqa: E402
 from cvise.utils.error import CViseError  # noqa: E402
 from cvise.utils.error import MissingPassGroupsError  # noqa: E402
 from cvise.utils.externalprograms import find_external_programs  # noqa: E402
@@ -444,28 +444,25 @@ def do_reduce(args):
         args.interestingness_test = script.name
 
     try:
-        with mplogging.MPLogger(args.n) as mplogger:
-            test_manager = testing.TestManager(
-                pass_statistic,
-                Path(args.interestingness_test),
-                args.timeout,
-                args.save_temps,
-                [Path(s) for s in args.test_cases],
-                args.n,
-                args.no_cache,
-                args.skip_key_off,
-                args.shaddap,
-                args.die_on_pass_bug,
-                args.print_diff,
-                args.max_improvement,
-                args.no_give_up,
-                args.also_interesting,
-                args.start_with_pass,
-                args.skip_after_n_transforms,
-                args.stopping_threshold,
-                mplogger,
-            )
-
+        with testing.TestManager(
+            pass_statistic,
+            Path(args.interestingness_test),
+            args.timeout,
+            args.save_temps,
+            [Path(s) for s in args.test_cases],
+            args.n,
+            args.no_cache,
+            args.skip_key_off,
+            args.shaddap,
+            args.die_on_pass_bug,
+            args.print_diff,
+            args.max_improvement,
+            args.no_give_up,
+            args.also_interesting,
+            args.start_with_pass,
+            args.skip_after_n_transforms,
+            args.stopping_threshold,
+        ) as test_manager:
             reducer = CVise(test_manager, args.skip_interestingness_test_check)
 
             reducer.tidy = args.tidy

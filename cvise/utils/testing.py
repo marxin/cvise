@@ -1,5 +1,6 @@
 from __future__ import annotations
 from concurrent.futures import FIRST_COMPLETED, Future, wait
+import contextlib
 from dataclasses import dataclass
 import difflib
 from enum import auto, Enum, unique
@@ -348,7 +349,6 @@ class TestManager:
         start_with_pass,
         skip_after_n_transforms,
         stopping_threshold,
-        mplogger: mplogging.MPLogger,
     ):
         self.test_script: Path = test_script.absolute()
         self.timeout = timeout
@@ -368,7 +368,7 @@ class TestManager:
         self.start_with_pass = start_with_pass
         self.skip_after_n_transforms = skip_after_n_transforms
         self.stopping_threshold = stopping_threshold
-        self.mplogger = mplogger
+        self.exit_stack = contextlib.ExitStack()
 
         for test_case in test_cases:
             test_case = Path(test_case)
@@ -406,6 +406,15 @@ class TestManager:
             ).returncode
             == 0
         )
+
+        self.mplogger = mplogging.MPLogger(self.parallel_tests)
+
+    def __enter__(self):
+        self.exit_stack.enter_context(self.mplogger)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.exit_stack.__exit__(exc_type, exc_val, exc_tb)
 
     def remove_roots(self):
         if self.save_temps:
