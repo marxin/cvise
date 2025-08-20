@@ -38,17 +38,20 @@ class MPLogger:
         self._queue.put(None)
         self._thread.join(timeout=60)  # semi-arbitrary timeout to prevent even theoretical possibility of deadlocks
 
-    def ignore_logs_from_job(self, job_order: int):
+    def ignore_logs_from_job(self, job_order: int) -> None:
+        """Remembers to ignore all logs coming from the specified job."""
         with self._lock:
             self._job_orders_to_ignore.append(job_order)
 
-    def worker_process_initializer(self):
+    def worker_process_initializer(self) -> Callable:
+        """Returns a function to be called in a worker process in order to collect logs from it via IPC."""
         level = logging.getLogger().getEffectiveLevel()
         queue = self._queue
         return lambda: _init_in_worker_process(level, queue)
 
     @staticmethod
     def worker_process_job_wrapper(job_order: int, func: Callable) -> Any:
+        """Runs the given function with the logging configured to mark all logs with the job_order."""
         root = logging.getLogger()
         filter = _JobOrderAttachingFilter(job_order)
         root.addFilter(filter)
@@ -79,6 +82,8 @@ class MPLogger:
 
 
 class _QueueAppendingHandler(logging.Handler):
+    """Sends all logs into the IPC queue."""
+
     def __init__(self, queue: multiprocessing.SimpleQueue):
         super().__init__()
         self._queue = queue
@@ -88,6 +93,11 @@ class _QueueAppendingHandler(logging.Handler):
 
 
 class _JobOrderAttachingFilter(logging.Filter):
+    """Adds the job_order field to all log records.
+
+    This is used in order to recognize and discard logs originating from already canceled jobs.
+    """
+
     def __init__(self, job_order: int):
         super().__init__()
         self._job_order = job_order
