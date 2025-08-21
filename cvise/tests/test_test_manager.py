@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from cvise.passes.abstract import AbstractPass, PassResult  # noqa: E402
 from cvise.passes.hint_based import HintBasedPass  # noqa: E402
-from cvise.utils import keyboard_interrupt_monitor, statistics, testing  # noqa: E402
+from cvise.utils import sigmonitor, statistics, testing  # noqa: E402
 from cvise.utils.hint import HintBundle
 
 
@@ -162,7 +162,7 @@ def extra_dir_count():
 
 @pytest.fixture(autouse=True)
 def interrupt_monitor():
-    keyboard_interrupt_monitor.init()
+    sigmonitor.init()
 
 
 # Run all tests in the temp dir, to prevent artifacts like the cvise_bug_* from appearing in the build directory.

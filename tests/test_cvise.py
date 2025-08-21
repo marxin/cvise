@@ -72,8 +72,9 @@ def test_simple_reduction_no_interleaving_config(tmp_path: Path):
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+@pytest.mark.parametrize('signum', [signal.SIGINT, signal.SIGTERM], ids=['sigint', 'sigterm'])
 @pytest.mark.parametrize('additional_delay', [0, 1, 10])
-def test_ctrl_c(tmp_path: Path, additional_delay: int):
+def test_kill(tmp_path: Path, signum: int, additional_delay: int):
     """Test that Control-C is handled quickly, without waiting for jobs to finish."""
     MAX_SHUTDOWN = 10  # in seconds; tolerance to prevent flakiness (normally it's a fraction of a second)
     JOB_SLOWNESS = MAX_SHUTDOWN * 2  # make a single job slower than the thresholds
@@ -95,7 +96,7 @@ def test_ctrl_c(tmp_path: Path, additional_delay: int):
     # extra wait for more variance in test scenarios
     time.sleep(additional_delay)
 
-    proc.send_signal(signal.SIGINT)
+    proc.send_signal(signum)
     try:
         proc.communicate(timeout=MAX_SHUTDOWN)
     except TimeoutError:

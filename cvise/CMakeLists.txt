@@ -118,11 +118,11 @@ set(SOURCE_FILES
   "utils/externalprograms.py"
   "utils/folding.py"
   "utils/hint.py"
-  "utils/keyboard_interrupt_monitor.py"
   "utils/misc.py"
   "utils/mplogging.py"
   "utils/nestedmatcher.py"
   "utils/readkey.py"
+  "utils/sigmonitor.py"
   "utils/statistics.py"
   "utils/testing.py"
 )

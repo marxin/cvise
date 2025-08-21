@@ -22,7 +22,7 @@ import concurrent.futures
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass, PassResult, ProcessEventNotifier, ProcessEventType
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils import keyboard_interrupt_monitor, misc, mplogging
+from cvise.utils import misc, mplogging, sigmonitor
 from cvise.utils.error import AbsolutePathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
@@ -186,7 +186,7 @@ class TestEnvironment:
                 stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(
                     str(self.test_script), shell=True, env=env
                 )
-            if verbose and returncode != 0:
+            if verbose and returncode != 0 or True:
                 # Drop invalid UTF sequences.
                 logging.debug('stdout:\n%s', stdout.decode('utf-8', 'ignore'))
                 logging.debug('stderr:\n%s', stderr.decode('utf-8', 'ignore'))
@@ -744,7 +744,8 @@ class TestManager:
         assert not self.jobs
         with pebble.ProcessPool(
             max_workers=self.parallel_tests,
-            initializer=self.mplogger.worker_process_initializer(),
+            initializer=_init_worker_process,
+            initargs=[self.mplogger.worker_process_initializer()],
         ) as pool:
             try:
                 self.current_batch_start_order = self.order
@@ -771,7 +772,7 @@ class TestManager:
                         self.pass_reinit_queue.append(pass_id)
 
                 while self.jobs or any(c.can_start_job_now() for c in self.pass_contexts):
-                    keyboard_interrupt_monitor.maybe_reraise()
+                    sigmonitor.maybe_reraise()
 
                     # schedule new jobs, as long as there are free workers
                     while len(self.jobs) < self.parallel_tests and self.maybe_schedule_job(pool):
@@ -785,11 +786,9 @@ class TestManager:
                     if self.success_candidate and self.should_proceed_with_success_candidate():
                         break
 
-                self.terminate_all(pool)
-            except:
+            finally:
                 # Abort running jobs - by default the process pool waits for the ongoing jobs' completion.
                 self.terminate_all(pool)
-                raise
 
     def run_passes(self, passes: List[AbstractPass], interleaving: bool):
         assert len(passes) == 1 or interleaving
@@ -892,7 +891,7 @@ class TestManager:
 
             self.restore_mode()
             self.remove_roots()
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, SystemExit):
             logging.info('Exiting now ...')
             # Clean temporary files for all jobs and passes.
             self.release_all_jobs()
@@ -1040,7 +1039,7 @@ class TestManager:
                 pass_succeeded_state=ctx.taken_succeeded_state,
                 job_timeout=self.timeout,
             )
-        future = pool.schedule(self.mplogger.worker_process_job_wrapper, args=[self.order, env.run])
+        future = pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run])
         self.jobs.append(
             Job(
                 type=JobType.INIT,
@@ -1078,9 +1077,7 @@ class TestManager:
             ctx.pass_.transform,
             self.pid_queue,
         )
-        future = pool.schedule(
-            self.mplogger.worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout
-        )
+        future = pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout)
         self.jobs.append(
             Job(
                 type=JobType.TRANSFORM,
@@ -1115,9 +1112,7 @@ class TestManager:
             FoldingManager.transform,
             self.pid_queue,
         )
-        future = pool.schedule(
-            self.mplogger.worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout
-        )
+        future = pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout)
         self.jobs.append(
             Job(
                 type=JobType.TRANSFORM,
@@ -1139,3 +1134,16 @@ def override_tmpdir_env(old_env: Mapping, tmp_override: Path) -> Mapping:
     for var in ('TMPDIR', 'TEMP', 'TMP'):
         new_env[var] = str(tmp_override)
     return new_env
+
+
+def _init_worker_process(mplogger_initializer: Callable) -> None:
+    sigmonitor.init()
+    mplogger_initializer()
+
+
+def _worker_process_job_wrapper(job_order: int, func: Callable) -> Any:
+    with mplogging.worker_process_job_wrapper(job_order):
+        sigmonitor.maybe_reraise()
+        result = func()
+        sigmonitor.maybe_reraise()
+    return result

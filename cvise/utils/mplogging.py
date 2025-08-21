@@ -1,11 +1,12 @@
 """Collects logs from multiprocessing workers and filters out canceled workers."""
 
 from collections import deque
+from contextlib import contextmanager
 from dataclasses import dataclass
 import logging
 import multiprocessing
 import threading
-from typing import Any, Callable
+from typing import Callable, Iterator
 
 
 class MPLogger:
@@ -48,17 +49,6 @@ class MPLogger:
         """Returns a function to be called in a worker process in order to collect logs from it via IPC."""
         return _WorkerProcessInitializer(logging_level=logging.getLogger().getEffectiveLevel(), queue=self._queue)
 
-    @staticmethod
-    def worker_process_job_wrapper(job_order: int, func: Callable) -> Any:
-        """Runs the given function with the logging configured to mark all logs with the job_order."""
-        root = logging.getLogger()
-        filter = _JobOrderAttachingFilter(job_order)
-        root.addFilter(filter)
-        try:
-            return func()
-        finally:
-            root.removeFilter(filter)
-
     def _main_process_thread_main(self):
         """Receives logs from worker processes and either discards or processes them."""
         try:
@@ -78,6 +68,18 @@ class MPLogger:
             while self._queue.get():
                 pass
             raise
+
+
+@contextmanager
+def worker_process_job_wrapper(job_order: int) -> Iterator[None]:
+    """Runs the given function with the logging configured to mark all logs with the job_order."""
+    root = logging.getLogger()
+    filter = _JobOrderAttachingFilter(job_order)
+    root.addFilter(filter)
+    try:
+        yield
+    finally:
+        root.removeFilter(filter)
 
 
 @dataclass
