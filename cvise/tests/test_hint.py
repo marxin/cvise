@@ -282,6 +282,7 @@ def test_apply_hints_non_unicode(tmp_test_case: Path, tmp_transformed_file: Path
 
 
 def test_apply_hints_dir(tmp_path: Path):
+    """Test multi-file inputs."""
     input_dir = tmp_path / 'input'
     input_dir.mkdir()
     (input_dir / 'foo.h').write_text('unsigned foo;')
@@ -299,6 +300,24 @@ def test_apply_hints_dir(tmp_path: Path):
     assert list(output_dir.glob('*')) == [output_dir / 'foo.h', output_dir / 'bar.cc']
     assert (output_dir / 'foo.h').read_text() == 'signed f;'
     assert (output_dir / 'bar.cc').read_text() == 'void b();'
+
+
+def test_apply_hints_dir_nonexisting_parent(tmp_path: Path):
+    """Test that an exception occurs when the destination path is in a non-existing directory.
+
+    This behavior is important to avoid silently recreating already-deleted work directories of canceled jobs.
+    """
+    input_dir = tmp_path / 'input'
+    input_dir.mkdir()
+    (input_dir / 'foo.h').write_text('foo')
+    (input_dir / 'bar.cc').write_text('void bar();')
+    bundle = HintBundle(hints=[])
+    validate_hint_bundle(bundle)
+
+    non_existing_dir = tmp_path / 'nonexisting'
+    output_dir = non_existing_dir / 'output'
+    with pytest.raises(FileNotFoundError):
+        apply_hints([bundle], input_dir, output_dir)
 
 
 def test_apply_hints_statistics(tmp_test_case: Path, tmp_transformed_file: Path):
