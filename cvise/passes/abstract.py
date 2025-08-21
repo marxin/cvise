@@ -176,9 +176,14 @@ class AbstractPass:
     def check_prerequisites(self):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'check_prerequisites'!")
 
-    def new(
-        self, test_case: Path, tmp_dir: Path, job_timeout: int, process_event_notifier: ProcessEventNotifier, **kwargs
-    ):
+    def supports_dir_test_cases(self):
+        """Whether the pass supports input test cases that are directories (as opposed to single files).
+
+        By default false; intended to be overridden by subclasses which do implement directory support.
+        """
+        return False
+
+    def new(self, test_case: Path, tmp_dir: Path, job_timeout: int, process_event_notifier: ProcessEventNotifier, **kwargs):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'new'!")
 
     def advance(self, test_case: Path, state):

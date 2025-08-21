@@ -11,6 +11,9 @@ class LinesPass(HintBasedPass):
     def check_prerequisites(self):
         return self.check_external_program('topformflat_hints')
 
+    def supports_dir_test_cases(self):
+        return True
+
     def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
         vocab = []
         hints = []

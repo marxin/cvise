@@ -54,29 +54,42 @@ def mkdir_up_to(dir_to_create: Path, last_parent_dir: Path) -> None:
 
 
 def get_file_size(test_case: Path) -> int:
-    return test_case.stat().st_size
+    return sum(p.stat().st_size for p in test_case.rglob('*') if p.is_file() and not p.is_symlink())
 
 
 def get_line_count(test_case: Path) -> int:
-    with open(test_case, 'rb') as f:
-        return sum(1 for line in f if line and not line.isspace())
+    lines = 0
+    for p in test_case.rglob('*'):
+        if p.is_file() and not p.is_symlink():
+            with open(p, 'rb') as f:
+                lines += sum(1 for line in f if line and not line.isspace())
+    return lines
 
 
 def copy_test_case(source: Path, destination_parent: Path) -> None:
     assert not source.is_absolute()
     mkdir_up_to(destination_parent / source.parent, destination_parent)
-    shutil.copy2(source, destination_parent / source)
+    if source.is_dir():
+        shutil.copytree(source, destination_parent / source)
+    else:
+        shutil.copy2(source, destination_parent / source)
 
 
 def replace_test_case_atomically(source: Path, destination: Path) -> None:
     # First prepare the contents in a temporary file in the same folder as the destination path, and then rename the
     # temp file. The latter is atomic on popular file systems, while the former isn't since file system boundaries might
     # be crossed.
-    with CloseableTemporaryFile(dir=destination.parent) as tmp:
-        tmp_path = Path(tmp.name)
-        tmp.close()
-        shutil.move(source, tmp_path)
-        tmp_path.rename(destination)
+    if source.is_dir():
+        with tempfile.TemporaryDirectory(prefix='cvise', dir=destination.parent) as tmp_dir:
+            new_path = shutil.move(source, Path(tmp_dir))
+            source.rename(tmp_path, f'{new_path}tmp')
+            new_path.rename(destination)
+    else:
+        with CloseableTemporaryFile(dir=destination.parent) as tmp:
+            tmp_path = Path(tmp.name)
+            tmp.close()
+            shutil.move(source, tmp_path)
+            tmp_path.rename(destination)
 
 
 def _get_random_temp_file_name_prefix() -> str:
