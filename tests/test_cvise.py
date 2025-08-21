@@ -40,7 +40,7 @@ def check_cvise(testcase: str, arguments: List[str], expected: List[str], tmp_pa
 
     content = work_path.read_text()
     assert content in expected
-    assert stat.filemode(os.stat(testcase).st_mode) == '-rw-r--r--'
+    assert stat.filemode(work_path.stat().st_mode) == '-rw-r--r--'
     assert_subprocess_tmpdir_empty(tmp_path)
 
 
