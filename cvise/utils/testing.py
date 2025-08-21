@@ -16,7 +16,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Set, Tuple, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
@@ -122,12 +122,12 @@ class TestEnvironment:
         self.pwd = os.getcwd()
         self.test_case: Path = test_case
         self.should_copy_test_cases = should_copy_test_cases
-        self.base_size = test_case.stat().st_size
+        self.base_size = get_file_size(test_case)
         self.all_test_cases: Set[Path] = all_test_cases
 
     @property
     def size_improvement(self):
-        return self.base_size - self.test_case_path.stat().st_size
+        return self.base_size - get_file_size(self.test_case_path)
 
     @property
     def test_case_path(self) -> Path:
@@ -146,7 +146,10 @@ class TestEnvironment:
     def copy_test_cases(self):
         for test_case in self.all_test_cases:
             (self.folder / test_case.parent).mkdir(parents=True, exist_ok=True)
-            shutil.copy2(test_case, self.folder / test_case.parent)
+            if test_case.is_dir():
+                shutil.copytree(test_case, self.folder / test_case)
+            else:
+                shutil.copy2(test_case, self.folder / test_case.parent)
 
     def run(self):
         try:
@@ -210,6 +213,8 @@ class PassContext:
 
     pass_: AbstractPass
     stage: PassStage
+    # Whether the pass is enabled for the current test case.
+    enabled: bool
     # Stores pass-specific files to be used during transform jobs (e.g., hints generated during initialization), and
     # temporary folders for each transform job.
     temporary_root: Union[Path, None]
@@ -232,6 +237,7 @@ class PassContext:
         return PassContext(
             pass_=pass_,
             stage=PassStage.BEFORE_INIT,
+            enabled=True,
             temporary_root=Path(root),
             state=None,
             taken_succeeded_state=None,
@@ -242,11 +248,11 @@ class PassContext:
 
     def can_init_now(self) -> bool:
         """Whether the pass new() method can be scheduled."""
-        return not self.defunct and self.stage == PassStage.BEFORE_INIT
+        return self.enabled and not self.defunct and self.stage == PassStage.BEFORE_INIT
 
     def can_transform_now(self) -> bool:
         """Whether the pass transform() method can be scheduled."""
-        return not self.defunct and self.stage == PassStage.ENUMERATING and self.state is not None
+        return self.enabled and not self.defunct and self.stage == PassStage.ENUMERATING and self.state is not None
 
     def can_start_job_now(self) -> bool:
         """Whether any of the pass methods can be scheduled."""
@@ -440,28 +446,16 @@ class TestManager:
         return True
 
     @property
-    def total_file_size(self):
-        return self.get_file_size(self.test_cases)
-
-    @property
     def sorted_test_cases(self):
         return sorted(self.test_cases, key=lambda x: x.stat().st_size, reverse=True)
 
-    @staticmethod
-    def get_file_size(files: Iterable[Path]):
-        return sum(f.stat().st_size for f in files)
+    @property
+    def total_file_size(self) -> int:
+        return sum(get_file_size(p) for p in self.test_cases)
 
     @property
-    def total_line_count(self):
-        return self.get_line_count(self.test_cases)
-
-    @staticmethod
-    def get_line_count(files: Iterable[Path]):
-        lines = 0
-        for file in files:
-            with open(file, 'rb') as f:
-                lines += len([line for line in f.readlines() if line and not line.isspace()])
-        return lines
+    def total_line_count(self) -> int:
+        return sum(get_line_count(p) for p in self.test_cases)
 
     def backup_test_cases(self):
         for f in self.test_cases:
@@ -829,10 +823,10 @@ class TestManager:
         try:
             for test_case in self.sorted_test_cases:
                 self.current_test_case = test_case
-                starting_test_case_size = test_case.stat().st_size
+                starting_test_case_size = get_file_size(test_case)
                 success_count = 0
 
-                if self.get_file_size([test_case]) == 0:
+                if get_file_size(test_case) == 0:
                     continue
 
                 if not self.no_cache:
@@ -841,6 +835,10 @@ class TestManager:
                         test_case.write_bytes(self.cache[cache_key][test_case_before_pass])
                         logging.info(f'cache hit for {test_case}')
                         continue
+
+                is_dir = test_case.is_dir()
+                for ctx in self.pass_contexts:
+                    ctx.enabled = not is_dir or ctx.pass_.supports_dir_test_cases()
 
                 self.skip = False
                 while any(c.can_start_job_now() for c in self.pass_contexts) and not self.skip:
@@ -863,7 +861,7 @@ class TestManager:
                         success_count += 1
 
                     # if the file increases significantly, bail out the current pass
-                    test_case_size = self.current_test_case.stat().st_size
+                    test_case_size = get_file_size(self.current_test_case)
                     if test_case_size >= MAX_PASS_INCREASEMENT_THRESHOLD * starting_test_case_size:
                         logging.info(
                             f'skipping the rest of the pass (huge file increasement '
@@ -913,7 +911,15 @@ class TestManager:
             logging.info(diff_str)
 
         try:
-            shutil.copy(new_test_case, self.current_test_case)
+            if self.current_test_case.is_dir():
+                tmp_new = Path(f'{self.current_test_case}.tmpnew')
+                shutil.copytree(new_test_case, tmp_new)
+                tmp_old = Path(f'{self.current_test_case}.tmpold')
+                self.current_test_case.rename(tmp_old)
+                tmp_new.rename(self.current_test_case)
+                shutil.rmtree(tmp_old)
+            else:
+                shutil.copy(new_test_case, self.current_test_case)
         except FileNotFoundError:
             raise RuntimeError(
                 f"Can't find {self.current_test_case} -- did your interestingness test move it?"
@@ -1143,3 +1149,25 @@ def override_tmpdir_env(old_env: Mapping, tmp_override: Path) -> Mapping:
     for var in ('TMPDIR', 'TEMP', 'TMP'):
         new_env[var] = str(tmp_override)
     return new_env
+
+
+def get_file_size(test_case: Path) -> int:
+    files = (
+        [p for p in test_case.rglob('*') if not p.is_dir() and not p.is_symlink()]
+        if test_case.is_dir()
+        else [test_case]
+    )
+    return sum(f.stat().st_size for f in files)
+
+
+def get_line_count(test_case: Path) -> int:
+    files = (
+        [p for p in test_case.rglob('*') if not p.is_dir() and not p.is_symlink()]
+        if test_case.is_dir()
+        else [test_case]
+    )
+    lines = 0
+    for file in files:
+        with open(file, 'rb') as f:
+            lines += len([line for line in f.readlines() if line and not line.isspace()])
+    return lines

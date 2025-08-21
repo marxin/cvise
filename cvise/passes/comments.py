@@ -16,6 +16,9 @@ class CommentsPass(HintBasedPass):
     def check_prerequisites(self):
         return True
 
+    def supports_dir_test_cases(self):
+        return True
+
     def generate_hints(self, test_case):
         vocab = list(self.INITIAL_VOCAB)
         hints = []
