@@ -22,7 +22,7 @@ import concurrent.futures
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass, PassResult, ProcessEventNotifier, ProcessEventType
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils import keyboard_interrupt_monitor, mplogging
+from cvise.utils import keyboard_interrupt_monitor, misc, mplogging
 from cvise.utils.error import AbsolutePathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
@@ -119,7 +119,6 @@ class TestEnvironment:
         self.order = order
         self.transform = transform
         self.pid_queue = pid_queue
-        self.pwd = os.getcwd()
         self.test_case: Path = test_case
         self.should_copy_test_cases = should_copy_test_cases
         self.base_size = test_case.stat().st_size
@@ -178,8 +177,7 @@ class TestEnvironment:
             return self
 
     def run_test(self, verbose):
-        try:
-            os.chdir(self.folder)
+        with misc.chdir(self.folder):
             # Make the job use our custom temp dir instead of the standard one, so that the standard location doesn't
             # get cluttered with files it might leave undeleted (the process might do this because of an oversight in
             # the interestingness test, or because C-Vise abruptly kills our job without a chance for a proper cleanup).
@@ -192,8 +190,6 @@ class TestEnvironment:
                 # Drop invalid UTF sequences.
                 logging.debug('stdout:\n%s', stdout.decode('utf-8', 'ignore'))
                 logging.debug('stderr:\n%s', stderr.decode('utf-8', 'ignore'))
-        finally:
-            os.chdir(self.pwd)
         return returncode
 
 

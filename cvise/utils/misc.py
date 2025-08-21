@@ -1,6 +1,8 @@
-import os
-import tempfile
 from contextlib import contextmanager
+import os
+from pathlib import Path
+import tempfile
+from typing import Iterator
 
 
 # TODO: use tempfile.NamedTemporaryFile(delete_on_close=False) since Python 3.12 is the oldest supported release
@@ -14,3 +16,14 @@ def CloseableTemporaryFile(mode='w+b', dir=None):
         if not f.closed:
             f.close()
         os.remove(f.name)
+
+
+# TODO: use contextlib.chdir once Python 3.11 is the oldest supported release
+@contextmanager
+def chdir(path: Path) -> Iterator[None]:
+    original_workdir = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(original_workdir)
