@@ -216,7 +216,7 @@ def test_dir_test_case(tmp_path: Path):
     proc = start_cvise(
         [
             '-c',
-            f'gcc -c repro/a.cc && grep nextHi repro/a.cc',
+            'gcc -c repro/a.cc && grep nextHi repro/a.cc',
             'repro',
             '--tidy',
             '--no-cache',
