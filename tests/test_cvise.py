@@ -6,36 +6,41 @@ import signal
 import stat
 import subprocess
 import time
+from typing import List
 
 
 SUBPROCESS_TMPDIR = 'tmpdir'
 
 
-def start_cvise(arguments, tmp_path: Path):
-    current = os.path.dirname(__file__)
-    binary = os.path.join(current, '../cvise-cli.py')
-    cmd = [binary] + arguments
+def get_source_path(testcase: str) -> Path:
+    return Path(__file__).parent / 'sources' / testcase
 
+
+def start_cvise(arguments: List[str], tmp_path: Path) -> subprocess.Popen:
+    binary = Path(__file__).parent.parent / 'cvise-cli.py'
+    cmd = [str(binary)] + arguments
+
+    # Point the child process to a fake tmpdir, so that we can assert that it doesn't leave leftover files.
     new_tmpdir = tmp_path / SUBPROCESS_TMPDIR
     new_tmpdir.mkdir()
     new_env = os.environ.copy()
     new_env['TMPDIR'] = str(new_tmpdir)
 
-    return subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding='utf8', env=new_env)
+    return subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding='utf8', env=new_env, cwd=tmp_path)
 
 
-def check_cvise(testcase, arguments, expected, tmp_path: Path):
-    current = os.path.dirname(__file__)
-    shutil.copy(os.path.join(current, 'sources', testcase), '.')
-    os.chmod(testcase, 0o644)
+def check_cvise(testcase: str, arguments: List[str], expected: List[str], tmp_path: Path) -> None:
+    work_path = tmp_path / testcase
+    shutil.copy(get_source_path(testcase), work_path)
+    work_path.chmod(0o644)
+
     proc = start_cvise([testcase] + arguments, tmp_path)
     proc.communicate()
     assert proc.returncode == 0
 
-    with open(testcase) as f:
-        content = f.read()
+    content = work_path.read_text()
     assert content in expected
-    assert stat.filemode(os.stat(testcase).st_mode) == '-rw-r--r--'
+    assert stat.filemode(work_path.stat().st_mode) == '-rw-r--r--'
     assert_subprocess_tmpdir_empty(tmp_path)
 
 
@@ -73,6 +78,7 @@ def test_ctrl_c(tmp_path: Path, additional_delay: int):
     MAX_SHUTDOWN = 10  # in seconds; tolerance to prevent flakiness (normally it's a fraction of a second)
     JOB_SLOWNESS = MAX_SHUTDOWN * 2  # make a single job slower than the thresholds
 
+    shutil.copy(get_source_path('blocksort-part.c'), tmp_path)
     flag_file = tmp_path / 'flag'
 
     proc = start_cvise(
@@ -122,8 +128,6 @@ def test_interleaving_lines_passes(tmp_path: Path):
           return foo();
         }
         """)
-    shutil.copy(testcase_path, '.')
-    copy_path = Path(testcase_path.name)
 
     proc = start_cvise(
         ['-c', 'gcc -c test.c && grep foo test.c', '--pass-group-file', config_path, testcase_path.name], tmp_path
@@ -131,7 +135,7 @@ def test_interleaving_lines_passes(tmp_path: Path):
     proc.communicate()
     assert proc.returncode == 0
     assert (
-        copy_path.read_text()
+        testcase_path.read_text()
         == """
         int foo() {
         }
@@ -156,7 +160,14 @@ def test_apply_hints(tmp_path: Path):
     input_path.write_text('abcd')
 
     proc = start_cvise(
-        ['--action=apply-hints', '--hints-file', hints_path, '--hint-begin-index=1', '--hint-end-index=3', input_path],
+        [
+            '--action=apply-hints',
+            '--hints-file',
+            str(hints_path),
+            '--hint-begin-index=1',
+            '--hint-end-index=3',
+            str(input_path),
+        ],
         tmp_path,
     )
     stdout, _ = proc.communicate()
@@ -172,8 +183,6 @@ def test_non_ascii(tmp_path: Path):
         int foo;
         char *s = "Streichholzsch\xc3\xa4chtelchen";
         """)
-    shutil.copy(testcase_path, '.')
-    copy_path = Path(testcase_path.name)
 
     # Also enable diff logging to check it doesn't break on non-unicode.
     proc = start_cvise(['-c', 'gcc -c test.c && grep foo test.c', testcase_path.name, '--print-diff'], tmp_path)
@@ -181,13 +190,14 @@ def test_non_ascii(tmp_path: Path):
 
     assert proc.returncode == 0
     # The reduced result may or may not include the trailing line break - this depends on random ordering factors.
-    assert copy_path.read_text() in ('int foo;', 'int foo;\n')
+    assert testcase_path.read_text() in ('int foo;', 'int foo;\n')
     assert_subprocess_tmpdir_empty(tmp_path)
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 def test_non_ascii_interestingness_test(tmp_path: Path):
     """Test no breakage caused by non-UTF-8 characters printed by the interestingness test"""
+    shutil.copy(get_source_path('blocksort-part.c'), tmp_path)
     check_cvise(
         'blocksort-part.c',
         ['-c', r"printf '\xc3\xa4\xff'; gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c"],
