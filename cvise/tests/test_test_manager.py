@@ -129,7 +129,7 @@ class LetterRemovingHintPass(HintBasedPass):
     def __init__(self, arg=None):
         super().__init__(arg)
 
-    def generate_hints(self, test_case: Path):
+    def generate_hints(self, test_case: Path, *args, **kwargs):
         sz = test_case.stat().st_size
         hints = [{'p': [{'l': i, 'r': i + 1}]} for i in range(sz)]
         return HintBundle(hints=hints)

@@ -8,6 +8,7 @@ from typing import Union
 
 from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.hint import HintBundle
+from cvise.utils.process import ProcessEventNotifier
 
 
 CLANG_STD_CHOICES = ('c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++2b')
@@ -49,7 +50,9 @@ class ClangHintsPass(HintBasedPass):
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
 
-    def new(self, test_case: Path, tmp_dir: Path, job_timeout, *args, **kwargs):
+    def new(
+        self, test_case: Path, tmp_dir: Path, job_timeout, process_event_notifier: ProcessEventNotifier, *args, **kwargs
+    ):
         # Choose the best standard unless the user provided one.
         std_choices = [self.user_clang_delta_std] if self.user_clang_delta_std else CLANG_STD_CHOICES
         best_std = None
@@ -58,7 +61,7 @@ class ClangHintsPass(HintBasedPass):
         for std in std_choices:
             start = time.monotonic()
             try:
-                bundle = self.generate_hints_for_standard(test_case, std, job_timeout)
+                bundle = self._generate_hints_for_standard(test_case, std, job_timeout, process_event_notifier)
             except ClangDeltaError as e:
                 last_error = e
                 continue
@@ -90,18 +93,22 @@ class ClangHintsPass(HintBasedPass):
         # Re-attach the remembered standard.
         return ClangState.wrap(new_state, state.clang_std)
 
-    def advance_on_success(self, test_case: Path, state, job_timeout, *args, **kwargs):
+    def advance_on_success(
+        self, test_case: Path, state, job_timeout: int, process_event_notifier: ProcessEventNotifier, *args, **kwargs
+    ):
         # Keep using the same standard as the one chosen in new() - repeating the choose procedure on every successful
         # reduction would be too costly.
         try:
-            hints = self.generate_hints_for_standard(test_case, state.clang_std, job_timeout)
+            hints = self._generate_hints_for_standard(test_case, state.clang_std, job_timeout, process_event_notifier)
         except ClangDeltaError as e:
             logging.warning('%s', e)
             return None
         new_state = self.advance_on_success_from_hints(hints, state)
         return ClangState.wrap(new_state, state.clang_std)
 
-    def generate_hints_for_standard(self, test_case: Path, std: str, timeout: int) -> HintBundle:
+    def _generate_hints_for_standard(
+        self, test_case: Path, std: str, timeout: int, process_event_notifier: ProcessEventNotifier
+    ) -> HintBundle:
         cmd = [
             self.external_programs['clang_delta'],
             f'--transformation={self.arg}',
@@ -113,7 +120,7 @@ class ClangHintsPass(HintBasedPass):
         logging.debug(shlex.join(str(s) for s in cmd))
 
         try:
-            proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
+            stdout, stderr, returncode = process_event_notifier.run_process(cmd, timeout=timeout)
         except subprocess.TimeoutExpired as e:
             raise ClangDeltaError(
                 f'clang_delta (--transformation={self.arg} --std={std}) {timeout}s timeout reached'
@@ -121,15 +128,15 @@ class ClangHintsPass(HintBasedPass):
         except subprocess.SubprocessError as e:
             raise ClangDeltaError(f'clang_delta (--transformation={self.arg} --std={std}) failed: {e}') from e
 
-        if proc.returncode != 0:
-            stderr = proc.stderr.strip()
+        if returncode != 0:
+            stderr = stderr.decode('utf-8', 'ignore').strip()
             delim = ': ' if stderr else ''
             raise ClangDeltaError(
-                f'clang_delta (--transformation={self.arg} --std={std}) failed with exit code {proc.returncode}{delim}{stderr}'
+                f'clang_delta (--transformation={self.arg} --std={std}) failed with exit code {returncode}{delim}{stderr}'
             )
 
         # When reading, gracefully handle EOF because the tool might've failed with no output.
-        stdout = iter(proc.stdout.splitlines())
+        stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
         decoder = msgspec.json.Decoder()
         vocab = decoder.decode(vocab_line) if vocab_line else []

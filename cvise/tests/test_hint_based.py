@@ -4,6 +4,7 @@ from typing import Dict, List, Sequence, Union
 from cvise.passes.hint_based import HintBasedPass
 from cvise.tests.testabstract import collect_all_transforms, iterate_pass, validate_hint_bundle
 from cvise.utils.hint import HintBundle
+from cvise.utils.process import ProcessEventNotifier
 
 
 class StubHintBasedPass(HintBasedPass):
@@ -12,7 +13,7 @@ class StubHintBasedPass(HintBasedPass):
         self.contents_to_hints = contents_to_hints
         self.vocabulary = vocabulary or []
 
-    def generate_hints(self, test_case: Path) -> HintBundle:
+    def generate_hints(self, test_case: Path, *args, **kwargs) -> HintBundle:
         contents = test_case.read_bytes()
         hints = self.contents_to_hints.get(contents, [])
         bundle = HintBundle(vocabulary=self.vocabulary, hints=hints)
@@ -31,7 +32,7 @@ def test_hint_based_first_char_once(tmp_path: Path):
     test_case = tmp_path / 'input.txt'
     test_case.write_text('foo')
 
-    iterate_pass(pass_, test_case, tmp_dir=tmp_path)
+    iterate_pass(pass_, test_case, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None))
 
     assert test_case.read_text() == 'oo'
 
@@ -51,7 +52,7 @@ def test_hint_based_last_char_repeatedly(tmp_path: Path):
     test_case = tmp_path / 'input.txt'
     test_case.write_text('foo')
 
-    iterate_pass(pass_, test_case, tmp_dir=tmp_path)
+    iterate_pass(pass_, test_case, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None))
 
     assert test_case.read_text() == ''
 
@@ -73,7 +74,7 @@ def test_hint_based_all_chars_grouped(tmp_path: Path):
     test_case = tmp_path / 'input.txt'
     test_case.write_text('foo')
 
-    iterate_pass(pass_, test_case, tmp_dir=tmp_path)
+    iterate_pass(pass_, test_case, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None))
 
     assert test_case.read_text() == ''
 
@@ -96,7 +97,7 @@ def test_hint_based_state_iteration(tmp_path: Path):
     test_case = tmp_path / 'input.txt'
     test_case.write_text('abc def')
 
-    state = pass_.new(test_case, tmp_dir=tmp_path)
+    state = pass_.new(test_case, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None))
     all_transforms = collect_all_transforms(pass_, state, test_case)
     assert b'c def' in all_transforms  # 01 applied
     assert b'a def' in all_transforms  # 12 applied
@@ -122,7 +123,7 @@ def test_hint_based_multiple_types(tmp_path: Path):
     test_case = tmp_path / 'input.txt'
     test_case.write_text('aba cab a')
 
-    state = pass_.new(test_case, tmp_dir=tmp_path)
+    state = pass_.new(test_case, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None))
     all_transforms = collect_all_transforms(pass_, state, test_case)
     assert b'abacab a' in all_transforms  # space1 applied
     assert b'aba caba' in all_transforms  # space2 applied
@@ -150,7 +151,7 @@ def test_hint_based_type1_fewer_than_type2(tmp_path: Path):
     test_case = tmp_path / 'input.txt'
     test_case.write_text('abc')
 
-    state = pass_.new(test_case, tmp_dir=tmp_path)
+    state = pass_.new(test_case, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None))
     all_transforms = collect_all_transforms(pass_, state, test_case)
     assert b'bc' in all_transforms  # hint1 applied
     assert b'a' in all_transforms  # hint2&3 applied
@@ -176,7 +177,7 @@ def test_hint_based_type2_fewer_than_type1(tmp_path: Path):
     test_case = tmp_path / 'input.txt'
     test_case.write_text('abc')
 
-    state = pass_.new(test_case, tmp_dir=tmp_path)
+    state = pass_.new(test_case, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None))
     all_transforms = collect_all_transforms(pass_, state, test_case)
     assert b'c' in all_transforms  # hint1&2 applied
     assert b'ab' in all_transforms  # hint3 applied
@@ -199,7 +200,7 @@ def test_hint_based_non_utf8(tmp_path: Path):
     test_case = tmp_path / 'input.txt'
     test_case.write_bytes(input)
 
-    state = pass_.new(test_case, tmp_dir=tmp_path)
+    state = pass_.new(test_case, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None))
     all_transforms = collect_all_transforms(pass_, state, test_case)
     assert b'fo\xffo\xc3\x84' in all_transforms  # hint12 applied
     assert b'f\0\xffo\xc3\x84' in all_transforms  # hint23 applied

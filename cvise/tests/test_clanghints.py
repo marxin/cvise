@@ -10,6 +10,7 @@ from typing import Any, Tuple
 from cvise.passes.clanghints import ClangHintsPass
 from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
+from cvise.utils.process import ProcessEventNotifier
 
 
 def get_data_path(testcase: str) -> Path:
@@ -19,7 +20,7 @@ def get_data_path(testcase: str) -> Path:
 def init_pass(transformation: str, tmp_dir: Path, input_path: Path) -> Tuple[ClangHintsPass, Any]:
     pass_ = ClangHintsPass(transformation, find_external_programs())
     pass_.user_clang_delta_std = None
-    state = pass_.new(input_path, tmp_dir=tmp_dir, job_timeout=100)
+    state = pass_.new(input_path, tmp_dir=tmp_dir, job_timeout=100, process_event_notifier=ProcessEventNotifier(None))
     validate_stored_hints(state)
     return pass_, state
 

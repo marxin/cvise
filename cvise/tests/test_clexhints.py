@@ -6,6 +6,7 @@ from cvise.passes.abstract import SubsegmentState
 from cvise.passes.clexhints import ClexHintsPass
 from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
+from cvise.utils.process import ProcessEventNotifier
 
 
 # How many times to repeat each test that involves randomness (for extra reassurance).
@@ -112,7 +113,7 @@ def input_path(tmp_path: Path) -> Path:
 
 def init_pass(arg, tmp_dir: Path, input_path: Path) -> Tuple[ClexHintsPass, Any]:
     pass_ = ClexHintsPass(arg, find_external_programs())
-    state = pass_.new(input_path, tmp_dir=tmp_dir)
+    state = pass_.new(input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None))
     validate_stored_hints(state)
     return pass_, state
 
