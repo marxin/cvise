@@ -905,7 +905,7 @@ class TestManager:
 
         try:
             fileutil.replace_test_case_atomically(new_test_case, self.current_test_case)
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             raise RuntimeError(
                 f"Can't find {self.current_test_case} -- did your interestingness test move it?"
             ) from None
