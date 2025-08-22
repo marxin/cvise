@@ -6,6 +6,7 @@ import datetime
 import importlib.util
 from itertools import chain
 import logging
+import multiprocessing
 import os
 import os.path
 from pathlib import Path
@@ -443,6 +444,12 @@ def do_reduce(args):
         os.chmod(script.name, 0o744)
         logging.info(f'Using temporary interestingness test: {script.name}')
         args.interestingness_test = script.name
+
+    # Use forkserver to avoid potential problems due to multi-threading, and to reduce the memory usage in workers.
+    # Preloading is used as a speedup, so that every worker doesn't need to execute all import statements on startup.
+    multiprocessing.set_start_method('forkserver')
+    multiprocessing.set_forkserver_preload(['__main__'] + list(sys.modules.keys()))
+    multiprocessing.forkserver.ensure_running()
 
     try:
         with testing.TestManager(
