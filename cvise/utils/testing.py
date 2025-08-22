@@ -63,7 +63,7 @@ class InitEnvironment:
     test_case: Path
     tmp_dir: Path
     job_timeout: int
-    pid_queue: multiprocessing.Queue
+    pid_queue: Any  # type signature for multiprocessing queues would be misleading
 
     def run(self) -> Any:
         try:
@@ -88,7 +88,7 @@ class AdvanceOnSuccessEnvironment:
     pass_previous_state: Any
     pass_succeeded_state: Any
     job_timeout: int
-    pid_queue: multiprocessing.Queue
+    pid_queue: Any  # type signature for multiprocessing queues would be misleading
 
     def run(self) -> Any:
         return self.pass_advance_on_success(
@@ -1140,7 +1140,7 @@ class TestManager:
         self.order += 1
 
 
-def override_tmpdir_env(old_env: Mapping, tmp_override: Path) -> Mapping:
+def override_tmpdir_env(old_env: Mapping[str, str], tmp_override: Path) -> Mapping[str, str]:
     new_env = dict(old_env)
     for var in ('TMPDIR', 'TEMP', 'TMP'):
         new_env[var] = str(tmp_override)

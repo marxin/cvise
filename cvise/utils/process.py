@@ -2,10 +2,9 @@
 
 from contextlib import contextmanager
 from enum import auto, Enum, unique
-import multiprocessing
 import shlex
 import subprocess
-from typing import Dict, Iterator, List, Tuple, Union
+from typing import Iterator, List, Mapping, Tuple, Union
 
 
 @unique
@@ -27,7 +26,7 @@ class ProcessEventNotifier:
     that should be killed.
     """
 
-    def __init__(self, pid_queue: Union[multiprocessing.Queue, None]):
+    def __init__(self, pid_queue):
         self._pid_queue = pid_queue
         self._start_notified: bool = False
 
@@ -37,7 +36,7 @@ class ProcessEventNotifier:
         stdout: int = subprocess.PIPE,
         stderr: int = subprocess.PIPE,
         shell: bool = False,
-        env: Union[Dict[str, str], None] = None,
+        env: Union[Mapping[str, str], None] = None,
         timeout: Union[int, None] = None,
         **kwargs,
     ) -> Tuple[bytes, bytes, int]:
@@ -67,7 +66,7 @@ class ProcessEventNotifier:
         stdout: int = subprocess.PIPE,
         stderr: int = subprocess.PIPE,
         shell: bool = False,
-        env: Union[Dict[str, str], None] = None,
+        env: Union[Mapping[str, str], None] = None,
         timeout: Union[int, None] = None,
         **kwargs,
     ) -> bytes:
@@ -79,11 +78,12 @@ class ProcessEventNotifier:
             raise RuntimeError(f'{name} failed with exit code {returncode}{delim}{stderr}')
         return stdout
 
-    def _notify_start(self, proc: subprocess.Popen) -> Iterator[None]:
-        if self._pid_queue:
-            self._pid_queue.put(ProcessEvent(proc.pid, ProcessEventType.STARTED))
-            assert not self._start_notified
-            self._start_notified = True
+    def _notify_start(self, proc: subprocess.Popen) -> None:
+        if not self._pid_queue:
+            return
+        self._pid_queue.put(ProcessEvent(proc.pid, ProcessEventType.STARTED))
+        assert not self._start_notified
+        self._start_notified = True
 
     @contextmanager
     def _auto_notify_finish(self, proc: subprocess.Popen) -> Iterator[None]:
