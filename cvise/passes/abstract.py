@@ -5,8 +5,9 @@ import logging
 from pathlib import Path
 import random
 import shutil
-import subprocess
-from typing import Self, Tuple, Union
+from typing import Self, Union
+
+from cvise.utils.process import ProcessEventNotifier
 
 
 @unique
@@ -175,50 +176,26 @@ class AbstractPass:
     def check_prerequisites(self):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'check_prerequisites'!")
 
-    def new(self, test_case: Path, tmp_dir: Path, job_timeout):
+    def new(
+        self, test_case: Path, tmp_dir: Path, job_timeout: int, process_event_notifier: ProcessEventNotifier, **kwargs
+    ):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'new'!")
 
     def advance(self, test_case: Path, state):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance'!")
 
-    def advance_on_success(self, test_case: Path, state, succeeded_state, job_timeout, **kwargs):
+    def advance_on_success(
+        self,
+        test_case: Path,
+        state,
+        succeeded_state,
+        job_timeout,
+        process_event_notifier: ProcessEventNotifier,
+        **kwargs,
+    ):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance_on_success'!")
 
-    def transform(self, test_case: Path, state, process_event_notifier, original_test_case: Path, **kwargs):
+    def transform(
+        self, test_case: Path, state, process_event_notifier: ProcessEventNotifier, original_test_case: Path, **kwargs
+    ):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'transform'!")
-
-
-@unique
-class ProcessEventType(Enum):
-    STARTED = auto()
-    FINISHED = auto()
-
-
-class ProcessEvent:
-    def __init__(self, pid, event_type):
-        self.pid = pid
-        self.type = event_type
-
-
-class ProcessEventNotifier:
-    def __init__(self, pid_queue):
-        self.pid_queue = pid_queue
-
-    def run_process(
-        self, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, env=None
-    ) -> Tuple[bytes, bytes, int]:
-        if shell:
-            assert isinstance(cmd, str)
-        proc = subprocess.Popen(
-            cmd,
-            stdout=stdout,
-            stderr=stderr,
-            shell=shell,
-            env=env,
-        )
-        if self.pid_queue:
-            self.pid_queue.put(ProcessEvent(proc.pid, ProcessEventType.STARTED))
-        stdout, stderr = proc.communicate()
-        if self.pid_queue:
-            self.pid_queue.put(ProcessEvent(proc.pid, ProcessEventType.FINISHED))
-        return (stdout, stderr, proc.returncode)

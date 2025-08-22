@@ -1,10 +1,13 @@
 from pathlib import Path
 import tempfile
+from typing import Union
 import unittest
 
 from cvise.passes.abstract import PassResult
 from cvise.passes.balanced import BalancedPass
+from cvise.passes.hint_based import HintState
 from cvise.tests.testabstract import collect_all_transforms
+from cvise.utils.process import ProcessEventNotifier
 
 
 class BalancedParensTestCase(unittest.TestCase):
@@ -13,16 +16,19 @@ class BalancedParensTestCase(unittest.TestCase):
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = BalancedPass('parens')
 
+    def _pass_new(self) -> Union[HintState, None]:
+        return self.pass_.new(self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None))
+
     def test_parens_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         assert state is None
 
     def test_parens_simple(self):
         self.input_path.write_text('This is a (simple) test!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -33,7 +39,7 @@ class BalancedParensTestCase(unittest.TestCase):
     def test_parens_nested_outer(self):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -44,7 +50,7 @@ class BalancedParensTestCase(unittest.TestCase):
     def test_parens_nested_inner(self):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         # Transform failed
         state = self.pass_.advance(self.input_path, state)
         (_, state) = self.pass_.transform(
@@ -61,16 +67,19 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = BalancedPass('parens-only')
 
+    def _pass_new(self) -> Union[HintState, None]:
+        return self.pass_.new(self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None))
+
     def test_parens_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         assert state is None
 
     def test_parens_simple(self):
         self.input_path.write_text('This is a (simple) test!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -81,7 +90,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
     def test_parens_nested_outer(self):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         all_transforms = collect_all_transforms(self.pass_, state, self.input_path)
 
         self.assertIn(b'This is a (simple) test!\n', all_transforms)
@@ -91,7 +100,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
     def test_parens_nested_inner(self):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         # Transform failed
         state = self.pass_.advance(self.input_path, state)
         (_, state) = self.pass_.transform(
@@ -104,7 +113,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
     def test_parens_nested_both(self):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         all_transforms = collect_all_transforms(self.pass_, state, self.input_path)
 
         self.assertIn(b'This (is a simple test)!\n', all_transforms)
@@ -114,19 +123,27 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
     def test_parens_nested_all(self):
         self.input_path.write_text('(This) (is a (((more)) complex) test)!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         (result, state) = self.pass_.transform(
-            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+            self.input_path,
+            state,
+            process_event_notifier=ProcessEventNotifier(None),
+            original_test_case=self.input_path,
         )
 
         iteration = 0
 
         while result == PassResult.OK:
-            state = self.pass_.advance_on_success(self.input_path, state)
+            state = self.pass_.advance_on_success(
+                self.input_path, state, process_event_notifier=ProcessEventNotifier(None)
+            )
             if state is None:
                 break
             (result, state) = self.pass_.transform(
-                self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
+                self.input_path,
+                state,
+                process_event_notifier=ProcessEventNotifier(None),
+                original_test_case=self.input_path,
             )
             iteration += 1
 
@@ -136,7 +153,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
     def test_parens_nested_no_success(self):
         self.input_path.write_text('(This) (is a (((more)) complex) test)!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         all_transforms = collect_all_transforms(self.pass_, state, self.input_path)
 
         self.assertIn(b'This (is a (((more)) complex) test)!\n', all_transforms)
@@ -152,16 +169,19 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = BalancedPass('parens-inside')
 
+    def _pass_new(self) -> Union[HintState, None]:
+        return self.pass_.new(self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None))
+
     def test_parens_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         assert state is None
 
     def test_parens_simple(self):
         self.input_path.write_text('This is a (simple) test!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -172,7 +192,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
     def test_parens_nested_outer(self):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -183,7 +203,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
     def test_parens_nested_inner(self):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         # Transform failed
         state = self.pass_.advance(self.input_path, state)
         (_, state) = self.pass_.transform(
@@ -196,7 +216,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
     def test_parens_nested_both(self):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         all_transforms = collect_all_transforms(self.pass_, state, self.input_path)
 
         self.assertIn(b'This (is a () test)!\n', all_transforms)
@@ -205,7 +225,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
     def test_parens_nested_all(self):
         self.input_path.write_text('(This) (is a (((more)) complex) test)!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         all_transforms = collect_all_transforms(self.pass_, state, self.input_path)
 
         self.assertIn(b'() (is a (((more)) complex) test)!\n', all_transforms)
@@ -218,7 +238,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
     def test_parens_nested_no_success(self):
         self.input_path.write_text('(This) (is a (((more)) complex) test)!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         all_transforms = collect_all_transforms(self.pass_, state, self.input_path)
 
         self.assertIn(b'() (is a (((more)) complex) test)!\n', all_transforms)
@@ -235,16 +255,19 @@ class BalancedParensToZeroTestCase(unittest.TestCase):
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = BalancedPass('parens-to-zero')
 
+    def _pass_new(self) -> Union[HintState, None]:
+        return self.pass_.new(self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None))
+
     def test_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         assert state is None
 
     def test_simple(self):
         self.input_path.write_text('int x = (10 + y) / 2;\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -259,16 +282,19 @@ class BalancedCurly3TestCase(unittest.TestCase):
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = BalancedPass('curly3')
 
+    def _pass_new(self) -> Union[HintState, None]:
+        return self.pass_.new(self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None))
+
     def test_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         assert state is None
 
     def test_simple(self):
         self.input_path.write_text('A a = { x, y };\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -279,7 +305,7 @@ class BalancedCurly3TestCase(unittest.TestCase):
     def test_nested(self):
         self.input_path.write_text('={  = {}};\n')
 
-        state = self.pass_.new(self.input_path, tmp_dir=self.tmp_dir)
+        state = self._pass_new()
         all_transforms = collect_all_transforms(self.pass_, state, self.input_path)
 
         self.assertIn(b'={  };\n', all_transforms)

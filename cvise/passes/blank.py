@@ -14,7 +14,7 @@ class BlankPass(HintBasedPass):
     def check_prerequisites(self):
         return True
 
-    def generate_hints(self, test_case: Path):
+    def generate_hints(self, test_case: Path, *args, **kwargs):
         hints = []
         with open(test_case, 'rb') as in_file:
             file_pos = 0

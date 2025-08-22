@@ -1,11 +1,11 @@
 import msgspec
 from pathlib import Path
 import re
-import subprocess
 
 from cvise.passes.abstract import SubsegmentState
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.hint import HintBundle
+from cvise.utils.process import ProcessEventNotifier
 
 
 class ClexHintsPass(HintBasedPass):
@@ -14,7 +14,7 @@ class ClexHintsPass(HintBasedPass):
     def check_prerequisites(self):
         return self.check_external_program('clex')
 
-    def generate_hints(self, test_case: Path):
+    def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
         if self.arg.startswith('rm-toks-'):
             # Note that we don't pass the number of tokens to the parser - its job is just to find each token's
             # boundaries; the number is used for constructing the SubsegmentState instead.
@@ -23,13 +23,14 @@ class ClexHintsPass(HintBasedPass):
             raise ValueError(f'Unexpected arg: {self.arg}')
         tok_index = '-1'  # unused
         cmd = [self.external_programs['clex'], clex_cmd, tok_index, str(test_case)]
+        stdout, _stderr, _returncode = process_event_notifier.run_process(cmd)
         hints = []
         decoder = msgspec.json.Decoder()
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc:
-            vocab = decoder.decode(next(proc.stdout))
-            for line in proc.stdout:
-                if not line.isspace():
-                    hints.append(decoder.decode(line))
+        stdout = iter(stdout.splitlines())
+        vocab = decoder.decode(next(stdout))
+        for line in stdout:
+            if not line.isspace():
+                hints.append(decoder.decode(line))
         return HintBundle(vocabulary=vocab, hints=hints)
 
     def create_elementary_state(self, hint_count: int):

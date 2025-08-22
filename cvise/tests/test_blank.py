@@ -5,6 +5,7 @@ from typing import Tuple, Union
 from cvise.passes.hint_based import HintState
 from cvise.passes.blank import BlankPass
 from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
+from cvise.utils.process import ProcessEventNotifier
 
 
 @pytest.fixture
@@ -14,7 +15,7 @@ def input_path(tmp_path: Path) -> Path:
 
 def init_pass(tmp_dir: Path, input_path: Path) -> Tuple[BlankPass, Union[HintState, None]]:
     pass_ = BlankPass()
-    state = pass_.new(input_path, tmp_dir=tmp_dir)
+    state = pass_.new(input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None))
     validate_stored_hints(state)
     return pass_, state
 
