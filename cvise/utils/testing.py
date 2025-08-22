@@ -906,7 +906,9 @@ class TestManager:
         try:
             fileutil.replace_test_case_atomically(new_test_case, self.current_test_case)
         except FileNotFoundError as e:
-            raise RuntimeError(f"Can't find {self.current_test_case} -- did your interestingness test move it?") from e
+            raise RuntimeError(
+                f"Can't find {self.current_test_case} -- did your interestingness test move it?"
+            ) from None
 
         # Update global stats.
         if isinstance(self.success_candidate.pass_state, FoldingStateOut):
