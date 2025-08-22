@@ -26,7 +26,7 @@ from cvise.passes.special import SpecialPass
 from cvise.passes.ternary import TernaryPass
 from cvise.passes.treesitter import TreeSitterPass
 from cvise.passes.unifdef import UnIfDefPass
-from cvise.utils import keyboard_interrupt_monitor
+from cvise.utils import sigmonitor
 from cvise.utils.error import CViseError, PassOptionError
 
 
@@ -94,7 +94,7 @@ class CVise:
     }
 
     def __init__(self, test_manager, skip_interestingness_test_check):
-        keyboard_interrupt_monitor.init()
+        sigmonitor.init()
         self.test_manager = test_manager
         self.skip_interestingness_test_check = skip_interestingness_test_check
         self.tidy = False
