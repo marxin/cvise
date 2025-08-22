@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Sequence, TextIO, Union
 import zstandard
 
+from cvise.utils.fileutil import mkdir_up_to
+
 
 # Currently just a hardcoded constant - the number is reserved for backwards-incompatible format changes in the future.
 FORMAT_NAME = 'cvise_hints_v0'
@@ -139,7 +141,7 @@ def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: 
         file_rel = path.relative_to(source_path)
         file_dest = destination_path / file_rel
         if is_dir:
-            _mkdir_up_to(file_dest.parent, destination_path)
+            mkdir_up_to(file_dest.parent, destination_path.parent)
 
         patches_to_apply = path_to_patches.get(file_rel, [])
         apply_hint_patches_to_file(patches_to_apply, source_file=path, destination_file=file_dest, stats=stats)
