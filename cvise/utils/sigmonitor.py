@@ -39,6 +39,7 @@ def init():
     for signum in _SIGNAL_TO_EXCEPTION.keys():
         handler = signal.signal(signum, _on_signal)
         if handler not in (signal.SIG_IGN, signal.SIG_DFL):
+            assert callable(handler)
             _original_signal_handlers[signum] = handler
 
 
