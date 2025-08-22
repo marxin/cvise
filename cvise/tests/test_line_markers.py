@@ -3,6 +3,7 @@ import pytest
 
 from cvise.passes.line_markers import LineMarkersPass
 from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
+from cvise.utils.process import ProcessEventNotifier
 
 
 @pytest.fixture
@@ -12,7 +13,7 @@ def input_path(tmp_path: Path):
 
 def init_pass(tmp_path: Path, input_path: Path):
     pass_ = LineMarkersPass()
-    state = pass_.new(input_path, tmp_dir=tmp_path)
+    state = pass_.new(input_path, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None))
     validate_stored_hints(state)
     return pass_, state
 
@@ -21,7 +22,9 @@ def test_all(tmp_path: Path, input_path: Path):
     input_path.write_text("# 1 'foo.h'\n# 2 'bar.h'\n#4   'x.h'")
     pass_, state = init_pass(tmp_path, input_path)
 
-    (_, state) = pass_.transform(input_path, state, process_event_notifier=None, original_test_case=input_path)
+    (_, state) = pass_.transform(
+        input_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
+    )
 
     assert input_path.read_text() == ''
 
@@ -30,7 +33,9 @@ def test_only_last(tmp_path: Path, input_path: Path):
     input_path.write_text("# 1 'foo.h'\n# 2 'bar.h'\n#4   'x.h\nint x = 2;")
     pass_, state = init_pass(tmp_path, input_path)
 
-    (_, state) = pass_.transform(input_path, state, process_event_notifier=None, original_test_case=input_path)
+    (_, state) = pass_.transform(
+        input_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
+    )
 
     assert input_path.read_text() == 'int x = 2;'
 
@@ -54,7 +59,9 @@ def test_non_ascii(tmp_path: Path, input_path: Path):
         """,
     )
     pass_, state = init_pass(tmp_path, input_path)
-    (_, state) = pass_.transform(input_path, state, process_event_notifier=None, original_test_case=input_path)
+    (_, state) = pass_.transform(
+        input_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
+    )
 
     assert (
         input_path.read_bytes()

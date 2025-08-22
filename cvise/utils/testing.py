@@ -7,7 +7,7 @@ from enum import auto, Enum, unique
 import filecmp
 import logging
 import math
-from multiprocessing import Manager
+import multiprocessing
 import os
 from pathlib import Path
 import platform
@@ -20,7 +20,7 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Set, Tuple, Uni
 import concurrent.futures
 
 from cvise.cvise import CVise
-from cvise.passes.abstract import AbstractPass, PassResult, ProcessEventNotifier, ProcessEventType
+from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import misc, mplogging, sigmonitor
 from cvise.utils.error import AbsolutePathTestCaseError
@@ -30,6 +30,7 @@ from cvise.utils.error import InvalidTestCaseError
 from cvise.utils.error import PassBugError
 from cvise.utils.error import ZeroSizeError
 from cvise.utils.folding import FoldingManager, FoldingStateIn, FoldingStateOut
+from cvise.utils.process import ProcessEventNotifier, ProcessEventType
 from cvise.utils.readkey import KeyLogger
 import pebble
 import psutil
@@ -62,10 +63,16 @@ class InitEnvironment:
     test_case: Path
     tmp_dir: Path
     job_timeout: int
+    pid_queue: multiprocessing.Queue
 
     def run(self) -> Any:
         try:
-            return self.pass_new(self.test_case, tmp_dir=self.tmp_dir, job_timeout=self.job_timeout)
+            return self.pass_new(
+                self.test_case,
+                tmp_dir=self.tmp_dir,
+                job_timeout=self.job_timeout,
+                process_event_notifier=ProcessEventNotifier(self.pid_queue),
+            )
         except UnicodeDecodeError:
             # most likely the pass is incompatible with non-UTF files - abort it
             logging.debug('Skipping pass due to a unicode issue')
@@ -81,6 +88,7 @@ class AdvanceOnSuccessEnvironment:
     pass_previous_state: Any
     pass_succeeded_state: Any
     job_timeout: int
+    pid_queue: multiprocessing.Queue
 
     def run(self) -> Any:
         return self.pass_advance_on_success(
@@ -88,6 +96,7 @@ class AdvanceOnSuccessEnvironment:
             state=self.pass_previous_state,
             succeeded_state=self.pass_succeeded_state,
             job_timeout=self.job_timeout,
+            process_event_notifier=ProcessEventNotifier(self.pid_queue),
         )
 
 
@@ -808,7 +817,7 @@ class TestManager:
             self.pass_contexts.append(PassContext.create(pass_))
         self.interleaving = interleaving
         self.jobs = []
-        m = Manager()
+        m = multiprocessing.Manager()
         self.pid_queue = m.Queue()
         cache_key = repr([c.pass_ for c in self.pass_contexts])
 
@@ -1030,6 +1039,7 @@ class TestManager:
                 test_case=self.current_test_case,
                 tmp_dir=ctx.temporary_root,
                 job_timeout=self.timeout,
+                pid_queue=self.pid_queue,
             )
         else:
             env = AdvanceOnSuccessEnvironment(
@@ -1038,6 +1048,7 @@ class TestManager:
                 pass_previous_state=ctx.state,
                 pass_succeeded_state=ctx.taken_succeeded_state,
                 job_timeout=self.timeout,
+                pid_queue=self.pid_queue,
             )
         future = pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run])
         self.jobs.append(

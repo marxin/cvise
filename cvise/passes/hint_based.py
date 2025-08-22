@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple, Union
 
-from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
+from cvise.passes.abstract import AbstractPass, BinaryState, PassResult, ProcessEventNotifier
 from cvise.utils.hint import apply_hints, group_hints_by_type, HintBundle, HintApplicationStats, load_hints, store_hints
 
 HINTS_FILE_NAME_TEMPLATE = 'hints{type}.jsonl.zst'
@@ -134,7 +134,9 @@ class HintBasedPass(AbstractPass):
     * etc.
     """
 
-    def generate_hints(self, test_case: Path) -> HintBundle:
+    def generate_hints(
+        self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs
+    ) -> HintBundle:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'generate_hints'!")
 
     def create_elementary_state(self, hint_count: int) -> Any:
@@ -144,13 +146,11 @@ class HintBasedPass(AbstractPass):
         """
         return BinaryState.create(instances=hint_count)
 
-    def new(self, test_case: Path, tmp_dir: Path, *args, **kwargs):
-        hints = self.generate_hints(test_case)
+    def new(self, test_case: Path, tmp_dir: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
+        hints = self.generate_hints(test_case, process_event_notifier=process_event_notifier)
         return self.new_from_hints(hints, tmp_dir)
 
-    def transform(
-        self, test_case: Path, state: HintState, process_event_notifier, original_test_case: Path, *args, **kwargs
-    ):
+    def transform(self, test_case: Path, state: HintState, original_test_case: Path, *args, **kwargs):
         self.load_and_apply_hints(original_test_case, test_case, [state])
         return PassResult.OK, state
 
@@ -172,8 +172,8 @@ class HintBasedPass(AbstractPass):
     def advance(self, test_case: Path, state):
         return state.advance()
 
-    def advance_on_success(self, test_case: Path, state, *args, **kwargs):
-        hints = self.generate_hints(test_case)
+    def advance_on_success(self, test_case: Path, state, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
+        hints = self.generate_hints(test_case, process_event_notifier=process_event_notifier)
         return self.advance_on_success_from_hints(hints, state)
 
     def new_from_hints(self, bundle: HintBundle, tmp_dir: Path) -> Union[HintState, None]:

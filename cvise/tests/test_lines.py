@@ -5,6 +5,7 @@ from typing import Any, Tuple
 from cvise.passes.lines import LinesPass
 from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
+from cvise.utils.process import ProcessEventNotifier
 
 
 @pytest.fixture
@@ -14,7 +15,7 @@ def input_path(tmp_path: Path) -> Path:
 
 def init_pass(depth, tmp_dir: Path, input_path: Path) -> Tuple[LinesPass, Any]:
     pass_ = LinesPass(depth, find_external_programs())
-    state = pass_.new(input_path, tmp_dir=tmp_dir)
+    state = pass_.new(input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None))
     validate_stored_hints(state)
     return pass_, state
 
@@ -22,7 +23,9 @@ def init_pass(depth, tmp_dir: Path, input_path: Path) -> Tuple[LinesPass, Any]:
 def advance_until(pass_, state, input_path: Path, predicate):
     backup = input_path.read_bytes()
     while True:
-        pass_.transform(input_path, state, process_event_notifier=None, original_test_case=input_path)
+        pass_.transform(
+            input_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
+        )
         if predicate(input_path.read_bytes()):
             return state
         input_path.write_bytes(backup)
@@ -695,11 +698,11 @@ def test_advance_on_success(tmp_path: Path, input_path: Path):
     # Cut 'foo' first, pretending that all previous transforms (e.g., deletion of the whole text) didn't pass the
     # interestingness test.
     state = advance_until(p, state, input_path, lambda s: b'bar' in s and b'baz' in s)
-    p.advance_on_success(input_path, state)
+    p.advance_on_success(input_path, state, process_event_notifier=ProcessEventNotifier(None))
     # Cut 'baz' now, pretending that all transforms in between (e.g, deletion of "bar;") didn't pass the
     # interestingness test.
     state = advance_until(p, state, input_path, lambda s: b'bar' in s)
-    p.advance_on_success(input_path, state)
+    p.advance_on_success(input_path, state, process_event_notifier=ProcessEventNotifier(None))
 
     assert (
         input_path.read_bytes()

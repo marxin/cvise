@@ -29,7 +29,7 @@ class BalancedPass(HintBasedPass):
     def check_prerequisites(self):
         return True
 
-    def generate_hints(self, test_case: Path):
+    def generate_hints(self, test_case: Path, *args, **kwargs):
         config = self.__get_config()
         open_ch = ord(config.search.value[0])
         close_ch = ord(config.search.value[1])

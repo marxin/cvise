@@ -5,6 +5,7 @@ from typing import Any, Tuple
 from cvise.passes.treesitter import TreeSitterPass
 from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
+from cvise.utils.process import ProcessEventNotifier
 
 
 REPLACE_FUNC_DEF = 'replace-function-def-with-decl'
@@ -19,7 +20,7 @@ def input_path(tmp_path: Path) -> Path:
 
 def init_pass(arg, tmp_dir: Path, input_path: Path) -> Tuple[TreeSitterPass, Any]:
     pass_ = TreeSitterPass(arg, find_external_programs())
-    state = pass_.new(input_path, tmp_dir=tmp_dir)
+    state = pass_.new(input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None))
     validate_stored_hints(state)
     return pass_, state
 
