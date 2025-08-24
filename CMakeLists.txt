@@ -136,9 +136,6 @@ add_definitions("-DHAVE_CONFIG_H")
 
 ###############################################################################
 
-# Use static linking for libraries in subdirectories.
-option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
-
 # Use option `-fvisibility-inlines-hidden` if the C++ compiler supports it.
 # See LLVM file `share/llvm/cmake/HandleLLVMOptions.cmake`.
 #
@@ -223,9 +220,14 @@ add_subdirectory(clang_delta)
 add_subdirectory(clex)
 add_subdirectory(cvise)
 add_subdirectory(delta)
+add_subdirectory(treesitter_delta)
+
+# Always link statically against Tree-sitter.
+set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
+set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(tree-sitter EXCLUDE_FROM_ALL)
 add_subdirectory(tree-sitter-cpp EXCLUDE_FROM_ALL)
-add_subdirectory(treesitter_delta)
+set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
 
 # Copy top-level cvise script
 configure_file(
