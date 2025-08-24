@@ -64,7 +64,9 @@ public:
 
   bool VisitRecordTypeLoc(RecordTypeLoc RTLoc);
 
+#if LLVM_VERSION_MAJOR < 22
   bool VisitElaboratedTypeLoc(ElaboratedTypeLoc Loc);
+#endif
 
   bool VisitRecordDecl(RecordDecl *RD);
 
@@ -110,7 +112,11 @@ bool EmptyStructToIntASTVisitor::VisitCXXRecordDecl(CXXRecordDecl *CXXRD)
 
 bool EmptyStructToIntRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *RD = RTLoc.getDecl();
+#else
+  const RecordDecl *RD = RTLoc.getOriginalDecl();
+#endif
 
   if (RD->getCanonicalDecl() == ConsumerInstance->TheRecordDecl) {
     SourceLocation LocStart = RTLoc.getBeginLoc();
@@ -137,6 +143,7 @@ bool EmptyStructToIntRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
   return true;
 }
 
+#if LLVM_VERSION_MAJOR < 22
 bool EmptyStructToIntRewriteVisitor::VisitElaboratedTypeLoc(
        ElaboratedTypeLoc Loc)
 {
@@ -193,6 +200,7 @@ bool EmptyStructToIntRewriteVisitor::VisitElaboratedTypeLoc(
   ConsumerInstance->TheRewriter.RemoveText(SourceRange(StartLoc, EndLoc));
   return true;
 }
+#endif
 
 bool EmptyStructToIntRewriteVisitor::VisitRecordDecl(RecordDecl *RD)
 {
@@ -395,7 +403,11 @@ bool EmptyStructToInt::pointToSelf(const FieldDecl *FD)
   const RecordType *RT = PointeeTy->getAs<RecordType>();
   if (!RT)
     return false;
+#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *RD = RT->getDecl();
+#else
+  const RecordDecl *RD = RT->getOriginalDecl();
+#endif
   const RecordDecl *Parent = FD->getParent();
   return (Parent->getCanonicalDecl() == RD->getCanonicalDecl());
 }
@@ -486,7 +498,12 @@ const RecordDecl *EmptyStructToInt::getBaseRecordDef(const Type *Ty)
     return NULL;
 
   const RecordType *RT = Ty->getAsStructureType();
+
+#if LLVM_VERSION_MAJOR < 22
   return RT->getDecl()->getDefinition();
+#else
+  return RT->getOriginalDecl()->getDefinition();
+#endif
 }
 
 void EmptyStructToInt::getInitExprs(const Type *Ty, 
@@ -525,7 +542,11 @@ void EmptyStructToInt::getInitExprs(const Type *Ty,
     TransAssert(0 && "Bad RecordType!");
   }
 
+#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *RD = RT->getDecl();
+#else
+  const RecordDecl *RD = RT->getOriginalDecl();
+#endif
 
   if (RD->getCanonicalDecl() == TheRecordDecl) {
     InitExprs.push_back(E);
