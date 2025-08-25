@@ -5,18 +5,18 @@ import random
 import shutil
 import string
 import tempfile
-from typing import Callable, Iterator
+from typing import Iterator, Union
 
 
 # TODO: use tempfile.NamedTemporaryFile(delete_on_close=False) since Python 3.12 is the oldest supported release
 @contextlib.contextmanager
-def CloseableTemporaryFile(mode='w+b', dir: Path = None):
+def CloseableTemporaryFile(mode='w+b', dir: Union[Path, None] = None):
     if dir is None:
         dir = Path(tempfile.gettempdir())
     # Use a unique name pattern, so that if NamedTemporaryFile construction or cleanup aborted mid-way (e.g., via
     # KeyboardInterrupt), we can identify and delete the leftover file.
     prefix = _get_random_temp_file_name_prefix()
-    with _cleanup_on_abnormal_exit(lambda: _unlink_with_prefix(dir, prefix)):
+    with _clean_up_file_on_abnormal_exit(dir, prefix):
         f = tempfile.NamedTemporaryFile(mode=mode, delete=False, dir=dir, prefix=prefix)
         with _auto_close_and_unlink(f):
             yield f
@@ -86,28 +86,24 @@ def _get_random_temp_file_name_prefix() -> str:
 
 
 @contextlib.contextmanager
-def _cleanup_on_abnormal_exit(func: Callable) -> Iterator[None]:
+def _clean_up_file_on_abnormal_exit(dir: Path, prefix: str) -> Iterator[None]:
     try:
         yield
     except (KeyboardInterrupt, SystemExit):
-        func()
+        lst = list(dir.glob(f'{prefix}*'))
+        for p in lst:
+            if p.is_file():
+                p.unlink(missing_ok=True)
         raise
 
 
 @contextlib.contextmanager
-def _auto_close_and_unlink(f: tempfile.NamedTemporaryFile) -> Iterator[None]:
+def _auto_close_and_unlink(tmp_file) -> Iterator[None]:
     try:
         yield
     finally:
         # For Windows systems, be sure we always close the file before we remove it!
-        if not f.closed:
-            f.close()
+        if not tmp_file.closed:
+            tmp_file.close()
         with contextlib.suppress(FileNotFoundError):
-            os.unlink(f.name)
-
-
-def _unlink_with_prefix(dir: Path, prefix: str) -> None:
-    lst = list(dir.glob(f'{prefix}*'))
-    for p in lst:
-        if p.is_file():
-            p.unlink(missing_ok=True)
+            os.unlink(tmp_file.name)
