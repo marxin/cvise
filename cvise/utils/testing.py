@@ -771,7 +771,7 @@ class TestManager:
                         self.pass_reinit_queue.append(pass_id)
 
                 while self.jobs or any(c.can_start_job_now() for c in self.pass_contexts):
-                    sigmonitor.maybe_reraise()
+                    sigmonitor.maybe_retrigger_action()
 
                     # schedule new jobs, as long as there are free workers
                     while len(self.jobs) < self.parallel_tests and self.maybe_schedule_job(pool):
@@ -1142,35 +1142,13 @@ def override_tmpdir_env(old_env: Mapping[str, str], tmp_override: Path) -> Mappi
 
 
 def _init_worker_process(mplogger_initializer: Callable) -> None:
-    sigmonitor.init()
+    # By default (when not executing a job), terminate a worker immediately on relevant signals. Raising an exception at
+    # unexpected times, especially inside multiprocessing internals, can put the worker into a bad state.
+    sigmonitor.init(use_exceptions=False)
     mplogger_initializer()
 
 
 def _worker_process_job_wrapper(job_order: int, func: Callable) -> Any:
-    with mplogging.worker_process_job_wrapper(job_order):
-        sigmonitor.maybe_reraise()
-        result = func()
-        sigmonitor.maybe_reraise()
-    return result
-
-
-def get_file_size(test_case: Path) -> int:
-    files = (
-        [p for p in test_case.rglob('*') if not p.is_dir() and not p.is_symlink()]
-        if test_case.is_dir()
-        else [test_case]
-    )
-    return sum(f.stat().st_size for f in files)
-
-
-def get_line_count(test_case: Path) -> int:
-    files = (
-        [p for p in test_case.rglob('*') if not p.is_dir() and not p.is_symlink()]
-        if test_case.is_dir()
-        else [test_case]
-    )
-    lines = 0
-    for file in files:
-        with open(file, 'rb') as f:
-            lines += len([line for line in f.readlines() if line and not line.isspace()])
-    return lines
+    with sigmonitor.scoped_use_exceptions():
+        with mplogging.worker_process_job_wrapper(job_order):
+            return func()

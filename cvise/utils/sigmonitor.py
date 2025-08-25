@@ -14,8 +14,10 @@ Ctrl-C keystroke. This helper allows to prevent whether a signal was observer
 and letting the code raise the exception to trigger the shutdown.
 """
 
+from contextlib import contextmanager
+import os
 import signal
-from typing import Callable, Dict, Set
+from typing import Callable, Dict, Iterator, Set
 
 
 # Signals we monitor, in the preference order: SIGTERM is more "important".
@@ -26,37 +28,68 @@ _SIGNAL_TO_EXCEPTION = {
 
 
 _inited = False
+_use_exceptions: bool = False
 _original_signal_handlers: Dict[int, Callable] = {}
 _observed_signals: Set[int] = set()
 
 
-def init():
-    global _inited
+def init(use_exceptions: bool) -> None:
+    global _inited, _use_exceptions
+    _use_exceptions = use_exceptions
     if _inited:
         return
     _inited = True
-    # Install the new handler while remembering the previous one.
+    # Install the new handler while remembering the previous/default one.
     for signum in _SIGNAL_TO_EXCEPTION.keys():
         handler = signal.signal(signum, _on_signal)
-        if handler not in (signal.SIG_IGN, signal.SIG_DFL):
-            assert callable(handler)
-            _original_signal_handlers[signum] = handler
+        if handler == signal.SIG_DFL and signum == signal.SIGINT:
+            handler = signal.default_int_handler
+        elif not callable(handler):
+            continue
+        _original_signal_handlers[signum] = handler
 
 
-def maybe_reraise():
+def maybe_retrigger_action() -> None:
     assert _inited
     # If multiple signals occurred, prefer the one mentioned earlier (SIGTERM).
-    for signum, exc_factory in _SIGNAL_TO_EXCEPTION.items():
+    for signum in _SIGNAL_TO_EXCEPTION.keys():
         if signum in _observed_signals:
-            raise exc_factory()
+            _trigger_signal_action(signum)
+            return
 
 
-def _on_signal(signum, frame):
-    _observed_signals.add(signum)
-    # Prefer the original signal handler in case there's some nontrivial logic in it, but fall back to simply raising an
-    # exception.
-    if signum in _original_signal_handlers:
+@contextmanager
+def scoped_use_exceptions() -> Iterator[None]:
+    global _use_exceptions
+
+    # It's unlikely to happen, but cheap to check: no need to enter the scope if we know we'll terminate afterwards.
+    maybe_retrigger_action()
+
+    assert not _use_exceptions
+    try:
+        _use_exceptions = True
+        yield
+    finally:
+        _use_exceptions = False
+        # If a signal occured within the scope, it's been propagated as an exception (letting the code in the scope do
+        # resource cleanup) up to this level, but now that we're leaving the scope we should terminate the process
+        # immediately instead.
+        maybe_retrigger_action()
+
+
+def _on_signal(signum: int, frame) -> None:
+    # Prefer the original signal handler in case there's some nontrivial logic in it (e.g., not raising an exception
+    # depending on stack frame contents).
+    if _use_exceptions and signum in _original_signal_handlers:
         _original_signal_handlers[signum](signum, frame)
     else:
+        _trigger_signal_action(signum)
+    # no code after this point - the action above should've raised the exception or terminated the process
+
+
+def _trigger_signal_action(signum: int) -> None:
+    if _use_exceptions:
         raise _SIGNAL_TO_EXCEPTION[signum]()
-    # no code after this point - the signal handler above should've raised the exception
+    else:
+        os._exit(1)
+    # no code after this point - the action above should've raised the exception or terminated the process
