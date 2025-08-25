@@ -205,3 +205,26 @@ def test_non_ascii_interestingness_test(tmp_path: Path):
         ['#define nextHi', '#define nextHi\n'],
         tmp_path,
     )
+
+
+def test_dir_test_case(tmp_path: Path):
+    test_case = tmp_path / 'repro'
+    test_case.mkdir()
+    (test_case / 'a.h').write_text('// comment\nint x = 1;\n')
+    (test_case / 'a.cc').write_text('#include "a.h"\nint nextHi = x;\n')
+
+    proc = start_cvise(
+        [
+            '-c',
+            'gcc -c repro/a.cc && grep nextHi repro/a.cc',
+            'repro',
+            '--tidy',
+            '--no-cache',
+        ],
+        tmp_path,
+    )
+    proc.communicate()
+
+    assert proc.returncode == 0
+    assert (test_case / 'a.h').read_text() == 'int x = 1;\n'
+    assert (test_case / 'a.cc').read_text() == '#include "a.h"\nint nextHi = x;\n'

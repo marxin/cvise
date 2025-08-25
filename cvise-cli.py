@@ -517,9 +517,18 @@ def do_reduce(args):
 
             fs.write(b'Reduced test-cases:\n\n')
             for test_case in sorted(test_cases):
+                is_dir = test_case.is_dir()
                 fs.write(f'--- {test_case} ---\n'.encode())
-                fs.write(test_case.read_bytes())
-                fs.write(b'\n')
+                paths = (
+                    [p for p in test_case.rglob('*') if not p.is_dir() and not p.is_symlink()]
+                    if is_dir
+                    else [test_case]
+                )
+                for path in paths:
+                    if is_dir:
+                        fs.write(f'\n//--- {path}\n'.encode())
+                    fs.write(path.read_bytes())
+                    fs.write(b'\n')
     finally:
         if script:
             os.unlink(script.name)

@@ -214,6 +214,8 @@ class PassContext:
 
     pass_: AbstractPass
     stage: PassStage
+    # Whether the pass is enabled for the current test case.
+    enabled: bool
     # Stores pass-specific files to be used during transform jobs (e.g., hints generated during initialization), and
     # temporary folders for each transform job.
     temporary_root: Union[Path, None]
@@ -236,6 +238,7 @@ class PassContext:
         return PassContext(
             pass_=pass_,
             stage=PassStage.BEFORE_INIT,
+            enabled=True,
             temporary_root=Path(root),
             state=None,
             taken_succeeded_state=None,
@@ -246,11 +249,11 @@ class PassContext:
 
     def can_init_now(self) -> bool:
         """Whether the pass new() method can be scheduled."""
-        return not self.defunct and self.stage == PassStage.BEFORE_INIT
+        return self.enabled and not self.defunct and self.stage == PassStage.BEFORE_INIT
 
     def can_transform_now(self) -> bool:
         """Whether the pass transform() method can be scheduled."""
-        return not self.defunct and self.stage == PassStage.ENUMERATING and self.state is not None
+        return self.enabled and not self.defunct and self.stage == PassStage.ENUMERATING and self.state is not None
 
     def can_start_job_now(self) -> bool:
         """Whether any of the pass methods can be scheduled."""
@@ -448,11 +451,11 @@ class TestManager:
         return sorted(self.test_cases, key=lambda x: x.stat().st_size, reverse=True)
 
     @property
-    def total_file_size(self):
+    def total_file_size(self) -> int:
         return sum(fileutil.get_file_size(p) for p in self.test_cases)
 
     @property
-    def total_line_count(self):
+    def total_line_count(self) -> int:
         return sum(fileutil.get_line_count(p) for p in self.test_cases)
 
     def backup_test_cases(self):
@@ -833,6 +836,10 @@ class TestManager:
                         logging.info(f'cache hit for {test_case}')
                         continue
 
+                is_dir = test_case.is_dir()
+                for ctx in self.pass_contexts:
+                    ctx.enabled = not is_dir or ctx.pass_.supports_dir_test_cases()
+
                 self.skip = False
                 while any(c.can_start_job_now() for c in self.pass_contexts) and not self.skip:
                     # Ignore more key presses after skip has been detected
@@ -1145,3 +1152,25 @@ def _worker_process_job_wrapper(job_order: int, func: Callable) -> Any:
         result = func()
         sigmonitor.maybe_reraise()
     return result
+
+
+def get_file_size(test_case: Path) -> int:
+    files = (
+        [p for p in test_case.rglob('*') if not p.is_dir() and not p.is_symlink()]
+        if test_case.is_dir()
+        else [test_case]
+    )
+    return sum(f.stat().st_size for f in files)
+
+
+def get_line_count(test_case: Path) -> int:
+    files = (
+        [p for p in test_case.rglob('*') if not p.is_dir() and not p.is_symlink()]
+        if test_case.is_dir()
+        else [test_case]
+    )
+    lines = 0
+    for file in files:
+        with open(file, 'rb') as f:
+            lines += len([line for line in f.readlines() if line and not line.isspace()])
+    return lines
