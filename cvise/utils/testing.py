@@ -1149,6 +1149,10 @@ def _init_worker_process(mplogger_initializer: Callable) -> None:
 
 
 def _worker_process_job_wrapper(job_order: int, func: Callable) -> Any:
+    # Handle signals as exceptions within the job, to let the code do proper resource deallocation (like terminating
+    # subprocesses), but once the func returns after a signal was triggered, terminate the worker.
     with sigmonitor.scoped_use_exceptions():
+        # Annotate each log message with the job order, for the log recipient in the main process to discard logs coming
+        # from canceled jobs.
         with mplogging.worker_process_job_wrapper(job_order):
             return func()
