@@ -5,7 +5,7 @@ import random
 import shutil
 import string
 import tempfile
-from typing import Iterator, Union
+from typing import Iterable, Iterator, Union
 
 
 # TODO: use tempfile.NamedTemporaryFile(delete_on_close=False) since Python 3.12 is the oldest supported release
@@ -16,7 +16,7 @@ def CloseableTemporaryFile(mode='w+b', dir: Union[Path, None] = None):
     # Use a unique name pattern, so that if NamedTemporaryFile construction or cleanup aborted mid-way (e.g., via
     # KeyboardInterrupt), we can identify and delete the leftover file.
     prefix = _get_random_temp_file_name_prefix()
-    with _clean_up_file_on_abnormal_exit(dir, prefix):
+    with _clean_up_files_on_abnormal_exit(dir, prefix):
         f = tempfile.NamedTemporaryFile(mode=mode, delete=False, dir=dir, prefix=prefix)
         with _auto_close_and_unlink(f):
             yield f
@@ -54,15 +54,14 @@ def mkdir_up_to(dir_to_create: Path, last_parent_dir: Path) -> None:
 
 
 def get_file_size(test_case: Path) -> int:
-    return sum(p.stat().st_size for p in test_case.rglob('*') if p.is_file() and not p.is_symlink())
+    return sum(p.stat().st_size for p in _get_test_case_files(test_case))
 
 
 def get_line_count(test_case: Path) -> int:
     lines = 0
-    for p in test_case.rglob('*'):
-        if p.is_file() and not p.is_symlink():
-            with open(p, 'rb') as f:
-                lines += sum(1 for line in f if line and not line.isspace())
+    for path in _get_test_case_files(test_case):
+        with open(path, 'rb') as f:
+            lines += sum(1 for line in f if line and not line.isspace())
     return lines
 
 
@@ -76,20 +75,33 @@ def copy_test_case(source: Path, destination_parent: Path) -> None:
 
 
 def replace_test_case_atomically(source: Path, destination: Path) -> None:
-    # First prepare the contents in a temporary file in the same folder as the destination path, and then rename the
-    # temp file. The latter is atomic on popular file systems, while the former isn't since file system boundaries might
-    # be crossed.
+    # First prepare the contents in a temporary location in the same folder as the destination path, and then rename/swap
+    # it with the destination. We use the fact that a rename is atomic on popular file systems, within a single file
+    # system's boundaries.
     if source.is_dir():
-        with tempfile.TemporaryDirectory(prefix='cvise', dir=destination.parent) as tmp_dir:
-            new_path = shutil.move(source, Path(tmp_dir))
-            source.rename(tmp_path, f'{new_path}tmp')
-            new_path.rename(destination)
+        with tempfile.TemporaryDirectory(dir=destination.parent, prefix='cvise-') as tmp_dir:
+            new_path = Path(shutil.move(source, Path(tmp_dir)))
+            old_destination = Path(f'{new_path}tmp')
+            try:
+                destination.rename(old_destination)
+                new_path.rename(destination)
+            except (KeyboardInterrupt, SystemExit):
+                # If the swapping didn't succeed, attempt undoing the renaming to bring the original dir back.
+                with contextlib.suppress(Exception):
+                    old_destination.rename(destination)
+                raise
     else:
         with CloseableTemporaryFile(dir=destination.parent) as tmp:
             tmp_path = Path(tmp.name)
             tmp.close()
             shutil.move(source, tmp_path)
             tmp_path.rename(destination)
+
+
+def _get_test_case_files(test_case: Path) -> Iterable[Path]:
+    if test_case.is_dir():
+        return [p for p in test_case.rglob('*') if p.is_file() and not p.is_symlink()]
+    return [test_case]
 
 
 def _get_random_temp_file_name_prefix() -> str:
@@ -99,7 +111,7 @@ def _get_random_temp_file_name_prefix() -> str:
 
 
 @contextlib.contextmanager
-def _clean_up_file_on_abnormal_exit(dir: Path, prefix: str) -> Iterator[None]:
+def _clean_up_files_on_abnormal_exit(dir: Path, prefix: str) -> Iterator[None]:
     try:
         yield
     except (KeyboardInterrupt, SystemExit):
@@ -107,6 +119,8 @@ def _clean_up_file_on_abnormal_exit(dir: Path, prefix: str) -> Iterator[None]:
         for p in lst:
             if p.is_file():
                 p.unlink(missing_ok=True)
+            else:
+                shutil.rmtree(p)
         raise
 
 

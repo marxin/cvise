@@ -183,7 +183,9 @@ class AbstractPass:
         """
         return False
 
-    def new(self, test_case: Path, tmp_dir: Path, job_timeout: int, process_event_notifier: ProcessEventNotifier, **kwargs):
+    def new(
+        self, test_case: Path, tmp_dir: Path, job_timeout: int, process_event_notifier: ProcessEventNotifier, **kwargs
+    ):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'new'!")
 
     def advance(self, test_case: Path, state):
