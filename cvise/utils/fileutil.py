@@ -79,14 +79,14 @@ def replace_test_case_atomically(source: Path, destination: Path) -> None:
     # it with the destination. We use the fact that a rename is atomic on popular file systems, within a single file
     # system's boundaries.
     if source.is_dir():
-        with tempfile.TemporaryDirectory(dir=destination.parent, prefix='cvise-') as tmp_dir:
+        with _robust_temp_dir(dir=destination.parent) as tmp_dir:
             new_path = Path(shutil.move(source, Path(tmp_dir)))
             old_destination = Path(f'{new_path}tmp')
             try:
                 destination.rename(old_destination)
                 new_path.rename(destination)
             except (KeyboardInterrupt, SystemExit):
-                # If the swapping didn't succeed, attempt undoing the renaming to bring the original dir back.
+                # If swapping was interrupted, attempt to bring back the original directory.
                 with contextlib.suppress(Exception):
                     old_destination.rename(destination)
                 raise
@@ -134,3 +134,12 @@ def _auto_close_and_unlink(tmp_file) -> Iterator[None]:
             tmp_file.close()
         with contextlib.suppress(FileNotFoundError):
             os.unlink(tmp_file.name)
+
+
+@contextlib.contextmanager
+def _robust_temp_dir(dir: Path) -> Iterator[Path]:
+    """Unlike TemporaryDirectory, guarantees to not leave leftovers on keyboard/exit exceptions."""
+    prefix = _get_random_temp_file_name_prefix()
+    with _clean_up_files_on_abnormal_exit(dir, prefix):
+        with tempfile.TemporaryDirectory(prefix=prefix, dir=dir) as tmp_dir:
+            yield Path(tmp_dir)

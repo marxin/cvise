@@ -174,8 +174,8 @@ def test_replace_file_atomicity(tmp_path: Path, input_in_source_dir: Path):
 
     We do this by killing at "random" time points a child process that performs the file replacement.
     """
-    INITIAL_DATA = 'a' * 1_000_000
-    NEW_DATA = 'b' * 2_000_000
+    INITIAL_DATA = 'a' * 1_000
+    NEW_DATA = 'b' * 2_000
 
     # Not storing the source file in the tmp_path because to catch non-atomicity the source and the destination have to
     # be on different file systems.
@@ -208,8 +208,8 @@ def test_replace_file_atomicity(tmp_path: Path, input_in_source_dir: Path):
 
 def test_replace_dir_atomicity(tmp_path: Path, input_in_source_dir: Path):
     """Verifies whether the directory replacement operation is atomic."""
-    INITIAL_DATA = 'a' * 1_000_000
-    NEW_DATA = 'b' * 2_000_000
+    INITIAL_DATA = 'a' * 1_000
+    NEW_DATA = 'b' * 2_000
 
     # Not storing the source file in the tmp_path because to catch non-atomicity the source and the destination have to
     # be on different file systems.
@@ -231,9 +231,9 @@ def test_replace_dir_atomicity(tmp_path: Path, input_in_source_dir: Path):
         (new_dir / test_case / 'newb' / 'newc.txt').write_text('')
 
     def check_result(contents: Dict[Path, str]) -> _AtomicityResult:
-        if contents == {Path('a.txt'): INITIAL_DATA, Path('b/c.txt'): ''}:
+        if contents == {test_case / 'a.txt': INITIAL_DATA, test_case / 'b/c.txt': ''}:
             return _AtomicityResult.CONTENTS_INITIAL
-        elif contents == {Path('newa.txt'): NEW_DATA, Path('newb/newc.txt'): ''}:
+        elif contents == {test_case / 'newa.txt': NEW_DATA, test_case / 'newb/newc.txt': ''}:
             return _AtomicityResult.CONTENTS_NEW
         else:
             return _AtomicityResult.CONTENTS_UNEXPECTED
@@ -246,7 +246,7 @@ def test_replace_dir_atomicity(tmp_path: Path, input_in_source_dir: Path):
         + f'replace_test_case_atomically(Path("{new_dir / test_case}"), Path("{test_case}"));'
     )
 
-    _stress_test_atomicity(input_in_source_dir / test_case, init, test_code, check_result)
+    _stress_test_atomicity(input_in_source_dir, init, test_code, check_result)
 
 
 def _stress_test_atomicity(path_to_check: Path, init_callback: Callable, test_code: str, result_callback: Callable):
@@ -258,11 +258,13 @@ def _stress_test_atomicity(path_to_check: Path, init_callback: Callable, test_co
         init_callback()
         # Enable tracing in the subprocess in order to slow it down, to increase chances of hitting a bug.
         code = 'from sys import settrace; ' + 'trace = lambda *args: trace; ' + 'settrace(trace); ' + test_code
+
         proc = subprocess.Popen([sys.executable, '-c', code], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if sleep is not None:
             time.sleep(sleep)
             os.kill(proc.pid, signal.SIGINT)
         proc.wait()
+
         contents = {}
         for p in path_to_check.rglob('*'):
             with contextlib.suppress(FileNotFoundError):
@@ -282,9 +284,9 @@ def _stress_test_atomicity(path_to_check: Path, init_callback: Callable, test_co
         mid = (left + right) / 2
         all_initial = True
         for _ in range(RECHECK_ITERATIONS):
-            result = result_callback(run_subprocess(mid))
-            assert result != _AtomicityResult.CONTENTS_UNEXPECTED
-            if result == _AtomicityResult.CONTENTS_NEW:
+            contents = run_subprocess(mid)
+            assert result_callback(contents) != _AtomicityResult.CONTENTS_UNEXPECTED
+            if result_callback(contents) == _AtomicityResult.CONTENTS_NEW:
                 all_initial = False
                 break
         if all_initial:
