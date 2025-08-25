@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 import signal
 import subprocess
+import sys
 import tempfile
 import time
 from typing import Union
@@ -134,7 +135,7 @@ def test_replace_atomicity(tmp_path: Path, input_in_source_dir: Path):
                 + f'chdir("{input_in_source_dir}");'
                 + f'replace_test_case_atomically(Path("{new_dir / test_case}"), Path("{test_case}"));'
             )
-            proc = subprocess.Popen(['python', '-c', code], stderr=subprocess.DEVNULL)
+            proc = subprocess.Popen([sys.executable, '-c', code], stderr=subprocess.DEVNULL)
             if sleep is None:
                 proc.communicate()
             else:
