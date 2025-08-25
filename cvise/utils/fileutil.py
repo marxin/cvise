@@ -1,29 +1,29 @@
-from contextlib import contextmanager
+import contextlib
 import os
 from pathlib import Path
+import random
 import shutil
+import string
 import tempfile
-from typing import Iterator
+from typing import Callable, Iterator
 
 
 # TODO: use tempfile.NamedTemporaryFile(delete_on_close=False) since Python 3.12 is the oldest supported release
-@contextmanager
-def CloseableTemporaryFile(mode='w+b', dir=None):
-    f = tempfile.NamedTemporaryFile(mode=mode, delete=False, dir=dir)
-    try:
-        yield f
-    finally:
-        # For Windows systems, be sure we always close the file before we remove it!
-        if not f.closed:
-            f.close()
-        try:
-            os.remove(f.name)
-        except FileNotFoundError:
-            pass  # already deleted
+@contextlib.contextmanager
+def CloseableTemporaryFile(mode='w+b', dir: Path = None):
+    if dir is None:
+        dir = Path(tempfile.gettempdir())
+    # Use a unique name pattern, so that if NamedTemporaryFile construction or cleanup aborted mid-way (e.g., via
+    # KeyboardInterrupt), we can identify and delete the leftover file.
+    prefix = _get_random_temp_file_name_prefix()
+    with _cleanup_on_abnormal_exit(lambda: _unlink_with_prefix(dir, prefix)):
+        f = tempfile.NamedTemporaryFile(mode=mode, delete=False, dir=dir, prefix=prefix)
+        with _auto_close_and_unlink(f):
+            yield f
 
 
 # TODO: use contextlib.chdir once Python 3.11 is the oldest supported release
-@contextmanager
+@contextlib.contextmanager
 def chdir(path: Path) -> Iterator[None]:
     original_workdir = os.getcwd()
     os.chdir(path)
@@ -69,8 +69,45 @@ def copy_test_case(source: Path, destination_parent: Path) -> None:
 
 
 def replace_test_case_atomically(source: Path, destination: Path) -> None:
+    # First prepare the contents in a temporary file in the same folder as the destination path, and then rename the
+    # temp file. The latter is atomic on popular file systems, while the former isn't since file system boundaries might
+    # be crossed.
     with CloseableTemporaryFile(dir=destination.parent) as tmp:
         tmp_path = Path(tmp.name)
         tmp.close()
         shutil.move(source, tmp_path)
         tmp_path.rename(destination)
+
+
+def _get_random_temp_file_name_prefix() -> str:
+    LEN = 6
+    letters = random.choices(string.ascii_uppercase + string.digits, k=LEN)
+    return f'cvise-{"".join(letters)}-'
+
+
+@contextlib.contextmanager
+def _cleanup_on_abnormal_exit(func: Callable) -> Iterator[None]:
+    try:
+        yield
+    except (KeyboardInterrupt, SystemExit):
+        func()
+        raise
+
+
+@contextlib.contextmanager
+def _auto_close_and_unlink(f: tempfile.NamedTemporaryFile) -> Iterator[None]:
+    try:
+        yield
+    finally:
+        # For Windows systems, be sure we always close the file before we remove it!
+        if not f.closed:
+            f.close()
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(f.name)
+
+
+def _unlink_with_prefix(dir: Path, prefix: str) -> None:
+    lst = list(dir.glob(f'{prefix}*'))
+    for p in lst:
+        if p.is_file():
+            p.unlink(missing_ok=True)
