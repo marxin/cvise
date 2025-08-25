@@ -16,13 +16,13 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Set, Tuple, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils import misc, mplogging, sigmonitor
+from cvise.utils import fileutil, mplogging, sigmonitor
 from cvise.utils.error import AbsolutePathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
@@ -130,12 +130,12 @@ class TestEnvironment:
         self.pid_queue = pid_queue
         self.test_case: Path = test_case
         self.should_copy_test_cases = should_copy_test_cases
-        self.base_size = test_case.stat().st_size
+        self.base_size = fileutil.get_file_size(test_case)
         self.all_test_cases: Set[Path] = all_test_cases
 
     @property
     def size_improvement(self):
-        return self.base_size - self.test_case_path.stat().st_size
+        return self.base_size - fileutil.get_file_size(self.test_case_path)
 
     @property
     def test_case_path(self) -> Path:
@@ -153,8 +153,7 @@ class TestEnvironment:
 
     def copy_test_cases(self):
         for test_case in self.all_test_cases:
-            (self.folder / test_case.parent).mkdir(parents=True, exist_ok=True)
-            shutil.copy2(test_case, self.folder / test_case.parent)
+            fileutil.copy_test_case(test_case, self.folder)
 
     def run(self):
         try:
@@ -186,7 +185,7 @@ class TestEnvironment:
             return self
 
     def run_test(self, verbose):
-        with misc.chdir(self.folder):
+        with fileutil.chdir(self.folder):
             # Make the job use our custom temp dir instead of the standard one, so that the standard location doesn't
             # get cluttered with files it might leave undeleted (the process might do this because of an oversight in
             # the interestingness test, or because C-Vise abruptly kills our job without a chance for a proper cleanup).
@@ -445,28 +444,16 @@ class TestManager:
         return True
 
     @property
-    def total_file_size(self):
-        return self.get_file_size(self.test_cases)
-
-    @property
     def sorted_test_cases(self):
         return sorted(self.test_cases, key=lambda x: x.stat().st_size, reverse=True)
 
-    @staticmethod
-    def get_file_size(files: Iterable[Path]):
-        return sum(f.stat().st_size for f in files)
+    @property
+    def total_file_size(self):
+        return sum(fileutil.get_file_size(p) for p in self.test_cases)
 
     @property
     def total_line_count(self):
-        return self.get_line_count(self.test_cases)
-
-    @staticmethod
-    def get_line_count(files: Iterable[Path]):
-        lines = 0
-        for file in files:
-            with open(file, 'rb') as f:
-                lines += len([line for line in f.readlines() if line and not line.isspace()])
-        return lines
+        return sum(fileutil.get_line_count(p) for p in self.test_cases)
 
     def backup_test_cases(self):
         for f in self.test_cases:
@@ -833,10 +820,10 @@ class TestManager:
         try:
             for test_case in self.sorted_test_cases:
                 self.current_test_case = test_case
-                starting_test_case_size = test_case.stat().st_size
+                starting_test_case_size = fileutil.get_file_size(test_case)
                 success_count = 0
 
-                if self.get_file_size([test_case]) == 0:
+                if starting_test_case_size == 0:
                     continue
 
                 if not self.no_cache:
@@ -867,7 +854,7 @@ class TestManager:
                         success_count += 1
 
                     # if the file increases significantly, bail out the current pass
-                    test_case_size = self.current_test_case.stat().st_size
+                    test_case_size = fileutil.get_file_size(self.current_test_case)
                     if test_case_size >= MAX_PASS_INCREASEMENT_THRESHOLD * starting_test_case_size:
                         logging.info(
                             f'skipping the rest of the pass (huge file increasement '
@@ -917,7 +904,7 @@ class TestManager:
             logging.info(diff_str)
 
         try:
-            shutil.copy(new_test_case, self.current_test_case)
+            fileutil.replace_test_case_atomically(new_test_case, self.current_test_case)
         except FileNotFoundError:
             raise RuntimeError(
                 f"Can't find {self.current_test_case} -- did your interestingness test move it?"

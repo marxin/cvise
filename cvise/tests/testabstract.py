@@ -5,8 +5,8 @@ from typing import Set, Tuple, Union
 
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintState
+from cvise.utils.fileutil import CloseableTemporaryFile
 from cvise.utils.hint import HINT_SCHEMA_STRICT, HintBundle, load_hints
-from cvise.utils.misc import CloseableTemporaryFile
 from cvise.utils.process import ProcessEventNotifier
 
 
