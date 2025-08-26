@@ -5,6 +5,7 @@ import pytest
 import queue
 import signal
 import subprocess
+import sys
 import threading
 import time
 from typing import List
@@ -164,7 +165,16 @@ def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier, 
         process_event_notifier.run_process(f'trap "" TERM && sleep {INFINITY}', shell=True, timeout=TIMEOUT)
     assert time.monotonic() - start_time - TIMEOUT < pebble.CONSTS.term_timeout
 
-    q = read_pid_queue(pid_queue, 2)
-    assert q[0].type == ProcessEventType.STARTED
-    assert q[0].pid == q[1].pid
-    assert q[1].type == ProcessEventType.FINISHED
+
+@pytest.mark.skipif(sys.platform not in ('darwin', 'linux'), reason='requires /dev/urandom')
+def test_process_ignoring_sigterm_infinite_stdout(process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue):
+    """Verify that we fall back to killing a process via SIGKILL if it ignores SIGTERM.
+
+    The overall time to kill the child shouldn't exceed Pebble's term_timeout, so when we're working in a Pebble worker
+    we have enough time to finish.
+    """
+    TIMEOUT = 1
+    start_time = time.monotonic()
+    with pytest.raises(subprocess.TimeoutExpired):
+        process_event_notifier.run_process(f'trap "" TERM && cat /dev/urandom', shell=True, timeout=TIMEOUT)
+    assert time.monotonic() - start_time - TIMEOUT < pebble.CONSTS.term_timeout

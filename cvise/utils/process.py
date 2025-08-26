@@ -107,30 +107,30 @@ def _auto_kill(proc: subprocess.Popen) -> Iterator[None]:
 
 
 def _kill(proc: subprocess.Popen) -> None:
-    # First, attempt graceful termination (SIGTERM on *nix). We wait for some timeout that's less than Pebble's
+    # First, close i/o streams. This allows us to simply use wait() to wait for the process completion. Additionally,
+    # it acts as another indication (SIGPIPE on *nix) for the process and potentially its grandchildren to exit.
+    if proc.stdin is not None:
+        proc.stdin.close()
+    if proc.stdout is not None:
+        proc.stdout.close()
+    if proc.stderr is not None:
+        proc.stderr.close()
+
+    # Second, attempt graceful termination (SIGTERM on *nix). We wait for some timeout that's less than Pebble's
     # term_timeout, so that we (hopefully) have time to try hard termination before C-Vise main process kills us.
     TERMINATE_TIMEOUT = pebble.CONSTS.term_timeout / 2
-    if _wait_till_exits(proc, TERMINATE_TIMEOUT, terminate_repeatedly=True):
-        return
-    # Second - if didn't exit on time - attempt a hard termination (SIGKILL on *nix).
-    proc.kill()
-    _wait_till_exits(proc, timeout=None, terminate_repeatedly=False)
-
-
-def _wait_till_exits(proc: subprocess.Popen, timeout: Union[float, None], terminate_repeatedly: bool) -> bool:
     SLEEP_UNIT = 0.1  # semi-arbitrary
-    stop_time = math.inf if timeout is None else time.monotonic() + timeout
-    # Spin a loop with short communicate() calls. We don't use communicate(timeout) because this would block forever if
-    # the stdout/stderr streams are kept open by grandchildren. We don't use wait() since it might deadlock if the child
-    # overflows the stdout/stderr buffer by emitting lots of output.
-    while proc.returncode is None:
-        if terminate_repeatedly:
-            proc.terminate()
+    stop_time = time.monotonic() + TERMINATE_TIMEOUT
+    while True:
+        proc.terminate()
         step_timeout = min(SLEEP_UNIT, stop_time - time.monotonic())
         if step_timeout <= 0:
-            proc.poll()  # update returncode if the process finished before we did any communicate()
             break
         with contextlib.suppress(subprocess.TimeoutExpired):
-            proc.communicate(timeout=step_timeout)
-        proc.poll()
-    return proc.returncode is not None
+            proc.wait(timeout=step_timeout)
+    if proc.returncode is not None:
+        return
+
+    # Third - if didn't exit on time - attempt a hard termination (SIGKILL on *nix).
+    proc.kill()
+    proc.wait()
