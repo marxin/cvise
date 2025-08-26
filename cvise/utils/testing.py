@@ -419,7 +419,9 @@ class TestManager:
 
     def __enter__(self):
         self.worker_pool = pebble.ProcessPool(
-            max_workers=self.parallel_tests, initializer=self.mplogger.worker_process_initializer()
+            max_workers=self.parallel_tests,
+            initializer=_init_worker_process,
+            initargs=[self.mplogger.worker_process_initializer()],
         )
         self.exit_stack.enter_context(self.worker_pool)
         self.exit_stack.enter_context(self.mplogger)
