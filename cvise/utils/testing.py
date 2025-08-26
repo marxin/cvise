@@ -753,6 +753,7 @@ class TestManager:
         for job in self.jobs:
             self.mplogger.ignore_logs_from_job(job.order)
             job.future.cancel()
+        self.kill_pid_queue()
         self.release_all_jobs()
 
     def run_parallel_tests(self) -> None:
@@ -857,7 +858,6 @@ class TestManager:
                         self.run_parallel_tests()
                     finally:
                         self.terminate_all()
-                    self.kill_pid_queue()
 
                     is_success = self.success_candidate is not None
                     if is_success:
