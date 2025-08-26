@@ -109,22 +109,26 @@ def _auto_kill(proc: subprocess.Popen) -> Iterator[None]:
 def _kill(proc: subprocess.Popen) -> None:
     # First, attempt graceful termination (SIGTERM on *nix). We wait for some timeout that's less than Pebble's
     # term_timeout, so that we (hopefully) have time to try hard termination before C-Vise main process kills us.
-    proc.terminate()
-    if _wait_till_exits(proc, pebble.CONSTS.term_timeout / 2):
+    if _wait_till_exits(proc, pebble.CONSTS.term_timeout / 2, do_terminate=True):
         return
     # Second - if didn't exit on time - attempt a hard termination (SIGKILL on *nix).
     proc.kill()
-    _wait_till_exits(proc, timeout=None)
+    _wait_till_exits(proc, timeout=None, do_terminate=False)
 
 
-def _wait_till_exits(proc: subprocess.Popen, timeout: Union[int, None]) -> bool:
+def _wait_till_exits(proc: subprocess.Popen, timeout: Union[int, None], do_terminate: bool) -> bool:
     SLEEP_UNIT = 0.1  # semi-arbitrary
     stop_time = math.inf if timeout is None else time.monotonic() + timeout
     # Spin a loop with short communicate() calls. We don't use communicate(timeout) because this would block forever if
     # the stdout/stderr streams are kept open by grandchildren. We don't use wait() since it might deadlock if the child
     # overflows the stdout/stderr buffer by emitting lots of output.
-    while proc.returncode is None and time.monotonic() <= stop_time:
-        proc.terminate()
+    while proc.returncode is None:
+        if do_terminate:
+            proc.terminate()
+        step_timeout = min(SLEEP_UNIT, stop_time - time.monotonic())
+        if step_timeout <= 0:
+            proc.poll()  # update returncode if the process did finish
+            break
         with contextlib.suppress(subprocess.TimeoutExpired):
-            proc.communicate(timeout=SLEEP_UNIT)
+            proc.communicate(timeout=step_timeout)
     return proc.returncode is not None
