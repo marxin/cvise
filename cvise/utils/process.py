@@ -40,7 +40,7 @@ class ProcessEventNotifier:
         stderr: int = subprocess.PIPE,
         shell: bool = False,
         env: Union[Mapping[str, str], None] = None,
-        timeout: Union[int, None] = None,
+        timeout: Union[float, None] = None,
         **kwargs,
     ) -> Tuple[bytes, bytes, int]:
         if shell:
@@ -70,7 +70,7 @@ class ProcessEventNotifier:
         stderr: int = subprocess.PIPE,
         shell: bool = False,
         env: Union[Mapping[str, str], None] = None,
-        timeout: Union[int, None] = None,
+        timeout: Union[float, None] = None,
         **kwargs,
     ) -> bytes:
         stdout, stderr, returncode = self.run_process(cmd, stdout, stderr, shell, env, timeout, **kwargs)
@@ -116,7 +116,7 @@ def _kill(proc: subprocess.Popen) -> None:
     _wait_till_exits(proc, timeout=None, do_terminate=False)
 
 
-def _wait_till_exits(proc: subprocess.Popen, timeout: Union[int, None], do_terminate: bool) -> bool:
+def _wait_till_exits(proc: subprocess.Popen, timeout: Union[float, None], do_terminate: bool) -> bool:
     SLEEP_UNIT = 0.1  # semi-arbitrary
     stop_time = math.inf if timeout is None else time.monotonic() + timeout
     # Spin a loop with short communicate() calls. We don't use communicate(timeout) because this would block forever if
