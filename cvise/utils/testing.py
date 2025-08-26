@@ -194,7 +194,7 @@ class TestEnvironment:
                 stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(
                     str(self.test_script), shell=True, env=env
                 )
-            if verbose and returncode != 0 or True:
+            if verbose and returncode != 0:
                 # Drop invalid UTF sequences.
                 logging.debug('stdout:\n%s', stdout.decode('utf-8', 'ignore'))
                 logging.debug('stderr:\n%s', stderr.decode('utf-8', 'ignore'))
