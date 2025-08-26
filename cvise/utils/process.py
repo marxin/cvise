@@ -114,7 +114,7 @@ def _kill(proc: subprocess.Popen) -> None:
         return
     # Second - if didn't exit on time - attempt a hard termination (SIGKILL on *nix).
     proc.kill()
-    _wait_till_exits(proc)
+    _wait_till_exits(proc, timeout=None)
 
 
 def _wait_till_exits(proc: subprocess.Popen, timeout: Union[int, None]) -> bool:
