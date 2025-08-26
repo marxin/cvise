@@ -109,7 +109,8 @@ def _auto_kill(proc: subprocess.Popen) -> Iterator[None]:
 def _kill(proc: subprocess.Popen) -> None:
     # First, attempt graceful termination (SIGTERM on *nix). We wait for some timeout that's less than Pebble's
     # term_timeout, so that we (hopefully) have time to try hard termination before C-Vise main process kills us.
-    if _wait_till_exits(proc, pebble.CONSTS.term_timeout / 2, do_terminate=True):
+    TERMINATE_TIMEOUT = pebble.CONSTS.term_timeout / 2
+    if _wait_till_exits(proc, TERMINATE_TIMEOUT, do_terminate=True):
         return
     # Second - if didn't exit on time - attempt a hard termination (SIGKILL on *nix).
     proc.kill()
