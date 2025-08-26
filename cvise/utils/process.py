@@ -2,7 +2,6 @@
 
 import contextlib
 from enum import auto, Enum, unique
-import math
 import pebble
 import shlex
 import subprocess
@@ -107,8 +106,8 @@ def _auto_kill(proc: subprocess.Popen) -> Iterator[None]:
 
 
 def _kill(proc: subprocess.Popen) -> None:
-    # First, close i/o streams. This allows us to simply use wait() to wait for the process completion. Additionally,
-    # it acts as another indication (SIGPIPE on *nix) for the process and potentially its grandchildren to exit.
+    # First, close i/o streams opened for PIPE. This allows us to simply use wait() to wait for the process completion.
+    # Additionally, it acts as another indication (SIGPIPE on *nix) for the process and its grandchildren to exit.
     if proc.stdin is not None:
         proc.stdin.close()
     if proc.stdout is not None:

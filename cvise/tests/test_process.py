@@ -178,5 +178,5 @@ def test_process_ignoring_sigterm_infinite_stdout(
     TIMEOUT = 1
     start_time = time.monotonic()
     with pytest.raises(subprocess.TimeoutExpired):
-        process_event_notifier.run_process(f'trap "" TERM && cat /dev/urandom', shell=True, timeout=TIMEOUT)
+        process_event_notifier.run_process('trap "" TERM && cat /dev/urandom', shell=True, timeout=TIMEOUT)
     assert time.monotonic() - start_time - TIMEOUT < pebble.CONSTS.term_timeout
