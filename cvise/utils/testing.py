@@ -414,6 +414,7 @@ class TestManager:
             == 0
         )
 
+        self.mpmanager = multiprocessing.Manager()
         self.mplogger = mplogging.MPLogger(self.parallel_tests)
         self.worker_pool: Union[pebble.ProcessPool, None] = None
 
@@ -810,8 +811,7 @@ class TestManager:
             self.pass_contexts.append(PassContext.create(pass_))
         self.interleaving = interleaving
         self.jobs = []
-        m = multiprocessing.Manager()
-        self.pid_queue = m.Queue()
+        self.pid_queue = self.mpmanager.Queue()
         cache_key = repr([c.pass_ for c in self.pass_contexts])
 
         pass_titles = ', '.join(repr(c.pass_) for c in self.pass_contexts)
