@@ -2,9 +2,9 @@
 
 from collections import deque
 from contextlib import contextmanager
+import copy
 from dataclasses import dataclass
 import logging
-import logging.handlers
 import multiprocessing
 import threading
 from typing import Callable, Iterator
@@ -103,11 +103,21 @@ class _QueueAppendingHandler(logging.Handler):
     def __init__(self, queue: multiprocessing.SimpleQueue):
         super().__init__()
         self._queue = queue
-        self._queue_handler = logging.handlers.QueueHandler(queue=None)
 
-    def emit(self, record: logging.LogRecord):
-        formatted_record = self._queue_handler.prepare(record)
-        self._queue.put(formatted_record)
+    def emit(self, record: logging.LogRecord) -> None:
+        self._queue.put(self._prepare_record(record))
+
+    def _prepare_record(self, record: logging.LogRecord) -> logging.LogRecord:
+        """Formats the message, removes unpickleable fields and those not necessary for formatting."""
+        formatted = self.format(record)
+        record = copy.copy(record)
+        record.message = formatted
+        record.msg = formatted
+        record.args = None
+        record.exc_info = None
+        record.exc_text = None
+        record.stack_info = None
+        return record
 
 
 class _JobOrderAttachingFilter(logging.Filter):
@@ -120,6 +130,6 @@ class _JobOrderAttachingFilter(logging.Filter):
         super().__init__()
         self._job_order = job_order
 
-    def filter(self, record: logging.LogRecord):
+    def filter(self, record: logging.LogRecord) -> bool:
         record.job_order = self._job_order
         return True
