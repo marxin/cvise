@@ -4,6 +4,7 @@ from collections import deque
 from contextlib import contextmanager
 from dataclasses import dataclass
 import logging
+import logging.handlers
 import multiprocessing
 import threading
 from typing import Callable, Iterator
@@ -102,9 +103,11 @@ class _QueueAppendingHandler(logging.Handler):
     def __init__(self, queue: multiprocessing.SimpleQueue):
         super().__init__()
         self._queue = queue
+        self._queue_handler = logging.handlers.QueueHandler(queue=None)
 
     def emit(self, record: logging.LogRecord):
-        self._queue.put(record)
+        formatted_record = self._queue_handler.prepare(record)
+        self._queue.put(formatted_record)
 
 
 class _JobOrderAttachingFilter(logging.Filter):
