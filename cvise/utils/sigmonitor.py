@@ -27,18 +27,14 @@ _SIGNAL_TO_EXCEPTION = {
 }
 
 
-_inited = False
 _use_exceptions: bool = False
 _original_signal_handlers: Dict[int, Callable] = {}
 _observed_signals: Set[int] = set()
 
 
 def init(use_exceptions: bool) -> None:
-    global _inited, _use_exceptions
+    global _use_exceptions
     _use_exceptions = use_exceptions
-    if _inited:
-        return
-    _inited = True
     # Install the new handler while remembering the previous/default one.
     for signum in _SIGNAL_TO_EXCEPTION.keys():
         handler = signal.signal(signum, _on_signal)
@@ -50,7 +46,6 @@ def init(use_exceptions: bool) -> None:
 
 
 def maybe_retrigger_action() -> None:
-    assert _inited
     # If multiple signals occurred, prefer the one mentioned earlier (SIGTERM).
     for signum in _SIGNAL_TO_EXCEPTION.keys():
         if signum in _observed_signals:
