@@ -1,9 +1,12 @@
 import glob
+import logging
 import multiprocessing
 import os
 from pathlib import Path
 import pytest
+import sys
 import time
+from typing import Dict
 from unittest.mock import patch
 
 from cvise.passes.abstract import AbstractPass, PassResult  # noqa: E402
@@ -201,13 +204,36 @@ def job_timeout() -> int:
 
 
 @pytest.fixture
-def manager(tmp_path: Path, input_file: Path, interestingness_script, job_timeout):
+def print_diff() -> bool:
+    """The default print_diff parameter.
+
+    Can be overridden in particular tests.
+    """
+    return False
+
+
+@pytest.fixture
+def with_tty(mocker) -> None:
+    mocker.patch.object(sys.stdout, 'isatty', lambda: True)
+
+
+@pytest.fixture
+def without_colordiff(fp, with_tty) -> None:
+    fp.register(['colordiff', '--version'], returncode=1)
+
+
+@pytest.fixture
+def with_colordiff(fp, with_tty) -> None:
+    fp.register(['colordiff', '--version'])
+
+
+@pytest.fixture
+def manager(tmp_path: Path, input_file: Path, interestingness_script: str, job_timeout: int, print_diff: bool):
     SAVE_TEMPS = False
     NO_CACHE = False
     SKIP_KEY_OFF = True  # tests shouldn't listen to keyboard
     SHADDAP = False
     DIE_ON_PASS_BUG = False
-    PRINT_DIFF = False
     MAX_IMPROVEMENT = None
     NO_GIVE_UP = False
     ALSO_INTERESTING = None
@@ -231,7 +257,7 @@ def manager(tmp_path: Path, input_file: Path, interestingness_script, job_timeou
         SKIP_KEY_OFF,
         SHADDAP,
         DIE_ON_PASS_BUG,
-        PRINT_DIFF,
+        print_diff,
         MAX_IMPROVEMENT,
         NO_GIVE_UP,
         ALSO_INTERESTING,
@@ -359,3 +385,63 @@ def test_interleaving_round_robin_transforms(manager: testing.TestManager):
     for i in range(len(transform_calls) - PARALLEL_TESTS + 1):
         slice = transform_calls[i : i + PARALLEL_TESTS]
         assert min(slice) != max(slice)
+
+
+@pytest.mark.parametrize('print_diff', [True])
+def test_print_diff(
+    without_colordiff: None,
+    manager: testing.TestManager,
+    caplog: pytest.LogCaptureFixture,
+    fp,
+):
+    fp.allow_unregistered(allow=True)  # allow C-Vise workers
+    pass_ = NaiveLinePass()
+    with caplog.at_level(logging.INFO):
+        manager.run_passes([pass_], interleaving=True)
+
+    assert '-foo\n' in caplog.text
+    assert '-bar\n' in caplog.text
+    assert '-baz\n' in caplog.text
+
+
+@pytest.mark.parametrize('print_diff', [True])
+def test_print_diff_colordiff(
+    with_colordiff: None,
+    manager: testing.TestManager,
+    caplog: pytest.LogCaptureFixture,
+    fp,
+):
+    def colordiff_callback(stdin: bytes) -> Dict[str, bytes]:
+        lines = [b'\x1b[1;37m' + s + b'\x1b[0;0m' for s in stdin.splitlines()]
+        return {'stdout': b'\n'.join(lines)}
+
+    fp.register(['colordiff'], stdin_callable=colordiff_callback)
+    fp.keep_last_process(keep=True)  # colordiff is called multiple times
+    fp.allow_unregistered(allow=True)  # allow C-Vise workers
+    pass_ = NaiveLinePass()
+    with caplog.at_level(logging.INFO):
+        manager.run_passes([pass_], interleaving=True)
+
+    log = '\n'.join(r.message for r in caplog.records)  # caplog.text would strip ANSI escape codes
+    assert '\x1b[1;37m-foo\x1b[0;0m\n' in log
+    assert '\x1b[1;37m-bar\x1b[0;0m\n' in log
+    assert '\x1b[1;37m-baz\x1b[0;0m\n' in log
+
+
+@pytest.mark.parametrize('print_diff', [True])
+def test_print_diff_colordiff_failure(
+    with_colordiff: None,
+    manager: testing.TestManager,
+    caplog: pytest.LogCaptureFixture,
+    fp,
+):
+    fp.register(['colordiff'], returncode=1)
+    fp.keep_last_process(keep=True)  # colordiff is called multiple times
+    fp.allow_unregistered(allow=True)  # allow C-Vise workers
+    pass_ = NaiveLinePass()
+    with caplog.at_level(logging.INFO):
+        manager.run_passes([pass_], interleaving=True)
+
+    assert '-foo\n' in caplog.text
+    assert '-bar\n' in caplog.text
+    assert '-baz\n' in caplog.text

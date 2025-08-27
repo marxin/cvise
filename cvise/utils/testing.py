@@ -526,8 +526,7 @@ class TestManager:
         else:
             return True
 
-    @staticmethod
-    def diff_files(orig_file, changed_file):
+    def diff_files(self, orig_file: Path, changed_file: Path) -> str:
         with open(orig_file, 'rb') as f:
             orig_file_lines = f.readlines()
 
@@ -537,10 +536,17 @@ class TestManager:
         diffed_lines = difflib.diff_bytes(
             difflib.unified_diff, orig_file_lines, changed_file_lines, bytes(orig_file), bytes(changed_file)
         )
-        # Drop invalid UTF sequences from the diff, to make it easy to log.
-        str_lines = [s.decode('utf-8', 'ignore') for s in diffed_lines]
+        diff_bytes = b''.join(diffed_lines)
 
-        return ''.join(str_lines)
+        if self.use_colordiff:
+            try:
+                diff_bytes = subprocess.check_output('colordiff', input=diff_bytes)
+            except Exception as e:
+                logging.warning('Failed to generate color diff: %s', e)
+                # Fall back to non-colored diff.
+
+        # Drop invalid UTF sequences, if any, from the diff, to make it easy to log.
+        return diff_bytes.decode('utf-8', 'ignore')
 
     def check_sanity(self):
         logging.debug('perform sanity check... ')
@@ -905,10 +911,7 @@ class TestManager:
         assert self.success_candidate
         new_test_case = self.success_candidate.test_case_path
         if self.print_diff:
-            diff_str = self.diff_files(self.current_test_case, new_test_case)
-            if self.use_colordiff:
-                diff_str = subprocess.check_output('colordiff', shell=True, input=diff_str)
-            logging.info(diff_str)
+            logging.info('%s', self.diff_files(self.current_test_case, new_test_case))
 
         try:
             fileutil.replace_test_case_atomically(new_test_case, self.current_test_case)
