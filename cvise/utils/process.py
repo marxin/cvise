@@ -117,6 +117,7 @@ def _kill(proc: subprocess.Popen) -> None:
 
     # Second, attempt graceful termination (SIGTERM on *nix). We wait for some timeout that's less than Pebble's
     # term_timeout, so that we (hopefully) have time to try hard termination before C-Vise main process kills us.
+    # Repeatedly request termination several times a second, because some programs "miss" incoming signals.
     TERMINATE_TIMEOUT = pebble.CONSTS.term_timeout / 2
     SLEEP_UNIT = 0.1  # semi-arbitrary
     stop_time = time.monotonic() + TERMINATE_TIMEOUT
