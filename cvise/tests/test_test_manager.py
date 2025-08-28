@@ -164,8 +164,8 @@ def extra_dir_count():
 
 
 @pytest.fixture(autouse=True)
-def interrupt_monitor():
-    sigmonitor.init()
+def signal_monitor():
+    sigmonitor.init(use_exceptions=True)
 
 
 # Run all tests in the temp dir, to prevent artifacts like the cvise_bug_* from appearing in the build directory.
