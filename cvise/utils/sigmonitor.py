@@ -79,7 +79,7 @@ def _on_signal(signum: int, frame) -> None:
         _original_signal_handlers[signum](signum, frame)
     else:
         _trigger_signal_action(signum)
-    # no code after this point - the action above should've raised the exception or terminated the process
+    # no code after this point - the action above might've raised the exception or terminated the process
 
 
 def _trigger_signal_action(signum: int) -> None:
@@ -87,4 +87,4 @@ def _trigger_signal_action(signum: int) -> None:
         raise _SIGNAL_TO_EXCEPTION[signum]()
     else:
         os._exit(1)
-    # no code after this point - the action above should've raised the exception or terminated the process
+    # no code after this point - this is unreachable
