@@ -981,12 +981,12 @@ class TestManager:
             self.order - self.current_batch_start_order, self.parallel_tests, len(self.pass_contexts)
         )
 
-    def maybe_schedule_job(self, pool: pebble.ProcessPool) -> bool:
+    def maybe_schedule_job(self) -> bool:
         # The order matters below - higher-priority job types come earlier:
         # 1. Initializing a pass regularly (at the beginning of the batch of jobs).
         for pass_id, ctx in enumerate(self.pass_contexts):
             if ctx.can_init_now():
-                self.schedule_init(pool, pass_id)
+                self.schedule_init(pass_id)
                 return True
         # 2. Reinitializing a previously finished pass.
         # We throttle reinits (only once out of REINIT_JOB_INTERVAL jobs) because they're only occasionally useful: for
@@ -1003,7 +1003,7 @@ class TestManager:
             assert ctx.state is None
             ctx.stage = PassStage.BEFORE_INIT
             self.last_reinit_job_order = self.order
-            self.schedule_init(pool, pass_id)
+            self.schedule_init(pass_id)
             return True
         # 3. Attempting a fold (simultaneous application) of previously discovered successful transformations; only
         # supported in the "interleaving" pass execution mode.
@@ -1013,18 +1013,18 @@ class TestManager:
                 self.success_candidate.pass_state if self.success_candidate else None,
             )
             if folding_state:
-                self.schedule_fold(pool, folding_state)
+                self.schedule_fold(folding_state)
                 return True
         # 4. Attempting a transformation using the next heuristic in the round-robin fashion.
         if any(ctx.can_transform_now() for ctx in self.pass_contexts):
             while not self.pass_contexts[self.next_pass_id].can_transform_now():
                 self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
-            self.schedule_transform(pool, self.next_pass_id)
+            self.schedule_transform(self.next_pass_id)
             self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
             return True
         return False
 
-    def schedule_init(self, pool: pebble.ProcessPool, pass_id: int) -> None:
+    def schedule_init(self, pass_id: int) -> None:
         ctx = self.pass_contexts[pass_id]
         assert ctx.can_init_now()
 
@@ -1046,7 +1046,7 @@ class TestManager:
                 job_timeout=self.timeout,
                 pid_queue=self.pid_queue,
             )
-        future = pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run])
+        future = self.worker_pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run])
         self.jobs.append(
             Job(
                 type=JobType.INIT,
@@ -1063,7 +1063,7 @@ class TestManager:
         ctx.stage = PassStage.IN_INIT
         self.order += 1
 
-    def schedule_transform(self, pool: pebble.ProcessPool, pass_id: int) -> None:
+    def schedule_transform(self, pass_id: int) -> None:
         ctx = self.pass_contexts[pass_id]
         assert ctx.can_transform_now()
         assert ctx.state is not None
@@ -1084,7 +1084,9 @@ class TestManager:
             ctx.pass_.transform,
             self.pid_queue,
         )
-        future = pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout)
+        future = self.worker_pool.schedule(
+            _worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout
+        )
         self.jobs.append(
             Job(
                 type=JobType.TRANSFORM,
@@ -1103,7 +1105,7 @@ class TestManager:
         self.order += 1
         ctx.state = ctx.pass_.advance(self.current_test_case, ctx.state)
 
-    def schedule_fold(self, pool: pebble.ProcessPool, folding_state: FoldingStateIn) -> None:
+    def schedule_fold(self, folding_state: FoldingStateIn) -> None:
         assert self.interleaving
 
         should_copy_test_cases = False  # the fold transform creates the files itself
@@ -1119,7 +1121,9 @@ class TestManager:
             FoldingManager.transform,
             self.pid_queue,
         )
-        future = pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout)
+        future = self.worker_pool.schedule(
+            _worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout
+        )
         self.jobs.append(
             Job(
                 type=JobType.TRANSFORM,
