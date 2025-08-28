@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -52,14 +53,16 @@ static bool overlaps(const Instance &A, const Instance &B) {
   return std::max(A.StartByte, B.StartByte) < std::min(A.EndByte, B.EndByte);
 }
 
-static void printAsHint(const Instance &Inst) {
-  // The numbers here must match the order in the vocabulary printed below.
+static void printAsHint(const Instance &Inst, std::optional<int> FileId) {
+  // The "v" numbers here must match the order in getVocabulary().
   std::cout
       << "{\"t\":"
       << (Inst.IsTemplate ? 2 /* "template-function" */ : 1 /* "regular" */)
       << ",\"p\":[{\"l\":" << Inst.StartByte << ",\"r\":" << Inst.EndByte;
   if (Inst.WriteSemicolon)
     std::cout << ",\"v\":0"; // ";"
+  if (FileId.has_value())
+    std::cout << ",\"f\":" << *FileId;
   std::cout << "}]}\n";
 }
 
@@ -104,15 +107,17 @@ FuncDefWithDeclReplacer::FuncDefWithDeclReplacer()
               << " offset " << ErrorOffset << "\n";
     std::exit(-1);
   }
-
-  // Print the hint vocabulary - the strings that hints can refer to.
-  std::cout << "[\";\",\"regular\",\"template-function\"]\n";
 }
 
 FuncDefWithDeclReplacer::~FuncDefWithDeclReplacer() = default;
 
+std::vector<std::string> FuncDefWithDeclReplacer::getVocabulary() const {
+  return {";", "regular", "template-function"};
+}
+
 void FuncDefWithDeclReplacer::processFile(const std::string &FileContents,
-                                          TSTree &Tree) {
+                                          TSTree &Tree,
+                                          std::optional<int> FileId) {
   std::unique_ptr<TSQueryCursor, decltype(&ts_query_cursor_delete)> Cursor(
       ts_query_cursor_new(), ts_query_cursor_delete);
   ts_query_cursor_exec(Cursor.get(), Query.get(), ts_tree_root_node(&Tree));
@@ -160,5 +165,5 @@ void FuncDefWithDeclReplacer::processFile(const std::string &FileContents,
   }
 
   for (const auto &Inst : AllInst)
-    printAsHint(Inst);
+    printAsHint(Inst, FileId);
 }

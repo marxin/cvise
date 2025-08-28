@@ -33,6 +33,7 @@ class ProcessEventNotifier:
     def run_process(
         self,
         cmd: Union[List[str], str],
+        input: Union[bytes, None] = None,
         stdout: int = subprocess.PIPE,
         stderr: int = subprocess.PIPE,
         shell: bool = False,
@@ -57,12 +58,13 @@ class ProcessEventNotifier:
         with self._auto_notify_finish(proc):
             with _auto_kill(proc):
                 self._notify_start(proc)
-                stdout, stderr = proc.communicate(timeout=timeout)
+                stdout, stderr = proc.communicate(input=input, timeout=timeout)
                 return stdout, stderr, proc.returncode
 
     def check_output(
         self,
         cmd: Union[List[str], str],
+        input: Union[bytes, None] = None,
         stdout: int = subprocess.PIPE,
         stderr: int = subprocess.PIPE,
         shell: bool = False,
@@ -70,7 +72,7 @@ class ProcessEventNotifier:
         timeout: Union[int, None] = None,
         **kwargs,
     ) -> bytes:
-        stdout, stderr, returncode = self.run_process(cmd, stdout, stderr, shell, env, timeout, **kwargs)
+        stdout, stderr, returncode = self.run_process(cmd, input, stdout, stderr, shell, env, timeout, **kwargs)
         if returncode != 0:
             stderr = stderr.decode('utf-8', 'ignore').strip()
             delim = ': ' if stderr else ''
