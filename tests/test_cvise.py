@@ -5,43 +5,47 @@ import shutil
 import signal
 import stat
 import subprocess
+import tempfile
 import time
-from typing import List
-
-
-SUBPROCESS_TMPDIR = 'tmpdir'
+from typing import Iterator, List
 
 
 def get_source_path(testcase: str) -> Path:
     return Path(__file__).parent / 'sources' / testcase
 
 
-def start_cvise(arguments: List[str], tmp_path: Path) -> subprocess.Popen:
+@pytest.fixture
+def overridden_subprocess_tmpdir() -> Iterator[Path]:
+    """Used to point the child process to a fake tmpdir, so that we can assert that it doesn't leave leftover files."""
+    with tempfile.TemporaryDirectory(prefix='cvise-') as tmp_dir:
+        yield Path(tmp_dir)
+
+
+def start_cvise(arguments: List[str], tmp_path: Path, overridden_subprocess_tmpdir: Path) -> subprocess.Popen:
     binary = Path(__file__).parent.parent / 'cvise-cli.py'
     cmd = [str(binary)] + arguments
 
-    # Point the child process to a fake tmpdir, so that we can assert that it doesn't leave leftover files.
-    new_tmpdir = tmp_path / SUBPROCESS_TMPDIR
-    new_tmpdir.mkdir()
     new_env = os.environ.copy()
-    new_env['TMPDIR'] = str(new_tmpdir)
+    new_env['TMPDIR'] = str(overridden_subprocess_tmpdir)
 
     return subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding='utf8', env=new_env, cwd=tmp_path)
 
 
-def check_cvise(testcase: str, arguments: List[str], expected: List[str], tmp_path: Path) -> None:
+def check_cvise(
+    testcase: str, arguments: List[str], expected: List[str], tmp_path: Path, overridden_subprocess_tmpdir: Path
+) -> None:
     work_path = tmp_path / testcase
     shutil.copy(get_source_path(testcase), work_path)
     work_path.chmod(0o644)
 
-    proc = start_cvise([testcase] + arguments, tmp_path)
+    proc = start_cvise([testcase] + arguments, tmp_path, overridden_subprocess_tmpdir)
     proc.communicate()
     assert proc.returncode == 0
 
     content = work_path.read_text()
     assert content in expected
     assert stat.filemode(work_path.stat().st_mode) == '-rw-r--r--'
-    assert_subprocess_tmpdir_empty(tmp_path)
+    assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
 
 
 def wait_until_file_created(path: Path):
@@ -49,32 +53,34 @@ def wait_until_file_created(path: Path):
         time.sleep(0.1)
 
 
-def assert_subprocess_tmpdir_empty(tmp_path: Path) -> None:
-    assert list((tmp_path / SUBPROCESS_TMPDIR).iterdir()) == []
+def assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir: Path) -> None:
+    assert list(overridden_subprocess_tmpdir.iterdir()) == []
 
 
-def test_simple_reduction(tmp_path: Path):
+def test_simple_reduction(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     check_cvise(
         'blocksort-part.c',
         ['-c', r"gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c"],
         ['#define nextHi', '#define nextHi\n'],
         tmp_path,
+        overridden_subprocess_tmpdir,
     )
 
 
-def test_simple_reduction_no_interleaving_config(tmp_path: Path):
+def test_simple_reduction_no_interleaving_config(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     check_cvise(
         'blocksort-part.c',
         ['-c', r"gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c", '--pass-group', 'no-interleaving'],
         ['#define nextHi', '#define nextHi\n'],
         tmp_path,
+        overridden_subprocess_tmpdir,
     )
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 @pytest.mark.parametrize('signum', [signal.SIGINT, signal.SIGTERM], ids=['sigint', 'sigterm'])
 @pytest.mark.parametrize('additional_delay', [0, 1, 10])
-def test_kill(tmp_path: Path, signum: int, additional_delay: int):
+def test_kill(tmp_path: Path, overridden_subprocess_tmpdir: Path, signum: int, additional_delay: int):
     """Test that Control-C is handled quickly, without waiting for jobs to finish."""
     MAX_SHUTDOWN = 10  # in seconds; tolerance to prevent flakiness (normally it's a fraction of a second)
     JOB_SLOWNESS = MAX_SHUTDOWN * 2  # make a single job slower than the thresholds
@@ -90,6 +96,7 @@ def test_kill(tmp_path: Path, signum: int, additional_delay: int):
             '--skip-interestingness-test-check',
         ],
         tmp_path,
+        overridden_subprocess_tmpdir,
     )
     # to make the test cover the interesting scenario, we wait until C-Vise starts at least one job
     wait_until_file_created(flag_file)
@@ -103,10 +110,10 @@ def test_kill(tmp_path: Path, signum: int, additional_delay: int):
         # C-Vise has not quit on time - kill it and fail the test
         proc.kill()
         raise
-    assert_subprocess_tmpdir_empty(tmp_path)
+    assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
 
 
-def test_interleaving_lines_passes(tmp_path: Path):
+def test_interleaving_lines_passes(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     """Test a pass group config with an interleaving category."""
     config_path = tmp_path / 'config.json'
     config_path.write_text("""
@@ -131,7 +138,9 @@ def test_interleaving_lines_passes(tmp_path: Path):
         """)
 
     proc = start_cvise(
-        ['-c', 'gcc -c test.c && grep foo test.c', '--pass-group-file', config_path, testcase_path.name], tmp_path
+        ['-c', 'gcc -c test.c && grep foo test.c', '--pass-group-file', config_path, testcase_path.name],
+        tmp_path,
+        overridden_subprocess_tmpdir,
     )
     proc.communicate()
     assert proc.returncode == 0
@@ -142,10 +151,10 @@ def test_interleaving_lines_passes(tmp_path: Path):
         }
         """
     )
-    assert_subprocess_tmpdir_empty(tmp_path)
+    assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
 
 
-def test_apply_hints(tmp_path: Path):
+def test_apply_hints(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     """Test the application of hints via the --action=apply-hints mode."""
     hints_path = tmp_path / 'hints.jsonl'
     hints_path.write_text(
@@ -170,14 +179,15 @@ def test_apply_hints(tmp_path: Path):
             str(input_path),
         ],
         tmp_path,
+        overridden_subprocess_tmpdir,
     )
     stdout, _ = proc.communicate()
     assert proc.returncode == 0
     assert stdout == 'ad'
-    assert_subprocess_tmpdir_empty(tmp_path)
+    assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
 
 
-def test_non_ascii(tmp_path: Path):
+def test_non_ascii(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     testcase_path = tmp_path / 'test.c'
     testcase_path.write_bytes(b"""
         // nonutf\xff
@@ -186,17 +196,21 @@ def test_non_ascii(tmp_path: Path):
         """)
 
     # Also enable diff logging to check it doesn't break on non-unicode.
-    proc = start_cvise(['-c', 'gcc -c test.c && grep foo test.c', testcase_path.name, '--print-diff'], tmp_path)
+    proc = start_cvise(
+        ['-c', 'gcc -c test.c && grep foo test.c', testcase_path.name, '--print-diff'],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
     proc.communicate()
 
     assert proc.returncode == 0
     # The reduced result may or may not include the trailing line break - this depends on random ordering factors.
     assert testcase_path.read_text() in ('int foo;', 'int foo;\n')
-    assert_subprocess_tmpdir_empty(tmp_path)
+    assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_non_ascii_interestingness_test(tmp_path: Path):
+def test_non_ascii_interestingness_test(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     """Test no breakage caused by non-UTF-8 characters printed by the interestingness test"""
     shutil.copy(get_source_path('blocksort-part.c'), tmp_path)
     check_cvise(
@@ -204,10 +218,11 @@ def test_non_ascii_interestingness_test(tmp_path: Path):
         ['-c', r"printf '\xc3\xa4\xff'; gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c"],
         ['#define nextHi', '#define nextHi\n'],
         tmp_path,
+        overridden_subprocess_tmpdir,
     )
 
 
-def test_dir_test_case(tmp_path: Path):
+def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     test_case = tmp_path / 'repro'
     test_case.mkdir()
     (test_case / 'a.h').write_text('// comment\nint x = 1;\n')
@@ -222,6 +237,7 @@ def test_dir_test_case(tmp_path: Path):
             '--no-cache',
         ],
         tmp_path,
+        overridden_subprocess_tmpdir,
     )
     proc.communicate()
 
