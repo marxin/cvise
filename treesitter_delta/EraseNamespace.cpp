@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -34,15 +35,17 @@ NamespaceEraser::NamespaceEraser() : Query(nullptr, ts_query_delete) {
               << " offset " << ErrorOffset << "\n";
     std::exit(-1);
   }
-  // Print the hint vocabulary - in our case it's only the empty pair of curly
-  // braces that the hints can refer to.
-  std::cout << "[\"{}\"]\n";
 }
 
 NamespaceEraser::~NamespaceEraser() = default;
 
-void NamespaceEraser::processFile(const std::string &FileContents,
-                                  TSTree &Tree) {
+std::vector<std::string> NamespaceEraser::getVocabulary() const {
+  // The string that's used by the hints emitted below.
+  return {"{}"};
+}
+
+void NamespaceEraser::processFile(const std::string &FileContents, TSTree &Tree,
+                                  std::optional<int> FileId) {
   std::unique_ptr<TSQueryCursor, decltype(&ts_query_cursor_delete)> Cursor(
       ts_query_cursor_new(), ts_query_cursor_delete);
   ts_query_cursor_exec(Cursor.get(), Query.get(), ts_tree_root_node(&Tree));
@@ -53,7 +56,11 @@ void NamespaceEraser::processFile(const std::string &FileContents,
     const TSNode &Body = Match.captures[0].node;
     uint32_t StartByte = ts_node_start_byte(Body);
     uint32_t EndByte = ts_node_end_byte(Body);
+    // The number "0" refers to the string returned from getVocabulary().
     std::cout << "{\"p\":[{\"l\":" << StartByte << ",\"r\":" << EndByte
-              << ",\"v\":0}]}\n";
+              << ",\"v\":0";
+    if (FileId.has_value())
+      std::cout << ",\"f\":" << *FileId;
+    std::cout << "}]}\n";
   }
 }

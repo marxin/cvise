@@ -3,7 +3,7 @@ import pytest
 from typing import Any, Tuple
 
 from cvise.passes.treesitter import TreeSitterPass
-from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
+from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
 from cvise.utils.process import ProcessEventNotifier
 
@@ -348,6 +348,18 @@ def test_func_def_constexpr(tmp_path: Path, input_path: Path):
     assert all_transforms == set()
 
 
+def test_func_def_multi_file(tmp_path: Path):
+    """Test function body removal for multi-file (directory) inputs."""
+    test_case = tmp_path / 'test'
+    test_case.mkdir()
+    (test_case / 'a.h').write_text('int x;\nint f() { return 42; }')
+    (test_case / 'b.cc').write_text('#include "a.h"\nint g() { return f(); }')
+    p, state = init_pass(REPLACE_FUNC_DEF, tmp_path, test_case)
+    all_transforms = collect_all_transforms_dir(p, state, test_case)
+
+    assert (('a.h', b'int x;\nint f() ;'), ('b.cc', b'#include "a.h"\nint g() ;')) in all_transforms
+
+
 def test_func_erase_namespace(tmp_path: Path, input_path: Path):
     """Test the basic case for the removal of namespace contents."""
     input_path.write_text(
@@ -437,6 +449,18 @@ def test_func_erase_namespace_nested(tmp_path: Path, input_path: Path):
         """
         in all_transforms
     )
+
+
+def test_erase_namespace_multi_file(tmp_path: Path):
+    """Test namespace contents removal for multi-file (directory) inputs."""
+    test_case = tmp_path / 'test'
+    test_case.mkdir()
+    (test_case / 'a.h').write_text('namespace foo { int x; }')
+    (test_case / 'b.cc').write_text('#include "a.h"\nnamespace { int y; }')
+    p, state = init_pass(ERASE_NAMESPACE, tmp_path, test_case)
+    all_transforms = collect_all_transforms_dir(p, state, test_case)
+
+    assert (('a.h', b'namespace foo {}'), ('b.cc', b'#include "a.h"\nnamespace {}')) in all_transforms
 
 
 def test_remove_func(tmp_path: Path, input_path: Path):
@@ -610,3 +634,20 @@ def test_remove_func_grouping_related(tmp_path: Path, input_path: Path):
         \n        """
         in all_transforms
     )
+
+
+def test_remove_func_multi_file(tmp_path: Path):
+    """Test function removal for multi-file (directory) inputs."""
+    test_case = tmp_path / 'test'
+    test_case.mkdir()
+    (test_case / 'a.h').write_text('void foo();\nvoid bar() {}')
+    (test_case / 'b.cc').write_text('#include "a.h"\nvoid foo() {}')
+    p, state = init_pass(REMOVE_FUNCTION, tmp_path, test_case)
+    all_transforms = collect_all_transforms_dir(p, state, test_case)
+
+    # "foo" removed in both files
+    assert (('a.h', b'\nvoid bar() {}'), ('b.cc', b'#include "a.h"\n')) in all_transforms
+    # "bar" removed
+    assert (('a.h', b'void foo();\n'), ('b.cc', b'#include "a.h"\nvoid foo() {}')) in all_transforms
+    # both removed
+    assert (('a.h', b'\n'), ('b.cc', b'#include "a.h"\n')) in all_transforms

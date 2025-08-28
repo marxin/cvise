@@ -9,6 +9,7 @@ add_executable(treesitter_delta
     Main.cpp
     RemoveFunction.cpp
     ReplaceFunctionDefWithDecl.cpp
+    TransformationFactory.cpp
     TreeSitterUtils.cpp
 )
 target_link_libraries(treesitter_delta
