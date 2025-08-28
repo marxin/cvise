@@ -102,6 +102,10 @@ Optional packages:
 
 * [pytest](https://docs.pytest.org/en/latest/)
 
+* [pytest-mock](https://pypi.org/project/pytest-mock/)
+
+* [pytest-subprocess](https://pypi.org/project/pytest-subprocess/)
+
 * [colordiff](https://www.colordiff.org/)
 
 * [jsonschema](https://pypi.org/project/jsonschema/)
