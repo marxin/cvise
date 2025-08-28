@@ -31,7 +31,7 @@ class TreeSitterPass(HintBasedPass):
             cmd_arg = str(test_case)
 
         cmd = [self.external_programs['treesitter_delta'], self.arg, cmd_arg]
-        stdout = process_event_notifier.check_output(cmd, cwd=work_dir, stdin=subprocess.PIPE, input=stdin, stderr=None)
+        stdout = process_event_notifier.check_output(cmd, cwd=work_dir, stdin=subprocess.PIPE, input=stdin)
 
         # When reading, gracefully handle EOF because the tool might've failed with no output.
         stdout = iter(stdout.splitlines())
