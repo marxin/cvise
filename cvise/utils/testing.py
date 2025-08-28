@@ -782,7 +782,7 @@ class TestManager:
             sigmonitor.maybe_retrigger_action()
 
             # schedule new jobs, as long as there are free workers
-            while len(self.jobs) < self.parallel_tests and self.maybe_schedule_job(self.worker_pool):
+            while len(self.jobs) < self.parallel_tests and self.maybe_schedule_job():
                 pass
 
             # no more jobs could be scheduled at the moment - wait for some results
