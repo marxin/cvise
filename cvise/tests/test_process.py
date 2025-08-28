@@ -1,9 +1,11 @@
 import multiprocessing
 import os
+import pebble
 import pytest
 import queue
 import signal
 import subprocess
+import sys
 import threading
 import time
 from typing import List
@@ -26,7 +28,7 @@ def read_pid_queue(pid_queue: multiprocessing.Queue, expected_size: int) -> List
     while len(result) < expected_size:
         result.append(pid_queue.get())
     with pytest.raises(queue.Empty):
-        pid_queue.get(timeout=0.1)  # just to make the empty() assertion below a bit stronger
+        pid_queue.get(timeout=0.1)  # wait a little, to make the assertion a bit stronger (if there's an in-flight item)
     assert pid_queue.empty()
     return result
 
@@ -147,3 +149,34 @@ def test_check_output_success(process_event_notifier: ProcessEventNotifier):
 def test_check_output_failure(process_event_notifier: ProcessEventNotifier):
     with pytest.raises(RuntimeError):
         process_event_notifier.check_output(['false'])
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue):
+    """Verify that we fall back to killing a process via SIGKILL if it ignores SIGTERM.
+
+    The overall time to kill the child shouldn't exceed Pebble's term_timeout, so when we're working in a Pebble worker
+    we have enough time to finish.
+    """
+    TIMEOUT = 1
+    INFINITY = 100
+    start_time = time.monotonic()
+    with pytest.raises(subprocess.TimeoutExpired):
+        process_event_notifier.run_process(f'trap "" TERM && sleep {INFINITY}', shell=True, timeout=TIMEOUT)
+    assert time.monotonic() - start_time - TIMEOUT < pebble.CONSTS.term_timeout
+
+
+@pytest.mark.skipif(sys.platform not in ('darwin', 'linux'), reason='requires /dev/urandom')
+def test_process_ignoring_sigterm_infinite_stdout(
+    process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue
+):
+    """Verify that we fall back to killing a process via SIGKILL if it ignores SIGTERM.
+
+    The overall time to kill the child shouldn't exceed Pebble's term_timeout, so when we're working in a Pebble worker
+    we have enough time to finish.
+    """
+    TIMEOUT = 1
+    start_time = time.monotonic()
+    with pytest.raises(subprocess.TimeoutExpired):
+        process_event_notifier.run_process('trap "" TERM && cat /dev/urandom', shell=True, timeout=TIMEOUT)
+    assert time.monotonic() - start_time - TIMEOUT < pebble.CONSTS.term_timeout

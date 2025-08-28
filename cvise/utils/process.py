@@ -1,9 +1,11 @@
 """Helpers for interacting with child processes."""
 
-from contextlib import contextmanager
+import contextlib
 from enum import auto, Enum, unique
+import pebble
 import shlex
 import subprocess
+import time
 from typing import Iterator, List, Mapping, Tuple, Union
 
 
@@ -38,7 +40,7 @@ class ProcessEventNotifier:
         stderr: int = subprocess.PIPE,
         shell: bool = False,
         env: Union[Mapping[str, str], None] = None,
-        timeout: Union[int, None] = None,
+        timeout: Union[float, None] = None,
         **kwargs,
     ) -> Tuple[bytes, bytes, int]:
         if shell:
@@ -69,7 +71,7 @@ class ProcessEventNotifier:
         stderr: int = subprocess.PIPE,
         shell: bool = False,
         env: Union[Mapping[str, str], None] = None,
-        timeout: Union[int, None] = None,
+        timeout: Union[float, None] = None,
         **kwargs,
     ) -> bytes:
         stdout, stderr, returncode = self.run_process(cmd, input, stdout, stderr, shell, env, timeout, **kwargs)
@@ -87,7 +89,7 @@ class ProcessEventNotifier:
         assert not self._start_notified
         self._start_notified = True
 
-    @contextmanager
+    @contextlib.contextmanager
     def _auto_notify_finish(self, proc: subprocess.Popen) -> Iterator[None]:
         try:
             yield
@@ -96,7 +98,7 @@ class ProcessEventNotifier:
                 self._pid_queue.put(ProcessEvent(proc.pid, ProcessEventType.FINISHED))
 
 
-@contextmanager
+@contextlib.contextmanager
 def _auto_kill(proc: subprocess.Popen) -> Iterator[None]:
     try:
         yield
@@ -106,11 +108,31 @@ def _auto_kill(proc: subprocess.Popen) -> Iterator[None]:
 
 
 def _kill(proc: subprocess.Popen) -> None:
-    # First, attempt graceful termination (SIGTERM on *nix).
-    try:
+    # First, close i/o streams opened for PIPE. This allows us to simply use wait() to wait for the process completion.
+    # Additionally, it acts as another indication (SIGPIPE on *nix) for the process and its grandchildren to exit.
+    if proc.stdin is not None:
+        proc.stdin.close()
+    if proc.stdout is not None:
+        proc.stdout.close()
+    if proc.stderr is not None:
+        proc.stderr.close()
+
+    # Second, attempt graceful termination (SIGTERM on *nix). We wait for some timeout that's less than Pebble's
+    # term_timeout, so that we (hopefully) have time to try hard termination before C-Vise main process kills us.
+    # Repeatedly request termination several times a second, because some programs "miss" incoming signals.
+    TERMINATE_TIMEOUT = pebble.CONSTS.term_timeout / 2
+    SLEEP_UNIT = 0.1  # semi-arbitrary
+    stop_time = time.monotonic() + TERMINATE_TIMEOUT
+    while True:
         proc.terminate()
-        proc.communicate(timeout=5)  # semi-arbitrary timeout
-    except subprocess.TimeoutExpired:
-        # If didn't exit on time, attempt hard stop (SIGKILL on *nix).
-        proc.kill()
-        proc.communicate()
+        step_timeout = min(SLEEP_UNIT, stop_time - time.monotonic())
+        if step_timeout <= 0:
+            break
+        with contextlib.suppress(subprocess.TimeoutExpired):
+            proc.wait(timeout=step_timeout)
+    if proc.returncode is not None:
+        return
+
+    # Third - if didn't exit on time - attempt a hard termination (SIGKILL on *nix).
+    proc.kill()
+    proc.wait()
