@@ -84,6 +84,7 @@ def test_kill(tmp_path: Path, overridden_subprocess_tmpdir: Path, signum: int, a
     """Test that Control-C is handled quickly, without waiting for jobs to finish."""
     MAX_SHUTDOWN = 10  # in seconds; tolerance to prevent flakiness (normally it's a fraction of a second)
     JOB_SLOWNESS = MAX_SHUTDOWN * 2  # make a single job slower than the thresholds
+    N = 5  # don't use very high parallelism since it'd skew timings
 
     shutil.copy(get_source_path('blocksort-part.c'), tmp_path)
     flag_file = tmp_path / 'flag'
@@ -94,6 +95,8 @@ def test_kill(tmp_path: Path, overridden_subprocess_tmpdir: Path, signum: int, a
             '-c',
             f'gcc -c blocksort-part.c && touch {flag_file} && sleep {JOB_SLOWNESS}',
             '--skip-interestingness-test-check',
+            '-n',
+            str(N),
         ],
         tmp_path,
         overridden_subprocess_tmpdir,
