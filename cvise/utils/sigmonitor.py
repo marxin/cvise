@@ -17,7 +17,7 @@ and letting the code raise the exception to trigger the shutdown.
 from contextlib import contextmanager
 import os
 import signal
-from typing import Callable, Dict, Iterator, Set
+from typing import Iterator, Set
 
 
 # Signals we monitor, in the preference order: SIGTERM is more "important".
@@ -28,21 +28,16 @@ _SIGNAL_TO_EXCEPTION = {
 
 
 _use_exceptions: bool = False
-_original_signal_handlers: Dict[int, Callable] = {}
 _observed_signals: Set[int] = set()
 
 
 def init(use_exceptions: bool) -> None:
     global _use_exceptions
     _use_exceptions = use_exceptions
-    # Install the new handler while remembering the previous/default one.
     for signum in _SIGNAL_TO_EXCEPTION.keys():
-        handler = signal.signal(signum, _on_signal)
-        if handler == signal.SIG_DFL and signum == signal.SIGINT:
-            handler = signal.default_int_handler
-        elif not callable(handler):
-            continue
-        _original_signal_handlers[signum] = handler
+        # Ignore old signal handlers (in tests, the old handler could've been installed by ourselves as well; calling it
+        # would result in an infinite recursion).
+        signal.signal(signum, _on_signal)
 
 
 def maybe_retrigger_action() -> None:
@@ -73,10 +68,10 @@ def scoped_use_exceptions() -> Iterator[None]:
 
 
 def _on_signal(signum: int, frame) -> None:
-    # Prefer the original signal handler in case there's some nontrivial logic in it (e.g., not raising an exception
+    # Prefer the standard signal handler in case there's some nontrivial logic in it (e.g., not raising an exception
     # depending on stack frame contents).
-    if _use_exceptions and signum in _original_signal_handlers:
-        _original_signal_handlers[signum](signum, frame)
+    if _use_exceptions and signum == signal.SIGTERM:
+        signal.default_int_handler(signum, frame)
     else:
         _trigger_signal_action(signum)
     # no code after this point - the action above might've raised the exception or terminated the process
