@@ -68,6 +68,7 @@ def scoped_use_exceptions() -> Iterator[None]:
 
 
 def _on_signal(signum: int, frame) -> None:
+    _observed_signals.add(signum)
     # Prefer the standard signal handler in case there's some nontrivial logic in it (e.g., not raising an exception
     # depending on stack frame contents).
     if _use_exceptions and signum == signal.SIGTERM:
