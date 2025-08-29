@@ -106,6 +106,8 @@ Optional packages:
 
 * [pytest-subprocess](https://pypi.org/project/pytest-subprocess/)
 
+* [pytest-xdist](https://pypi.org/project/pytest-xdist/)
+
 * [colordiff](https://www.colordiff.org/)
 
 * [jsonschema](https://pypi.org/project/jsonschema/)

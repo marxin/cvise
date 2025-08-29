@@ -39,9 +39,9 @@ jobs:
     steps:
     - run: zypper -n install
         binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel
-        python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess unifdef python3-psutil
-        curl git python3-chardet findutils sudo wget python3-pip python3-jsonschema python3-msgspec
-        python3-zstandard
+        python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess python3-pytest-xdist
+        unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-pip python3-jsonschema
+        python3-msgspec python3-zstandard
     - run: zypper -n install sqlite-devel python3
     - run: pip install --break-system-packages pytest-cov
     - uses: rui314/setup-mold@v1
@@ -55,7 +55,7 @@ jobs:
             ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
             make -j`nproc` VERBOSE=1
     - name: test
-      run: pytest
+      run: pytest -n $(($(nproc) + 1))
       working-directory: objdir
 
   ruff:
