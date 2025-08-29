@@ -128,8 +128,12 @@ def _kill(proc: subprocess.Popen) -> None:
         step_timeout = min(SLEEP_UNIT, stop_time - time.monotonic())
         if step_timeout <= 0:
             break
-        with contextlib.suppress(subprocess.TimeoutExpired):
+        try:
             proc.wait(timeout=step_timeout)
+        except subprocess.TimeoutExpired:
+            pass
+        else:
+            break
     if proc.returncode is not None:
         return
 
