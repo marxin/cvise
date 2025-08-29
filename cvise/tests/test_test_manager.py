@@ -457,9 +457,10 @@ def _unique_sleep_infinity() -> str:
     return f'100.12345{os.getpid()}'
 
 
+# "ids" is used to ensure the test id is the same regardless of the test runner process (relevant for pytest-xdist)
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 @pytest.mark.parametrize('job_timeout', [1])
-@pytest.mark.parametrize('interestingness_script', [f'sleep {_unique_sleep_infinity()}'])
+@pytest.mark.parametrize('interestingness_script', [f'sleep {_unique_sleep_infinity()}'], ids=[''])
 def test_subprocess_termination(manager: testing.TestManager):
     """Verifies that spawned "hung" subprocesses are terminated."""
     p = NaiveLinePass()
