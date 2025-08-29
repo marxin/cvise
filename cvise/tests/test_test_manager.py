@@ -1,12 +1,14 @@
+import contextlib
 import glob
 import logging
 import multiprocessing
 import os
 from pathlib import Path
+import psutil
 import pytest
 import sys
 import time
-from typing import Dict
+from typing import Dict, List
 from unittest.mock import patch
 
 from cvise.passes.abstract import AbstractPass, PassResult  # noqa: E402
@@ -445,3 +447,31 @@ def test_print_diff_colordiff_failure(
     assert '-foo\n' in caplog.text
     assert '-bar\n' in caplog.text
     assert '-baz\n' in caplog.text
+
+
+def _unique_sleep_infinity() -> str:
+    """Generates a big parameter for the "sleep" command-line tool, such that it's unique for our test invocation.
+
+    Useful for identifying processes that were spawned by the code-under-test.
+    """
+    return f'100.12345{os.getpid()}'
+
+
+# "ids" is used to ensure the test id is the same regardless of the test runner process (relevant for pytest-xdist)
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+@pytest.mark.parametrize('job_timeout', [1])
+@pytest.mark.parametrize('interestingness_script', [f'sleep {_unique_sleep_infinity()}'], ids=[''])
+def test_subprocess_termination(manager: testing.TestManager):
+    """Verifies that spawned "hung" subprocesses are terminated."""
+    p = NaiveLinePass()
+    manager.run_passes([p], interleaving=False)
+    assert _find_processes_by_cmd_line(_unique_sleep_infinity()) == []
+
+
+def _find_processes_by_cmd_line(needle: str) -> List[psutil.Process]:
+    processes = []
+    for proc in psutil.process_iter():
+        with contextlib.suppress(psutil.NoSuchProcess, psutil.ZombieProcess):
+            if needle in proc.cmdline():
+                processes.append(proc)
+    return processes
