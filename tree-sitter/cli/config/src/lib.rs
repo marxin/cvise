@@ -1,10 +1,11 @@
-//! Manages tree-sitter's configuration file.
+#![doc = include_str!("../README.md")]
 
-use anyhow::{anyhow, Context, Result};
+use std::{env, fs, path::PathBuf};
+
+use anyhow::{Context, Result};
+use etcetera::BaseStrategy as _;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::path::PathBuf;
-use std::{env, fs};
 
 /// Holds the contents of tree-sitter's configuration file.
 ///
@@ -38,8 +39,24 @@ impl Config {
             return Ok(Some(xdg_path));
         }
 
-        let legacy_path = dirs::home_dir()
-            .ok_or(anyhow!("Cannot determine home directory"))?
+        if cfg!(target_os = "macos") {
+            let legacy_apple_path = etcetera::base_strategy::Apple::new()?
+                .data_dir() // `$HOME/Library/Application Support/`
+                .join("tree-sitter")
+                .join("config.json");
+            if legacy_apple_path.is_file() {
+                fs::create_dir_all(xdg_path.parent().unwrap())?;
+                fs::rename(&legacy_apple_path, &xdg_path)?;
+                println!(
+                    "Warning: your config.json file has been automatically migrated from \"{}\" to \"{}\"",
+                    legacy_apple_path.display(),
+                    xdg_path.display()
+                );
+                return Ok(Some(xdg_path));
+            }
+        }
+
+        let legacy_path = etcetera::home_dir()?
             .join(".tree-sitter")
             .join("config.json");
         if legacy_path.is_file() {
@@ -50,8 +67,8 @@ impl Config {
     }
 
     fn xdg_config_file() -> Result<PathBuf> {
-        let xdg_path = dirs::config_dir()
-            .ok_or(anyhow!("Cannot determine config directory"))?
+        let xdg_path = etcetera::choose_base_strategy()?
+            .config_dir()
             .join("tree-sitter")
             .join("config.json");
         Ok(xdg_path)
@@ -60,21 +77,26 @@ impl Config {
     /// Locates and loads in the user's configuration file.  We search for the configuration file
     /// in the following locations, in order:
     ///
+    ///   - Location specified by the path parameter if provided
     ///   - `$TREE_SITTER_DIR/config.json`, if the `TREE_SITTER_DIR` environment variable is set
-    ///   - `tree-sitter/config.json` in your default user configuration directory, as determined
-    ///     by [`dirs::config_dir`](https://docs.rs/dirs/*/dirs/fn.config_dir.html)
+    ///   - `tree-sitter/config.json` in your default user configuration directory, as determined by
+    ///     [`etcetera::choose_base_strategy`](https://docs.rs/etcetera/*/etcetera/#basestrategy)
     ///   - `$HOME/.tree-sitter/config.json` as a fallback from where tree-sitter _used_ to store
     ///     its configuration
-    pub fn load() -> Result<Config> {
-        let location = match Self::find_config_file()? {
-            Some(location) => location,
-            None => return Config::initial(),
+    pub fn load(path: Option<PathBuf>) -> Result<Self> {
+        let location = if let Some(path) = path {
+            path
+        } else if let Some(path) = Self::find_config_file()? {
+            path
+        } else {
+            return Self::initial();
         };
+
         let content = fs::read_to_string(&location)
-            .with_context(|| format!("Failed to read {}", &location.to_string_lossy()))?;
+            .with_context(|| format!("Failed to read {}", location.to_string_lossy()))?;
         let config = serde_json::from_str(&content)
-            .with_context(|| format!("Bad JSON config {}", &location.to_string_lossy()))?;
-        Ok(Config { location, config })
+            .with_context(|| format!("Bad JSON config {}", location.to_string_lossy()))?;
+        Ok(Self { location, config })
     }
 
     /// Creates an empty initial configuration file.  You can then use the [`Config::add`][] method
@@ -83,7 +105,7 @@ impl Config {
     /// disk.
     ///
     /// (Note that this is typically only done by the `tree-sitter init-config` command.)
-    pub fn initial() -> Result<Config> {
+    pub fn initial() -> Result<Self> {
         let location = if let Ok(path) = env::var("TREE_SITTER_DIR") {
             let mut path = PathBuf::from(path);
             path.push("config.json");
@@ -92,7 +114,7 @@ impl Config {
             Self::xdg_config_file()?
         };
         let config = serde_json::json!({});
-        Ok(Config { location, config })
+        Ok(Self { location, config })
     }
 
     /// Saves this configuration to the file that it was originally loaded from.

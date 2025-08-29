@@ -1,12 +1,9 @@
-#!/bin/bash
-
-set -x
-set -e
+#!/bin/bash -eu
 
 tree_sitter="$ROOT"/target/"$TARGET"/release/tree-sitter
 
-if [ "$CROSS" = 1 ]; then
-    cross.sh $CROSS_RUNNER "$tree_sitter" "$@"
+if [[ $BUILD_CMD == cross ]]; then
+  cross.sh "$CROSS_RUNNER" "$tree_sitter" "$@"
 else
-    "$tree_sitter" "$@"
+  exec "$tree_sitter" "$@"
 fi

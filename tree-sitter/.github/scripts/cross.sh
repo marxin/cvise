@@ -1,10 +1,3 @@
-#!/bin/bash
+#!/bin/bash -eu
 
-set -x
-set -e
-
-if [ "$CROSS" != 1 ]; then
-    exit 111
-fi
-
-docker run --rm -v /home/runner:/home/runner -w "$PWD" "$CROSS_IMAGE" "$@"
+exec docker run --rm -v /home/runner:/home/runner -w "$PWD" "$CROSS_IMAGE" "$@"

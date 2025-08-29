@@ -1,5 +1,6 @@
-use super::helpers::{allocations, fixtures::get_language};
 use tree_sitter::Parser;
+
+use super::helpers::{allocations, fixtures::get_language};
 
 #[test]
 fn test_pathological_example_1() {
@@ -8,7 +9,7 @@ fn test_pathological_example_1() {
 
     allocations::record(|| {
         let mut parser = Parser::new();
-        parser.set_language(get_language(language)).unwrap();
+        parser.set_language(&get_language(language)).unwrap();
         parser.parse(source, None).unwrap();
     });
 }

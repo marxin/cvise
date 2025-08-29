@@ -1,6 +1,10 @@
-use rand::prelude::Rng;
 use std::{cmp::Ordering, fmt::Write, ops::Range};
-use tree_sitter::{Node, Point, Tree, TreeCursor};
+
+use rand::prelude::Rng;
+use streaming_iterator::{IntoStreamingIterator, StreamingIterator};
+use tree_sitter::{
+    Language, Node, Parser, Point, Query, QueryCapture, QueryCursor, QueryMatch, Tree, TreeCursor,
+};
 
 #[derive(Debug)]
 pub struct Pattern {
@@ -17,7 +21,7 @@ pub struct Match<'a, 'tree> {
     pub last_node: Option<Node<'tree>>,
 }
 
-const CAPTURE_NAMES: &'static [&'static str] = &[
+const CAPTURE_NAMES: &[&str] = &[
     "one", "two", "three", "four", "five", "six", "seven", "eight",
 ];
 
@@ -55,12 +59,11 @@ impl Pattern {
             children: roots,
         };
 
-        if pattern.children.len() == 1 {
-            pattern = pattern.children.pop().unwrap();
-        }
+        if pattern.children.len() == 1 ||
         // In a parenthesized list of sibling patterns, the first
         // sibling can't be an anonymous `_` wildcard.
-        else if pattern.children[0].kind == Some("_") && !pattern.children[0].named {
+        (pattern.children[0].kind == Some("_") && !pattern.children[0].named)
+        {
             pattern = pattern.children.pop().unwrap();
         }
         // In a parenthesized list of sibling patterns, the first
@@ -121,22 +124,16 @@ impl Pattern {
         }
     }
 
-    pub fn to_string(&self) -> String {
-        let mut result = String::new();
-        self.write_to_string(&mut result, 0);
-        result
-    }
-
     fn write_to_string(&self, string: &mut String, indent: usize) {
         if let Some(field) = self.field {
-            write!(string, "{}: ", field).unwrap();
+            write!(string, "{field}: ").unwrap();
         }
 
         if self.named {
             string.push('(');
             let mut has_contents = false;
             if let Some(kind) = &self.kind {
-                write!(string, "{}", kind).unwrap();
+                write!(string, "{kind}").unwrap();
                 has_contents = true;
             }
             for child in &self.children {
@@ -152,11 +149,11 @@ impl Pattern {
         } else if self.kind == Some("_") {
             string.push('_');
         } else {
-            write!(string, "\"{}\"", self.kind.unwrap().replace("\"", "\\\"")).unwrap();
+            write!(string, "\"{}\"", self.kind.unwrap().replace('\"', "\\\"")).unwrap();
         }
 
         if let Some(capture) = &self.capture {
-            write!(string, " @{}", capture).unwrap();
+            write!(string, " @{capture}").unwrap();
         }
     }
 
@@ -212,11 +209,10 @@ impl Pattern {
 
         // Create a match for the current node.
         let mat = Match {
-            captures: if let Some(name) = &self.capture {
-                vec![(name.as_str(), node)]
-            } else {
-                Vec::new()
-            },
+            captures: self
+                .capture
+                .as_ref()
+                .map_or_else(Vec::new, |name| vec![(name.as_str(), node)]),
             last_node: Some(node),
         };
 
@@ -244,7 +240,7 @@ impl Pattern {
                             new_match_states.push((*pattern_index + 1, combined_match));
                         } else {
                             let mut existing = false;
-                            for existing_match in finished_matches.iter_mut() {
+                            for existing_match in &mut finished_matches {
                                 if existing_match.captures == combined_match.captures {
                                     if child_pattern.capture.is_some() {
                                         existing_match.last_node = combined_match.last_node;
@@ -269,13 +265,21 @@ impl Pattern {
     }
 }
 
-impl<'a, 'tree> PartialOrd for Match<'a, 'tree> {
+impl std::fmt::Display for Pattern {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut result = String::new();
+        self.write_to_string(&mut result, 0);
+        write!(f, "{result}")
+    }
+}
+
+impl PartialOrd for Match<'_, '_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<'a, 'tree> Ord for Match<'a, 'tree> {
+impl Ord for Match<'_, '_> {
     // Tree-sitter returns matches in the order that they terminate
     // during a depth-first walk of the tree. If multiple matches
     // terminate on the same node, those matches are produced in the
@@ -303,4 +307,57 @@ fn compare_depth_first(a: Node, b: Node) -> Ordering {
     let a = a.byte_range();
     let b = b.byte_range();
     a.start.cmp(&b.start).then_with(|| b.end.cmp(&a.end))
+}
+
+pub fn assert_query_matches(
+    language: &Language,
+    query: &Query,
+    source: &str,
+    expected: &[(usize, Vec<(&str, &str)>)],
+) {
+    let mut parser = Parser::new();
+    parser.set_language(language).unwrap();
+    let tree = parser.parse(source, None).unwrap();
+    let mut cursor = QueryCursor::new();
+    let matches = cursor.matches(query, tree.root_node(), source.as_bytes());
+    pretty_assertions::assert_eq!(expected, collect_matches(matches, query, source));
+    pretty_assertions::assert_eq!(false, cursor.did_exceed_match_limit());
+}
+
+pub fn collect_matches<'a>(
+    mut matches: impl StreamingIterator<Item = QueryMatch<'a, 'a>>,
+    query: &'a Query,
+    source: &'a str,
+) -> Vec<(usize, Vec<(&'a str, &'a str)>)> {
+    let mut result = Vec::new();
+    while let Some(m) = matches.next() {
+        result.push((
+            m.pattern_index,
+            format_captures(m.captures.iter().into_streaming_iter_ref(), query, source),
+        ));
+    }
+    result
+}
+
+pub fn collect_captures<'a>(
+    captures: impl StreamingIterator<Item = (QueryMatch<'a, 'a>, usize)>,
+    query: &'a Query,
+    source: &'a str,
+) -> Vec<(&'a str, &'a str)> {
+    format_captures(captures.map(|(m, i)| m.captures[*i]), query, source)
+}
+
+fn format_captures<'a>(
+    mut captures: impl StreamingIterator<Item = QueryCapture<'a>>,
+    query: &'a Query,
+    source: &'a str,
+) -> Vec<(&'a str, &'a str)> {
+    let mut result = Vec::new();
+    while let Some(capture) = captures.next() {
+        result.push((
+            query.capture_names()[capture.index as usize],
+            capture.node.utf8_text(source.as_bytes()).unwrap(),
+        ));
+    }
+    result
 }
