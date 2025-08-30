@@ -37,7 +37,7 @@ jobs:
       - run: mkdir objdir
       - run: cmake ..
         working-directory: objdir
-      - run: make -j`nproc` VERBOSE=1
+      - run: make -j $(($(nproc) + 1)) VERBOSE=1
         working-directory: objdir
       - run: pytest -n $(($(nproc) + 1))
         working-directory: objdir

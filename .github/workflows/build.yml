@@ -53,7 +53,7 @@ jobs:
             mkdir objdir
             cd objdir
             ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
-            make -j`nproc` VERBOSE=1
+            make -j $(($(nproc) + 1)) VERBOSE=1
     - name: test
       run: pytest -n $(($(nproc) + 1))
       working-directory: objdir
@@ -90,7 +90,7 @@ jobs:
             mkdir objdir
             cd objdir
             ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
-            make -j`nproc` VERBOSE=1
+            make -j $(($(nproc) + 1)) VERBOSE=1
     - name: pytype
       run: |
             source ~/venv/bin/activate
