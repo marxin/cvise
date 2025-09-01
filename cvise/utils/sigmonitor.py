@@ -27,12 +27,15 @@ _SIGNAL_TO_EXCEPTION = {
 }
 
 
+_enabled: bool = False
 _use_exceptions: bool = False
 _observed_signals: Set[int] = set()
 
 
 def init(use_exceptions: bool) -> None:
+    global _enabled
     global _use_exceptions
+    _enabled = True
     _use_exceptions = use_exceptions
     for signum in _SIGNAL_TO_EXCEPTION.keys():
         # Ignore old signal handlers (in tests, the old handler could've been installed by ourselves as well; calling it
@@ -41,6 +44,8 @@ def init(use_exceptions: bool) -> None:
 
 
 def maybe_retrigger_action() -> None:
+    if not _enabled:
+        return
     # If multiple signals occurred, prefer the one mentioned earlier (SIGTERM).
     for signum in _SIGNAL_TO_EXCEPTION.keys():
         if signum in _observed_signals:
@@ -67,8 +72,22 @@ def scoped_use_exceptions() -> Iterator[None]:
         maybe_retrigger_action()
 
 
+@contextmanager
+def scoped_delay_signals() -> Iterator[None]:
+    global _enabled
+    old_enabled = _enabled
+    try:
+        _enabled = False
+        yield
+    finally:
+        _enabled = old_enabled
+        maybe_retrigger_action()
+
+
 def _on_signal(signum: int, frame) -> None:
     _observed_signals.add(signum)
+    if not _enabled:
+        return
     # Prefer the standard signal handler in case there's some nontrivial logic in it (e.g., not raising an exception
     # depending on stack frame contents).
     if _use_exceptions and signum == signal.SIGTERM:

@@ -8,6 +8,8 @@ import subprocess
 import time
 from typing import Iterator, List, Mapping, Tuple, Union
 
+from cvise.utils import sigmonitor
+
 
 @unique
 class ProcessEventType(Enum):
@@ -30,7 +32,6 @@ class ProcessEventNotifier:
 
     def __init__(self, pid_queue):
         self._pid_queue = pid_queue
-        self._start_notified: bool = False
 
     def run_process(
         self,
@@ -45,21 +46,24 @@ class ProcessEventNotifier:
     ) -> Tuple[bytes, bytes, int]:
         if shell:
             assert isinstance(cmd, str)
-        proc = subprocess.Popen(
-            cmd,
-            stdout=stdout,
-            stderr=stderr,
-            shell=shell,
-            env=env,
-            **kwargs,
-        )
-        self._start_notified = False
-        # Guarantee these postconditions regardless of exceptions occurring:
-        # 1. The process is terminated.
-        # 2. If notify_start was done, notify_finish was done too (after the process termination).
+
+        # Prevent signals from interrupting this "transaction": aborting it in the middle may result in spawning a
+        # process without having its PID reported to the main C-Vise process, escaping resource controls.
+        with sigmonitor.scoped_delay_signals():
+            proc = subprocess.Popen(
+                cmd,
+                stdout=stdout,
+                stderr=stderr,
+                shell=shell,
+                env=env,
+                **kwargs,
+            )
+            self._notify_start(proc)
+
+        # Try killing the process on exception (timeout/KeyboardInterrupt/SystemExit), and reporting the notify_finish
+        # event too.
         with self._auto_notify_finish(proc):
             with _auto_kill(proc):
-                self._notify_start(proc)
                 stdout, stderr = proc.communicate(input=input, timeout=timeout)
                 return stdout, stderr, proc.returncode
 
@@ -86,15 +90,13 @@ class ProcessEventNotifier:
         if not self._pid_queue:
             return
         self._pid_queue.put(ProcessEvent(proc.pid, ProcessEventType.STARTED))
-        assert not self._start_notified
-        self._start_notified = True
 
     @contextlib.contextmanager
     def _auto_notify_finish(self, proc: subprocess.Popen) -> Iterator[None]:
         try:
             yield
         finally:
-            if self._start_notified and self._pid_queue:
+            if self._pid_queue:
                 self._pid_queue.put(ProcessEvent(proc.pid, ProcessEventType.FINISHED))
 
 
