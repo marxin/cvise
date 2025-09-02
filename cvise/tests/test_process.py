@@ -42,7 +42,7 @@ def test_run_process_success(process_event_notifier: ProcessEventNotifier, pid_q
     assert returncode == 0
     q = read_pid_queue(pid_queue, 2)
     assert q[0].type == ProcessEventType.STARTED
-    assert q[0].pid == q[1].pid
+    assert q[0].child_pid == q[1].child_pid
     assert q[1].type == ProcessEventType.FINISHED
 
 
@@ -57,7 +57,7 @@ def test_run_process_nonzero_return_code(
     assert returncode == 1
     q = read_pid_queue(pid_queue, 2)
     assert q[0].type == ProcessEventType.STARTED
-    assert q[0].pid == q[1].pid
+    assert q[0].child_pid == q[1].child_pid
     assert q[1].type == ProcessEventType.FINISHED
 
 
@@ -76,7 +76,7 @@ def test_run_process_pid(process_event_notifier: ProcessEventNotifier, pid_queue
 
     assert returncode == 0
     q = read_pid_queue(pid_queue, 2)
-    assert q[0].pid == q[1].pid == int(stdout.strip())
+    assert q[0].child_pid == q[1].child_pid == int(stdout.strip())
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
@@ -90,7 +90,7 @@ def test_run_process_finish_notification_after_exit(
         # Initially, just the start notification is seen.
         q1 = read_pid_queue(pid_queue, 1)
         assert q1[0].type == ProcessEventType.STARTED
-        pid = q1[0].pid
+        pid = q1[0].child_pid
 
         # Still so a bit later.
         time.sleep(SLEEP_DURATION)
@@ -100,7 +100,7 @@ def test_run_process_finish_notification_after_exit(
         os.kill(pid, signal.SIGTERM)
         q2 = read_pid_queue(pid_queue, 1)
         assert q2[0].type == ProcessEventType.FINISHED
-        assert q2[0].pid == pid
+        assert q2[0].child_pid == pid
 
     thread = threading.Thread(target=thread_main)
     thread.start()
@@ -125,7 +125,7 @@ def test_run_process_timeout(process_event_notifier: ProcessEventNotifier, pid_q
     q = read_pid_queue(pid_queue, 2)
     assert len(q) == 2
     assert q[0].type == ProcessEventType.STARTED
-    assert q[0].pid == q[1].pid
+    assert q[0].child_pid == q[1].child_pid
     assert q[1].type == ProcessEventType.FINISHED
 
 

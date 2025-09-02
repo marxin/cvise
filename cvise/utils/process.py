@@ -1,12 +1,16 @@
 """Helpers for interacting with child processes."""
 
+import collections
 import contextlib
 from enum import auto, Enum, unique
+import os
+import multiprocessing
 import pebble
 import shlex
 import subprocess
+import threading
 import time
-from typing import Iterator, List, Mapping, Tuple, Union
+from typing import Dict, Iterator, List, Mapping, Set, Tuple, Union
 
 from cvise.utils import sigmonitor
 
@@ -18,9 +22,121 @@ class ProcessEventType(Enum):
 
 
 class ProcessEvent:
-    def __init__(self, pid, event_type):
-        self.pid = pid
+    def __init__(self, worker_pid, child_pid, event_type):
+        self.worker_pid = worker_pid
+        self.child_pid = child_pid
         self.type = event_type
+
+
+class ProcessMonitor:
+    """Keeps track of subprocesses spawned by Pebble workers."""
+
+    def __init__(self, mpmanager: multiprocessing, parallel_tests: int):
+        self.pid_queue = mpmanager.Queue()
+        self._lock = threading.Lock()
+        self._worker_to_child_pids: Dict[int, Set[int]] = {}
+        # Remember dead worker PIDs, so that we can distinguish an early-reported child PID (arriving before
+        # on_worker_started()) from a posthumously received child PID - the latter needs to be killed. The constant is
+        # chosen to be big enough to make it practically unlikely to receive a new pid_queue event from a
+        # forgotten-to-be-dead worker.
+        self._recent_dead_workers: collections.deque[int] = collections.deque(maxlen=parallel_tests * 10)
+        self._orphan_child_pids: Set[int] = set()
+        self._thread = threading.Thread(target=self._thread_main)
+
+    def __enter__(self):
+        self._thread.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Notify the shutdown by putting a sentinel value to the queue, and wait until the background thread processes
+        # all remaining items and quits.
+        self.pid_queue.put(None)
+        self._thread.join(timeout=60)  # semi-arbitrary timeout to prevent even theoretical possibility of deadlocks
+
+    def on_worker_started(self, worker_pid: int) -> None:
+        with self._lock:
+            # Children might've been already added in _on_pid_queue_event() if the pid_queue event arrived early.
+            self._worker_to_child_pids.setdefault(worker_pid, set())
+            # It's rare but still possible that a new worker reuses the PID from a recently terminated one.
+            with contextlib.suppress(ValueError):
+                self._recent_dead_workers.remove(worker_pid)
+
+    def on_worker_stopped(self, worker_pid: int) -> None:
+        with self._lock:
+            self._recent_dead_workers.append(worker_pid)
+            self._orphan_child_pids |= self._worker_to_child_pids.pop(worker_pid)
+
+    def get_orphan_child_pids(self) -> List[int]:
+        with self._lock:
+            return list(self._orphan_child_pids)
+
+    def _thread_main(self) -> None:
+        while True:
+            item = self.pid_queue.get()
+            if item is None:
+                break
+            self._on_pid_queue_event(item)
+
+    def _on_pid_queue_event(self, event: ProcessEvent) -> None:
+        with self._lock:
+            posthumous = event.worker_pid in self._recent_dead_workers
+            if not posthumous:
+                # Update the worker's children PID set. The set might need to be created, since the pid_queue event
+                # might've arrived before on_worker_started() gets called.
+                children = self._worker_to_child_pids.setdefault(event.worker_pid, set())
+                if event.type == ProcessEventType.STARTED:
+                    children.add(event.child_pid)
+                else:
+                    children.discard(event.child_pid)
+
+
+class MPContextHook:
+    """Wrapper around multiprocessing.context, with hooks to track process lifetimes.
+
+    Used in order to know Pebble worker PIDs and get notified about a worker's startup/finish.
+    """
+
+    def __init__(self, process_monitor: ProcessMonitor):
+        self.__mp_context = multiprocessing.get_context()
+        self.__process_monitor = process_monitor
+        self.Process = lambda *args, **kwargs: MPProcessHook(self.__process_monitor, *args, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self.__mp_context, name)
+
+
+class MPProcessHook:
+    """Wrapper around multiprocessing.Process, with hooks to track process lifetimes.
+
+    Calls back into ProcessMonitor when the process is started or stopped.
+    """
+
+    def __init__(self, process_monitor: ProcessMonitor, *args, **kwargs):
+        self.__process = multiprocessing.Process(*args, **kwargs)
+        self.__process_monitor = process_monitor
+        self.__stop_reported: bool = False
+
+    def start(self):
+        self.__process.start()
+        self.__process_monitor.on_worker_started(self.pid)
+
+    def join(self, *args):
+        self.__process.join(*args)
+        self.__maybe_report_stopped()
+
+    def is_alive(self):
+        alive = self.__process.is_alive()
+        self.__maybe_report_stopped()
+        return alive
+
+    def __getattr__(self, name):
+        return getattr(self.__process, name)
+
+    def __maybe_report_stopped(self):
+        if not self.__stop_reported and self.exitcode is not None:
+            assert self.pid is not None
+            self.__stop_reported = True
+            self.__process_monitor.on_worker_stopped(self.pid)
 
 
 class ProcessEventNotifier:
@@ -31,6 +147,7 @@ class ProcessEventNotifier:
     """
 
     def __init__(self, pid_queue):
+        self._my_pid = os.getpid()
         self._pid_queue = pid_queue
 
     def run_process(
@@ -89,7 +206,9 @@ class ProcessEventNotifier:
     def _notify_start(self, proc: subprocess.Popen) -> None:
         if not self._pid_queue:
             return
-        self._pid_queue.put(ProcessEvent(proc.pid, ProcessEventType.STARTED))
+        self._pid_queue.put(
+            ProcessEvent(worker_pid=self._my_pid, child_pid=proc.pid, event_type=ProcessEventType.STARTED)
+        )
 
     @contextlib.contextmanager
     def _auto_notify_finish(self, proc: subprocess.Popen) -> Iterator[None]:
@@ -97,7 +216,9 @@ class ProcessEventNotifier:
             yield
         finally:
             if self._pid_queue:
-                self._pid_queue.put(ProcessEvent(proc.pid, ProcessEventType.FINISHED))
+                self._pid_queue.put(
+                    ProcessEvent(worker_pid=self._my_pid, child_pid=proc.pid, event_type=ProcessEventType.FINISHED)
+                )
 
 
 @contextlib.contextmanager
