@@ -429,8 +429,8 @@ class TestManager:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.exit_stack.__exit__(exc_type, exc_val, exc_tb)
         self.worker_pool.stop()
+        self.exit_stack.__exit__(exc_type, exc_val, exc_tb)
         self.worker_pool = None
 
     def remove_roots(self):
