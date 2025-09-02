@@ -11,6 +11,7 @@ import multiprocessing
 import os
 from pathlib import Path
 import platform
+import queue
 import shutil
 import subprocess
 import sys
@@ -63,7 +64,7 @@ class InitEnvironment:
     test_case: Path
     tmp_dir: Path
     job_timeout: int
-    pid_queue: Any  # type signature for multiprocessing queues would be misleading
+    pid_queue: queue.Queue
 
     def run(self) -> Any:
         try:
@@ -88,7 +89,7 @@ class AdvanceOnSuccessEnvironment:
     pass_previous_state: Any
     pass_succeeded_state: Any
     job_timeout: int
-    pid_queue: Any  # type signature for multiprocessing queues would be misleading
+    pid_queue: queue.Queue
 
     def run(self) -> Any:
         return self.pass_advance_on_success(
@@ -117,7 +118,7 @@ class TestEnvironment:
         all_test_cases: Set[Path],
         should_copy_test_cases: bool,
         transform,
-        pid_queue=None,
+        pid_queue: Union[queue.Queue, None] = None,
     ):
         self.state = state
         self.folder: Path = folder

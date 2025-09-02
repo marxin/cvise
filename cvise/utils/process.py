@@ -5,7 +5,9 @@ import contextlib
 from enum import auto, Enum, unique
 import os
 import multiprocessing
+import multiprocessing.managers
 import pebble
+import queue
 import shlex
 import subprocess
 import threading
@@ -31,8 +33,8 @@ class ProcessEvent:
 class ProcessMonitor:
     """Keeps track of subprocesses spawned by Pebble workers."""
 
-    def __init__(self, mpmanager: multiprocessing, parallel_tests: int):
-        self.pid_queue = mpmanager.Queue()
+    def __init__(self, mpmanager: multiprocessing.managers.SyncManager, parallel_tests: int):
+        self.pid_queue: queue.Queue = mpmanager.Queue()
         self._lock = threading.Lock()
         self._worker_to_child_pids: Dict[int, Set[int]] = {}
         # Remember dead worker PIDs, so that we can distinguish an early-reported child PID (arriving before
@@ -146,7 +148,7 @@ class ProcessEventNotifier:
     that should be killed.
     """
 
-    def __init__(self, pid_queue):
+    def __init__(self, pid_queue: Union[queue.Queue, None]):
         self._my_pid = os.getpid()
         self._pid_queue = pid_queue
 

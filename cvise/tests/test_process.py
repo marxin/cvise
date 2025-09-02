@@ -14,16 +14,16 @@ from cvise.utils.process import ProcessEvent, ProcessEventType, ProcessEventNoti
 
 
 @pytest.fixture
-def pid_queue() -> multiprocessing.Queue:
-    return multiprocessing.Queue()
+def pid_queue() -> queue.Queue:
+    return multiprocessing.Manager().Queue()
 
 
 @pytest.fixture
-def process_event_notifier(pid_queue: multiprocessing.Queue) -> ProcessEventNotifier:
+def process_event_notifier(pid_queue: queue.Queue) -> ProcessEventNotifier:
     return ProcessEventNotifier(pid_queue)
 
 
-def read_pid_queue(pid_queue: multiprocessing.Queue, expected_size: int) -> List[ProcessEvent]:
+def read_pid_queue(pid_queue: queue.Queue, expected_size: int) -> List[ProcessEvent]:
     result = []
     while len(result) < expected_size:
         result.append(pid_queue.get())
@@ -34,7 +34,7 @@ def read_pid_queue(pid_queue: multiprocessing.Queue, expected_size: int) -> List
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_run_process_success(process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue):
+def test_run_process_success(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     stdout, stderr, returncode = process_event_notifier.run_process(['echo', 'foo'])
 
     assert stdout == b'foo\n'
@@ -47,9 +47,7 @@ def test_run_process_success(process_event_notifier: ProcessEventNotifier, pid_q
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_run_process_nonzero_return_code(
-    process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue
-):
+def test_run_process_nonzero_return_code(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     stdout, stderr, returncode = process_event_notifier.run_process(['false'])
 
     assert stdout == b''
@@ -71,7 +69,7 @@ def test_run_process_stderr(process_event_notifier: ProcessEventNotifier):
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_run_process_pid(process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue):
+def test_run_process_pid(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     stdout, _stderr, returncode = process_event_notifier.run_process('echo $$', shell=True)
 
     assert returncode == 0
@@ -81,7 +79,7 @@ def test_run_process_pid(process_event_notifier: ProcessEventNotifier, pid_queue
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 def test_run_process_finish_notification_after_exit(
-    process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue
+    process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue
 ):
     INFINITY = 100
     SLEEP_DURATION = 1
@@ -113,7 +111,7 @@ def test_run_process_finish_notification_after_exit(
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_run_process_timeout(process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue):
+def test_run_process_timeout(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     TIMEOUT = 1
     CHILD_DURATION = 100
 
@@ -130,9 +128,7 @@ def test_run_process_timeout(process_event_notifier: ProcessEventNotifier, pid_q
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_run_process_non_existing_command(
-    process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue
-):
+def test_run_process_non_existing_command(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     with pytest.raises(FileNotFoundError):
         process_event_notifier.run_process(['nonexistingnonexisting'])
 
@@ -152,7 +148,7 @@ def test_check_output_failure(process_event_notifier: ProcessEventNotifier):
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue):
+def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     """Verify that we fall back to killing a process via SIGKILL if it ignores SIGTERM.
 
     The overall time to kill the child shouldn't exceed Pebble's term_timeout, so when we're working in a Pebble worker
@@ -167,9 +163,7 @@ def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier, 
 
 
 @pytest.mark.skipif(sys.platform not in ('darwin', 'linux'), reason='requires /dev/urandom')
-def test_process_ignoring_sigterm_infinite_stdout(
-    process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue
-):
+def test_process_ignoring_sigterm_infinite_stdout(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     """Verify that we fall back to killing a process via SIGKILL if it ignores SIGTERM.
 
     The overall time to kill the child shouldn't exceed Pebble's term_timeout, so when we're working in a Pebble worker
