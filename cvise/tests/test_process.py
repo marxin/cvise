@@ -135,7 +135,6 @@ def test_run_process_timeout(process_event_notifier: ProcessEventNotifier, pid_q
 
     assert TIMEOUT <= time.monotonic() - start_time < CHILD_DURATION / 2
     q = read_pid_queue(pid_queue, 2)
-    assert len(q) == 2
     assert q[0].type == ProcessEventType.STARTED
     assert q[0].child_pid == q[1].child_pid
     assert q[1].type == ProcessEventType.FINISHED
