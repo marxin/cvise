@@ -68,15 +68,17 @@ class ProcessMonitor:
             self._recent_dead_workers.append(worker_pid)
             self._orphan_child_pids |= self._worker_to_child_pids.pop(worker_pid)
 
+    def get_worker_to_child_pids(self) -> Dict[int, Set[int]]:
+        with self._lock:
+            return self._worker_to_child_pids.copy()
+
     def get_orphan_child_pids(self) -> List[int]:
         with self._lock:
             return list(self._orphan_child_pids)
 
     def _thread_main(self) -> None:
-        while True:
-            item = self.pid_queue.get()
-            if item is None:
-                break
+        # Stop when receiving the sentinel (None).
+        while item := self.pid_queue.get():
             self._on_pid_queue_event(item)
 
     def _on_pid_queue_event(self, event: ProcessEvent) -> None:
@@ -155,10 +157,10 @@ class ProcessEventNotifier:
     def run_process(
         self,
         cmd: Union[List[str], str],
+        shell: bool = False,
         input: Union[bytes, None] = None,
         stdout: int = subprocess.PIPE,
         stderr: int = subprocess.PIPE,
-        shell: bool = False,
         env: Union[Mapping[str, str], None] = None,
         timeout: Union[float, None] = None,
         **kwargs,
@@ -189,15 +191,15 @@ class ProcessEventNotifier:
     def check_output(
         self,
         cmd: Union[List[str], str],
+        shell: bool = False,
         input: Union[bytes, None] = None,
         stdout: int = subprocess.PIPE,
         stderr: int = subprocess.PIPE,
-        shell: bool = False,
         env: Union[Mapping[str, str], None] = None,
         timeout: Union[float, None] = None,
         **kwargs,
     ) -> bytes:
-        stdout, stderr, returncode = self.run_process(cmd, input, stdout, stderr, shell, env, timeout, **kwargs)
+        stdout, stderr, returncode = self.run_process(cmd, shell, input, stdout, stderr, env, timeout, **kwargs)
         if returncode != 0:
             stderr = stderr.decode('utf-8', 'ignore').strip()
             delim = ': ' if stderr else ''

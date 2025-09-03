@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+from pathlib import Path
 import pebble
 import pytest
 import queue
@@ -8,9 +9,22 @@ import subprocess
 import sys
 import threading
 import time
-from typing import List
+from typing import Callable, List
 
-from cvise.utils.process import ProcessEvent, ProcessEventType, ProcessEventNotifier
+from cvise.utils.process import MPContextHook, ProcessEvent, ProcessEventType, ProcessEventNotifier, ProcessMonitor
+
+
+@pytest.fixture
+def process_monitor():
+    PARALLEL_TESTS = 10
+    mpmanager = multiprocessing.Manager()
+    with ProcessMonitor(mpmanager, parallel_tests=PARALLEL_TESTS) as process_monitor:
+        yield process_monitor
+
+
+@pytest.fixture
+def mp_context_hook(process_monitor: ProcessMonitor):
+    return MPContextHook(process_monitor)
 
 
 @pytest.fixture
@@ -166,11 +180,85 @@ def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier, 
 def test_process_ignoring_sigterm_infinite_stdout(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     """Verify that we fall back to killing a process via SIGKILL if it ignores SIGTERM.
 
-    The overall time to kill the child shouldn't exceed Pebble's term_timeout, so when we're working in a Pebble worker
-    we have enough time to finish.
+    Unlike the test above, here the job also generates a lot of stdout - we want to verify that we don't deadlock due
+    to the output exceeding the stdout's buffer.
     """
     TIMEOUT = 1
     start_time = time.monotonic()
     with pytest.raises(subprocess.TimeoutExpired):
         process_event_notifier.run_process('trap "" TERM && cat /dev/urandom', shell=True, timeout=TIMEOUT)
     assert time.monotonic() - start_time - TIMEOUT < pebble.CONSTS.term_timeout
+
+
+def test_process_monitor_worker_start_stop(process_monitor: ProcessMonitor, mp_context_hook: MPContextHook):
+    """Verify that MPContextHook+ProcessMonitor track worker process creation and shutdown."""
+    N = 10
+    INFINITY = 100  # seconds
+    with pebble.ProcessPool(max_workers=N, context=mp_context_hook) as pool:
+        # Submit long-lasting jobs and verify workers are reported as active.
+        for _ in range(N):
+            pool.schedule(time.sleep, args=[INFINITY])
+        _wait_until(lambda: len(process_monitor.get_worker_to_child_pids()) == N)
+        pool.stop()
+    # After workers termination, verify no active workers are reported.
+    assert len(process_monitor.get_worker_to_child_pids()) == 0
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_process_monitor_child_pids(tmp_path: Path, process_monitor: ProcessMonitor, mp_context_hook: MPContextHook):
+    """Verify that MPContextHook+ProcessMonitor track children spawned by worker processes."""
+    N = 10
+
+    flag_file = tmp_path / 'flag.txt'
+
+    def all_children_reported():
+        pids = process_monitor.get_worker_to_child_pids()
+        return len(pids) == N and all(len(v) == 1 for v in pids.values())
+
+    def all_children_empty():
+        pids = process_monitor.get_worker_to_child_pids()
+        return len(pids) == N and all(not v for v in pids.values())
+
+    with pebble.ProcessPool(max_workers=N, context=mp_context_hook) as pool:
+        # Submit long-lasting jobs and verify a child is reported for each worker.
+        args = [
+            process_monitor.pid_queue,
+            f'until [ -e {flag_file} ]; do sleep 0.1; done',
+            True,  # shell
+        ]
+        for _ in range(N):
+            pool.schedule(_run_with_process_event_notifier, args=args)
+        _wait_until(all_children_reported)
+
+        # Let jobs complete and verify no children are reported.
+        flag_file.write_text('')
+        _wait_until(all_children_empty)
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_process_monitor_stop_with_active_children(process_monitor: ProcessMonitor, mp_context_hook: MPContextHook):
+    """Verify that MPContextHook+ProcessMonitor handles the termination of workers with active child processes."""
+    N = 10
+    INFINITY = 100  # seconds
+
+    def all_children_reported():
+        pids = process_monitor.get_worker_to_child_pids()
+        return len(pids) == N and all(len(v) == 1 for v in pids.values())
+
+    with pebble.ProcessPool(max_workers=N, context=mp_context_hook) as pool:
+        # Submit long-lasting jobs and verify a child is reported for each worker.
+        for _ in range(N):
+            pool.schedule(_run_with_process_event_notifier, args=[process_monitor.pid_queue, ['sleep', str(INFINITY)]])
+        _wait_until(all_children_reported)
+        pool.stop()
+    # After workers termination, verify no children are reported.
+    assert len(process_monitor.get_worker_to_child_pids()) == 0
+
+
+def _wait_until(predicate: Callable) -> None:
+    while not predicate():
+        time.sleep(0.1)
+
+
+def _run_with_process_event_notifier(pid_queue: queue.Queue, *args):
+    ProcessEventNotifier(pid_queue).run_process(*args)
