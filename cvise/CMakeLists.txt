@@ -124,6 +124,8 @@ set(SOURCE_FILES
   "utils/mplogging.py"
   "utils/nestedmatcher.py"
   "utils/process.py"
+  "utils/readkey_posix.py"
+  "utils/readkey_windows.py"
   "utils/readkey.py"
   "utils/sigmonitor.py"
   "utils/statistics.py"

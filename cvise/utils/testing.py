@@ -415,12 +415,15 @@ class TestManager:
             == 0
         )
 
+        self.key_logger = None if self.skip_key_off else KeyLogger()
         self.mpmanager = multiprocessing.Manager()
         self.process_monitor = ProcessMonitor(self.mpmanager, self.parallel_tests)
         self.mplogger = mplogging.MPLogger(self.parallel_tests)
         self.worker_pool: Union[pebble.ProcessPool, None] = None
 
     def __enter__(self):
+        if self.key_logger:
+            self.exit_stack.enter_context(self.key_logger)
         self.exit_stack.enter_context(self.process_monitor)
         self.worker_pool = pebble.ProcessPool(
             max_workers=self.parallel_tests,
@@ -818,9 +821,6 @@ class TestManager:
         if self.total_file_size == 0:
             raise ZeroSizeError(self.test_cases)
 
-        if not self.skip_key_off:
-            logger = KeyLogger()
-
         try:
             for test_case in self.sorted_test_cases:
                 self.current_test_case = test_case
@@ -845,7 +845,7 @@ class TestManager:
                 while any(c.can_start_job_now() for c in self.pass_contexts) and not self.skip:
                     # Ignore more key presses after skip has been detected
                     if not self.skip_key_off and not self.skip:
-                        key = logger.pressed_key()
+                        key = self.key_logger.pressed_key()
                         if key == 's':
                             self.skip = True
                             self.log_key_event('skipping the rest of this pass')
