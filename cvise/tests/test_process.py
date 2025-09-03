@@ -201,7 +201,7 @@ def test_process_monitor_worker_start_stop(process_monitor: ProcessMonitor, mp_c
         _wait_until(lambda: len(process_monitor.get_worker_to_child_pids()) == N)
         pool.stop()
     # After workers termination, verify no active workers are reported.
-    assert len(process_monitor.get_worker_to_child_pids()) == 0
+    assert not process_monitor.get_worker_to_child_pids()
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
@@ -252,7 +252,7 @@ def test_process_monitor_stop_with_active_children(process_monitor: ProcessMonit
         _wait_until(all_children_reported)
         pool.stop()
     # After workers termination, verify no children are reported.
-    assert len(process_monitor.get_worker_to_child_pids()) == 0
+    assert not process_monitor.get_worker_to_child_pids()
 
 
 def _wait_until(predicate: Callable) -> None:
