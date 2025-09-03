@@ -231,7 +231,7 @@ def test_process_monitor_child_pids(tmp_path: Path, process_monitor: ProcessMoni
         _wait_until(all_children_reported)
 
         # Let jobs complete and verify no children are reported.
-        flag_file.write_text('')
+        flag_file.touch()
         _wait_until(all_children_empty)
 
 
