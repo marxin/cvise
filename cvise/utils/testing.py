@@ -11,6 +11,7 @@ import multiprocessing
 import os
 from pathlib import Path
 import platform
+import queue
 import shutil
 import subprocess
 import sys
@@ -30,7 +31,7 @@ from cvise.utils.error import InvalidTestCaseError
 from cvise.utils.error import PassBugError
 from cvise.utils.error import ZeroSizeError
 from cvise.utils.folding import FoldingManager, FoldingStateIn, FoldingStateOut
-from cvise.utils.process import ProcessEventNotifier, ProcessEventType
+from cvise.utils.process import MPContextHook, ProcessEventNotifier, ProcessMonitor
 from cvise.utils.readkey import KeyLogger
 import pebble
 import psutil
@@ -63,7 +64,7 @@ class InitEnvironment:
     test_case: Path
     tmp_dir: Path
     job_timeout: int
-    pid_queue: Any  # type signature for multiprocessing queues would be misleading
+    pid_queue: queue.Queue
 
     def run(self) -> Any:
         try:
@@ -88,7 +89,7 @@ class AdvanceOnSuccessEnvironment:
     pass_previous_state: Any
     pass_succeeded_state: Any
     job_timeout: int
-    pid_queue: Any  # type signature for multiprocessing queues would be misleading
+    pid_queue: queue.Queue
 
     def run(self) -> Any:
         return self.pass_advance_on_success(
@@ -117,7 +118,7 @@ class TestEnvironment:
         all_test_cases: Set[Path],
         should_copy_test_cases: bool,
         transform,
-        pid_queue=None,
+        pid_queue: Union[queue.Queue, None] = None,
     ):
         self.state = state
         self.folder: Path = folder
@@ -416,16 +417,19 @@ class TestManager:
 
         self.key_logger = None if self.skip_key_off else KeyLogger()
         self.mpmanager = multiprocessing.Manager()
+        self.process_monitor = ProcessMonitor(self.mpmanager, self.parallel_tests)
         self.mplogger = mplogging.MPLogger(self.parallel_tests)
         self.worker_pool: Union[pebble.ProcessPool, None] = None
 
     def __enter__(self):
         if self.key_logger:
             self.exit_stack.enter_context(self.key_logger)
+        self.exit_stack.enter_context(self.process_monitor)
         self.worker_pool = pebble.ProcessPool(
             max_workers=self.parallel_tests,
             initializer=_init_worker_process,
             initargs=[self.mplogger.worker_process_initializer()],
+            context=MPContextHook(self.process_monitor),
         )
         self.exit_stack.enter_context(self.worker_pool)
         self.exit_stack.enter_context(self.mplogger)
@@ -592,14 +596,7 @@ class TestManager:
         logging.info(f'****** {event} ******')
 
     def kill_pid_queue(self):
-        active_pids = set()
-        while not self.pid_queue.empty():
-            event = self.pid_queue.get()
-            if event.type == ProcessEventType.FINISHED:
-                active_pids.discard(event.pid)
-            else:
-                active_pids.add(event.pid)
-        for pid in active_pids:
+        for pid in self.process_monitor.get_orphan_child_pids():
             try:
                 process = psutil.Process(pid)
                 children = process.children(recursive=True)
@@ -816,7 +813,6 @@ class TestManager:
             self.pass_contexts.append(PassContext.create(pass_))
         self.interleaving = interleaving
         self.jobs = []
-        self.pid_queue = self.mpmanager.Queue()
         cache_key = repr([c.pass_ for c in self.pass_contexts])
 
         pass_titles = ', '.join(repr(c.pass_) for c in self.pass_contexts)
@@ -1037,7 +1033,7 @@ class TestManager:
                 test_case=self.current_test_case,
                 tmp_dir=ctx.temporary_root,
                 job_timeout=self.timeout,
-                pid_queue=self.pid_queue,
+                pid_queue=self.process_monitor.pid_queue,
             )
         else:
             env = AdvanceOnSuccessEnvironment(
@@ -1046,7 +1042,7 @@ class TestManager:
                 pass_previous_state=ctx.state,
                 pass_succeeded_state=ctx.taken_succeeded_state,
                 job_timeout=self.timeout,
-                pid_queue=self.pid_queue,
+                pid_queue=self.process_monitor.pid_queue,
             )
         future = self.worker_pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run])
         self.jobs.append(
@@ -1084,7 +1080,7 @@ class TestManager:
             self.test_cases,
             should_copy_test_cases,
             ctx.pass_.transform,
-            self.pid_queue,
+            self.process_monitor.pid_queue,
         )
         future = self.worker_pool.schedule(
             _worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout
@@ -1121,7 +1117,7 @@ class TestManager:
             self.test_cases,
             should_copy_test_cases,
             FoldingManager.transform,
-            self.pid_queue,
+            self.process_monitor.pid_queue,
         )
         future = self.worker_pool.schedule(
             _worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout

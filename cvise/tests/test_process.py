@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+from pathlib import Path
 import pebble
 import pytest
 import queue
@@ -8,22 +9,35 @@ import subprocess
 import sys
 import threading
 import time
-from typing import List
+from typing import Callable, List
 
-from cvise.utils.process import ProcessEvent, ProcessEventType, ProcessEventNotifier
-
-
-@pytest.fixture
-def pid_queue() -> multiprocessing.Queue:
-    return multiprocessing.Queue()
+from cvise.utils.process import MPContextHook, ProcessEvent, ProcessEventType, ProcessEventNotifier, ProcessMonitor
 
 
 @pytest.fixture
-def process_event_notifier(pid_queue: multiprocessing.Queue) -> ProcessEventNotifier:
+def process_monitor():
+    PARALLEL_TESTS = 10
+    mpmanager = multiprocessing.Manager()
+    with ProcessMonitor(mpmanager, parallel_tests=PARALLEL_TESTS) as process_monitor:
+        yield process_monitor
+
+
+@pytest.fixture
+def mp_context_hook(process_monitor: ProcessMonitor):
+    return MPContextHook(process_monitor)
+
+
+@pytest.fixture
+def pid_queue() -> queue.Queue:
+    return multiprocessing.Manager().Queue()
+
+
+@pytest.fixture
+def process_event_notifier(pid_queue: queue.Queue) -> ProcessEventNotifier:
     return ProcessEventNotifier(pid_queue)
 
 
-def read_pid_queue(pid_queue: multiprocessing.Queue, expected_size: int) -> List[ProcessEvent]:
+def read_pid_queue(pid_queue: queue.Queue, expected_size: int) -> List[ProcessEvent]:
     result = []
     while len(result) < expected_size:
         result.append(pid_queue.get())
@@ -34,7 +48,7 @@ def read_pid_queue(pid_queue: multiprocessing.Queue, expected_size: int) -> List
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_run_process_success(process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue):
+def test_run_process_success(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     stdout, stderr, returncode = process_event_notifier.run_process(['echo', 'foo'])
 
     assert stdout == b'foo\n'
@@ -42,14 +56,12 @@ def test_run_process_success(process_event_notifier: ProcessEventNotifier, pid_q
     assert returncode == 0
     q = read_pid_queue(pid_queue, 2)
     assert q[0].type == ProcessEventType.STARTED
-    assert q[0].pid == q[1].pid
+    assert q[0].child_pid == q[1].child_pid
     assert q[1].type == ProcessEventType.FINISHED
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_run_process_nonzero_return_code(
-    process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue
-):
+def test_run_process_nonzero_return_code(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     stdout, stderr, returncode = process_event_notifier.run_process(['false'])
 
     assert stdout == b''
@@ -57,7 +69,7 @@ def test_run_process_nonzero_return_code(
     assert returncode == 1
     q = read_pid_queue(pid_queue, 2)
     assert q[0].type == ProcessEventType.STARTED
-    assert q[0].pid == q[1].pid
+    assert q[0].child_pid == q[1].child_pid
     assert q[1].type == ProcessEventType.FINISHED
 
 
@@ -71,17 +83,17 @@ def test_run_process_stderr(process_event_notifier: ProcessEventNotifier):
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_run_process_pid(process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue):
+def test_run_process_pid(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     stdout, _stderr, returncode = process_event_notifier.run_process('echo $$', shell=True)
 
     assert returncode == 0
     q = read_pid_queue(pid_queue, 2)
-    assert q[0].pid == q[1].pid == int(stdout.strip())
+    assert q[0].child_pid == q[1].child_pid == int(stdout.strip())
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 def test_run_process_finish_notification_after_exit(
-    process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue
+    process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue
 ):
     INFINITY = 100
     SLEEP_DURATION = 1
@@ -90,7 +102,7 @@ def test_run_process_finish_notification_after_exit(
         # Initially, just the start notification is seen.
         q1 = read_pid_queue(pid_queue, 1)
         assert q1[0].type == ProcessEventType.STARTED
-        pid = q1[0].pid
+        pid = q1[0].child_pid
 
         # Still so a bit later.
         time.sleep(SLEEP_DURATION)
@@ -100,7 +112,7 @@ def test_run_process_finish_notification_after_exit(
         os.kill(pid, signal.SIGTERM)
         q2 = read_pid_queue(pid_queue, 1)
         assert q2[0].type == ProcessEventType.FINISHED
-        assert q2[0].pid == pid
+        assert q2[0].child_pid == pid
 
     thread = threading.Thread(target=thread_main)
     thread.start()
@@ -113,7 +125,7 @@ def test_run_process_finish_notification_after_exit(
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_run_process_timeout(process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue):
+def test_run_process_timeout(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     TIMEOUT = 1
     CHILD_DURATION = 100
 
@@ -125,14 +137,12 @@ def test_run_process_timeout(process_event_notifier: ProcessEventNotifier, pid_q
     q = read_pid_queue(pid_queue, 2)
     assert len(q) == 2
     assert q[0].type == ProcessEventType.STARTED
-    assert q[0].pid == q[1].pid
+    assert q[0].child_pid == q[1].child_pid
     assert q[1].type == ProcessEventType.FINISHED
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_run_process_non_existing_command(
-    process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue
-):
+def test_run_process_non_existing_command(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     with pytest.raises(FileNotFoundError):
         process_event_notifier.run_process(['nonexistingnonexisting'])
 
@@ -152,7 +162,7 @@ def test_check_output_failure(process_event_notifier: ProcessEventNotifier):
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue):
+def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     """Verify that we fall back to killing a process via SIGKILL if it ignores SIGTERM.
 
     The overall time to kill the child shouldn't exceed Pebble's term_timeout, so when we're working in a Pebble worker
@@ -167,16 +177,88 @@ def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier, 
 
 
 @pytest.mark.skipif(sys.platform not in ('darwin', 'linux'), reason='requires /dev/urandom')
-def test_process_ignoring_sigterm_infinite_stdout(
-    process_event_notifier: ProcessEventNotifier, pid_queue: multiprocessing.Queue
-):
+def test_process_ignoring_sigterm_infinite_stdout(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     """Verify that we fall back to killing a process via SIGKILL if it ignores SIGTERM.
 
-    The overall time to kill the child shouldn't exceed Pebble's term_timeout, so when we're working in a Pebble worker
-    we have enough time to finish.
+    Unlike the test above, here the job also generates a lot of stdout - we want to verify that we don't deadlock due
+    to the output exceeding the stdout's buffer.
     """
     TIMEOUT = 1
     start_time = time.monotonic()
     with pytest.raises(subprocess.TimeoutExpired):
         process_event_notifier.run_process('trap "" TERM && cat /dev/urandom', shell=True, timeout=TIMEOUT)
     assert time.monotonic() - start_time - TIMEOUT < pebble.CONSTS.term_timeout
+
+
+def test_process_monitor_worker_start_stop(process_monitor: ProcessMonitor, mp_context_hook: MPContextHook):
+    """Verify that MPContextHook+ProcessMonitor track worker process creation and shutdown."""
+    N = 10
+    INFINITY = 100  # seconds
+    with pebble.ProcessPool(max_workers=N, context=mp_context_hook) as pool:
+        # Submit long-lasting jobs and verify workers are reported as active.
+        for _ in range(N):
+            pool.schedule(time.sleep, args=[INFINITY])
+        _wait_until(lambda: len(process_monitor.get_worker_to_child_pids()) == N)
+        pool.stop()
+    # After workers termination, verify no active workers are reported.
+    assert not process_monitor.get_worker_to_child_pids()
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_process_monitor_child_pids(tmp_path: Path, process_monitor: ProcessMonitor, mp_context_hook: MPContextHook):
+    """Verify that MPContextHook+ProcessMonitor track children spawned by worker processes."""
+    N = 10
+
+    flag_file = tmp_path / 'flag.txt'
+
+    def all_children_reported():
+        pids = process_monitor.get_worker_to_child_pids()
+        return len(pids) == N and all(len(v) == 1 for v in pids.values())
+
+    def all_children_empty():
+        pids = process_monitor.get_worker_to_child_pids()
+        return len(pids) == N and all(not v for v in pids.values())
+
+    with pebble.ProcessPool(max_workers=N, context=mp_context_hook) as pool:
+        # Submit long-lasting jobs and verify a child is reported for each worker.
+        args = [
+            process_monitor.pid_queue,
+            f'until [ -e {flag_file} ]; do sleep 0.1; done',
+            True,  # shell
+        ]
+        for _ in range(N):
+            pool.schedule(_run_with_process_event_notifier, args=args)
+        _wait_until(all_children_reported)
+
+        # Let jobs complete and verify no children are reported.
+        flag_file.touch()
+        _wait_until(all_children_empty)
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_process_monitor_stop_with_active_children(process_monitor: ProcessMonitor, mp_context_hook: MPContextHook):
+    """Verify that MPContextHook+ProcessMonitor handles the termination of workers with active child processes."""
+    N = 10
+    INFINITY = 100  # seconds
+
+    def all_children_reported():
+        pids = process_monitor.get_worker_to_child_pids()
+        return len(pids) == N and all(len(v) == 1 for v in pids.values())
+
+    with pebble.ProcessPool(max_workers=N, context=mp_context_hook) as pool:
+        # Submit long-lasting jobs and verify a child is reported for each worker.
+        for _ in range(N):
+            pool.schedule(_run_with_process_event_notifier, args=[process_monitor.pid_queue, ['sleep', str(INFINITY)]])
+        _wait_until(all_children_reported)
+        pool.stop()
+    # After workers termination, verify no children are reported.
+    assert not process_monitor.get_worker_to_child_pids()
+
+
+def _wait_until(predicate: Callable) -> None:
+    while not predicate():
+        time.sleep(0.1)
+
+
+def _run_with_process_event_notifier(pid_queue: queue.Queue, *args):
+    ProcessEventNotifier(pid_queue).run_process(*args)
