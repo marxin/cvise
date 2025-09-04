@@ -337,6 +337,8 @@ class TestManager:
     # How often passes should be reinitialized (see maybe_schedule_job()). Chosen at 1% to not slow down the overall
     # reduction in case reinits don't lead to new discoveries.
     REINIT_JOB_INTERVAL = 100
+    # Used for setting up timeouts on pass init jobs - the regular timeout is multiplied by this factor.
+    INIT_TIMEOUT_FACTOR = 10
 
     def __init__(
         self,
@@ -658,13 +660,15 @@ class TestManager:
 
     def handle_timed_out_job(self, job: Job) -> None:
         logging.warning('Test timed out for %s.', job.pass_name)
-        self.save_extra_dir(job.temporary_folder)
+        if job.temporary_folder:
+            self.save_extra_dir(job.temporary_folder)
         if job.pass_id is None:
             # The logic of disabling a pass after repeated timeouts isn't applicable to folding jobs.
             return
         ctx = self.pass_contexts[job.pass_id]
         ctx.timeout_count += 1
-        ctx.running_transform_order_to_state.pop(job.order)
+        if job.type == JobType.TRANSFORM:
+            ctx.running_transform_order_to_state.pop(job.order)
         if ctx.timeout_count < self.MAX_TIMEOUTS or ctx.defunct:
             return
         logging.warning('Maximum number of timeout were reached for %s: %s', job.pass_name, self.MAX_TIMEOUTS)
@@ -1044,7 +1048,9 @@ class TestManager:
                 job_timeout=self.timeout,
                 pid_queue=self.process_monitor.pid_queue,
             )
-        future = self.worker_pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run])
+        future = self.worker_pool.schedule(
+            _worker_process_job_wrapper, args=[self.order, env.run], timeout=self.INIT_TIMEOUT_FACTOR * self.timeout
+        )
         self.jobs.append(
             Job(
                 type=JobType.INIT,
