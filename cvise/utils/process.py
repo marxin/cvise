@@ -74,7 +74,7 @@ class ProcessMonitor:
 
         # Don't hold the mutex while killing the process(es).
         for pid in pids_to_kill:
-            _kill_process_tree(pid)
+            self._killer.kill_process_tree(pid)
 
     def get_worker_to_child_pids(self) -> Dict[int, Set[int]]:
         with self._lock:
@@ -99,7 +99,7 @@ class ProcessMonitor:
                     children.discard(event.child_pid)
 
         if should_kill:
-            _kill_process_tree(event.child_pid)
+            self._killer.kill_process_tree(event.child_pid)
 
 
 class ProcessKiller:
@@ -340,14 +340,3 @@ def _kill(proc: subprocess.Popen) -> None:
     # Third - if didn't exit on time - attempt a hard termination (SIGKILL on *nix).
     proc.kill()
     proc.wait()
-
-
-def _kill_process_tree(pid: int) -> None:
-    with contextlib.suppress(psutil.NoSuchProcess):
-        proc = psutil.Process(pid)
-        children = proc.children(recursive=True)
-        children.append(proc)
-        for child in children:
-            with contextlib.suppress(psutil.NoSuchProcess):
-                # Terminate the process more reliability: https://github.com/marxin/cvise/issues/145
-                child.kill()
