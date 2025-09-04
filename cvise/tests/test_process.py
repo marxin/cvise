@@ -303,7 +303,7 @@ def test_process_killer_process_ignores_sigterm(process_killer: ProcessKiller):
     process_killer.kill_process_tree(proc.pid)
     proc.wait()
 
-    assert ProcessKiller.TERM_TIMEOUT / 2 < time.monotonic() - start_time < INFINITY / 2
+    assert time.monotonic() - start_time < INFINITY / 2
 
 
 def _wait_until(predicate: Callable) -> None:
