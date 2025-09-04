@@ -294,7 +294,7 @@ class ProcessEventNotifier:
         with self._auto_notify_end(proc):
             # If a timeout was specified and the process exceeded it, we need to kill it - otherwise we'll leave a
             # zombie process on *nix. If it's KeyboardInterrupt/SystemExit, the worker will terminate soon, so we may
-            # have not enough time to properly kill children, and zombie aren't a concern.
+            # have not enough time to properly kill children, and zombies aren't a concern.
             with _auto_kill_on_timeout(proc):
                 stdout, stderr = proc.communicate(input=input, timeout=timeout)
 
