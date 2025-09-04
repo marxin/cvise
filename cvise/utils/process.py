@@ -2,7 +2,9 @@
 
 import collections
 import contextlib
+from dataclasses import dataclass, field
 from enum import auto, Enum, unique
+import heapq
 import os
 import multiprocessing
 import multiprocessing.managers
@@ -102,6 +104,13 @@ class ProcessMonitor:
             self._killer.kill_process_tree(event.child_pid)
 
 
+@dataclass(order=True, frozen=True)
+class ProcessKillerTask:
+    hard_kill: bool  # whether to kill() - as opposed to terminate()
+    when: float  # seconds (in terms of the monotonic timer)
+    proc: psutil.Process = field(compare=False)
+
+
 class ProcessKiller:
     """Helper for terminating/killing process trees.
 
@@ -110,12 +119,14 @@ class ProcessKiller:
     """
 
     TERM_TIMEOUT = 3  # seconds
+    EVENT_LOOP_STEP = 1  # seconds
 
     def __init__(self):
         # Essentially we implement a set of timers, one for each PID; since creating many threading.Timer would be too
         # costly, we use a single thread with an event queue instead.
         self._condition = threading.Condition()
-        self._kill_queue: queue.Queue[Tuple[float, psutil.Process]] = queue.Queue()
+        self._task_queue: List[ProcessKillerTask] = []
+        self._shut_down: bool = False
         self._thread = threading.Thread(target=self._thread_main)
 
     def __enter__(self):
@@ -123,50 +134,68 @@ class ProcessKiller:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # Notify the shutdown by putting a sentinel value to the queue, and wait until the background thread processes
-        # all remaining items and quits.
         with self._condition:
-            self._kill_queue.put((None, None))
+            self._shut_down = True
             self._condition.notify()
         self._thread.join(timeout=60)  # semi-arbitrary timeout to prevent even theoretical possibility of deadlocks
 
     def kill_process_tree(self, pid: int) -> None:
-        children = []
-        with contextlib.suppress(psutil.NoSuchProcess):
+        try:
             proc = psutil.Process(pid)
-            children.append(proc)
-            children += proc.children(recursive=True)
-
-        alive_children = []
-        for child in children:
-            with contextlib.suppress(psutil.NoSuchProcess):
-                child.terminate()
-                alive_children.append(child)
-        if not alive_children:
+        except psutil.NoSuchProcess:
             return
-
+        task = ProcessKillerTask(hard_kill=False, when=0, proc=proc)
         with self._condition:
-            sigkill_when = time.monotonic() + self.TERM_TIMEOUT
-            for child in alive_children:
-                self._kill_queue.put((sigkill_when, child))
+            heapq.heappush(self._task_queue, task)
             self._condition.notify()
 
     def _thread_main(self) -> None:
         while True:
             with self._condition:
-                try:
-                    when, proc = self._kill_queue.get_nowait()
-                except queue.Empty:
-                    self._condition.wait()
+                if not self._task_queue and self._shut_down:
+                    break  # shutdown
+                if self._task_queue and not self._task_queue[0].proc.is_running():
+                    heapq.heappop(self._task_queue)  # the process exited - nothing left for this task, and no need to wait
                     continue
-            if proc is None:
-                break  # shutdown sentinel
-            timeout = max(0, when - time.monotonic())
-            with contextlib.suppress(psutil.NoSuchProcess):
-                try:
-                    proc.wait(timeout)
-                except psutil.TimeoutExpired:
-                    proc.kill()
+                now = time.monotonic()
+                timeout = min(self._task_queue[0].when - now, self.EVENT_LOOP_STEP) if self._task_queue else None
+                if timeout is None or timeout > 0:
+                    self._condition.wait(timeout)
+                    continue
+                task = heapq.heappop(self._task_queue)
+            if task.hard_kill:
+                self._do_hard_kill_single(task.proc)
+            else:
+                self._do_terminate_subtree(task.proc)
+
+    def _do_terminate_subtree(self, proc: psutil.Process) -> None:
+        try:
+            children = proc.children(recursive=True) + [proc]
+        except psutil.NoSuchProcess:
+            return
+
+        alive_children = []
+        for child in children:
+            try:
+                child.terminate()
+            except psutil.NoSuchProcess:
+                pass
+            else:
+                alive_children.append(child)
+        if not alive_children:
+            return
+
+        with self._condition:
+            when = time.monotonic() + self.TERM_TIMEOUT
+            for child in alive_children:
+                task = ProcessKillerTask(hard_kill=True, when=when, proc=child)
+                heapq.heappush(self._task_queue, task)
+            self._condition.notify()
+
+    def _do_hard_kill_single(self, proc: psutil.Process) -> None:
+        with contextlib.suppress(psutil.NoSuchProcess):
+            proc.kill()
+
 
 
 class MPContextHook:

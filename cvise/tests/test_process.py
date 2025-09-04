@@ -161,7 +161,7 @@ def test_check_output_failure(process_event_notifier: ProcessEventNotifier):
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
+def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier):
     """Verify that we fall back to killing a process via SIGKILL if it ignores SIGTERM.
 
     The overall time to kill the child shouldn't exceed Pebble's term_timeout, so when we're working in a Pebble worker
@@ -176,7 +176,7 @@ def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier, 
 
 
 @pytest.mark.skipif(sys.platform not in ('darwin', 'linux'), reason='requires /dev/urandom')
-def test_process_ignoring_sigterm_infinite_stdout(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
+def test_process_ignoring_sigterm_infinite_stdout(process_event_notifier: ProcessEventNotifier):
     """Verify that we fall back to killing a process via SIGKILL if it ignores SIGTERM.
 
     Unlike the test above, here the job also generates a lot of stdout - we want to verify that we don't deadlock due
