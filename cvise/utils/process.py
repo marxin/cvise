@@ -2,11 +2,14 @@
 
 import collections
 import contextlib
+from dataclasses import dataclass, field
 from enum import auto, Enum, unique
+import heapq
 import os
 import multiprocessing
 import multiprocessing.managers
 import pebble
+import psutil
 import queue
 import shlex
 import subprocess
@@ -21,6 +24,7 @@ from cvise.utils import sigmonitor
 class ProcessEventType(Enum):
     STARTED = auto()
     FINISHED = auto()
+    ORPHANED = auto()  # reported instead of FINISHED when worker leaves the child process not terminated
 
 
 class ProcessEvent:
@@ -42,10 +46,11 @@ class ProcessMonitor:
         # chosen to be big enough to make it practically unlikely to receive a new pid_queue event from a
         # forgotten-to-be-dead worker.
         self._recent_dead_workers: collections.deque[int] = collections.deque(maxlen=parallel_tests * 10)
-        self._orphan_child_pids: Set[int] = set()
         self._thread = threading.Thread(target=self._thread_main)
+        self._killer = ProcessKiller()
 
     def __enter__(self):
+        self._killer.__enter__()
         self._thread.start()
         return self
 
@@ -54,10 +59,11 @@ class ProcessMonitor:
         # all remaining items and quits.
         self.pid_queue.put(None)
         self._thread.join(timeout=60)  # semi-arbitrary timeout to prevent even theoretical possibility of deadlocks
+        self._killer.__exit__(exc_type, exc_val, exc_tb)
 
     def on_worker_started(self, worker_pid: int) -> None:
         with self._lock:
-            # Children might've been already added in _on_pid_queue_event() if the pid_queue event arrived early.
+            # Children might've already been added in _on_pid_queue_event() if the pid_queue event arrived early.
             self._worker_to_child_pids.setdefault(worker_pid, set())
             # It's rare but still possible that a new worker reuses the PID from a recently terminated one.
             with contextlib.suppress(ValueError):
@@ -66,15 +72,14 @@ class ProcessMonitor:
     def on_worker_stopped(self, worker_pid: int) -> None:
         with self._lock:
             self._recent_dead_workers.append(worker_pid)
-            self._orphan_child_pids |= self._worker_to_child_pids.pop(worker_pid)
+            pids_to_kill = self._worker_to_child_pids.pop(worker_pid)
+
+        for pid in pids_to_kill:
+            self._killer.kill_process_tree(pid)
 
     def get_worker_to_child_pids(self) -> Dict[int, Set[int]]:
         with self._lock:
             return self._worker_to_child_pids.copy()
-
-    def get_orphan_child_pids(self) -> List[int]:
-        with self._lock:
-            return list(self._orphan_child_pids)
 
     def _thread_main(self) -> None:
         # Stop when receiving the sentinel (None).
@@ -84,6 +89,7 @@ class ProcessMonitor:
     def _on_pid_queue_event(self, event: ProcessEvent) -> None:
         with self._lock:
             posthumous = event.worker_pid in self._recent_dead_workers
+            should_kill = posthumous or (event.type == ProcessEventType.ORPHANED)
             if not posthumous:
                 # Update the worker's children PID set. The set might need to be created, since the pid_queue event
                 # might've arrived before on_worker_started() gets called.
@@ -92,6 +98,109 @@ class ProcessMonitor:
                     children.add(event.child_pid)
                 else:
                     children.discard(event.child_pid)
+
+        if should_kill:
+            self._killer.kill_process_tree(event.child_pid)
+
+
+@dataclass(order=True, frozen=True)
+class ProcessKillerTask:
+    hard_kill: bool  # whether to kill() - as opposed to terminate()
+    when: float  # seconds (in terms of the monotonic timer)
+    proc: psutil.Process = field(compare=False)
+
+
+class ProcessKiller:
+    """Helper for terminating/killing process trees.
+
+    For each process, we first try terminate() - SIGTERM on *nix - and if the process doesn't finish within TERM_TIMEOUT
+    seconds we use kill() - SIGKILL on *nix. See also https://github.com/marxin/cvise/issues/145.
+    """
+
+    TERM_TIMEOUT = 3  # seconds
+    EVENT_LOOP_STEP = 1  # seconds
+
+    def __init__(self):
+        # Essentially we implement a set of timers, one for each PID; since creating many threading.Timer would be too
+        # costly, we use a single thread with an event queue instead.
+        self._condition = threading.Condition()
+        self._task_queue: List[ProcessKillerTask] = []
+        self._shut_down: bool = False
+        self._thread = threading.Thread(target=self._thread_main)
+
+    def __enter__(self):
+        self._thread.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        with self._condition:
+            self._shut_down = True
+            self._condition.notify()
+        self._thread.join(timeout=60)  # semi-arbitrary timeout to prevent even theoretical possibility of deadlocks
+
+    def kill_process_tree(self, pid: int) -> None:
+        try:
+            proc = psutil.Process(pid)
+        except psutil.NoSuchProcess:
+            return
+        task = ProcessKillerTask(hard_kill=False, when=0, proc=proc)
+        with self._condition:
+            heapq.heappush(self._task_queue, task)
+            self._condition.notify()
+
+    def _thread_main(self) -> None:
+        while True:
+            with self._condition:
+                if not self._task_queue and self._shut_down:
+                    break
+                if self._task_queue and not self._task_queue[0].proc.is_running():
+                    # the process exited - nothing left for this task, and no need to wait if we're blocking shutdown
+                    heapq.heappop(self._task_queue)
+                    continue
+                now = time.monotonic()
+                timeout = min(self._task_queue[0].when - now, self.EVENT_LOOP_STEP) if self._task_queue else None
+                if timeout is None or timeout > 0:
+                    self._condition.wait(timeout)
+                    continue
+                task = heapq.heappop(self._task_queue)
+            if task.hard_kill:
+                self._do_hard_kill(task.proc)
+            else:
+                self._do_terminate(task.proc)
+
+    def _do_terminate(self, proc: psutil.Process) -> None:
+        try:
+            children = proc.children(recursive=True) + [proc]
+        except psutil.NoSuchProcess:
+            return
+
+        alive_children = []
+        for child in children:
+            try:
+                child.terminate()
+            except psutil.NoSuchProcess:
+                pass
+            else:
+                alive_children.append(child)
+        if not alive_children:
+            return
+
+        when = time.monotonic() + self.TERM_TIMEOUT
+        with self._condition:
+            for child in alive_children:
+                task = ProcessKillerTask(hard_kill=True, when=when, proc=child)
+                heapq.heappush(self._task_queue, task)
+            self._condition.notify()
+
+    def _do_hard_kill(self, proc: psutil.Process) -> None:
+        try:
+            children = proc.children(recursive=True) + [proc]
+        except psutil.NoSuchProcess:
+            return
+
+        for child in children:
+            with contextlib.suppress(psutil.NoSuchProcess):
+                child.kill()
 
 
 class MPContextHook:
@@ -181,12 +290,14 @@ class ProcessEventNotifier:
             )
             self._notify_start(proc)
 
-        # Try killing the process on exception (timeout/KeyboardInterrupt/SystemExit), and reporting the notify_finish
-        # event too.
-        with self._auto_notify_finish(proc):
-            with _auto_kill(proc):
+        with self._auto_notify_end(proc):
+            # If a timeout was specified and the process exceeded it, we need to kill it - otherwise we'll leave a
+            # zombie process on *nix. If it's KeyboardInterrupt/SystemExit, the worker will terminate soon, so we may
+            # have not enough time to properly kill children, and zombies aren't a concern.
+            with _auto_kill_on_timeout(proc):
                 stdout, stderr = proc.communicate(input=input, timeout=timeout)
-                return stdout, stderr, proc.returncode
+
+        return stdout, stderr, proc.returncode
 
     def check_output(
         self,
@@ -215,23 +326,22 @@ class ProcessEventNotifier:
         )
 
     @contextlib.contextmanager
-    def _auto_notify_finish(self, proc: subprocess.Popen) -> Iterator[None]:
+    def _auto_notify_end(self, proc: subprocess.Popen) -> Iterator[None]:
         try:
             yield
         finally:
             if self._pid_queue:
-                self._pid_queue.put(
-                    ProcessEvent(worker_pid=self._my_pid, child_pid=proc.pid, event_type=ProcessEventType.FINISHED)
-                )
+                event_type = ProcessEventType.ORPHANED if proc.returncode is None else ProcessEventType.FINISHED
+                self._pid_queue.put(ProcessEvent(worker_pid=self._my_pid, child_pid=proc.pid, event_type=event_type))
 
 
 @contextlib.contextmanager
-def _auto_kill(proc: subprocess.Popen) -> Iterator[None]:
+def _auto_kill_on_timeout(proc: subprocess.Popen) -> Iterator[None]:
     try:
         yield
-    finally:
-        if proc.returncode is None:
-            _kill(proc)
+    except subprocess.TimeoutExpired:
+        _kill(proc)
+        raise
 
 
 def _kill(proc: subprocess.Popen) -> None:

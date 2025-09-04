@@ -34,7 +34,6 @@ from cvise.utils.folding import FoldingManager, FoldingStateIn, FoldingStateOut
 from cvise.utils.process import MPContextHook, ProcessEventNotifier, ProcessMonitor
 from cvise.utils.readkey import KeyLogger
 import pebble
-import psutil
 
 MAX_PASS_INCREASEMENT_THRESHOLD = 3
 
@@ -597,21 +596,6 @@ class TestManager:
     def log_key_event(cls, event):
         logging.info(f'****** {event} ******')
 
-    def kill_pid_queue(self):
-        for pid in self.process_monitor.get_orphan_child_pids():
-            try:
-                process = psutil.Process(pid)
-                children = process.children(recursive=True)
-                children.append(process)
-                for child in children:
-                    try:
-                        # Terminate the process more reliability: https://github.com/marxin/cvise/issues/145
-                        child.kill()
-                    except psutil.NoSuchProcess:
-                        pass
-            except psutil.NoSuchProcess:
-                pass
-
     def release_job(self, job: Job) -> None:
         if not self.save_temps and job.temporary_folder is not None:
             rmfolder(job.temporary_folder)
@@ -861,7 +845,6 @@ class TestManager:
                         self.run_parallel_tests()
                     finally:
                         self.terminate_all()
-                    self.kill_pid_queue()
 
                     is_success = self.success_candidate is not None
                     if is_success:
