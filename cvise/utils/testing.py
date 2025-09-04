@@ -620,12 +620,31 @@ class TestManager:
             else:
                 logging.info(f'Created extra directory {extra_dir} for you to look at later')
 
+    def workaround_missing_timeouts(self) -> None:
+        """Workaround for Pebble sometimes losing a task, with its future neither resolving nor timing out.
+
+        To avoid hanging C-Vise waiting for this never-ending task, we double-check timeouts of each task ourselves
+        and force-cancel violating tasks.
+        """
+        THRESHOLD = 3  # usually this factor is around 1, but durations can grow on a heavily loaded machine
+        now = time.monotonic()
+        for job in self.jobs:
+            if job.type != JobType.TRANSFORM:
+                continue
+            if now - job.start_time >= THRESHOLD * self.timeout:
+                self.mplogger.ignore_logs_from_job(job.order)
+                job.future.cancel()
+
     def process_done_futures(self) -> None:
         jobs_to_remove = []
         for job in self.jobs:
             if not job.future.done():
                 continue
             jobs_to_remove.append(job)
+            if job.future.cancelled():
+                # Within the task loop, we only cancel jobs in workaround_missing_timeouts().
+                self.handle_timed_out_job(job)
+                continue
             if job.future.exception():
                 # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
                 if type(job.future.exception()) in (TimeoutError, concurrent.futures.TimeoutError):
@@ -777,6 +796,7 @@ class TestManager:
 
             # no more jobs could be scheduled at the moment - wait for some results
             wait([j.future for j in self.jobs], return_when=FIRST_COMPLETED, timeout=self.EVENT_LOOP_TIMEOUT)
+            self.workaround_missing_timeouts()
             self.process_done_futures()
 
             # exit if we found successful transformation(s) and don't want to try better ones
