@@ -629,8 +629,6 @@ class TestManager:
         THRESHOLD = 3  # usually this factor is around 1, but durations can grow on a heavily loaded machine
         now = time.monotonic()
         for job in self.jobs:
-            if job.type != JobType.TRANSFORM:
-                continue
             if now - job.start_time >= THRESHOLD * self.timeout:
                 self.mplogger.ignore_logs_from_job(job.order)
                 job.future.cancel()
