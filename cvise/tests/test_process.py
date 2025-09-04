@@ -274,6 +274,7 @@ def test_process_killer_simple(process_killer: ProcessKiller):
     start_time = time.monotonic()
     process_killer.kill_process_tree(proc.pid)
     proc.wait()
+
     assert time.monotonic() - start_time < INFINITY / 2
 
 
@@ -287,9 +288,11 @@ def test_process_killer_many(process_killer: ProcessKiller):
         process_killer.kill_process_tree(p.pid)
     for p in procs:
         p.wait()
+
     elapsed = time.monotonic() - start_time
     assert elapsed < INFINITY / 2
-    assert elapsed < ProcessKiller.TERM_TIMEOUT * N / 2  # kills should be concurrent and not wait for each process the maximum time
+    # kills should be concurrent and not wait for each process the maximum time
+    assert elapsed < ProcessKiller.TERM_TIMEOUT * N / 2
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
@@ -299,6 +302,7 @@ def test_process_killer_process_ignores_sigterm(process_killer: ProcessKiller):
     start_time = time.monotonic()
     process_killer.kill_process_tree(proc.pid)
     proc.wait()
+
     assert ProcessKiller.TERM_TIMEOUT / 2 < time.monotonic() - start_time < INFINITY / 2
 
 
