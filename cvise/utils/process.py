@@ -131,16 +131,19 @@ class ProcessKiller:
         self._thread.join(timeout=60)  # semi-arbitrary timeout to prevent even theoretical possibility of deadlocks
 
     def kill_process_tree(self, pid: int) -> None:
+        children = []
         with contextlib.suppress(psutil.NoSuchProcess):
             proc = psutil.Process(pid)
-            children = proc.children(recursive=True)
             children.append(proc)
+            children += proc.children(recursive=True)
 
         alive_children = []
         for child in children:
             with contextlib.suppress(psutil.NoSuchProcess):
                 child.terminate()
                 alive_children.append(child)
+        if not alive_children:
+            return
 
         with self._condition:
             sigkill_when = time.monotonic() + self.TERM_TIMEOUT
