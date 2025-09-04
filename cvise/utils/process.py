@@ -204,7 +204,6 @@ class ProcessKiller:
                 child.kill()
 
 
-
 class MPContextHook:
     """Wrapper around multiprocessing.context, with hooks to track process lifetimes.
 
