@@ -155,7 +155,7 @@ class ProcessKiller:
                 if not self._task_queue and self._shut_down:
                     break
                 if self._task_queue and not self._task_queue[0].proc.is_running():
-                    # the process exited - nothing left for this task, and no need to wait
+                    # the process exited - nothing left for this task, and no need to wait if we're blocking shutdown
                     heapq.heappop(self._task_queue)
                     continue
                 now = time.monotonic()

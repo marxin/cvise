@@ -11,7 +11,14 @@ import threading
 import time
 from typing import Callable, List
 
-from cvise.utils.process import MPContextHook, ProcessEvent, ProcessEventType, ProcessEventNotifier, ProcessMonitor
+from cvise.utils.process import (
+    MPContextHook,
+    ProcessEvent,
+    ProcessEventType,
+    ProcessEventNotifier,
+    ProcessKiller,
+    ProcessMonitor,
+)
 
 
 @pytest.fixture
@@ -20,6 +27,12 @@ def process_monitor():
     mpmanager = multiprocessing.Manager()
     with ProcessMonitor(mpmanager, parallel_tests=PARALLEL_TESTS) as process_monitor:
         yield process_monitor
+
+
+@pytest.fixture
+def process_killer():
+    with ProcessKiller() as process_killer:
+        yield process_killer
 
 
 @pytest.fixture
@@ -252,6 +265,41 @@ def test_process_monitor_stop_with_active_children(process_monitor: ProcessMonit
         pool.stop()
     # After workers termination, verify no children are reported.
     assert not process_monitor.get_worker_to_child_pids()
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_process_killer_simple(process_killer: ProcessKiller):
+    INFINITY = 100  # seconds
+    proc = subprocess.Popen(['sleep', str(INFINITY)])
+    start_time = time.monotonic()
+    process_killer.kill_process_tree(proc.pid)
+    proc.wait()
+    assert time.monotonic() - start_time < INFINITY / 2
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_process_killer_many(process_killer: ProcessKiller):
+    N = 10
+    INFINITY = 100  # seconds
+    procs = [subprocess.Popen(['sleep', str(INFINITY)]) for _ in range(N)]
+    start_time = time.monotonic()
+    for p in procs:
+        process_killer.kill_process_tree(p.pid)
+    for p in procs:
+        p.wait()
+    elapsed = time.monotonic() - start_time
+    assert elapsed < INFINITY / 2
+    assert elapsed < ProcessKiller.TERM_TIMEOUT * N / 2  # kills should be concurrent and not wait for each process the maximum time
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_process_killer_process_ignores_sigterm(process_killer: ProcessKiller):
+    INFINITY = 100  # seconds
+    proc = subprocess.Popen(f'trap "" TERM && sleep {INFINITY}', shell=True)
+    start_time = time.monotonic()
+    process_killer.kill_process_tree(proc.pid)
+    proc.wait()
+    assert ProcessKiller.TERM_TIMEOUT / 2 < time.monotonic() - start_time < INFINITY / 2
 
 
 def _wait_until(predicate: Callable) -> None:
