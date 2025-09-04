@@ -63,7 +63,7 @@ class ProcessMonitor:
 
     def on_worker_started(self, worker_pid: int) -> None:
         with self._lock:
-            # Children might've been already added in _on_pid_queue_event() if the pid_queue event arrived early.
+            # Children might've already been added in _on_pid_queue_event() if the pid_queue event arrived early.
             self._worker_to_child_pids.setdefault(worker_pid, set())
             # It's rare but still possible that a new worker reuses the PID from a recently terminated one.
             with contextlib.suppress(ValueError):
@@ -74,7 +74,6 @@ class ProcessMonitor:
             self._recent_dead_workers.append(worker_pid)
             pids_to_kill = self._worker_to_child_pids.pop(worker_pid)
 
-        # Don't hold the mutex while killing the process(es).
         for pid in pids_to_kill:
             self._killer.kill_process_tree(pid)
 
