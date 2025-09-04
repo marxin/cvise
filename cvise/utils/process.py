@@ -164,11 +164,11 @@ class ProcessKiller:
                     continue
                 task = heapq.heappop(self._task_queue)
             if task.hard_kill:
-                self._do_hard_kill_single(task.proc)
+                self._do_hard_kill(task.proc)
             else:
-                self._do_terminate_subtree(task.proc)
+                self._do_terminate(task.proc)
 
-    def _do_terminate_subtree(self, proc: psutil.Process) -> None:
+    def _do_terminate(self, proc: psutil.Process) -> None:
         try:
             children = proc.children(recursive=True) + [proc]
         except psutil.NoSuchProcess:
@@ -185,16 +185,22 @@ class ProcessKiller:
         if not alive_children:
             return
 
+        when = time.monotonic() + self.TERM_TIMEOUT
         with self._condition:
-            when = time.monotonic() + self.TERM_TIMEOUT
             for child in alive_children:
                 task = ProcessKillerTask(hard_kill=True, when=when, proc=child)
                 heapq.heappush(self._task_queue, task)
             self._condition.notify()
 
-    def _do_hard_kill_single(self, proc: psutil.Process) -> None:
-        with contextlib.suppress(psutil.NoSuchProcess):
-            proc.kill()
+    def _do_hard_kill(self, proc: psutil.Process) -> None:
+        try:
+            children = proc.children(recursive=True) + [proc]
+        except psutil.NoSuchProcess:
+            return
+
+        for child in children:
+            with contextlib.suppress(psutil.NoSuchProcess):
+                child.kill()
 
 
 
