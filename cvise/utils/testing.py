@@ -1,5 +1,5 @@
 from __future__ import annotations
-from concurrent.futures import FIRST_COMPLETED, Future, wait
+from concurrent.futures import ALL_COMPLETED, FIRST_COMPLETED, Future, wait
 import contextlib
 from dataclasses import dataclass
 import difflib
@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from typing import Any, Callable, Dict, List, Mapping, Set, Tuple, Union
 import concurrent.futures
@@ -278,6 +279,7 @@ class Job:
     pass_name: str
 
     start_time: float
+    timeout: float
     temporary_folder: Union[Path, None]
 
 
@@ -620,18 +622,52 @@ class TestManager:
             else:
                 logging.info(f'Created extra directory {extra_dir} for you to look at later')
 
+    def workaround_task_loss_after_cancellations(self) -> None:
+        """Workaround that attempts to prevent Pebble from losing scheduled tasks.
+
+        The problematic scenario is when Pebble starts terminating a worker for a canceled taskA, but the worker manages
+        to acknowledge the receipt of the next taskB shortly before dying - in that case taskB becomes associated with a
+        non-existing worker and never finishes.
+
+        Here we try to prevent this by scheduling "barrier" tasks, one for each worker, which report themselves as
+        started and then sleep. If a task gets affected by the bug it won't report anything, which we detect via a
+        hardcoded timeout and cancel all such "hung" tasks; at the end we notify all other tasks to complete. The
+        expectation is that this procedure leaves the workers in a good state ready for regular C-Vise jobs.
+        """
+        DEADLINE = 30  # seconds
+        task_id_queue = self.mpmanager.Queue()
+        stop_event = self.mpmanager.Event()
+        futures = [
+            self.worker_pool.schedule(_task_loss_workaround_barrier_job, args=[id, task_id_queue, stop_event])
+            for id in range(self.parallel_tests)
+        ]
+        start_time = time.monotonic()
+        started_jobs = set()
+        while len(started_jobs) < self.parallel_tests:
+            timeout = max(0, start_time + DEADLINE - time.monotonic())
+            try:
+                started_jobs.add(task_id_queue.get(timeout=timeout))
+            except queue.Empty:
+                break
+        stop_event.set()
+        for id in range(self.parallel_tests):
+            if id not in started_jobs:
+                futures[id].cancel()
+        wait(futures, return_when=ALL_COMPLETED, timeout=DEADLINE)
+        for future in futures:  # is only necessary if the workaround didn't work out
+            future.cancel()
+
     def workaround_missing_timeouts(self) -> None:
         """Workaround for Pebble sometimes losing a task, with its future neither resolving nor timing out.
 
         To avoid hanging C-Vise waiting for such never-ending tasks, we double-check timeouts of each task ourselves
         and force-cancel violating tasks.
         """
-        THRESHOLD = 3  # usually this factor is around 1, but durations can grow on a heavily loaded machine
+        THRESHOLD = 10  # usually this factor is around 1, but durations can grow on a heavily loaded machine
         now = time.monotonic()
         for job in self.jobs:
-            if now - job.start_time >= THRESHOLD * self.timeout:
-                self.mplogger.ignore_logs_from_job(job.order)
-                job.future.cancel()
+            if not job.future.done() and now - job.start_time >= THRESHOLD * job.timeout:
+                self.cancel_job(job)
 
     def process_done_futures(self) -> None:
         jobs_to_remove = []
@@ -754,11 +790,14 @@ class TestManager:
         new.take_file_ownership(env.test_case_path)
         self.success_candidate = new
 
-    def terminate_all(self):
+    def terminate_all(self) -> None:
         for job in self.jobs:
-            self.mplogger.ignore_logs_from_job(job.order)
-            job.future.cancel()
+            self.cancel_job(job)
         self.release_all_jobs()
+
+    def cancel_job(self, job: Job) -> None:
+        self.mplogger.ignore_logs_from_job(job.order)
+        job.future.cancel()
 
     def run_parallel_tests(self) -> None:
         assert not self.jobs
@@ -800,6 +839,11 @@ class TestManager:
             # exit if we found successful transformation(s) and don't want to try better ones
             if self.success_candidate and self.should_proceed_with_success_candidate():
                 break
+
+        for job in self.jobs:
+            self.cancel_job(job)
+        self.workaround_task_loss_after_cancellations()
+        self.release_all_jobs()
 
     def run_passes(self, passes: List[AbstractPass], interleaving: bool):
         assert len(passes) == 1 or interleaving
@@ -1049,8 +1093,9 @@ class TestManager:
                 job_timeout=self.timeout,
                 pid_queue=self.process_monitor.pid_queue,
             )
+        init_timeout = self.INIT_TIMEOUT_FACTOR * self.timeout
         future = self.worker_pool.schedule(
-            _worker_process_job_wrapper, args=[self.order, env.run], timeout=self.INIT_TIMEOUT_FACTOR * self.timeout
+            _worker_process_job_wrapper, args=[self.order, env.run], timeout=init_timeout
         )
         self.jobs.append(
             Job(
@@ -1061,6 +1106,7 @@ class TestManager:
                 pass_id=pass_id,
                 pass_name=repr(ctx.pass_),
                 start_time=time.monotonic(),
+                timeout=init_timeout,
                 temporary_folder=None,
             )
         )
@@ -1101,6 +1147,7 @@ class TestManager:
                 pass_id=pass_id,
                 pass_name=repr(ctx.pass_),
                 start_time=time.monotonic(),
+                timeout=self.timeout,
                 temporary_folder=folder,
             )
         )
@@ -1138,6 +1185,7 @@ class TestManager:
                 pass_id=None,
                 pass_name='Folding',
                 start_time=time.monotonic(),
+                timeout=self.timeout,
                 temporary_folder=folder,
             )
         )
@@ -1167,3 +1215,14 @@ def _worker_process_job_wrapper(job_order: int, func: Callable) -> Any:
         # from canceled jobs.
         with mplogging.worker_process_job_wrapper(job_order):
             return func()
+
+
+def _task_loss_workaround_barrier_job(task_id: int, task_id_queue: queue.Queue, stop_event: threading.Event) -> None:
+    """See workaround_task_loss_after_cancellations() for more context."""
+    with sigmonitor.scoped_use_exceptions():
+        try:
+            task_id_queue.put(task_id)
+            stop_event.wait()
+        except BaseException as e:
+            print(f'_task_loss_workaround_barrier_job task_id={task_id} exception: {e}', file=sys.stderr)
+            raise
