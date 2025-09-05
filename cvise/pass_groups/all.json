@@ -31,6 +31,7 @@
     {"pass": "balanced", "arg": "angles-only"},
     {"pass": "balanced", "arg": "square-only"},
     {"pass": "balanced", "arg": "parens-only"},
+    {"pass": "clangmodulemap"},
     {"pass": "clexhints", "arg": "rm-toks-1-to-4"},
     {"pass": "clexhints", "arg": "rm-toks-5-to-8"},
     {"pass": "clexhints", "arg": "rm-toks-9-to-12"},
