@@ -248,7 +248,7 @@ def manager(tmp_path: Path, input_file: Path, interestingness_script: str, job_t
     script_path.write_text(interestingness_script.format(test_case=input_file))
     script_path.chmod(0o744)
 
-    with testing.TestManager(
+    test_manager = testing.TestManager(
         pass_statistic,
         script_path,
         job_timeout,
@@ -266,8 +266,13 @@ def manager(tmp_path: Path, input_file: Path, interestingness_script: str, job_t
         START_WITH_PASS,
         SKIP_AFTER_N_TRANSFORMS,
         STOPPING_THRESHOLD,
-    ) as test_manager:
+    )
+    test_manager.__enter__()
+    try:
         yield test_manager
+    finally:
+        if test_manager.worker_pool:  # some tests shut down the manager themselves
+            test_manager.__exit__(None, None, None)
 
 
 def test_succeed_via_naive_pass(input_file: Path, manager):
@@ -400,6 +405,8 @@ def test_print_diff(
     pass_ = NaiveLinePass()
     with caplog.at_level(logging.INFO):
         manager.run_passes([pass_], interleaving=True)
+        # ensure logs are flushed by shutting down the manager
+        manager.__exit__(None, None, None)
 
     assert '-foo\n' in caplog.text
     assert '-bar\n' in caplog.text
@@ -423,6 +430,8 @@ def test_print_diff_colordiff(
     pass_ = NaiveLinePass()
     with caplog.at_level(logging.INFO):
         manager.run_passes([pass_], interleaving=True)
+        # ensure logs are flushed by shutting down the manager
+        manager.__exit__(None, None, None)
 
     log = '\n'.join(r.message for r in caplog.records)  # caplog.text would strip ANSI escape codes
     assert '\x1b[1;37m-foo\x1b[0;0m\n' in log
@@ -443,6 +452,8 @@ def test_print_diff_colordiff_failure(
     pass_ = NaiveLinePass()
     with caplog.at_level(logging.INFO):
         manager.run_passes([pass_], interleaving=True)
+        # ensure logs are flushed by shutting down the manager
+        manager.__exit__(None, None, None)
 
     assert '-foo\n' in caplog.text
     assert '-bar\n' in caplog.text
@@ -465,6 +476,8 @@ def test_subprocess_termination(manager: testing.TestManager):
     """Verifies that spawned "hung" subprocesses are terminated."""
     p = NaiveLinePass()
     manager.run_passes([p], interleaving=False)
+    # ensure process termination logic completes by shutting down the manager
+    manager.__exit__(None, None, None)
     assert _find_processes_by_cmd_line(_unique_sleep_infinity()) == []
 
 
