@@ -623,7 +623,7 @@ class TestManager:
     def workaround_missing_timeouts(self) -> None:
         """Workaround for Pebble sometimes losing a task, with its future neither resolving nor timing out.
 
-        To avoid hanging C-Vise waiting for this never-ending task, we double-check timeouts of each task ourselves
+        To avoid hanging C-Vise waiting for such never-ending tasks, we double-check timeouts of each task ourselves
         and force-cancel violating tasks.
         """
         THRESHOLD = 3  # usually this factor is around 1, but durations can grow on a heavily loaded machine
