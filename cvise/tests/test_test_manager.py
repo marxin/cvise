@@ -271,7 +271,7 @@ def manager(tmp_path: Path, input_file: Path, interestingness_script: str, job_t
     try:
         yield test_manager
     finally:
-        if test_manager.worker_pool:  # check if not shut down yet
+        if test_manager.worker_pool:  # some tests shut down the manager themselves
             test_manager.__exit__(None, None, None)
 
 
