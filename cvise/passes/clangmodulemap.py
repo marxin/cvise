@@ -82,7 +82,7 @@ class _UseDecl:
 @dataclass
 class _ModuleDecl:
     loc: _SourceLoc
-    header_loc: _SourceLoc
+    title_loc: _SourceLoc  # location of " ... module ... {"
     close_brace_loc: _SourceLoc
     id: str
     headers: List[_HeaderDecl]
@@ -119,8 +119,8 @@ def _create_hints_for_module(mod: _ModuleDecl, file_id: int, toplevel: bool, hin
                 'p': [
                     {
                         'f': file_id,
-                        'l': mod.header_loc.begin,
-                        'r': mod.header_loc.end,
+                        'l': mod.title_loc.begin,
+                        'r': mod.title_loc.end,
                     },
                     {
                         'f': file_id,
@@ -211,12 +211,12 @@ def _try_parse_module_decl(line: bytes, loc: _SourceLoc) -> Union[_ModuleDecl, N
     if not m:
         return None
     module_id = m.group(1).decode().strip('"')
-    header_loc = copy.copy(loc)
+    title_loc = copy.copy(loc)
     # close_brace_loc will be replaced with a real value once the closing brace line is parsed
-    close_brace_loc = header_loc
+    close_brace_loc = title_loc
     return _ModuleDecl(
         loc=loc,
-        header_loc=header_loc,
+        title_loc=title_loc,
         close_brace_loc=close_brace_loc,
         id=module_id,
         headers=[],
