@@ -58,7 +58,7 @@ class ClangModuleMapPass(HintBasedPass):
 def _interesting_file(path: Path) -> bool:
     if path.is_dir() or path.is_symlink():
         return False
-    return any(fnmatch.fnmatch(path.name, pat) for pat in _FILE_PATTERNS)
+    return any(fnmatch.fnmatch(path.name, p) for p in _FILE_PATTERNS)
 
 
 @dataclass
