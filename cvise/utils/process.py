@@ -1,6 +1,8 @@
 """Helpers for interacting with child processes."""
 
+from __future__ import annotations
 import collections
+from concurrent.futures import ALL_COMPLETED, Future, wait
 import contextlib
 from dataclasses import dataclass, field
 from enum import auto, Enum, unique
@@ -15,9 +17,12 @@ import shlex
 import subprocess
 import threading
 import time
-from typing import Dict, Iterator, List, Mapping, Set, Tuple, Union
+from typing import Callable, Dict, Iterator, List, Mapping, Set, Tuple, Union
 
 from cvise.utils import sigmonitor
+
+
+_MPTaskLossWorkaroundObj: Union[MPTaskLossWorkaround, None] = None
 
 
 @unique
@@ -334,6 +339,83 @@ class ProcessEventNotifier:
             if self._pid_queue:
                 event_type = ProcessEventType.ORPHANED if proc.returncode is None else ProcessEventType.FINISHED
                 self._pid_queue.put(ProcessEvent(worker_pid=self._my_pid, child_pid=proc.pid, event_type=event_type))
+
+
+class MPTaskLossWorkaround:
+    """Workaround that attempts to prevent Pebble from losing scheduled tasks.
+
+    The problematic scenario is when Pebble starts terminating a worker for a canceled taskA, but the worker manages to
+    acknowledge the receipt of the next taskB shortly before dying - in that case taskB becomes associated with a
+    non-existing worker and never finishes.
+
+    Here we try to prevent this by scheduling "barrier" tasks, one for each worker, which report themselves as started
+    and then sleep. If a task gets affected by the bug it won't report anything, which we detect via a hardcoded timeout
+    and cancel all such "hung" tasks; at the end we notify all other tasks to complete. The expectation is that this
+    procedure leaves the workers in a good state ready for regular C-Vise jobs.
+    """
+
+    _DEADLINE = 30  # seconds
+    _POLL_LOOP_STEP = 0.1  # seconds
+
+    def __init__(self, worker_count: int):
+        self._worker_count = worker_count
+        # Don't use Manager-based synchronization primitives, since they aren't exception-safe and hence won't work
+        # properly when the worker receives a signal.
+        self._task_status_queue = multiprocessing.SimpleQueue()
+        self._task_exit_flag = multiprocessing.Event()
+
+    def worker_process_initializer(self) -> Callable:
+        """Returns a function to be called in a worker process in order to initialize global state needed later.
+
+        Also is used to share non-managed multiprocessing synchronization primitives, which in the "forkserver" mode can
+        only be done during process initialization.
+        """
+        return self._initialize_in_worker
+
+    def execute(self, pool: pebble.ProcessPool) -> None:
+        futures: List[Future] = [pool.schedule(self._job, args=[task_id]) for task_id in range(self._worker_count)]
+        start_time = time.monotonic()
+        task_pids: Dict[int, int] = {}
+        while len(task_pids) < self._worker_count:
+            while not self._task_status_queue.empty():
+                task_id, pid = self._task_status_queue.get()
+                task_pids[task_id] = pid
+            timeout = min(self._POLL_LOOP_STEP, start_time + self._DEADLINE - time.monotonic())
+            if timeout < 0:
+                break
+            time.sleep(timeout)
+        self._task_exit_flag.set()
+        for _ in range(self._DEADLINE):
+            new_task_pids = {}
+            for task_id, pid in task_pids.items():
+                try:
+                    psutil.Process(pid)
+                except psutil.NoSuchProcess:
+                    futures[task_id].cancel()
+                else:
+                    new_task_pids[task_id] = pid
+            task_pids = new_task_pids
+            _done, still_running = wait(futures, return_when=ALL_COMPLETED, timeout=self._POLL_LOOP_STEP)
+            if not still_running:
+                break
+        for future in futures:  # is only necessary if the workaround didn't work out and we hit timeout
+            future.cancel()
+        self._task_exit_flag.clear()
+
+    def _initialize_in_worker(self) -> None:
+        global _MPTaskLossWorkaroundObj
+        _MPTaskLossWorkaroundObj = self
+
+    @staticmethod
+    def _job(task_id: int) -> None:
+        assert _MPTaskLossWorkaroundObj
+        pid = os.getpid()
+        status_queue = _MPTaskLossWorkaroundObj._task_status_queue
+        exit_flag = _MPTaskLossWorkaroundObj._task_exit_flag
+        with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION_ON_DEMAND):
+            status_queue.put((task_id, pid))
+            while not exit_flag.wait(timeout=MPTaskLossWorkaround._POLL_LOOP_STEP):
+                sigmonitor.maybe_retrigger_action()
 
 
 @contextlib.contextmanager
