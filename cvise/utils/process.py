@@ -375,26 +375,34 @@ class MPTaskLossWorkaround:
     def execute(self, pool: pebble.ProcessPool) -> None:
         futures: List[Future] = [pool.schedule(self._job, args=[task_id]) for task_id in range(self._worker_count)]
         start_time = time.monotonic()
-        task_pids: Dict[int, int] = {}
-        while len(task_pids) < self._worker_count:
+        task_procs: Dict[int, Union[psutil.Process, None]] = {}
+        while len(task_procs) < self._worker_count:
             while not self._task_status_queue.empty():
                 task_id, pid = self._task_status_queue.get()
-                task_pids[task_id] = pid
+                try:
+                    task_procs[task_id] = psutil.Process(pid)
+                except psutil.NoSuchProcess:
+                    task_procs[task_id] = None
             timeout = min(self._POLL_LOOP_STEP, start_time + self._DEADLINE - time.monotonic())
             if timeout < 0:
                 break
             time.sleep(timeout)
         self._task_exit_flag.set()
-        for _ in range(self._DEADLINE):
-            new_task_pids = {}
-            for task_id, pid in task_pids.items():
-                try:
-                    psutil.Process(pid)
-                except psutil.NoSuchProcess:
-                    futures[task_id].cancel()
+        start_time = time.monotonic()
+        while time.monotonic() < start_time + self._DEADLINE:
+            while not self._task_status_queue.empty():
+                task_id, pid = self._task_status_queue.get()
+                with contextlib.suppress(psutil.NoSuchProcess):
+                    task_procs[task_id] = psutil.Process(pid)
+
+            new_task_procs = {}
+            for task_id, proc in task_procs.items():
+                if proc and proc.is_running():
+                    new_task_procs[task_id] = proc
                 else:
-                    new_task_pids[task_id] = pid
-            task_pids = new_task_pids
+                    futures[task_id].cancel()
+            task_procs = new_task_procs
+
             _done, still_running = wait(futures, return_when=ALL_COMPLETED, timeout=self._POLL_LOOP_STEP)
             if not still_running:
                 break
@@ -409,11 +417,10 @@ class MPTaskLossWorkaround:
     @staticmethod
     def _job(task_id: int) -> None:
         assert _MPTaskLossWorkaroundObj
-        pid = os.getpid()
         status_queue = _MPTaskLossWorkaroundObj._task_status_queue
         exit_flag = _MPTaskLossWorkaroundObj._task_exit_flag
         with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION_ON_DEMAND):
-            status_queue.put((task_id, pid))
+            status_queue.put((task_id, os.getpid()))
             while not exit_flag.wait(timeout=MPTaskLossWorkaround._POLL_LOOP_STEP):
                 sigmonitor.maybe_retrigger_action()
 
