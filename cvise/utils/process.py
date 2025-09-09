@@ -374,34 +374,31 @@ class MPTaskLossWorkaround:
 
     def execute(self, pool: pebble.ProcessPool) -> None:
         futures: List[Future] = [pool.schedule(self._job, args=[task_id]) for task_id in range(self._worker_count)]
-        start_time = time.monotonic()
         task_procs: Dict[int, Union[psutil.Process, None]] = {}
-        while len(task_procs) < self._worker_count:
+
+        def pump_task_queue():
             while not self._task_status_queue.empty():
                 task_id, pid = self._task_status_queue.get()
                 try:
                     task_procs[task_id] = psutil.Process(pid)
                 except psutil.NoSuchProcess:
-                    task_procs[task_id] = None
-            timeout = min(self._POLL_LOOP_STEP, start_time + self._DEADLINE - time.monotonic())
-            if timeout < 0:
+                    task_procs[task_id] = None  # remember that the task was claimed by a now-dead worker
+
+        start_time = time.monotonic()
+        while time.monotonic() < start_time + self._DEADLINE:
+            pump_task_queue()
+            if len(task_procs) == self._worker_count:
                 break
-            time.sleep(timeout)
+            time.sleep(self._POLL_LOOP_STEP)
         self._task_exit_flag.set()
         start_time = time.monotonic()
         while time.monotonic() < start_time + self._DEADLINE:
-            while not self._task_status_queue.empty():
-                task_id, pid = self._task_status_queue.get()
-                with contextlib.suppress(psutil.NoSuchProcess):
-                    task_procs[task_id] = psutil.Process(pid)
+            pump_task_queue()
 
-            new_task_procs = {}
             for task_id, proc in task_procs.items():
-                if proc and proc.is_running():
-                    new_task_procs[task_id] = proc
-                else:
+                if not proc or not proc.is_running():
+                    task_procs[task_id] = None
                     futures[task_id].cancel()
-            task_procs = new_task_procs
 
             _done, still_running = wait(futures, return_when=ALL_COMPLETED, timeout=self._POLL_LOOP_STEP)
             if not still_running:
