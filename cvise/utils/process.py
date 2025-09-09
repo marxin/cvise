@@ -22,7 +22,7 @@ from typing import Callable, Dict, Iterator, List, Mapping, Set, Tuple, Union
 from cvise.utils import sigmonitor
 
 
-_MPTaskLossWorkaroundObj: Union[MPTaskLossWorkaround, None] = None
+_mp_task_loss_workaround_obj: Union[MPTaskLossWorkaround, None] = None
 
 
 @unique
@@ -364,13 +364,10 @@ class MPTaskLossWorkaround:
         self._task_status_queue = multiprocessing.SimpleQueue()
         self._task_exit_flag = multiprocessing.Event()
 
-    def worker_process_initializer(self) -> Callable:
-        """Returns a function to be called in a worker process in order to initialize global state needed later.
-
-        Also is used to share non-managed multiprocessing synchronization primitives, which in the "forkserver" mode can
-        only be done during process initialization.
-        """
-        return self._initialize_in_worker
+    def initialize_in_worker(self) -> None:
+        """Must be called in a worker process in order to initialize global state needed later."""
+        global _mp_task_loss_workaround_obj
+        _mp_task_loss_workaround_obj = self
 
     def execute(self, pool: pebble.ProcessPool) -> None:
         futures: List[Future] = [pool.schedule(self._job, args=[task_id]) for task_id in range(self._worker_count)]
@@ -408,15 +405,11 @@ class MPTaskLossWorkaround:
             future.cancel()
         self._task_exit_flag.clear()
 
-    def _initialize_in_worker(self) -> None:
-        global _MPTaskLossWorkaroundObj
-        _MPTaskLossWorkaroundObj = self
-
     @staticmethod
     def _job(task_id: int) -> None:
-        assert _MPTaskLossWorkaroundObj
-        status_queue = _MPTaskLossWorkaroundObj._task_status_queue
-        exit_flag = _MPTaskLossWorkaroundObj._task_exit_flag
+        assert _mp_task_loss_workaround_obj
+        status_queue = _mp_task_loss_workaround_obj._task_status_queue
+        exit_flag = _mp_task_loss_workaround_obj._task_exit_flag
         with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION_ON_DEMAND):
             status_queue.put((task_id, os.getpid()))
             while not exit_flag.wait(timeout=MPTaskLossWorkaround._POLL_LOOP_STEP):

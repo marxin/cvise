@@ -431,7 +431,7 @@ class TestManager:
 
         worker_initializers = [
             self.mplogger.worker_process_initializer(),
-            self.mp_task_loss_workaround.worker_process_initializer(),
+            self.mp_task_loss_workaround.initialize_in_worker,
         ]
         self.worker_pool = pebble.ProcessPool(
             max_workers=self.parallel_tests,
