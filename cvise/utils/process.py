@@ -277,9 +277,9 @@ class ProcessEventNotifier:
         if shell:
             assert isinstance(cmd, str)
 
-        # Prevent signals from interrupting this "transaction": aborting it in the middle may result in spawning a
-        # process without having its PID reported to the main C-Vise process, escaping resource controls.
-        with sigmonitor.scoped_delay_signals():
+        # Prevent signals from interrupting in the middle of any operation besides proc.communicate() - abrupt exits
+        # could result in spawning a child without having its PID reported or leaving the queue in inconsistent state.
+        with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION_ON_DEMAND):
             proc = subprocess.Popen(
                 cmd,
                 stdout=stdout,
@@ -290,12 +290,13 @@ class ProcessEventNotifier:
             )
             self._notify_start(proc)
 
-        with self._auto_notify_end(proc):
-            # If a timeout was specified and the process exceeded it, we need to kill it - otherwise we'll leave a
-            # zombie process on *nix. If it's KeyboardInterrupt/SystemExit, the worker will terminate soon, so we may
-            # have not enough time to properly kill children, and zombies aren't a concern.
-            with _auto_kill_on_timeout(proc):
-                stdout, stderr = proc.communicate(input=input, timeout=timeout)
+            with self._auto_notify_end(proc):
+                # If a timeout was specified and the process exceeded it, we need to kill it - otherwise we'll leave a
+                # zombie process on *nix. If it's KeyboardInterrupt/SystemExit, the worker will terminate soon, so we may
+                # have not enough time to properly kill children, and zombies aren't a concern.
+                with _auto_kill_on_timeout(proc):
+                    with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION):
+                        stdout, stderr = proc.communicate(input=input, timeout=timeout)
 
         return stdout, stderr, proc.returncode
 

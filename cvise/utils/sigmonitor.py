@@ -15,91 +15,93 @@ and letting the code raise the exception to trigger the shutdown.
 """
 
 from contextlib import contextmanager
+import enum
 import os
 import signal
-from typing import Iterator, Set
+from typing import Iterator
 
 
-# Signals we monitor, in the preference order: SIGTERM is more "important".
-_SIGNAL_TO_EXCEPTION = {
-    signal.SIGTERM: lambda: SystemExit(1),
-    signal.SIGINT: lambda: KeyboardInterrupt(),
-}
+@enum.unique
+class Mode(enum.Enum):
+    RAISE_EXCEPTION = enum.auto()
+    QUICK_EXIT = enum.auto()
+    RAISE_EXCEPTION_ON_DEMAND = enum.auto()
 
 
-_enabled: bool = False
-_use_exceptions: bool = False
-_observed_signals: Set[int] = set()
+_mode: Mode = Mode.RAISE_EXCEPTION
+_sigint_observed: bool = False
+_sigterm_observed: bool = False
 
 
-def init(use_exceptions: bool) -> None:
-    global _enabled
-    global _use_exceptions
-    _enabled = True
-    _use_exceptions = use_exceptions
-    for signum in _SIGNAL_TO_EXCEPTION.keys():
-        # Ignore old signal handlers (in tests, the old handler could've been installed by ourselves as well; calling it
-        # would result in an infinite recursion).
-        signal.signal(signum, _on_signal)
+def init(mode: Mode) -> None:
+    global _mode
+    _mode = mode
+    # Ignore old signal handlers (in tests, the old handler could've been installed by ourselves as well; calling it
+    # would result in an infinite recursion).
+    signal.signal(signal.SIGTERM, _on_signal)
+    signal.signal(signal.SIGINT, _on_signal)
 
 
 def maybe_retrigger_action() -> None:
-    if not _enabled:
-        return
-    # If multiple signals occurred, prefer the one mentioned earlier (SIGTERM).
-    for signum in _SIGNAL_TO_EXCEPTION.keys():
-        if signum in _observed_signals:
-            _trigger_signal_action(signum)
-            return
+    # If multiple signals occurred, prefer SIGTERM.
+    if _sigterm_observed:
+        _trigger_signal_action(signal.SIGTERM)
+    elif _sigint_observed:
+        _trigger_signal_action(signal.SIGINT)
 
 
 @contextmanager
-def scoped_use_exceptions() -> Iterator[None]:
-    global _use_exceptions
+def scoped_mode(new_mode: Mode) -> Iterator[None]:
+    global _mode
 
     # It's unlikely to happen, but cheap to check: no need to enter the scope if we know we'll terminate afterwards.
-    maybe_retrigger_action()
+    _implicit_maybe_retrigger_action()
 
-    assert not _use_exceptions
+    previous_mode = _mode
     try:
-        _use_exceptions = True
+        _mode = new_mode
         yield
     finally:
-        _use_exceptions = False
-        # If a signal occured within the scope, it's been propagated as an exception (letting the code in the scope do
-        # resource cleanup) up to this level, but now that we're leaving the scope we should terminate the process
-        # immediately instead.
-        maybe_retrigger_action()
-
-
-@contextmanager
-def scoped_delay_signals() -> Iterator[None]:
-    global _enabled
-    old_enabled = _enabled
-    try:
-        _enabled = False
-        yield
-    finally:
-        _enabled = old_enabled
-        maybe_retrigger_action()
+        _mode = previous_mode
+        # Let the signals, if any, propagate according to the new mode.
+        _implicit_maybe_retrigger_action()
 
 
 def _on_signal(signum: int, frame) -> None:
-    _observed_signals.add(signum)
-    if not _enabled:
+    global _sigint_observed
+    global _sigterm_observed
+    if signum == signal.SIGTERM:
+        _sigterm_observed = True
+    elif signum == signal.SIGINT:
+        _sigint_observed = True
+
+    if _is_on_demand_mode():
         return
     # Prefer the standard signal handler in case there's some nontrivial logic in it (e.g., not raising an exception
     # depending on stack frame contents).
-    if _use_exceptions and signum == signal.SIGTERM:
+    if _mode == Mode.RAISE_EXCEPTION and signum == signal.SIGTERM:
         signal.default_int_handler(signum, frame)
     else:
         _trigger_signal_action(signum)
     # no code after this point - the action above might've raised the exception or terminated the process
 
 
+def _is_on_demand_mode() -> bool:
+    return _mode == Mode.RAISE_EXCEPTION_ON_DEMAND
+
+
+def _implicit_maybe_retrigger_action() -> None:
+    if not _is_on_demand_mode():
+        maybe_retrigger_action()
+
+
 def _trigger_signal_action(signum: int) -> None:
-    if _use_exceptions:
-        raise _SIGNAL_TO_EXCEPTION[signum]()
-    else:
+    if _mode == Mode.QUICK_EXIT:
         os._exit(1)
+    elif signum == signal.SIGTERM:
+        raise SystemExit(1)
+    elif signum == signal.SIGINT:
+        raise KeyboardInterrupt()
+    else:
+        raise ValueError(f'Unexpected signal {signum}')
     # no code after this point - this is unreachable
