@@ -413,6 +413,8 @@ class MPTaskLossWorkaround:
         assert _mp_task_loss_workaround_obj
         status_queue = _mp_task_loss_workaround_obj._task_status_queue
         exit_flag = _mp_task_loss_workaround_obj._task_exit_flag
+        # Don't allow signals to interrupt IPC primitives since this might leave them in locked/inconsistent state; only
+        # exit in the safe location from the pool loop.
         with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION_ON_DEMAND):
             status_queue.put((task_id, os.getpid()))
             while not exit_flag.wait(timeout=MPTaskLossWorkaround._POLL_LOOP_STEP):
