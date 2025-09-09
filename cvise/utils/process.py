@@ -17,7 +17,7 @@ import shlex
 import subprocess
 import threading
 import time
-from typing import Callable, Dict, Iterator, List, Mapping, Set, Tuple, Union
+from typing import Dict, Iterator, List, Mapping, Set, Tuple, Union
 
 from cvise.utils import sigmonitor
 
