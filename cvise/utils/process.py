@@ -349,9 +349,10 @@ class MPTaskLossWorkaround:
     non-existing worker and never finishes.
 
     Here we try to prevent this by scheduling "barrier" tasks, one for each worker, which report themselves as started
-    and then sleep. If a task gets affected by the bug it won't report anything, which we detect via a hardcoded timeout
-    and cancel all such "hung" tasks; at the end we notify all other tasks to complete. The expectation is that this
-    procedure leaves the workers in a good state ready for regular C-Vise jobs.
+    and then sleep. If a task gets affected by the bug it either (a) won't report anything, or (b) will terminate
+    abruptly without resolving its future; we detect "a" via a hardcoded timeout, and "b" by monitoring the task's
+    worker PID, and cancel all such "hung" tasks; at the end we notify all other tasks to complete. The expectation is
+    that this procedure leaves the workers in a good state ready for regular C-Vise jobs.
     """
 
     _DEADLINE = 30  # seconds
