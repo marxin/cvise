@@ -402,8 +402,10 @@ class MPTaskLossWorkaround:
             _done, still_running = wait(futures, return_when=ALL_COMPLETED, timeout=self._POLL_LOOP_STEP)
             if not still_running:
                 break
-        for future in futures:  # is only necessary if the workaround didn't work out and we hit timeout
-            future.cancel()
+        else:
+            # The workaround failed to finish within the timeout - forcefully abort the sleeping jobs to free the pool.
+            for future in futures:
+                future.cancel()
         self._task_exit_flag.clear()
 
     @staticmethod
