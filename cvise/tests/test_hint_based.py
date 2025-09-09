@@ -13,11 +13,14 @@ class StubHintBasedPass(HintBasedPass):
         self.contents_to_hints = contents_to_hints
         self.vocabulary = vocabulary or []
 
+    def output_hint_types(self) -> List[str]:
+        return self.vocabulary
+
     def generate_hints(self, test_case: Path, *args, **kwargs) -> HintBundle:
         contents = test_case.read_bytes()
         hints = self.contents_to_hints.get(contents, [])
         bundle = HintBundle(vocabulary=self.vocabulary, hints=hints)
-        validate_hint_bundle(bundle)
+        validate_hint_bundle(bundle, allowed_hint_types=self.output_hint_types())
         return bundle
 
 

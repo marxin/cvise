@@ -16,7 +16,7 @@ def input_path(tmp_path: Path) -> Path:
 def init_pass(tmp_dir: Path, input_path: Path) -> Tuple[BlankPass, Union[HintState, None]]:
     pass_ = BlankPass()
     state = pass_.new(input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None))
-    validate_stored_hints(state)
+    validate_stored_hints(state, pass_)
     return pass_, state
 
 

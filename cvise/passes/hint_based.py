@@ -139,6 +139,13 @@ class HintBasedPass(AbstractPass):
     ) -> HintBundle:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'generate_hints'!")
 
+    def output_hint_types(self) -> List[str]:
+        """Declares hint types that are produced by this pass.
+
+        A pass must override this method if it produces hints with a nonempty type (the "t" field).
+        """
+        return []
+
     def create_elementary_state(self, hint_count: int) -> Any:
         """Creates a single underlying state for enumerating hints of a particular type.
 

@@ -23,7 +23,7 @@ class CommentsTestCase(unittest.TestCase):
         self.input_path.write_text('This /* contains *** /* two */ /*comments*/!\n')
 
         state = self._pass_new()
-        validate_stored_hints(state)
+        validate_stored_hints(state, self.pass_)
         (_, state) = self.pass_.transform(
             self.input_path,
             state,
@@ -38,7 +38,7 @@ class CommentsTestCase(unittest.TestCase):
         self.input_path.write_text('This ///contains //two\n //comments\n!\n')
 
         state = self._pass_new()
-        validate_stored_hints(state)
+        validate_stored_hints(state, self.pass_)
         (_, state) = self.pass_.transform(
             self.input_path,
             state,
@@ -53,7 +53,7 @@ class CommentsTestCase(unittest.TestCase):
         self.input_path.write_text('/*This*/ ///contains //two\n //comments\n!\n')
 
         state = self._pass_new()
-        validate_stored_hints(state)
+        validate_stored_hints(state, self.pass_)
         (result, state) = self.pass_.transform(
             self.input_path,
             state,
@@ -81,7 +81,7 @@ class CommentsTestCase(unittest.TestCase):
         self.input_path.write_text('/*This*/ ///contains //two\n //comments\n!\n')
 
         state = self._pass_new()
-        validate_stored_hints(state)
+        validate_stored_hints(state, self.pass_)
         (result, state) = self.pass_.transform(
             self.input_path,
             state,
@@ -106,7 +106,7 @@ class CommentsTestCase(unittest.TestCase):
         self.input_path.write_bytes(b'int x;\n// Streichholzsch\xc3\xa4chtelchen\nchar t[] = "nonutf\xff";\n// \xff\n')
 
         state = self._pass_new()
-        validate_stored_hints(state)
+        validate_stored_hints(state, self.pass_)
         (_, state) = self.pass_.transform(
             self.input_path,
             state,
@@ -124,7 +124,7 @@ class CommentsTestCase(unittest.TestCase):
 
         state = self._pass_new()
         output_path = self.tmp_dir / 'transformed_test_case'
-        validate_stored_hints(state)
+        validate_stored_hints(state, self.pass_)
         (_, state) = self.pass_.transform(
             output_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=self.input_path
         )

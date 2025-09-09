@@ -21,7 +21,7 @@ def init_pass(transformation: str, tmp_dir: Path, input_path: Path) -> Tuple[Cla
     pass_ = ClangHintsPass(transformation, find_external_programs())
     pass_.user_clang_delta_std = None
     state = pass_.new(input_path, tmp_dir=tmp_dir, job_timeout=100, process_event_notifier=ProcessEventNotifier(None))
-    validate_stored_hints(state)
+    validate_stored_hints(state, pass_)
     return pass_, state
 
 

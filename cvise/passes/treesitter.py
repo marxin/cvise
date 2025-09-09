@@ -1,6 +1,7 @@
 import msgspec
 from pathlib import Path
 import subprocess
+from typing import List
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.hint import HintBundle
@@ -15,6 +16,13 @@ class TreeSitterPass(HintBasedPass):
 
     def supports_dir_test_cases(self):
         return True
+
+    def output_hint_types(self) -> List[str]:
+        # Must stay in sync with the heuristic implementations in //treesitter_delta/.
+        if self.arg == 'replace-function-def-with-decl':
+            return ['regular', 'template-function']
+        else:
+            return []
 
     def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
         # If the test case is a single file, simply specify its path via cmd line. If it's a directory, enumerate all

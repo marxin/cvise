@@ -36,6 +36,9 @@ class ClangModuleMapPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
+    def output_hint_types(self) -> List[str]:
+        return [v.value[1] for v in _Vocab]
+
     def generate_hints(self, test_case: Path, *args, **kwargs):
         paths = list(test_case.rglob('*')) if test_case.is_dir() else [test_case]
         interesting_paths = [p for p in paths if _interesting_file(p)]
