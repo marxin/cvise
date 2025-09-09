@@ -371,6 +371,7 @@ class MPTaskLossWorkaround:
         _mp_task_loss_workaround_obj = self
 
     def execute(self, pool: pebble.ProcessPool) -> None:
+        # 1. Send out the barrier tasks.
         futures: List[Future] = [pool.schedule(self._job, args=[task_id]) for task_id in range(self._worker_count)]
         task_procs: Dict[int, Union[psutil.Process, None]] = {}
 
@@ -382,12 +383,15 @@ class MPTaskLossWorkaround:
                 except psutil.NoSuchProcess:
                     task_procs[task_id] = None  # remember that the task was claimed by a now-dead worker
 
+        # 2. Detect which tasks started successfully.
         start_time = time.monotonic()
         while time.monotonic() < start_time + self._DEADLINE:
             pump_task_queue()
             if len(task_procs) == self._worker_count:
                 break
             time.sleep(self._POLL_LOOP_STEP)  # SimpleQueue doesn't provide polling
+
+        # 3. Shut down all tasks - use graceful termination for the successfully started ones, and cancel the lost ones.
         self._task_exit_flag.set()
         start_time = time.monotonic()
         while time.monotonic() < start_time + self._DEADLINE:
@@ -399,10 +403,10 @@ class MPTaskLossWorkaround:
             _done, still_running = wait(futures, return_when=ALL_COMPLETED, timeout=self._POLL_LOOP_STEP)
             if not still_running:
                 break
-        else:
-            # The workaround failed to finish within the timeout - forcefully abort the sleeping jobs to free the pool.
-            for future in futures:
-                future.cancel()
+
+        # 4. Cleanup; make sure to free the pool if the graceful termination above didn't finish within the timeout.
+        for future in futures:
+            future.cancel()
         self._task_exit_flag.clear()
 
     @staticmethod
