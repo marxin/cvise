@@ -359,8 +359,8 @@ class MPTaskLossWorkaround:
 
     def __init__(self, worker_count: int):
         self._worker_count = worker_count
-        # Don't use Manager-based synchronization primitives, since they aren't exception-safe and hence won't work
-        # properly when the worker receives a signal.
+        # Don't use Manager-based synchronization primitives because of their poor performance. Don't use Queue since
+        # it uses background threads which breaks our assumptions and isn't compatible with quick exit on signals.
         self._task_status_queue = multiprocessing.SimpleQueue()
         self._task_exit_flag = multiprocessing.Event()
 
