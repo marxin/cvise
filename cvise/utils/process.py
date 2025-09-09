@@ -389,7 +389,7 @@ class MPTaskLossWorkaround:
             pump_task_queue()
             if len(task_procs) == self._worker_count:
                 break
-            time.sleep(self._POLL_LOOP_STEP)
+            time.sleep(self._POLL_LOOP_STEP)  # SimpleQueue doesn't provide polling
         self._task_exit_flag.set()
         start_time = time.monotonic()
         while time.monotonic() < start_time + self._DEADLINE:
