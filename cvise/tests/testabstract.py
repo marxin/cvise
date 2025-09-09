@@ -4,7 +4,7 @@ import tempfile
 from typing import Set, Tuple, Union
 
 from cvise.passes.abstract import AbstractPass, PassResult
-from cvise.passes.hint_based import HintState
+from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.fileutil import CloseableTemporaryFile
 from cvise.utils.hint import HINT_SCHEMA_STRICT, HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
@@ -52,21 +52,24 @@ def collect_all_transforms_dir(pass_: AbstractPass, state, input_path: Path) -> 
     return all_outputs
 
 
-def validate_stored_hints(state: Union[HintState, None]) -> None:
+def validate_stored_hints(state: Union[HintState, None], pass_: HintBasedPass) -> None:
     if state is None:
         return
+    output_types = set(pass_.output_hint_types())
     for substate in state.per_type_states:
         path = state.tmp_dir / substate.hints_file_name
         bundle = load_hints(path, 0, substate.underlying_state.instances)
-        validate_hint_bundle(bundle)
+        validate_hint_bundle(bundle, output_types)
 
 
-def validate_hint_bundle(bundle: HintBundle) -> None:
+def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Set[str]) -> None:
     for hint in bundle.hints:
         jsonschema.validate(hint, HINT_SCHEMA_STRICT)
         # Also check the things that the JSON Schema cannot enforce.
         if 't' in hint:
             assert hint['t'] < len(bundle.vocabulary)
+            hint_type = bundle.vocabulary[hint['t']]
+            assert hint_type in allowed_hint_types
         for patch in hint['p']:
             assert patch['l'] < patch['r']
             if 'v' in patch:

@@ -19,6 +19,9 @@ class CommentsPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
+    def output_hint_types(self) -> List[str]:
+        return list(self.INITIAL_VOCAB)
+
     def generate_hints(self, test_case: Path, *args, **kwargs):
         vocab = list(self.INITIAL_VOCAB)
         hints = []

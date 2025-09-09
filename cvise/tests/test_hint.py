@@ -292,7 +292,7 @@ def test_apply_hints_dir(tmp_path: Path):
     hint_un = {'p': [{'l': 0, 'r': 2, 'f': 0}]}
     hint_ar = {'p': [{'l': 6, 'r': 8, 'f': 1}]}
     bundle = HintBundle(hints=[hint_oo, hint_un, hint_ar], vocabulary=vocab)
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, allowed_hint_types=set())
 
     output_dir = tmp_path / 'output'
     apply_hints([bundle], input_dir, output_dir)
@@ -312,7 +312,7 @@ def test_apply_hints_dir_nonexisting_parent(tmp_path: Path):
     (input_dir / 'foo.h').write_text('foo')
     (input_dir / 'bar.cc').write_text('void bar();')
     bundle = HintBundle(hints=[])
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, allowed_hint_types=set())
 
     non_existing_dir = tmp_path / 'nonexisting'
     output_dir = non_existing_dir / 'output'

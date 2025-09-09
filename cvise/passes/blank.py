@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+from typing import List
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.hint import HintBundle
@@ -13,6 +14,9 @@ class BlankPass(HintBasedPass):
 
     def check_prerequisites(self):
         return True
+
+    def output_hint_types(self) -> List[str]:
+        return list(self.PATTERNS.keys())
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         hints = []

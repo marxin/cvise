@@ -14,7 +14,7 @@ def input_path(tmp_path: Path):
 def init_pass(tmp_path: Path, input_path: Path):
     pass_ = LineMarkersPass()
     state = pass_.new(input_path, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None))
-    validate_stored_hints(state)
+    validate_stored_hints(state, pass_)
     return pass_, state
 
 
