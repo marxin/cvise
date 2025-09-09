@@ -396,7 +396,7 @@ class MPTaskLossWorkaround:
             pump_task_queue()
 
             for task_id in range(self._worker_count):
-                proc = task_procs.setdefault(task_id)
+                proc = task_procs.get(task_id)
                 if not proc or not proc.is_running():
                     futures[task_id].cancel()
                     task_procs[task_id] = None
