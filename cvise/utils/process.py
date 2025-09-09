@@ -392,13 +392,10 @@ class MPTaskLossWorkaround:
         start_time = time.monotonic()
         while time.monotonic() < start_time + self._DEADLINE:
             pump_task_queue()
-
-            for task_id in range(self._worker_count):
-                proc = task_procs.get(task_id)
-                if not proc or not proc.is_running():
-                    futures[task_id].cancel()
-                    task_procs[task_id] = None
-
+            task_procs = {task_id: proc for task_id, proc in task_procs.items() if proc and proc.is_running()}
+            for task_id, future in enumerate(futures):
+                if task_id not in task_procs:
+                    future.cancel()
             _done, still_running = wait(futures, return_when=ALL_COMPLETED, timeout=self._POLL_LOOP_STEP)
             if not still_running:
                 break
