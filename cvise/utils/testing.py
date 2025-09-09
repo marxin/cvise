@@ -439,6 +439,7 @@ class TestManager:
             initargs=[worker_initializers],
             context=MPContextHook(self.process_monitor),
         )
+
         self.exit_stack.enter_context(self.worker_pool)
         self.exit_stack.enter_context(self.mplogger)
         return self
