@@ -428,13 +428,15 @@ class TestManager:
         if self.key_logger:
             self.exit_stack.enter_context(self.key_logger)
         self.exit_stack.enter_context(self.process_monitor)
+
+        worker_initializers = [
+            self.mplogger.worker_process_initializer(),
+            self.mp_task_loss_workaround.worker_process_initializer(),
+        ]
         self.worker_pool = pebble.ProcessPool(
             max_workers=self.parallel_tests,
             initializer=_init_worker_process,
-            initargs=[
-                self.mplogger.worker_process_initializer(),
-                self.mp_task_loss_workaround.worker_process_initializer(),
-            ],
+            initargs=[worker_initializers],
             context=MPContextHook(self.process_monitor),
         )
         self.exit_stack.enter_context(self.worker_pool)
@@ -1166,12 +1168,12 @@ def override_tmpdir_env(old_env: Mapping[str, str], tmp_override: Path) -> Mappi
     return new_env
 
 
-def _init_worker_process(mplogger_initializer: Callable, task_loss_workaround_initializer: Callable) -> None:
+def _init_worker_process(initializers: List[Callable]) -> None:
     # By default (when not executing a job), terminate a worker immediately on relevant signals. Raising an exception at
     # unexpected times, especially inside multiprocessing internals, can put the worker into a bad state.
     sigmonitor.init(sigmonitor.Mode.QUICK_EXIT)
-    mplogger_initializer()
-    task_loss_workaround_initializer()
+    for func in initializers:
+        func()
 
 
 def _worker_process_job_wrapper(job_order: int, func: Callable) -> Any:
