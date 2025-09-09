@@ -81,7 +81,7 @@ def _on_signal(signum: int, frame) -> None:
     # depending on stack frame contents).
     if _mode == Mode.RAISE_EXCEPTION and signum == signal.SIGTERM:
         signal.default_int_handler(signum, frame)
-    elif _mode != Mode.RAISE_EXCEPTION_ON_DEMAND:
+    else:
         _trigger_signal_action(signum)
     # no code after this point - the action above might've raised the exception or terminated the process
 
