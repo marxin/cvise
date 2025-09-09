@@ -31,7 +31,7 @@ from cvise.utils.error import InvalidTestCaseError
 from cvise.utils.error import PassBugError
 from cvise.utils.error import ZeroSizeError
 from cvise.utils.folding import FoldingManager, FoldingStateIn, FoldingStateOut
-from cvise.utils.process import MPContextHook, ProcessEventNotifier, ProcessMonitor
+from cvise.utils.process import MPContextHook, MPTaskLossWorkaround, ProcessEventNotifier, ProcessMonitor
 from cvise.utils.readkey import KeyLogger
 import pebble
 
@@ -278,6 +278,7 @@ class Job:
     pass_name: str
 
     start_time: float
+    timeout: float
     temporary_folder: Union[Path, None]
 
 
@@ -421,17 +422,24 @@ class TestManager:
         self.process_monitor = ProcessMonitor(self.mpmanager, self.parallel_tests)
         self.mplogger = mplogging.MPLogger(self.parallel_tests)
         self.worker_pool: Union[pebble.ProcessPool, None] = None
+        self.mp_task_loss_workaround = MPTaskLossWorkaround(self.parallel_tests)
 
     def __enter__(self):
         if self.key_logger:
             self.exit_stack.enter_context(self.key_logger)
         self.exit_stack.enter_context(self.process_monitor)
+
+        worker_initializers = [
+            self.mplogger.worker_process_initializer(),
+            self.mp_task_loss_workaround.initialize_in_worker,
+        ]
         self.worker_pool = pebble.ProcessPool(
             max_workers=self.parallel_tests,
             initializer=_init_worker_process,
-            initargs=[self.mplogger.worker_process_initializer()],
+            initargs=[worker_initializers],
             context=MPContextHook(self.process_monitor),
         )
+
         self.exit_stack.enter_context(self.worker_pool)
         self.exit_stack.enter_context(self.mplogger)
         return self
@@ -620,12 +628,28 @@ class TestManager:
             else:
                 logging.info(f'Created extra directory {extra_dir} for you to look at later')
 
+    def workaround_missing_timeouts(self) -> None:
+        """Workaround for Pebble sometimes losing a task, with its future neither resolving nor timing out.
+
+        To avoid hanging C-Vise waiting for such never-ending tasks, we double-check timeouts of each task ourselves
+        and force-cancel violating tasks.
+        """
+        THRESHOLD = 10  # usually this factor is around 1, but durations can grow on a heavily loaded machine
+        now = time.monotonic()
+        for job in self.jobs:
+            if not job.future.done() and now - job.start_time >= THRESHOLD * job.timeout:
+                self.cancel_job(job)
+
     def process_done_futures(self) -> None:
         jobs_to_remove = []
         for job in self.jobs:
             if not job.future.done():
                 continue
             jobs_to_remove.append(job)
+            if job.future.cancelled():
+                # Within the task loop, we only cancel jobs in workaround_missing_timeouts().
+                self.handle_timed_out_job(job)
+                continue
             if job.future.exception():
                 # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
                 if type(job.future.exception()) in (TimeoutError, concurrent.futures.TimeoutError):
@@ -737,11 +761,15 @@ class TestManager:
         new.take_file_ownership(env.test_case_path)
         self.success_candidate = new
 
-    def terminate_all(self):
+    def terminate_all(self) -> None:
         for job in self.jobs:
-            self.mplogger.ignore_logs_from_job(job.order)
-            job.future.cancel()
+            self.cancel_job(job)
+        self.worker_pool.stop()  # will also stop tasks not tracked in self.jobs
         self.release_all_jobs()
+
+    def cancel_job(self, job: Job) -> None:
+        self.mplogger.ignore_logs_from_job(job.order)
+        job.future.cancel()
 
     def run_parallel_tests(self) -> None:
         assert not self.jobs
@@ -777,11 +805,17 @@ class TestManager:
 
             # no more jobs could be scheduled at the moment - wait for some results
             wait([j.future for j in self.jobs], return_when=FIRST_COMPLETED, timeout=self.EVENT_LOOP_TIMEOUT)
+            self.workaround_missing_timeouts()
             self.process_done_futures()
 
             # exit if we found successful transformation(s) and don't want to try better ones
             if self.success_candidate and self.should_proceed_with_success_candidate():
                 break
+
+        for job in self.jobs:
+            self.cancel_job(job)
+        self.mp_task_loss_workaround.execute(self.worker_pool)
+        self.release_all_jobs()
 
     def run_passes(self, passes: List[AbstractPass], interleaving: bool):
         assert len(passes) == 1 or interleaving
@@ -841,10 +875,7 @@ class TestManager:
                             self.log_key_event('toggle print diff')
                             self.print_diff = not self.print_diff
 
-                    try:
-                        self.run_parallel_tests()
-                    finally:
-                        self.terminate_all()
+                    self.run_parallel_tests()
 
                     is_success = self.success_candidate is not None
                     if is_success:
@@ -1031,8 +1062,9 @@ class TestManager:
                 job_timeout=self.timeout,
                 pid_queue=self.process_monitor.pid_queue,
             )
+        init_timeout = self.INIT_TIMEOUT_FACTOR * self.timeout
         future = self.worker_pool.schedule(
-            _worker_process_job_wrapper, args=[self.order, env.run], timeout=self.INIT_TIMEOUT_FACTOR * self.timeout
+            _worker_process_job_wrapper, args=[self.order, env.run], timeout=init_timeout
         )
         self.jobs.append(
             Job(
@@ -1043,6 +1075,7 @@ class TestManager:
                 pass_id=pass_id,
                 pass_name=repr(ctx.pass_),
                 start_time=time.monotonic(),
+                timeout=init_timeout,
                 temporary_folder=None,
             )
         )
@@ -1083,6 +1116,7 @@ class TestManager:
                 pass_id=pass_id,
                 pass_name=repr(ctx.pass_),
                 start_time=time.monotonic(),
+                timeout=self.timeout,
                 temporary_folder=folder,
             )
         )
@@ -1120,6 +1154,7 @@ class TestManager:
                 pass_id=None,
                 pass_name='Folding',
                 start_time=time.monotonic(),
+                timeout=self.timeout,
                 temporary_folder=folder,
             )
         )
@@ -1134,11 +1169,12 @@ def override_tmpdir_env(old_env: Mapping[str, str], tmp_override: Path) -> Mappi
     return new_env
 
 
-def _init_worker_process(mplogger_initializer: Callable) -> None:
+def _init_worker_process(initializers: List[Callable]) -> None:
     # By default (when not executing a job), terminate a worker immediately on relevant signals. Raising an exception at
     # unexpected times, especially inside multiprocessing internals, can put the worker into a bad state.
     sigmonitor.init(sigmonitor.Mode.QUICK_EXIT)
-    mplogger_initializer()
+    for func in initializers:
+        func()
 
 
 def _worker_process_job_wrapper(job_order: int, func: Callable) -> Any:

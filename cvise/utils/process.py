@@ -1,6 +1,8 @@
 """Helpers for interacting with child processes."""
 
+from __future__ import annotations
 import collections
+from concurrent.futures import ALL_COMPLETED, Future, wait
 import contextlib
 from dataclasses import dataclass, field
 from enum import auto, Enum, unique
@@ -18,6 +20,9 @@ import time
 from typing import Dict, Iterator, List, Mapping, Set, Tuple, Union
 
 from cvise.utils import sigmonitor
+
+
+_mp_task_loss_workaround_obj: Union[MPTaskLossWorkaround, None] = None
 
 
 @unique
@@ -334,6 +339,87 @@ class ProcessEventNotifier:
             if self._pid_queue:
                 event_type = ProcessEventType.ORPHANED if proc.returncode is None else ProcessEventType.FINISHED
                 self._pid_queue.put(ProcessEvent(worker_pid=self._my_pid, child_pid=proc.pid, event_type=event_type))
+
+
+class MPTaskLossWorkaround:
+    """Workaround that attempts to prevent Pebble from losing scheduled tasks.
+
+    The problematic scenario is when Pebble starts terminating a worker for a canceled taskA, but the worker manages to
+    acknowledge the receipt of the next taskB shortly before dying - in that case taskB becomes associated with a
+    non-existing worker and never finishes.
+
+    Here we try to prevent this by scheduling "barrier" tasks, one for each worker, which report themselves as started
+    and then sleep. If a task gets affected by the bug it either (a) won't report anything, or (b) will terminate
+    abruptly without resolving its future; we detect "a" via a hardcoded timeout, and "b" by monitoring the task's
+    worker PID, and cancel all such "hung" tasks; at the end we notify all other tasks to complete. The expectation is
+    that this procedure leaves the workers in a good state ready for regular C-Vise jobs.
+    """
+
+    _DEADLINE = 30  # seconds
+    _POLL_LOOP_STEP = 0.1  # seconds
+
+    def __init__(self, worker_count: int):
+        self._worker_count = worker_count
+        # Don't use Manager-based synchronization primitives because of their poor performance. Don't use Queue since
+        # it uses background threads which breaks our assumptions and isn't compatible with quick exit on signals.
+        self._task_status_queue = multiprocessing.SimpleQueue()
+        self._task_exit_flag = multiprocessing.Event()
+
+    def initialize_in_worker(self) -> None:
+        """Must be called in a worker process in order to initialize global state needed later."""
+        global _mp_task_loss_workaround_obj
+        _mp_task_loss_workaround_obj = self
+
+    def execute(self, pool: pebble.ProcessPool) -> None:
+        # 1. Send out the barrier tasks.
+        futures: List[Future] = [pool.schedule(self._job, args=[task_id]) for task_id in range(self._worker_count)]
+        task_procs: Dict[int, Union[psutil.Process, None]] = {}
+
+        def pump_task_queue():
+            while not self._task_status_queue.empty():
+                task_id, pid = self._task_status_queue.get()
+                try:
+                    task_procs[task_id] = psutil.Process(pid)
+                except psutil.NoSuchProcess:
+                    task_procs[task_id] = None  # remember that the task was claimed by a now-dead worker
+
+        # 2. Detect which tasks started successfully.
+        start_time = time.monotonic()
+        while time.monotonic() < start_time + self._DEADLINE:
+            pump_task_queue()
+            if len(task_procs) == self._worker_count:
+                break
+            time.sleep(self._POLL_LOOP_STEP)  # SimpleQueue doesn't provide polling
+
+        # 3. Shut down all tasks - use graceful termination for the successfully started ones, and cancel the lost ones.
+        self._task_exit_flag.set()
+        start_time = time.monotonic()
+        while time.monotonic() < start_time + self._DEADLINE:
+            pump_task_queue()
+            task_procs = {task_id: proc for task_id, proc in task_procs.items() if proc and proc.is_running()}
+            for task_id, future in enumerate(futures):
+                if task_id not in task_procs:
+                    future.cancel()
+            _done, still_running = wait(futures, return_when=ALL_COMPLETED, timeout=self._POLL_LOOP_STEP)
+            if not still_running:
+                break
+
+        # 4. Cleanup; make sure to free the pool if the graceful termination above didn't finish within the timeout.
+        for future in futures:
+            future.cancel()
+        self._task_exit_flag.clear()
+
+    @staticmethod
+    def _job(task_id: int) -> None:
+        assert _mp_task_loss_workaround_obj
+        status_queue = _mp_task_loss_workaround_obj._task_status_queue
+        exit_flag = _mp_task_loss_workaround_obj._task_exit_flag
+        # Don't allow signals to interrupt IPC primitives since this might leave them in locked/inconsistent state; only
+        # exit in the safe location from the pool loop.
+        with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION_ON_DEMAND):
+            status_queue.put((task_id, os.getpid()))
+            while not exit_flag.wait(timeout=MPTaskLossWorkaround._POLL_LOOP_STEP):
+                sigmonitor.maybe_retrigger_action()
 
 
 @contextlib.contextmanager
