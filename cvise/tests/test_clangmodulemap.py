@@ -16,7 +16,9 @@ def test_case_path(tmp_path: Path) -> Path:
 
 def init_pass(tmp_dir: Path, test_case_path: Path) -> Tuple[ClangModuleMapPass, Any]:
     pass_ = ClangModuleMapPass()
-    state = pass_.new(test_case_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None))
+    state = pass_.new(
+        test_case_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
+    )
     validate_stored_hints(state, pass_)
     return pass_, state
 

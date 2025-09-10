@@ -17,7 +17,9 @@ class CommentsTestCase(unittest.TestCase):
         self.pass_ = CommentsPass()
 
     def _pass_new(self) -> Union[HintState, None]:
-        return self.pass_.new(self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None))
+        return self.pass_.new(
+            self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
+        )
 
     def test_block(self):
         self.input_path.write_text('This /* contains *** /* two */ /*comments*/!\n')
@@ -63,7 +65,7 @@ class CommentsTestCase(unittest.TestCase):
 
         while result == PassResult.OK and state is not None:
             state = self.pass_.advance_on_success(
-                self.input_path, state, process_event_notifier=ProcessEventNotifier(None)
+                self.input_path, state, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
             )
             if state is None:
                 break

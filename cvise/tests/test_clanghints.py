@@ -20,7 +20,13 @@ def get_data_path(testcase: str) -> Path:
 def init_pass(transformation: str, tmp_dir: Path, input_path: Path) -> Tuple[ClangHintsPass, Any]:
     pass_ = ClangHintsPass(transformation, find_external_programs())
     pass_.user_clang_delta_std = None
-    state = pass_.new(input_path, tmp_dir=tmp_dir, job_timeout=100, process_event_notifier=ProcessEventNotifier(None))
+    state = pass_.new(
+        input_path,
+        tmp_dir=tmp_dir,
+        job_timeout=100,
+        process_event_notifier=ProcessEventNotifier(None),
+        dependee_hints=[],
+    )
     validate_stored_hints(state, pass_)
     return pass_, state
 

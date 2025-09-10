@@ -31,6 +31,7 @@ from cvise.utils.error import InvalidTestCaseError
 from cvise.utils.error import PassBugError
 from cvise.utils.error import ZeroSizeError
 from cvise.utils.folding import FoldingManager, FoldingStateIn, FoldingStateOut
+from cvise.utils.hint import load_hints
 from cvise.utils.process import MPContextHook, MPTaskLossWorkaround, ProcessEventNotifier, ProcessMonitor
 from cvise.utils.readkey import KeyLogger
 import pebble
@@ -64,14 +65,17 @@ class InitEnvironment:
     tmp_dir: Path
     job_timeout: int
     pid_queue: queue.Queue
+    dependee_bundle_paths: List[Path]
 
     def run(self) -> Any:
+        dependee_hints = [load_hints(p, begin_index=None, end_index=None) for p in self.dependee_bundle_paths]
         try:
             return self.pass_new(
                 self.test_case,
                 tmp_dir=self.tmp_dir,
                 job_timeout=self.job_timeout,
                 process_event_notifier=ProcessEventNotifier(self.pid_queue),
+                dependee_hints=dependee_hints,
             )
         except UnicodeDecodeError:
             # most likely the pass is incompatible with non-UTF files - abort it
@@ -89,14 +93,17 @@ class AdvanceOnSuccessEnvironment:
     pass_succeeded_state: Any
     job_timeout: int
     pid_queue: queue.Queue
+    dependee_bundle_paths: List[Path]
 
     def run(self) -> Any:
+        dependee_hints = [load_hints(p, begin_index=None, end_index=None) for p in self.dependee_bundle_paths]
         return self.pass_advance_on_success(
             self.test_case,
             state=self.pass_previous_state,
             succeeded_state=self.pass_succeeded_state,
             job_timeout=self.job_timeout,
             process_event_notifier=ProcessEventNotifier(self.pid_queue),
+            dependee_hints=dependee_hints,
         )
 
 
@@ -229,6 +236,8 @@ class PassContext:
     defunct: bool
     # How many times a job for this pass timed out.
     timeout_count: int
+    # Mapping from a hint type to a bundle path that the pass generated, for a hint-based pass.
+    hint_bundle_paths: Dict[str, Path]
 
     @staticmethod
     def create(pass_: AbstractPass) -> PassContext:
@@ -245,19 +254,25 @@ class PassContext:
             running_transform_order_to_state={},
             defunct=False,
             timeout_count=0,
+            hint_bundle_paths={},
         )
 
-    def can_init_now(self) -> bool:
+    def can_init_now(self, ready_hint_types: Set[str]) -> bool:
         """Whether the pass new() method can be scheduled."""
-        return self.enabled and not self.defunct and self.stage == PassStage.BEFORE_INIT
+        if not self.enabled or self.defunct or self.stage != PassStage.BEFORE_INIT:
+            return False
+        if isinstance(self.pass_, HintBasedPass) and not ready_hint_types.issuperset(self.pass_.input_hint_types()):
+            # Not all dependee passes completed their initialization.
+            return False
+        return True
 
     def can_transform_now(self) -> bool:
         """Whether the pass transform() method can be scheduled."""
         return self.enabled and not self.defunct and self.stage == PassStage.ENUMERATING and self.state is not None
 
-    def can_start_job_now(self) -> bool:
+    def can_start_job_now(self, ready_hint_types: Set[str]) -> bool:
         """Whether any of the pass methods can be scheduled."""
-        return self.can_init_now() or self.can_transform_now()
+        return self.can_init_now(ready_hint_types) or self.can_transform_now()
 
 
 @unique
@@ -688,6 +703,8 @@ class TestManager:
         ctx.stage = PassStage.ENUMERATING
         ctx.state = job.future.result()
         self.pass_statistic.add_initialized(job.pass_, job.start_time)
+        if isinstance(ctx.pass_, HintBasedPass) and ctx.state is not None:
+            ctx.hint_bundle_paths = ctx.state.hint_bundle_paths()
 
     def handle_finished_transform_job(self, job: Job) -> None:
         env: TestEnvironment = job.future.result()
@@ -796,7 +813,8 @@ class TestManager:
             ):
                 self.pass_reinit_queue.append(pass_id)
 
-        while self.jobs or any(c.can_start_job_now() for c in self.pass_contexts):
+        ready_hint_types = self.get_fully_initialized_hint_types()
+        while self.jobs or any(c.can_start_job_now(ready_hint_types) for c in self.pass_contexts):
             sigmonitor.maybe_retrigger_action()
 
             # schedule new jobs, as long as there are free workers
@@ -864,7 +882,8 @@ class TestManager:
                     ctx.enabled = not is_dir or ctx.pass_.supports_dir_test_cases()
 
                 self.skip = False
-                while any(c.can_start_job_now() for c in self.pass_contexts) and not self.skip:
+                ready_hint_types = self.get_fully_initialized_hint_types()
+                while any(c.can_start_job_now(ready_hint_types) for c in self.pass_contexts) and not self.skip:
                     # Ignore more key presses after skip has been detected
                     if not self.skip_key_off and not self.skip:
                         key = self.key_logger.pressed_key()
@@ -1000,8 +1019,9 @@ class TestManager:
     def maybe_schedule_job(self) -> bool:
         # The order matters below - higher-priority job types come earlier:
         # 1. Initializing a pass regularly (at the beginning of the batch of jobs).
+        ready_hint_types = self.get_fully_initialized_hint_types()
         for pass_id, ctx in enumerate(self.pass_contexts):
-            if ctx.can_init_now():
+            if ctx.can_init_now(ready_hint_types):
                 self.schedule_init(pass_id)
                 return True
         # 2. Reinitializing a previously finished pass.
@@ -1042,7 +1062,15 @@ class TestManager:
 
     def schedule_init(self, pass_id: int) -> None:
         ctx = self.pass_contexts[pass_id]
-        assert ctx.can_init_now()
+        assert ctx.can_init_now(self.get_fully_initialized_hint_types())
+
+        dependee_types = ctx.pass_.input_hint_types() if isinstance(ctx.pass_, HintBasedPass) else set()
+        dependee_bundle_paths = []
+        for other in self.pass_contexts:
+            if isinstance(other.pass_, HintBasedPass) and other.stage == PassStage.ENUMERATING:
+                dependee_bundle_paths += [
+                    path for type, path in other.hint_bundle_paths.items() if type in dependee_types
+                ]
 
         # Either initialize the pass from scratch, or advance from the previous state.
         if ctx.state is None:
@@ -1052,6 +1080,7 @@ class TestManager:
                 tmp_dir=ctx.temporary_root,
                 job_timeout=self.timeout,
                 pid_queue=self.process_monitor.pid_queue,
+                dependee_bundle_paths=dependee_bundle_paths,
             )
         else:
             env = AdvanceOnSuccessEnvironment(
@@ -1061,6 +1090,7 @@ class TestManager:
                 pass_succeeded_state=ctx.taken_succeeded_state,
                 job_timeout=self.timeout,
                 pid_queue=self.process_monitor.pid_queue,
+                dependee_bundle_paths=dependee_bundle_paths,
             )
         init_timeout = self.INIT_TIMEOUT_FACTOR * self.timeout
         future = self.worker_pool.schedule(
@@ -1160,6 +1190,17 @@ class TestManager:
         )
 
         self.order += 1
+
+    def get_fully_initialized_hint_types(self) -> Set[str]:
+        ready_types = set()
+        missing_types = set()
+        for ctx in self.pass_contexts:
+            if not isinstance(ctx.pass_, HintBasedPass):
+                continue
+            types = ctx.pass_.output_hint_types()
+            ready = ctx.stage == PassStage.ENUMERATING
+            (ready_types if ready else missing_types).update(types)
+        return ready_types - missing_types
 
 
 def override_tmpdir_env(old_env: Mapping[str, str], tmp_override: Path) -> Mapping[str, str]:

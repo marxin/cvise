@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import psutil
 import pytest
+import re
 import sys
 import time
 from typing import Dict, List
@@ -148,6 +149,42 @@ class TracingHintPass(LetterRemovingHintPass):
     def transform(self, test_case: Path, state, *args, **kwargs):
         self.queue.put(self.arg)
         return super().transform(test_case, state, *args, **kwargs)
+
+
+class BracketRemovingPass(HintBasedPass):
+    """Attempts removing pairs of brackets (not nested) and their contents."""
+
+    def output_hint_types(self):
+        return ['remove-brackets']
+
+    def generate_hints(self, test_case: Path, *args, **kwargs):
+        hints = []
+        for m in re.finditer(r'\([^()]*\)', test_case.read_text()):
+            hints.append({'t': 0, 'p': [{'l': m.start(), 'r': m.end()}]})
+        return HintBundle(hints=hints, vocabulary=['remove-brackets'])
+
+
+class InsideBracketsRemovingPass(HintBasedPass):
+    """Attempts removing contents inside brackets.
+
+    Uses the hints produced by BracketRemovingPass instead of searching for the brackets itself - this is useful for
+    testing dependencies between passes.
+    """
+
+    def input_hint_types(self):
+        return ['remove-brackets']
+
+    def generate_hints(self, test_case: Path, dependee_hints: List[HintBundle], *args, **kwargs):
+        hints = []
+        for input_bundle in dependee_hints:
+            for input_hint in input_bundle.hints:
+                assert input_bundle.vocabulary[input_hint['t']] == 'remove-brackets'
+                assert len(input_hint['p']) == 1
+                input_patch = input_hint['p'][0]
+                if input_patch['r'] - input_patch['l'] == 1:
+                    continue  # don't create empty hints
+                hints.append({'p': [{'l': input_patch['l'] + 1, 'r': input_patch['r'] - 1}]})
+        return HintBundle(hints=hints)
 
 
 def count_lines(path: Path) -> int:
@@ -488,3 +525,18 @@ def _find_processes_by_cmd_line(needle: str) -> List[psutil.Process]:
             if needle in proc.cmdline():
                 processes.append(proc)
     return processes
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+@pytest.mark.parametrize('interestingness_script', [r"grep '[(][)].*[(][)]' {test_case}"])
+def test_pass_dependency(input_file: Path, manager: testing.TestManager):
+    """Test a pass that depends on another pass' hints works correctly.
+
+    Here, the first pass produces hints that point to pairs of brackets; these hints themselves don't pass the
+    interestingness test. The second pass uses the first pass' hints to produce new ones that remove contents inside
+    brackets - this is what we expect to succeed.
+    """
+    input_file.write_text('a(b)c(de)')
+    passes = [BracketRemovingPass(), InsideBracketsRemovingPass()]
+    manager.run_passes(passes, interleaving=True)
+    assert input_file.read_text() == 'a()c()'
