@@ -30,11 +30,14 @@ def collect_all_transforms(pass_: AbstractPass, state, input_path: Path) -> Set[
         tmp_path = Path(tmp_file.name)
         tmp_file.close()
         while state is not None:
-            pass_.transform(
+            result, _new_state = pass_.transform(
                 tmp_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
             )
-            all_outputs.add(tmp_path.read_bytes())
-            state = pass_.advance(input_path, state)
+            if result == PassResult.OK:
+                all_outputs.add(tmp_path.read_bytes())
+                state = pass_.advance(input_path, state)
+            elif result == PassResult.STOP:
+                break
     return all_outputs
 
 
