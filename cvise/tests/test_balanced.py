@@ -17,7 +17,9 @@ class BalancedParensTestCase(unittest.TestCase):
         self.pass_ = BalancedPass('parens')
 
     def _pass_new(self) -> Union[HintState, None]:
-        return self.pass_.new(self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None))
+        return self.pass_.new(
+            self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
+        )
 
     def test_parens_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
@@ -68,7 +70,9 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         self.pass_ = BalancedPass('parens-only')
 
     def _pass_new(self) -> Union[HintState, None]:
-        return self.pass_.new(self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None))
+        return self.pass_.new(
+            self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
+        )
 
     def test_parens_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
@@ -135,7 +139,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
 
         while result == PassResult.OK:
             state = self.pass_.advance_on_success(
-                self.input_path, state, process_event_notifier=ProcessEventNotifier(None)
+                self.input_path, state, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
             )
             if state is None:
                 break
@@ -170,7 +174,9 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         self.pass_ = BalancedPass('parens-inside')
 
     def _pass_new(self) -> Union[HintState, None]:
-        return self.pass_.new(self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None))
+        return self.pass_.new(
+            self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
+        )
 
     def test_parens_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
@@ -256,7 +262,9 @@ class BalancedParensToZeroTestCase(unittest.TestCase):
         self.pass_ = BalancedPass('parens-to-zero')
 
     def _pass_new(self) -> Union[HintState, None]:
-        return self.pass_.new(self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None))
+        return self.pass_.new(
+            self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
+        )
 
     def test_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
@@ -283,7 +291,9 @@ class BalancedCurly3TestCase(unittest.TestCase):
         self.pass_ = BalancedPass('curly3')
 
     def _pass_new(self) -> Union[HintState, None]:
-        return self.pass_.new(self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None))
+        return self.pass_.new(
+            self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
+        )
 
     def test_no_match(self):
         self.input_path.write_text('This is a simple test!\n')

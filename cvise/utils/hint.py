@@ -213,11 +213,14 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
         f.write(buf)
 
 
-def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintBundle:
-    """Deserializes hints with the given indices [begin; end) from a file.
+def load_hints(hints_file_path: Path, begin_index: Union[int, None], end_index: Union[int, None]) -> HintBundle:
+    """Deserializes hints from a file.
+
+    If provided, the [begin; end) half-range can be used to only load hints with the specified indices.
 
     Whether the hints file is compressed is determined based on the file extension."""
-    assert begin_index < end_index
+    if begin_index is not None and end_index is not None:
+        assert begin_index < end_index
     bundle = HintBundle(hints=[])
     with zstandard.open(hints_file_path, 'rt') if hints_file_path.suffix == '.zst' else open(hints_file_path) as f:
         decoder = msgspec.json.Decoder()
@@ -231,8 +234,11 @@ def load_hints(hints_file_path: Path, begin_index: int, end_index: int) -> HintB
         bundle.vocabulary = vocab
 
         for i, line in enumerate(f):
-            if begin_index <= i < end_index:
-                bundle.hints.append(try_parse_json_line(line, decoder))
+            if begin_index is not None and i < begin_index:
+                continue
+            if end_index is not None and i >= end_index:
+                continue
+            bundle.hints.append(try_parse_json_line(line, decoder))
     return bundle
 
 

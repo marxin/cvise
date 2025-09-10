@@ -116,6 +116,9 @@ class HintState:
             return None
         return HintState(tmp_dir=self.tmp_dir, per_type_states=tuple(sub_states), ptr=0)
 
+    def hint_bundle_paths(self) -> Dict[str, Path]:
+        return {substate.type: self.tmp_dir / substate.hints_file_name for substate in self.per_type_states}
+
 
 class HintBasedPass(AbstractPass):
     """Base class for hint-based passes.
@@ -135,9 +138,24 @@ class HintBasedPass(AbstractPass):
     """
 
     def generate_hints(
-        self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs
+        self,
+        test_case: Path,
+        process_event_notifier: ProcessEventNotifier,
+        dependee_hints: List[HintBundle],
+        *args,
+        **kwargs,
     ) -> HintBundle:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'generate_hints'!")
+
+    def input_hint_types(self) -> List[str]:
+        """Declares hint types that are consumed by this pass as inputs.
+
+        Intended to be overridden by subclasses, in cases where dependencies between passes need to be implemented:
+        e.g., if a pass wants to consume hints of type "foo-hint-type" produced by some PassA and PassB.
+
+        Each returned hint type must be declared as an output of at least one other pass. Cycles aren't allowed.
+        """
+        return []
 
     def output_hint_types(self) -> List[str]:
         """Declares hint types that are produced by this pass.
@@ -153,8 +171,18 @@ class HintBasedPass(AbstractPass):
         """
         return BinaryState.create(instances=hint_count)
 
-    def new(self, test_case: Path, tmp_dir: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
-        hints = self.generate_hints(test_case, process_event_notifier=process_event_notifier)
+    def new(
+        self,
+        test_case: Path,
+        tmp_dir: Path,
+        process_event_notifier: ProcessEventNotifier,
+        dependee_hints: List[HintBundle],
+        *args,
+        **kwargs,
+    ):
+        hints = self.generate_hints(
+            test_case, process_event_notifier=process_event_notifier, dependee_hints=dependee_hints
+        )
         return self.new_from_hints(hints, tmp_dir)
 
     def transform(self, test_case: Path, state: HintState, original_test_case: Path, *args, **kwargs):
@@ -179,8 +207,18 @@ class HintBasedPass(AbstractPass):
     def advance(self, test_case: Path, state):
         return state.advance()
 
-    def advance_on_success(self, test_case: Path, state, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
-        hints = self.generate_hints(test_case, process_event_notifier=process_event_notifier)
+    def advance_on_success(
+        self,
+        test_case: Path,
+        state,
+        process_event_notifier: ProcessEventNotifier,
+        dependee_hints: List[HintBundle],
+        *args,
+        **kwargs,
+    ):
+        hints = self.generate_hints(
+            test_case, process_event_notifier=process_event_notifier, dependee_hints=dependee_hints
+        )
         return self.advance_on_success_from_hints(hints, state)
 
     def new_from_hints(self, bundle: HintBundle, tmp_dir: Path) -> Union[HintState, None]:
