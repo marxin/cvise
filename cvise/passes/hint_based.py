@@ -78,12 +78,12 @@ class HintState:
     tmp_dir: Path
     # The enumeration state for each hint type. Sorted by type (in order to have deterministic and repeatable
     # enumeration order).
-    per_type_states: Tuple[PerTypeHintState]
+    per_type_states: Tuple[PerTypeHintState, ...]
     # Pointer to the current per-type state in the round-robin enumeration.
     ptr: int
     # Information for "special" hint types (those that start with "@"). They're stored separately because we don't
     # attempt applying them during enumeration - they're only intended as inputs for other passes that depend on them.
-    special_hints: Tuple[SpecialHintState]
+    special_hints: Tuple[SpecialHintState, ...]
 
     @staticmethod
     def create(tmp_dir: Path, per_type_states: List[PerTypeHintState], special_hints: List[SpecialHintState]):
