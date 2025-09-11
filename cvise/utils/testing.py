@@ -257,7 +257,7 @@ class PassContext:
             hint_bundle_paths={},
         )
 
-    def can_init_now(self, ready_hint_types: Set[str]) -> bool:
+    def can_init_now(self, ready_hint_types: Set[bytes]) -> bool:
         """Whether the pass new() method can be scheduled."""
         if not self.enabled or self.defunct or self.stage != PassStage.BEFORE_INIT:
             return False
@@ -270,7 +270,7 @@ class PassContext:
         """Whether the pass transform() method can be scheduled."""
         return self.enabled and not self.defunct and self.stage == PassStage.ENUMERATING and self.state is not None
 
-    def can_start_job_now(self, ready_hint_types: Set[str]) -> bool:
+    def can_start_job_now(self, ready_hint_types: Set[bytes]) -> bool:
         """Whether any of the pass methods can be scheduled."""
         return self.can_init_now(ready_hint_types) or self.can_transform_now()
 
@@ -1191,7 +1191,7 @@ class TestManager:
 
         self.order += 1
 
-    def get_fully_initialized_hint_types(self) -> Set[str]:
+    def get_fully_initialized_hint_types(self) -> Set[bytes]:
         ready_types = set()
         missing_types = set()
         for ctx in self.pass_contexts:

@@ -21,7 +21,8 @@ class LinesPass(HintBasedPass):
         if test_case.is_dir():
             for path in test_case.rglob('*'):
                 if not path.is_dir():
-                    vocab.append(str(path.relative_to(test_case)))
+                    rel_path = path.relative_to(test_case)
+                    vocab.append(str(rel_path).encode())
                     file_id = len(vocab) - 1
                     hints += self._generate_hints_for_file(path, decoder, process_event_notifier, file_id)
         else:

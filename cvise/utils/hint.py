@@ -42,7 +42,7 @@ class HintBundle:
     pass_name: str = ''
     # Strings that hints can refer to.
     # Note: a simple "= []" wouldn't be suitable because mutable default values are error-prone in Python.
-    vocabulary: List[str] = field(default_factory=list)
+    vocabulary: List[bytes] = field(default_factory=list)
 
 
 # JSON Schemas:
@@ -120,8 +120,8 @@ class HintApplicationStats:
 json_encoder: Union[msgspec.json.Encoder, None] = None
 
 
-def is_special_hint_type(type: str) -> bool:
-    return type.startswith('@')
+def is_special_hint_type(type: bytes) -> bool:
+    return type.startswith(b'@')
 
 
 def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationStats:
@@ -133,7 +133,7 @@ def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: 
             for patch in hint['p']:
                 p = copy(patch)
                 p['_bundle'] = bundle
-                file_rel = Path(bundle.vocabulary[patch['f']]) if 'f' in patch else Path()
+                file_rel = Path(bundle.vocabulary[patch['f']].decode()) if 'f' in patch else Path()
                 path_to_patches.setdefault(file_rel, []).append(p)
 
     # Enumerate all files in the source location and apply corresponding patches, if any, to each.
@@ -159,9 +159,9 @@ def apply_hint_patches_to_file(
     patches: List[Dict], source_file: Path, destination_file: Path, stats: HintApplicationStats
 ) -> None:
     merged_patches = merge_overlapping_patches(patches)
-    orig_data = source_file.read_bytes()
+    orig_data = memoryview(source_file.read_bytes())
 
-    new_data = b''
+    new_data = bytearray()
     start_pos = 0
     for p in merged_patches:
         left: int = p['l']
@@ -170,15 +170,15 @@ def apply_hint_patches_to_file(
         assert start_pos <= left < len(orig_data)
         assert left < right <= len(orig_data)
         # Add the unmodified chunk up to the current patch begin.
-        new_data += orig_data[start_pos:left]
+        new_data.extend(orig_data[start_pos:left])
         # Skip the original chunk inside the current patch.
         start_pos = right
         stats.size_delta_per_pass.setdefault(bundle.pass_name, 0)
         stats.size_delta_per_pass[bundle.pass_name] -= right - left
         # Insert the replacement value, if provided.
         if 'v' in p:
-            to_insert = bundle.vocabulary[p['v']].encode()
-            new_data += to_insert
+            to_insert = bundle.vocabulary[p['v']]
+            new_data.extend(to_insert)
             stats.size_delta_per_pass[bundle.pass_name] += len(to_insert)
     # Add the unmodified chunk after the last patch end.
     new_data += orig_data[start_pos:]
@@ -207,7 +207,7 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
         json_encoder.encode_into(make_preamble(bundle), buf, -1)
         buf.append(ord('\n'))
 
-        json_encoder.encode_into(bundle.vocabulary, buf, -1)
+        json_encoder.encode_into([s.decode() for s in bundle.vocabulary], buf, -1)
         buf.append(ord('\n'))
 
         for h in bundle.hints:
@@ -237,7 +237,7 @@ def load_hints(hints_file_path: Path, begin_index: Union[int, None], end_index: 
         # don't want to perform full type/schema checking during loading due to performance concerns.
         if not isinstance(vocab, list):
             raise RuntimeError(f'Failed to read hint vocabulary: expected array, instead got: {vocab}')
-        bundle.vocabulary = vocab
+        bundle.vocabulary = [s.encode() for s in vocab]
 
         for i, line in enumerate(f):
             if begin_index is not None and i < begin_index:
@@ -248,11 +248,11 @@ def load_hints(hints_file_path: Path, begin_index: Union[int, None], end_index: 
     return bundle
 
 
-def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
+def group_hints_by_type(bundle: HintBundle) -> Dict[bytes, HintBundle]:
     """Splits the bundle into multiple, one per each hint type."""
-    grouped: Dict[str, HintBundle] = {}
+    grouped: Dict[bytes, HintBundle] = {}
     for h in bundle.hints:
-        type = bundle.vocabulary[h['t']] if 't' in h else ''
+        type = bundle.vocabulary[h['t']] if 't' in h else b''
         if type not in grouped:
             grouped[type] = HintBundle(vocabulary=bundle.vocabulary, hints=[], pass_name=bundle.pass_name)
         # FIXME: drop the 't' property in favor of storing it once, in the bundle's preamble
