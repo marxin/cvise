@@ -181,7 +181,7 @@ def apply_hint_patches_to_file(
             new_data.extend(to_insert)
             stats.size_delta_per_pass[bundle.pass_name] += len(to_insert)
     # Add the unmodified chunk after the last patch end.
-    new_data += orig_data[start_pos:]
+    new_data.extend(orig_data[start_pos:])
 
     destination_file.write_bytes(new_data)
 
