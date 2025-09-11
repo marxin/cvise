@@ -1,6 +1,7 @@
 import msgspec
 from pathlib import Path
 import re
+import subprocess
 
 from cvise.passes.abstract import SubsegmentState
 from cvise.passes.hint_based import HintBasedPass
@@ -14,6 +15,9 @@ class ClexHintsPass(HintBasedPass):
     def check_prerequisites(self):
         return self.check_external_program('clex')
 
+    def supports_dir_test_cases(self):
+        return True
+
     def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
         if self.arg.startswith('rm-toks-'):
             # Note that we don't pass the number of tokens to the parser - its job is just to find each token's
@@ -22,16 +26,43 @@ class ClexHintsPass(HintBasedPass):
         else:
             raise ValueError(f'Unexpected arg: {self.arg}')
         tok_index = '-1'  # unused
-        cmd = [self.external_programs['clex'], clex_cmd, tok_index, str(test_case)]
-        stdout, _stderr, _returncode = process_event_notifier.run_process(cmd)
-        hints = []
-        decoder = msgspec.json.Decoder()
+
+        # If the test case is a single file, simply specify its path via cmd line. If it's a directory, enumerate all
+        # files (we do it on the Python side for flexibility) and send the list via stdin (to not hit the cmd line size
+        # limit).
+        if test_case.is_dir():
+            work_dir = test_case
+            paths = [p.relative_to(test_case) for p in test_case.rglob('*') if not p.is_dir()]
+            stdin = b'\n'.join(bytes(p) for p in paths)
+            files_vocab = [str(p) for p in paths]
+            cmd_arg = '--'
+        else:
+            work_dir = '.'
+            stdin = b''
+            files_vocab = []
+            cmd_arg = str(test_case)
+
+        cmd = [self.external_programs['clex'], clex_cmd, tok_index, cmd_arg]
+        stdout, _stderr, _returncode = process_event_notifier.run_process(
+            cmd, cwd=work_dir, stdin=subprocess.PIPE, input=stdin
+        )
+
+        # When reading, gracefully handle EOF because the tool might've failed with no output.
         stdout = iter(stdout.splitlines())
-        vocab = decoder.decode(next(stdout))
+        vocab_line = next(stdout, None)
+        decoder = msgspec.json.Decoder()
+        orig_vocab = decoder.decode(vocab_line) if vocab_line else []
+
+        hints = []
         for line in stdout:
             if not line.isspace():
-                hints.append(decoder.decode(line))
-        return HintBundle(vocabulary=vocab, hints=hints)
+                hint = decoder.decode(line)
+                # Shift file identifiers according to their position in the vocabulary.
+                for patch in hint['p']:
+                    if 'f' in patch:
+                        patch['f'] += len(orig_vocab)
+                hints.append(hint)
+        return HintBundle(vocabulary=orig_vocab + files_vocab, hints=hints)
 
     def create_elementary_state(self, hint_count: int):
         m = re.fullmatch(r'rm-toks-(\d+)-to-(\d+)', self.arg)
