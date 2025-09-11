@@ -25,7 +25,7 @@ class PerTypeHintState:
     """
 
     # A hint type for which this state is for; an empty string if a hint doesn't explicitly specify types.
-    type: str
+    type: bytes
     # Only the base name, not a full path - it's a small optimization (and we anyway need to store the tmp dir in the
     # HintState).
     hints_file_name: Path
@@ -62,7 +62,7 @@ class SpecialHintState:
     another - hence there's no underlying_state here.
     """
 
-    type: str
+    type: bytes
     hints_file_name: Path
     hint_count: int
 
@@ -97,10 +97,10 @@ class HintState:
         parts = []
         for i, s in enumerate(self.per_type_states):
             mark = '[*]' if i == self.ptr and len(self.per_type_states) > 1 else ''
-            type_s = s.type + ': ' if s.type else ''
+            type_s = s.type.decode() + ': ' if s.type else ''
             parts.append(f'{mark}{type_s}{s.underlying_state.compact_repr()}')
         for s in self.special_hints:
-            parts.append(f'{s.type}: {s.hint_count}')
+            parts.append(f'{s.type.decode()}: {s.hint_count}')
         return f'HintState({", ".join(parts)})'
 
     def real_chunk(self) -> int:
@@ -134,7 +134,7 @@ class HintState:
             special_hints=self.special_hints,
         )
 
-    def advance_on_success(self, type_to_bundle: Dict[str, HintBundle]):
+    def advance_on_success(self, type_to_bundle: Dict[bytes, HintBundle]):
         sub_states = []
         # Advance all previously present hint types' substates. We ignore any newly appearing hint types because it's
         # nontrivial to distinguish geniunely new hints from those that we (unsuccessfully) checked.
@@ -152,7 +152,7 @@ class HintState:
             tmp_dir=self.tmp_dir, per_type_states=tuple(sub_states), ptr=0, special_hints=self.special_hints
         )
 
-    def hint_bundle_paths(self) -> Dict[str, Path]:
+    def hint_bundle_paths(self) -> Dict[bytes, Path]:
         return {
             substate.type: self.tmp_dir / substate.hints_file_name
             for substate in self.per_type_states + self.special_hints
@@ -186,7 +186,7 @@ class HintBasedPass(AbstractPass):
     ) -> HintBundle:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'generate_hints'!")
 
-    def input_hint_types(self) -> List[str]:
+    def input_hint_types(self) -> List[bytes]:
         """Declares hint types that are consumed by this pass as inputs.
 
         Intended to be overridden by subclasses, in cases where dependencies between passes need to be implemented:
@@ -196,7 +196,7 @@ class HintBasedPass(AbstractPass):
         """
         return []
 
-    def output_hint_types(self) -> List[str]:
+    def output_hint_types(self) -> List[bytes]:
         """Declares hint types that are produced by this pass.
 
         A pass must override this method if it produces hints with a nonempty type (the "t" field).
@@ -304,16 +304,16 @@ class HintBasedPass(AbstractPass):
         store_hints_per_type(state.tmp_dir, type_to_bundle)
         return state.advance_on_success(type_to_bundle)
 
-    def backfill_pass_names(self, type_to_bundle: Dict[str, HintBundle]) -> None:
+    def backfill_pass_names(self, type_to_bundle: Dict[bytes, HintBundle]) -> None:
         for bundle in type_to_bundle.values():
             if not bundle.pass_name:
                 bundle.pass_name = repr(self)
 
 
-def store_hints_per_type(tmp_dir: Path, type_to_bundle: Dict[str, HintBundle]) -> Dict[str, Path]:
+def store_hints_per_type(tmp_dir: Path, type_to_bundle: Dict[bytes, HintBundle]) -> Dict[bytes, Path]:
     type_to_file_name = {}
     for type, sub_bundle in type_to_bundle.items():
-        file_name = Path(HINTS_FILE_NAME_TEMPLATE.format(type=type))
+        file_name = Path(HINTS_FILE_NAME_TEMPLATE.format(type=type.decode()))
         store_hints(sub_bundle, tmp_dir / file_name)
         type_to_file_name[type] = file_name
     return type_to_file_name

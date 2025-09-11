@@ -8,12 +8,12 @@ from cvise.utils.process import ProcessEventNotifier
 
 
 class StubHintBasedPass(HintBasedPass):
-    def __init__(self, contents_to_hints: Dict[bytes, Sequence[object]], vocabulary: Union[List[str], None] = None):
+    def __init__(self, contents_to_hints: Dict[bytes, Sequence[object]], vocabulary: Union[List[bytes], None] = None):
         super().__init__()
         self.contents_to_hints = contents_to_hints
         self.vocabulary = vocabulary or []
 
-    def output_hint_types(self) -> List[str]:
+    def output_hint_types(self) -> List[bytes]:
         return self.vocabulary
 
     def generate_hints(self, test_case: Path, *args, **kwargs) -> HintBundle:
@@ -118,7 +118,7 @@ def test_hint_based_state_iteration(tmp_path: Path):
 
 def test_hint_based_multiple_types(tmp_path: Path):
     """Test advancing through hints of multiple types."""
-    vocab = ['space_removal', 'b_removal']
+    vocab = [b'space_removal', b'b_removal']
     hint_space1 = {'t': 0, 'p': [{'l': 3, 'r': 4}]}
     hint_space2 = {'t': 0, 'p': [{'l': 7, 'r': 8}]}
     hint_b1 = {'t': 1, 'p': [{'l': 1, 'r': 2}]}
@@ -147,7 +147,7 @@ def test_hint_based_type1_fewer_than_type2(tmp_path: Path):
 
     Verify that subranges of same-typed hints are checked, but differently-typed hints aren't mixed.
     """
-    vocab = ['type0', 'type1']
+    vocab = [b'type0', b'type1']
     hint1 = {'t': 0, 'p': [{'l': 0, 'r': 1}]}
     hint2 = {'t': 1, 'p': [{'l': 1, 'r': 2}]}
     hint3 = {'t': 1, 'p': [{'l': 2, 'r': 3}]}
@@ -173,7 +173,7 @@ def test_hint_based_type2_fewer_than_type1(tmp_path: Path):
 
     Verify that subranges of same-typed hints are checked, but differently-typed hints aren't mixed.
     """
-    vocab = ['type0', 'type1']
+    vocab = [b'type0', b'type1']
     hint1 = {'t': 0, 'p': [{'l': 0, 'r': 1}]}
     hint2 = {'t': 0, 'p': [{'l': 1, 'r': 2}]}
     hint3 = {'t': 1, 'p': [{'l': 2, 'r': 3}]}
@@ -222,7 +222,7 @@ def test_hint_based_special_hints_not_attempted(tmp_path: Path):
     """Test that special hints (whose type starts from "@") aren't attempted in the pass transform() calls."""
     input = b'foo'
     test_case = tmp_path / 'input.txt'
-    vocab = ['sometype', '@specialtype']
+    vocab = [b'sometype', b'@specialtype']
     hint_regular = {'t': 0, 'p': [{'l': 0, 'r': 1}]}
     hint_special = {'t': 1, 'p': [{'l': 1, 'r': 2}]}
     pass_ = StubHintBasedPass(
@@ -243,7 +243,7 @@ def test_hint_based_special_hints_stored(tmp_path: Path):
     """Test that special hints produced by a pass are stored on disk, even if no other hints are produced."""
     input = b'foo'
     test_case = tmp_path / 'input.txt'
-    hint_type = '@specialtype'
+    hint_type = b'@specialtype'
     hint = {'t': 0, 'p': [{'l': 1, 'r': 2}]}
     pass_ = StubHintBasedPass(
         {

@@ -70,7 +70,7 @@ def validate_stored_hints(state: Union[HintState, None], pass_: HintBasedPass) -
         validate_hint_bundle(bundle, output_types)
 
 
-def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Set[str]) -> None:
+def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Set[bytes]) -> None:
     for hint in bundle.hints:
         jsonschema.validate(hint, HINT_SCHEMA_STRICT)
         # Also check the things that the JSON Schema cannot enforce.
