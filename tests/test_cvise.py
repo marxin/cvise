@@ -234,7 +234,7 @@ def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     proc = start_cvise(
         [
             '-c',
-            'gcc -c repro/a.cc && grep nextHi repro/a.cc',
+            'gcc -c repro/a.cc && grep "nextHi = x" repro/a.cc',
             'repro',
             '--tidy',
             '--no-cache',
@@ -245,5 +245,5 @@ def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     proc.communicate()
 
     assert proc.returncode == 0
-    assert (test_case / 'a.h').read_text() == 'int x = 1;\n'
+    assert (test_case / 'a.h').read_text() == 'int x ;\n'
     assert (test_case / 'a.cc').read_text() == '#include "a.h"\nint nextHi = x;\n'
