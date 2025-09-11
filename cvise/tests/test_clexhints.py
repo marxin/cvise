@@ -4,7 +4,7 @@ from typing import Any, List, Tuple
 
 from cvise.passes.abstract import SubsegmentState
 from cvise.passes.clexhints import ClexHintsPass
-from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
+from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
 from cvise.utils.process import ProcessEventNotifier
 
@@ -217,3 +217,19 @@ def test_state_iteration_chunks_1_to_2_with_success(test_instance):
     assert s is not None
     s = s.advance_on_success(FINAL_N)
     assert collect_all_advances(s) == [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)]
+
+
+def test_directory_input(tmp_path: Path):
+    test_case = tmp_path / 'test_case'
+    test_case.mkdir()
+    (test_case / 'a.c').write_text('int x;')
+    (test_case / 'b.c').write_text('char y;')
+    p, state = init_pass('rm-toks-1-to-1', tmp_path, test_case)
+    all_transforms = collect_all_transforms_dir(p, state, test_case)
+
+    assert (('a.c', b'x;'), ('b.c', b'char y;')) in all_transforms
+    assert (('a.c', b'int ;'), ('b.c', b'char y;')) in all_transforms
+    assert (('a.c', b'int x'), ('b.c', b'char y;')) in all_transforms
+    assert (('a.c', b'int x;'), ('b.c', b'y;')) in all_transforms
+    assert (('a.c', b'int x;'), ('b.c', b'char ;')) in all_transforms
+    assert (('a.c', b'int x;'), ('b.c', b'char y')) in all_transforms
