@@ -8,7 +8,7 @@ from cvise.utils.hint import Hint, HintBundle, Patch
 
 class CommentsPass(HintBasedPass):
     # The hints vocabulary - strings used by our hint.
-    INITIAL_VOCAB = ('multi-line', 'single-line')
+    INITIAL_VOCAB = (b'multi-line', b'single-line')
     # The indices must match the order in INITIAL_VOCAB.
     MULTI_LINE_VOCAB_ID = 0
     SINGLE_LINE_VOCAB_ID = 1
@@ -19,7 +19,7 @@ class CommentsPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
-    def output_hint_types(self) -> List[str]:
+    def output_hint_types(self) -> List[bytes]:
         return list(self.INITIAL_VOCAB)
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
@@ -28,7 +28,8 @@ class CommentsPass(HintBasedPass):
         if test_case.is_dir():
             for path in test_case.rglob('*'):
                 if not path.is_dir():
-                    vocab.append(str(path.relative_to(test_case)))
+                    rel_path = path.relative_to(test_case)
+                    vocab.append(str(rel_path).encode())
                     file_id = len(vocab) - 1
                     hints += self._generate_hints_for_file(path, file_id)
         else:

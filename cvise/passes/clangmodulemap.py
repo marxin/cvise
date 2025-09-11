@@ -17,11 +17,11 @@ _FILE_PATTERNS = ('*.cppmap', '*.modulemap')
 @unique
 class _Vocab(Enum):
     # Items must be listed in the index order; indices must be contiguous and start from zero.
-    MAKE_HEADER_NON_MODULAR = (0, 'make-header-non-modular')
-    DELETE_USE_DECL = (1, 'delete-use-decl')
-    DELETE_EMPTY_SUBMODULE = (2, 'delete-empty-submodule')
-    INLINE_SUBMODULE_CONTENTS = (3, 'inline-submodule-contents')
-    DELETE_LINE = (4, 'delete-line')
+    MAKE_HEADER_NON_MODULAR = (0, b'make-header-non-modular')
+    DELETE_USE_DECL = (1, b'delete-use-decl')
+    DELETE_EMPTY_SUBMODULE = (2, b'delete-empty-submodule')
+    INLINE_SUBMODULE_CONTENTS = (3, b'inline-submodule-contents')
+    DELETE_LINE = (4, b'delete-line')
 
 
 class ClangModuleMapPass(HintBasedPass):
@@ -36,19 +36,20 @@ class ClangModuleMapPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
-    def output_hint_types(self) -> List[str]:
+    def output_hint_types(self) -> List[bytes]:
         return [v.value[1] for v in _Vocab]
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         paths = list(test_case.rglob('*')) if test_case.is_dir() else [test_case]
         interesting_paths = [p for p in paths if _interesting_file(p)]
 
-        vocab: List[str] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
+        vocab: List[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
         hints: List[Hint] = []
         for path in interesting_paths:
             file = _parse_file(path)
 
-            vocab.append(str(path.relative_to(test_case)))
+            rel_path = path.relative_to(test_case)
+            vocab.append(str(rel_path).encode())
             file_id = len(vocab) - 1
 
             for mod in file.modules:

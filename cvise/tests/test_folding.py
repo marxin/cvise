@@ -5,7 +5,7 @@ from cvise.passes.hint_based import HintState, PerTypeHintState
 from cvise.utils.folding import FoldingManager
 
 
-def create_stub_hint_state(type: str) -> HintState:
+def create_stub_hint_state(type: bytes) -> HintState:
     fake_path = Path()
     underlying_state = BinaryState.create(instances=1)
     return HintState(
@@ -17,8 +17,8 @@ def create_stub_hint_state(type: str) -> HintState:
 
 
 def test_folding_two():
-    state1 = create_stub_hint_state('type1')
-    state2 = create_stub_hint_state('type2')
+    state1 = create_stub_hint_state(b'type1')
+    state2 = create_stub_hint_state(b'type2')
     mgr = FoldingManager()
     mgr.on_transform_job_success(state1)
     mgr.on_transform_job_success(state2)
@@ -30,7 +30,7 @@ def test_folding_two():
 
 def test_folding_many():
     N = 10
-    states = [create_stub_hint_state(f'type{i}') for i in range(N)]
+    states = [create_stub_hint_state(f'type{i}'.encode()) for i in range(N)]
     mgr = FoldingManager()
     for s in states:
         mgr.on_transform_job_success(s)
@@ -47,7 +47,7 @@ def test_no_folding_zero_candidates():
 
 
 def test_no_folding_one_candidate():
-    state = create_stub_hint_state('type')
+    state = create_stub_hint_state(b'type')
     mgr = FoldingManager()
     mgr.on_transform_job_success(state)
 
@@ -56,8 +56,8 @@ def test_no_folding_one_candidate():
 
 
 def test_dont_fold_same_twice():
-    state1 = create_stub_hint_state('type1')
-    state2 = create_stub_hint_state('type2')
+    state1 = create_stub_hint_state(b'type1')
+    state2 = create_stub_hint_state(b'type2')
     mgr = FoldingManager()
     mgr.on_transform_job_success(state1)
     mgr.on_transform_job_success(state2)
@@ -69,9 +69,9 @@ def test_dont_fold_same_twice():
 
 
 def test_folding_continues_with_new_candidates():
-    state1 = create_stub_hint_state('type1')
-    state2 = create_stub_hint_state('type2')
-    state3 = create_stub_hint_state('type3')
+    state1 = create_stub_hint_state(b'type1')
+    state2 = create_stub_hint_state(b'type2')
+    state3 = create_stub_hint_state(b'type3')
     mgr = FoldingManager()
     mgr.on_transform_job_success(state1)
     mgr.on_transform_job_success(state2)
@@ -86,7 +86,7 @@ def test_folding_continues_with_new_candidates():
 
 
 def test_only_fold_hints():
-    state1 = create_stub_hint_state('type')
+    state1 = create_stub_hint_state(b'type')
     state2 = 'some-non-hint-state'
     mgr = FoldingManager()
     mgr.on_transform_job_success(state1)
@@ -97,8 +97,8 @@ def test_only_fold_hints():
 
 
 def test_dont_nest_fold_into_fold():
-    state1 = create_stub_hint_state('type1')
-    state2 = create_stub_hint_state('type2')
+    state1 = create_stub_hint_state(b'type1')
+    state2 = create_stub_hint_state(b'type2')
     mgr = FoldingManager()
     mgr.on_transform_job_success(state1)
     mgr.on_transform_job_success(state2)
@@ -117,7 +117,7 @@ def test_dont_fold_too_often():
 
     folds = []
     for i in range(N):
-        mgr.on_transform_job_success(create_stub_hint_state(f'type{i}'))
+        mgr.on_transform_job_success(create_stub_hint_state(f'type{i}'.encode()))
         folds.append(mgr.maybe_prepare_folding_job(job_order=N + i, best_success_state=None))
     assert sum(f is not None for f in folds) < MAX_FOLDS
 
@@ -127,9 +127,9 @@ def test_continue_attempting_folds_initially():
     PASS_COUNT = 10
     mgr = FoldingManager()
     assert mgr.continue_attempting_folds(job_order=1, parallel_tests=PARALLEL_TESTS, pass_count=PASS_COUNT)
-    mgr.on_transform_job_success(create_stub_hint_state('type1'))
+    mgr.on_transform_job_success(create_stub_hint_state(b'type1'))
     assert mgr.continue_attempting_folds(job_order=2, parallel_tests=PARALLEL_TESTS, pass_count=PASS_COUNT)
-    mgr.on_transform_job_success(create_stub_hint_state('type2'))
+    mgr.on_transform_job_success(create_stub_hint_state(b'type2'))
     assert mgr.continue_attempting_folds(job_order=3, parallel_tests=PARALLEL_TESTS, pass_count=PASS_COUNT)
 
 

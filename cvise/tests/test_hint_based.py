@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List, Sequence, Union
+from typing import Dict, List, Optional, Sequence
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.tests.testabstract import collect_all_transforms, iterate_pass, validate_hint_bundle
@@ -8,12 +8,12 @@ from cvise.utils.process import ProcessEventNotifier
 
 
 class StubHintBasedPass(HintBasedPass):
-    def __init__(self, contents_to_hints: Dict[bytes, Sequence[Hint]], vocabulary: Union[List[str], None] = None):
+    def __init__(self, contents_to_hints: Dict[bytes, Sequence[Hint]], vocabulary: Optional[List[bytes]] = None):
         super().__init__()
         self.contents_to_hints = contents_to_hints
         self.vocabulary = vocabulary or []
 
-    def output_hint_types(self) -> List[str]:
+    def output_hint_types(self) -> List[bytes]:
         return self.vocabulary
 
     def generate_hints(self, test_case: Path, *args, **kwargs) -> HintBundle:
@@ -118,7 +118,7 @@ def test_hint_based_state_iteration(tmp_path: Path):
 
 def test_hint_based_multiple_types(tmp_path: Path):
     """Test advancing through hints of multiple types."""
-    vocab = ['space_removal', 'b_removal']
+    vocab = [b'space_removal', b'b_removal']
     hint_space1 = Hint(type=0, patches=[Patch(left=3, right=4)])
     hint_space2 = Hint(type=0, patches=[Patch(left=7, right=8)])
     hint_b1 = Hint(type=1, patches=[Patch(left=1, right=2)])
@@ -147,7 +147,7 @@ def test_hint_based_type1_fewer_than_type2(tmp_path: Path):
 
     Verify that subranges of same-typed hints are checked, but differently-typed hints aren't mixed.
     """
-    vocab = ['type0', 'type1']
+    vocab = [b'type0', b'type1']
     hint1 = Hint(type=0, patches=[Patch(left=0, right=1)])
     hint2 = Hint(type=1, patches=[Patch(left=1, right=2)])
     hint3 = Hint(type=1, patches=[Patch(left=2, right=3)])
@@ -173,7 +173,7 @@ def test_hint_based_type2_fewer_than_type1(tmp_path: Path):
 
     Verify that subranges of same-typed hints are checked, but differently-typed hints aren't mixed.
     """
-    vocab = ['type0', 'type1']
+    vocab = [b'type0', b'type1']
     hint1 = Hint(type=0, patches=[Patch(left=0, right=1)])
     hint2 = Hint(type=0, patches=[Patch(left=1, right=2)])
     hint3 = Hint(type=1, patches=[Patch(left=2, right=3)])
@@ -222,7 +222,7 @@ def test_hint_based_special_hints_not_attempted(tmp_path: Path):
     """Test that special hints (whose type starts from "@") aren't attempted in the pass transform() calls."""
     input = b'foo'
     test_case = tmp_path / 'input.txt'
-    vocab = ['sometype', '@specialtype']
+    vocab = [b'sometype', b'@specialtype']
     hint_regular = Hint(type=0, patches=[Patch(left=0, right=1)])
     hint_special = Hint(type=1, patches=[Patch(left=1, right=2)])
     pass_ = StubHintBasedPass(
@@ -243,7 +243,7 @@ def test_hint_based_special_hints_stored(tmp_path: Path):
     """Test that special hints produced by a pass are stored on disk, even if no other hints are produced."""
     input = b'foo'
     test_case = tmp_path / 'input.txt'
-    hint_type = '@specialtype'
+    hint_type = b'@specialtype'
     hint = Hint(type=0, patches=[Patch(left=1, right=2)])
     pass_ = StubHintBasedPass(
         {

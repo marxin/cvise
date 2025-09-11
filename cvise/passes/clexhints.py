@@ -35,7 +35,7 @@ class ClexHintsPass(HintBasedPass):
             work_dir = test_case
             paths = [p.relative_to(test_case) for p in test_case.rglob('*') if not p.is_dir()]
             stdin = b'\n'.join(bytes(p) for p in paths)
-            files_vocab = [str(p) for p in paths]
+            files_vocab = [str(p).encode() for p in paths]
             cmd_arg = '--'
         else:
             work_dir = '.'
@@ -52,7 +52,7 @@ class ClexHintsPass(HintBasedPass):
         stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
         vocab_decoder = msgspec.json.Decoder(type=List[str])
-        orig_vocab = vocab_decoder.decode(vocab_line) if vocab_line else []
+        orig_vocab = [s.encode() for s in vocab_decoder.decode(vocab_line)] if vocab_line else []
 
         hints = []
         hint_decoder = msgspec.json.Decoder(type=Hint)

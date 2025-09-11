@@ -71,7 +71,7 @@ def validate_stored_hints(state: Union[HintState, None], pass_: HintBasedPass) -
         validate_hint_bundle(bundle, output_types)
 
 
-def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Optional[Set[str]] = None) -> None:
+def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Optional[Set[bytes]] = None) -> None:
     for hint in bundle.hints:
         # Check against JSON Schema.
         json_dump = msgspec.json.encode(hint)

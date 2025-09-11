@@ -17,10 +17,10 @@ class TreeSitterPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
-    def output_hint_types(self) -> List[str]:
+    def output_hint_types(self) -> List[bytes]:
         # Must stay in sync with the heuristic implementations in //treesitter_delta/.
         if self.arg == 'replace-function-def-with-decl':
-            return ['regular', 'template-function']
+            return [b'regular', b'template-function']
         else:
             return []
 
@@ -45,7 +45,7 @@ class TreeSitterPass(HintBasedPass):
         stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
         vocab_decoder = msgspec.json.Decoder(type=List[str])
-        vocab = vocab_decoder.decode(vocab_line) if vocab_line else []
+        vocab = [s.encode() for s in vocab_decoder.decode(vocab_line)] if vocab_line else []
 
         hints = []
         hint_decoder = msgspec.json.Decoder(type=Hint)
