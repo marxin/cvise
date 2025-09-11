@@ -12,6 +12,7 @@ def create_stub_hint_state(type: str) -> HintState:
         tmp_dir=fake_path,
         per_type_states=(PerTypeHintState(type=type, hints_file_name=fake_path, underlying_state=underlying_state),),
         ptr=0,
+        special_hints=(),
     )
 
 

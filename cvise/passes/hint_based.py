@@ -4,7 +4,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple, Union
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult, ProcessEventNotifier
-from cvise.utils.hint import apply_hints, group_hints_by_type, HintBundle, HintApplicationStats, load_hints, store_hints
+from cvise.utils.hint import (
+    apply_hints,
+    group_hints_by_type,
+    is_special_hint_type,
+    HintBundle,
+    HintApplicationStats,
+    load_hints,
+    store_hints,
+)
 
 HINTS_FILE_NAME_TEMPLATE = 'hints{type}.jsonl.zst'
 
@@ -47,6 +55,19 @@ class PerTypeHintState:
 
 
 @dataclass(frozen=True)
+class SpecialHintState:
+    """A sub-item of HintState for "special" hint types - those that start from "@".
+
+    Such hints aren't attempted as reduction attempts themselves, instead they convey information from one pass to
+    another - hence there's no underlying_state here.
+    """
+
+    type: str
+    hints_file_name: Path
+    hint_count: int
+
+
+@dataclass(frozen=True)
 class HintState:
     """Stores the current state of the HintBasedPass.
 
@@ -57,14 +78,20 @@ class HintState:
     tmp_dir: Path
     # The enumeration state for each hint type. Sorted by type (in order to have deterministic and repeatable
     # enumeration order).
-    per_type_states: Tuple[PerTypeHintState]
+    per_type_states: Tuple[PerTypeHintState, ...]
     # Pointer to the current per-type state in the round-robin enumeration.
     ptr: int
+    # Information for "special" hint types (those that start with "@"). They're stored separately because we don't
+    # attempt applying them during enumeration - they're only intended as inputs for other passes that depend on them.
+    special_hints: Tuple[SpecialHintState, ...]
 
     @staticmethod
-    def create(tmp_dir: Path, per_type_states: List[PerTypeHintState]):
+    def create(tmp_dir: Path, per_type_states: List[PerTypeHintState], special_hints: List[SpecialHintState]):
         sorted_states = sorted(per_type_states, key=lambda s: s.type)
-        return HintState(tmp_dir=tmp_dir, per_type_states=tuple(sorted_states), ptr=0)
+        sorted_special_hints = sorted(special_hints, key=lambda s: s.type)
+        return HintState(
+            tmp_dir=tmp_dir, per_type_states=tuple(sorted_states), ptr=0, special_hints=tuple(sorted_special_hints)
+        )
 
     def __repr__(self):
         parts = []
@@ -72,6 +99,8 @@ class HintState:
             mark = '[*]' if i == self.ptr and len(self.per_type_states) > 1 else ''
             type_s = s.type + ': ' if s.type else ''
             parts.append(f'{mark}{type_s}{s.underlying_state.compact_repr()}')
+        for s in self.special_hints:
+            parts.append(f'{s.type}: {s.hint_count}')
         return f'HintState({", ".join(parts)})'
 
     def real_chunk(self) -> int:
@@ -98,7 +127,12 @@ class HintState:
             new_ptr += 1
         new_ptr %= len(new_per_type_states)
 
-        return HintState(tmp_dir=self.tmp_dir, per_type_states=tuple(new_per_type_states), ptr=new_ptr)
+        return HintState(
+            tmp_dir=self.tmp_dir,
+            per_type_states=tuple(new_per_type_states),
+            ptr=new_ptr,
+            special_hints=self.special_hints,
+        )
 
     def advance_on_success(self, type_to_bundle: Dict[str, HintBundle]):
         sub_states = []
@@ -114,10 +148,15 @@ class HintState:
                 sub_states.append(new_substate)
         if not sub_states:
             return None
-        return HintState(tmp_dir=self.tmp_dir, per_type_states=tuple(sub_states), ptr=0)
+        return HintState(
+            tmp_dir=self.tmp_dir, per_type_states=tuple(sub_states), ptr=0, special_hints=self.special_hints
+        )
 
     def hint_bundle_paths(self) -> Dict[str, Path]:
-        return {substate.type: self.tmp_dir / substate.hints_file_name for substate in self.per_type_states}
+        return {
+            substate.type: self.tmp_dir / substate.hints_file_name
+            for substate in self.per_type_states + self.special_hints
+        }
 
 
 class HintBasedPass(AbstractPass):
@@ -186,6 +225,8 @@ class HintBasedPass(AbstractPass):
         return self.new_from_hints(hints, tmp_dir)
 
     def transform(self, test_case: Path, state: HintState, original_test_case: Path, *args, **kwargs):
+        if not state.per_type_states:  # possible if all hints produced by new() were "special"
+            return PassResult.STOP, state
         self.load_and_apply_hints(original_test_case, test_case, [state])
         return PassResult.OK, state
 
@@ -230,18 +271,27 @@ class HintBasedPass(AbstractPass):
         type_to_bundle = group_hints_by_type(bundle)
         self.backfill_pass_names(type_to_bundle)
         type_to_file_name = store_hints_per_type(tmp_dir, type_to_bundle)
-        sub_states = []
-        # Initialize a separate enumeration for each group of hints sharing a particular type.
+        sub_states: List[PerTypeHintState] = []
+        special_states: List[SpecialHintState] = []
         for type, sub_bundle in type_to_bundle.items():
-            underlying = self.create_elementary_state(len(sub_bundle.hints))
-            if underlying is None:
-                continue
-            sub_states.append(
-                PerTypeHintState(type=type, hints_file_name=type_to_file_name[type], underlying_state=underlying)
-            )
-        if not sub_states:
+            if is_special_hint_type(type):
+                # "Special" hints aren't attempted in transform() jobs - only store them to be consumed by other passes.
+                special_states.append(
+                    SpecialHintState(
+                        type=type, hints_file_name=type_to_file_name[type], hint_count=len(sub_bundle.hints)
+                    )
+                )
+            else:
+                # Initialize a separate enumeration for this group of hints sharing a particular type.
+                underlying = self.create_elementary_state(len(sub_bundle.hints))
+                if underlying is None:
+                    continue
+                sub_states.append(
+                    PerTypeHintState(type=type, hints_file_name=type_to_file_name[type], underlying_state=underlying)
+                )
+        if not sub_states and not special_states:
             return None
-        return HintState.create(tmp_dir, sub_states)
+        return HintState.create(tmp_dir, sub_states, special_states)
 
     def advance_on_success_from_hints(self, bundle: HintBundle, state: HintState) -> Union[HintState, None]:
         """Advances the state after a successful reduction, given pre-generated hints.

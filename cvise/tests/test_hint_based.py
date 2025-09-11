@@ -3,7 +3,7 @@ from typing import Dict, List, Sequence, Union
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.tests.testabstract import collect_all_transforms, iterate_pass, validate_hint_bundle
-from cvise.utils.hint import HintBundle
+from cvise.utils.hint import HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
 
 
@@ -216,3 +216,50 @@ def test_hint_based_non_utf8(tmp_path: Path):
     assert b'f\0oo\xc3\x84' in all_transforms  # hint34 applied
     assert b'f\0o\xffo' in all_transforms  # hint57 applied
     assert b'fo' in all_transforms  # all applied
+
+
+def test_hint_based_special_hints_not_attempted(tmp_path: Path):
+    """Test that special hints (whose type starts from "@") aren't attempted in the pass transform() calls."""
+    input = b'foo'
+    test_case = tmp_path / 'input.txt'
+    vocab = ['sometype', '@specialtype']
+    hint_regular = {'t': 0, 'p': [{'l': 0, 'r': 1}]}
+    hint_special = {'t': 1, 'p': [{'l': 1, 'r': 2}]}
+    pass_ = StubHintBasedPass(
+        {
+            input: [hint_regular, hint_special],
+        },
+        vocabulary=vocab,
+    )
+    test_case.write_bytes(input)
+
+    state = pass_.new(test_case, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[])
+    all_transforms = collect_all_transforms(pass_, state, test_case)
+    assert b'oo' in all_transforms  # hint_regular applied
+    assert b'fo' not in all_transforms  # hint_special not applied
+
+
+def test_hint_based_special_hints_stored(tmp_path: Path):
+    """Test that special hints produced by a pass are stored on disk, even if no other hints are produced."""
+    input = b'foo'
+    test_case = tmp_path / 'input.txt'
+    hint_type = '@specialtype'
+    hint = {'t': 0, 'p': [{'l': 1, 'r': 2}]}
+    pass_ = StubHintBasedPass(
+        {
+            input: [hint],
+        },
+        vocabulary=[hint_type],
+    )
+    test_case.write_bytes(input)
+
+    state = pass_.new(test_case, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[])
+    assert state is not None
+    bundle_paths = state.hint_bundle_paths()
+    assert len(bundle_paths) == 1
+    assert hint_type in bundle_paths
+    bundle = load_hints(bundle_paths[hint_type], begin_index=None, end_index=None)
+    assert bundle.hints == [hint]
+
+    all_transforms = collect_all_transforms(pass_, state, test_case)
+    assert all_transforms == set()

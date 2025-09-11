@@ -89,9 +89,11 @@ HINT_SCHEMA = {
         },
         't': {
             'description': (
-                'Indicates the type of the hint, as an index in the vocabulary. The purpose of the type is to let a '
-                'pass split hints into distinct groups, to guide the generic logic that attempts taking consecutive '
-                'ranges of same-typed hints.'
+                'Indicates the type of the hint, as an index in the vocabulary. Types starting from "@" (the at sign) '
+                'have special meaning - such hints are not attempted as reduction transformations, but are only '
+                'intended to be consumed by other passes as input data. Types not starting from "@" are just used as a '
+                'way to split hints from a particular pass into distinct groups, to guide the generic logic that '
+                'attempts taking consecutive ranges of same-typed hints.'
             ),
             'type': 'integer',
             'minimum': 0,
@@ -116,6 +118,10 @@ class HintApplicationStats:
 
 # A singleton encoder object, to save time on recreating it.
 json_encoder: Union[msgspec.json.Encoder, None] = None
+
+
+def is_special_hint_type(type: str) -> bool:
+    return type.startswith('@')
 
 
 def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationStats:
