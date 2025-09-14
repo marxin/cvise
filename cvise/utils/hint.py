@@ -24,14 +24,14 @@ from cvise.utils.fileutil import mkdir_up_to
 FORMAT_NAME = 'cvise_hints_v0'
 
 
-class Patch(msgspec.Struct, kw_only=True):
+class Patch(msgspec.Struct, kw_only=True, omit_defaults=True):
     l: int
     r: int
     f: Optional[int] = None
     v: Optional[int] = None
 
 
-class Hint(msgspec.Struct):
+class Hint(msgspec.Struct, omit_defaults=True):
     p: List[Patch]
     t: Optional[int] = None
 
