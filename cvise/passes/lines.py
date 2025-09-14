@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, List, Union
 
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils.hint import HintBundle
+from cvise.utils.hint import Hint, HintBundle, Patch
 from cvise.utils.process import ProcessEventNotifier
 
 
@@ -17,7 +17,7 @@ class LinesPass(HintBasedPass):
     def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
         vocab = []
         hints = []
-        decoder = msgspec.json.Decoder()
+        decoder = msgspec.json.Decoder(type=Hint)
         if test_case.is_dir():
             for path in test_case.rglob('*'):
                 if not path.is_dir():
@@ -48,10 +48,10 @@ class LinesPass(HintBasedPass):
             file_pos = 0
             for line in in_file:
                 end_pos = file_pos + len(line)
-                patch = {'l': file_pos, 'r': end_pos}
+                patch = Patch(l=file_pos, r=end_pos)
                 if file_id is not None:
-                    patch['f'] = file_id
-                hints.append({'p': [patch]})
+                    patch.f = file_id
+                hints.append(Hint(p=[patch]))
                 file_pos = end_pos
         return hints
 
@@ -75,8 +75,8 @@ class LinesPass(HintBasedPass):
         for line in stdout.splitlines():
             if not line.isspace():
                 hint = decoder.decode(line)
-                assert len(hint['p']) == 1
+                assert len(hint.p) == 1
                 if file_id is not None:
-                    hint['p'][0]['f'] = file_id
+                    hint.p[0].f = file_id
                 hints.append(hint)
         return hints

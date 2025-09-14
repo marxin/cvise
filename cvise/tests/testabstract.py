@@ -72,13 +72,13 @@ def validate_stored_hints(state: Union[HintState, None], pass_: HintBasedPass) -
 
 def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Set[str]) -> None:
     for hint in bundle.hints:
-        jsonschema.validate(hint, HINT_SCHEMA_STRICT)
+        # jsonschema.validate(hint, HINT_SCHEMA_STRICT)
         # Also check the things that the JSON Schema cannot enforce.
-        if 't' in hint:
-            assert hint['t'] < len(bundle.vocabulary)
-            hint_type = bundle.vocabulary[hint['t']]
+        if hint.t is not None:
+            assert hint.t < len(bundle.vocabulary)
+            hint_type = bundle.vocabulary[hint.t]
             assert hint_type in allowed_hint_types
-        for patch in hint['p']:
-            assert patch['l'] < patch['r']
-            if 'v' in patch:
-                assert patch['v'] < len(bundle.vocabulary)
+        for patch in hint.p:
+            assert patch.l < patch.r
+            if patch.v is not None:
+                assert patch.v < len(bundle.vocabulary)

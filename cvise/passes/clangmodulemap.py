@@ -8,7 +8,7 @@ import re
 from typing import Dict, List, Union
 
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils.hint import HintBundle
+from cvise.utils.hint import Hint, HintBundle, Patch
 
 
 _FILE_PATTERNS = ('*.cppmap', '*.modulemap')
@@ -103,62 +103,62 @@ def _create_hints_for_module(mod: _ModuleDecl, file_id: int, toplevel: bool, hin
     empty = not mod.headers and not mod.uses and not mod.submodules
     if not toplevel and empty:
         hints.append(
-            {
-                't': _Vocab.DELETE_EMPTY_SUBMODULE.value[0],
-                'p': [
-                    {
-                        'f': file_id,
-                        'l': mod.loc.begin,
-                        'r': mod.loc.end,
-                    }
+            Hint(
+                t=_Vocab.DELETE_EMPTY_SUBMODULE.value[0],
+                p=[
+                    Patch(
+                        f=file_id,
+                        l=mod.loc.begin,
+                        r=mod.loc.end,
+                    )
                 ],
-            }
+            )
         )
 
     if not toplevel and not empty:
         hints.append(
-            {
-                't': _Vocab.INLINE_SUBMODULE_CONTENTS.value[0],
-                'p': [
-                    {
-                        'f': file_id,
-                        'l': mod.title_loc.begin,
-                        'r': mod.title_loc.end,
-                    },
-                    {
-                        'f': file_id,
-                        'l': mod.close_brace_loc.begin,
-                        'r': mod.close_brace_loc.end,
-                    },
+            Hint(
+                t=_Vocab.INLINE_SUBMODULE_CONTENTS.value[0],
+                p=[
+                    Patch(
+                        f=file_id,
+                        l=mod.title_loc.begin,
+                        r=mod.title_loc.end,
+                    ),
+                    Patch(
+                        f=file_id,
+                        l=mod.close_brace_loc.begin,
+                        r=mod.close_brace_loc.end,
+                    ),
                 ],
-            }
+            )
         )
 
     for header in mod.headers:
         hints.append(
-            {
-                't': _Vocab.MAKE_HEADER_NON_MODULAR.value[0],
-                'p': [
-                    {
-                        'f': file_id,
-                        'l': header.loc.begin,
-                        'r': header.loc.end,
-                    }
+            Hint(
+                t=_Vocab.MAKE_HEADER_NON_MODULAR.value[0],
+                p=[
+                    Patch(
+                        f=file_id,
+                        l=header.loc.begin,
+                        r=header.loc.end,
+                    )
                 ],
-            }
+            )
         )
     for use in mod.uses:
         hints.append(
-            {
-                't': _Vocab.DELETE_USE_DECL.value[0],
-                'p': [
-                    {
-                        'f': file_id,
-                        'l': use.loc.begin,
-                        'r': use.loc.end,
-                    }
+            Hint(
+                t=_Vocab.DELETE_USE_DECL.value[0],
+                p=[
+                    Patch(
+                        f=file_id,
+                        l=use.loc.begin,
+                        r=use.loc.end,
+                    )
                 ],
-            }
+            )
         )
     for submod in mod.submodules:
         _create_hints_for_module(submod, file_id, toplevel=False, hints=hints)
@@ -167,16 +167,16 @@ def _create_hints_for_module(mod: _ModuleDecl, file_id: int, toplevel: bool, hin
 def _create_hints_for_unclassified_lines(unclassified_lines: List[_SourceLoc], file_id: int, hints: List[Dict]) -> None:
     for loc in unclassified_lines:
         hints.append(
-            {
-                't': _Vocab.DELETE_LINE.value[0],
-                'p': [
-                    {
-                        'f': file_id,
-                        'l': loc.begin,
-                        'r': loc.end,
-                    }
+            Hint(
+                t=_Vocab.DELETE_LINE.value[0],
+                p=[
+                    Patch(
+                        f=file_id,
+                        l=loc.begin,
+                        r=loc.end,
+                    )
                 ],
-            }
+            )
         )
 
 

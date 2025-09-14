@@ -3,7 +3,7 @@ import re
 from typing import Dict, List, Union
 
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils.hint import HintBundle
+from cvise.utils.hint import Hint, HintBundle, Patch
 
 
 class CommentsPass(HintBasedPass):
@@ -45,16 +45,16 @@ class CommentsPass(HintBasedPass):
         # * then - any number of "*" that aren't followed by "/", or of any other characters;
         # * finally - "*/".
         for m in re.finditer(rb'/\*(?:\*(?!/)|[^*])*\*/', prog, flags=re.DOTALL):
-            patch = {'l': m.start(), 'r': m.end()}
+            patch = Patch(l=m.start(), r=m.end())
             if file_id is not None:
-                patch['f'] = file_id
-            hints.append({'t': self.MULTI_LINE_VOCAB_ID, 'p': [patch]})
+                patch.f = file_id
+            hints.append(Hint(t=self.MULTI_LINE_VOCAB_ID, p=[patch]))
 
         # Remove all single-line comments.
         for m in re.finditer(rb'//.*$', prog, flags=re.MULTILINE):
-            patch = {'l': m.start(), 'r': m.end()}
+            patch = Patch(l=m.start(), r=m.end())
             if file_id is not None:
-                patch['f'] = file_id
-            hints.append({'t': self.SINGLE_LINE_VOCAB_ID, 'p': [patch]})
+                patch.f = file_id
+            hints.append(Hint(t=self.SINGLE_LINE_VOCAB_ID, p=[patch]))
 
         return hints

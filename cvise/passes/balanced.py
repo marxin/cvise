@@ -7,7 +7,7 @@ from typing import List, Union
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import nestedmatcher
 from cvise.utils.error import UnknownArgumentError
-from cvise.utils.hint import HintBundle
+from cvise.utils.hint import Hint, HintBundle, Patch
 
 
 @unique
@@ -56,16 +56,16 @@ class BalancedPass(HintBasedPass):
             if start_pos is None:
                 return None
             if config.to_delete == Deletion.ALL:
-                p = {'l': start_pos, 'r': file_pos + 1}
+                p = Patch(l=start_pos, r=file_pos + 1)
                 if config.replacement:
-                    p['v'] = 0  # the first (and the only) string from the vocabulary
-                return {'p': [p]}
+                    p.v = 0  # the first (and the only) string from the vocabulary
+                return Hint(p=[p])
             if config.to_delete == Deletion.ONLY:
-                return {'p': [{'l': start_pos, 'r': start_pos + 1}, {'l': file_pos, 'r': file_pos + 1}]}
+                return Hint(p=[Patch(l=start_pos, r=start_pos + 1), Patch(l=file_pos, r=file_pos + 1)])
             if config.to_delete == Deletion.INSIDE:
                 if file_pos - start_pos <= 1:
                     return None  # don't create an empty hint
-                return {'p': [{'l': start_pos + 1, 'r': file_pos}]}
+                return Hint(p=[Patch(l=start_pos + 1, r=file_pos)])
             raise ValueError(f'Unexpected config {config}')
 
         hints = []

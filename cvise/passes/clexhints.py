@@ -5,7 +5,7 @@ import subprocess
 
 from cvise.passes.abstract import SubsegmentState
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils.hint import HintBundle
+from cvise.utils.hint import Hint, HintBundle
 from cvise.utils.process import ProcessEventNotifier
 
 
@@ -54,13 +54,14 @@ class ClexHintsPass(HintBasedPass):
         orig_vocab = decoder.decode(vocab_line) if vocab_line else []
 
         hints = []
+        decoder = msgspec.json.Decoder(type=Hint)
         for line in stdout:
             if not line.isspace():
                 hint = decoder.decode(line)
                 # Shift file identifiers according to their position in the vocabulary.
-                for patch in hint['p']:
-                    if 'f' in patch:
-                        patch['f'] += len(orig_vocab)
+                for patch in hint.p:
+                    if patch.f is not None:
+                        patch.f += len(orig_vocab)
                 hints.append(hint)
         return HintBundle(vocabulary=orig_vocab + files_vocab, hints=hints)
 

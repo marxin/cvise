@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 import json
 import msgspec
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, TextIO, Union
+from typing import Any, Dict, List, Optional, Sequence, TextIO, Union
 import zstandard
 
 from cvise.utils.fileutil import mkdir_up_to
@@ -22,6 +22,18 @@ from cvise.utils.fileutil import mkdir_up_to
 
 # Currently just a hardcoded constant - the number is reserved for backwards-incompatible format changes in the future.
 FORMAT_NAME = 'cvise_hints_v0'
+
+
+class Patch(msgspec.Struct, kw_only=True):
+    l: int
+    r: int
+    f: Optional[int] = None
+    v: Optional[int] = None
+
+
+class Hint(msgspec.Struct):
+    p: List[Patch]
+    t: Optional[int] = None
 
 
 @dataclass
@@ -38,7 +50,7 @@ class HintBundle:
     """
 
     # Hint objects - each item matches the `HINT_SCHEMA`.
-    hints: List[Dict]
+    hints: List[Hint]
     pass_name: str = ''
     # Strings that hints can refer to.
     # Note: a simple "= []" wouldn't be suitable because mutable default values are error-prone in Python.
@@ -124,16 +136,19 @@ def is_special_hint_type(type: str) -> bool:
     return type.startswith('@')
 
 
+class _PatchWithBundleRef(Patch):
+    bundle: HintBundle
+
+
 def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationStats:
     """Creates the destination file/dir by applying the specified hints to the contents of the source file/dir."""
     # Take patches from all hints and group them by the file which they're applied to.
     path_to_patches = {}
     for bundle in bundles:
         for hint in bundle.hints:
-            for patch in hint['p']:
-                p = copy(patch)
-                p['_bundle'] = bundle
-                file_rel = Path(bundle.vocabulary[patch['f']]) if 'f' in patch else Path()
+            for patch in hint.p:
+                p = _PatchWithBundleRef(l=patch.l, r=patch.r, f=patch.f, v=patch.v, bundle=bundle)
+                file_rel = Path(bundle.vocabulary[patch.f]) if patch.f is not None else Path()
                 path_to_patches.setdefault(file_rel, []).append(p)
 
     # Enumerate all files in the source location and apply corresponding patches, if any, to each.
@@ -156,7 +171,7 @@ def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: 
 
 
 def apply_hint_patches_to_file(
-    patches: List[Dict], source_file: Path, destination_file: Path, stats: HintApplicationStats
+    patches: List[_PatchWithBundleRef], source_file: Path, destination_file: Path, stats: HintApplicationStats
 ) -> None:
     merged_patches = merge_overlapping_patches(patches)
     orig_data = source_file.read_bytes()
@@ -164,9 +179,9 @@ def apply_hint_patches_to_file(
     new_data = b''
     start_pos = 0
     for p in merged_patches:
-        left: int = p['l']
-        right: int = p['r']
-        bundle: HintBundle = p['_bundle']
+        left: int = p.l
+        right: int = p.r
+        bundle: HintBundle = p.bundle
         assert start_pos <= left < len(orig_data)
         assert left < right <= len(orig_data)
         # Add the unmodified chunk up to the current patch begin.
@@ -176,8 +191,8 @@ def apply_hint_patches_to_file(
         stats.size_delta_per_pass.setdefault(bundle.pass_name, 0)
         stats.size_delta_per_pass[bundle.pass_name] -= right - left
         # Insert the replacement value, if provided.
-        if 'v' in p:
-            to_insert = bundle.vocabulary[p['v']].encode()
+        if p.v is not None:
+            to_insert = bundle.vocabulary[p.v].encode()
             new_data += to_insert
             stats.size_delta_per_pass[bundle.pass_name] += len(to_insert)
     # Add the unmodified chunk after the last patch end.
@@ -239,12 +254,13 @@ def load_hints(hints_file_path: Path, begin_index: Union[int, None], end_index: 
             raise RuntimeError(f'Failed to read hint vocabulary: expected array, instead got: {vocab}')
         bundle.vocabulary = vocab
 
+        hint_decoder = msgspec.json.Decoder(type=Hint)
         for i, line in enumerate(f):
             if begin_index is not None and i < begin_index:
                 continue
             if end_index is not None and i >= end_index:
                 continue
-            bundle.hints.append(try_parse_json_line(line, decoder))
+            bundle.hints.append(try_parse_json_line(line, hint_decoder))
     return bundle
 
 
@@ -252,7 +268,7 @@ def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
     """Splits the bundle into multiple, one per each hint type."""
     grouped: Dict[str, HintBundle] = {}
     for h in bundle.hints:
-        type = bundle.vocabulary[h['t']] if 't' in h else ''
+        type = bundle.vocabulary[h.t] if h.t is not None else ''
         if type not in grouped:
             grouped[type] = HintBundle(vocabulary=bundle.vocabulary, hints=[], pass_name=bundle.pass_name)
         # FIXME: drop the 't' property in favor of storing it once, in the bundle's preamble
@@ -297,15 +313,15 @@ def try_parse_json_line(text: str, decoder) -> Any:
         raise RuntimeError(f'Failed to decode line "{text}": {e}') from e
 
 
-def merge_overlapping_patches(patches: Sequence[Dict]) -> Sequence[Dict]:
+def merge_overlapping_patches(patches: Sequence[Patch]) -> Sequence[Patch]:
     """Returns non-overlapping hint patches, merging patches where necessary."""
 
     def sorting_key(patch):
-        is_replacement = 'v' in patch
+        is_replacement = patch.v is not None
         # Among all patches starting in the same location, use additional criteria:
         # * prefer seeing larger patches first, hence sort by decreasing "r";
         # * (if still a tie) prefer deletion over text replacement.
-        return patch['l'], -patch['r'], is_replacement
+        return patch.l, -patch.r, is_replacement
 
     merged = []
     for patch in sorted(patches, key=sorting_key):
@@ -316,18 +332,18 @@ def merge_overlapping_patches(patches: Sequence[Dict]) -> Sequence[Dict]:
     return merged
 
 
-def patches_overlap(first: Dict, second: Dict) -> bool:
+def patches_overlap(first: Patch, second: Patch) -> bool:
     """Checks whether two patches overlap.
 
     Only real overlaps (with at least one common character) are counted - False
     is returned for patches merely touching each other.
     """
-    return max(first['l'], second['l']) < min(first['r'], second['r'])
+    return max(first.l, second.l) < min(first.r, second.r)
 
 
-def extend_end_to_fit(patch: Dict, appended_patch: Dict) -> None:
+def extend_end_to_fit(patch: Patch, appended_patch: Patch) -> None:
     """Modifies the first patch so that the second patch fits into it."""
-    patch['r'] = max(patch['r'], appended_patch['r'])
+    patch.r = max(patch.r, appended_patch.r)
 
 
 def _mkdir_up_to(dir_to_create: Path, last_parent_dir: Path) -> None:

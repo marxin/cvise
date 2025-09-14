@@ -7,7 +7,7 @@ import time
 from typing import Union
 
 from cvise.passes.hint_based import HintBasedPass, HintState
-from cvise.utils.hint import HintBundle
+from cvise.utils.hint import Hint, HintBundle
 from cvise.utils.process import ProcessEventNotifier
 
 
@@ -142,6 +142,7 @@ class ClangHintsPass(HintBasedPass):
         vocab = decoder.decode(vocab_line) if vocab_line else []
 
         hints = []
+        decoder = msgspec.json.Decoder(type=Hint)
         for line in stdout:
             if not line.isspace():
                 hints.append(decoder.decode(line))
