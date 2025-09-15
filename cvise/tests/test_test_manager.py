@@ -137,7 +137,7 @@ class LetterRemovingHintPass(HintBasedPass):
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         sz = test_case.stat().st_size
-        hints = [Hint(p=[Patch(l=i, r=i + 1)]) for i in range(sz)]
+        hints = [Hint(patches=[Patch(left=i, right=i + 1)]) for i in range(sz)]
         return HintBundle(hints=hints)
 
 
@@ -160,7 +160,7 @@ class BracketRemovingPass(HintBasedPass):
     def generate_hints(self, test_case: Path, *args, **kwargs):
         hints = []
         for m in re.finditer(r'\([^()]*\)', test_case.read_text()):
-            hints.append(Hint(t=0, p=[Patch(l=m.start(), r=m.end())]))
+            hints.append(Hint(type=0, patches=[Patch(left=m.start(), right=m.end())]))
         return HintBundle(hints=hints, vocabulary=['remove-brackets'])
 
 
@@ -178,12 +178,12 @@ class InsideBracketsRemovingPass(HintBasedPass):
         hints = []
         for input_bundle in dependee_hints:
             for input_hint in input_bundle.hints:
-                assert input_bundle.vocabulary[input_hint.t] == 'remove-brackets'
-                assert len(input_hint.p) == 1
-                input_patch = input_hint.p[0]
-                if input_patch.r - input_patch.l == 1:
+                assert input_bundle.vocabulary[input_hint.type] == 'remove-brackets'
+                assert len(input_hint.patches) == 1
+                input_patch = input_hint.patches[0]
+                if input_patch.right - input_patch.left == 1:
                     continue  # don't create empty hints
-                hints.append(Hint(p=[Patch(l=input_patch.l + 1, r=input_patch.r - 1)]))
+                hints.append(Hint(patches=[Patch(left=input_patch.left + 1, right=input_patch.right - 1)]))
         return HintBundle(hints=hints)
 
 

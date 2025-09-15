@@ -78,12 +78,12 @@ def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Optional[Set[st
         dict_obj = msgspec.json.decode(json_dump)
         jsonschema.validate(dict_obj, HINT_SCHEMA_STRICT)
         # Also check the things that the JSON Schema cannot enforce.
-        if hint.t is not None:
-            assert hint.t < len(bundle.vocabulary)
-            hint_type = bundle.vocabulary[hint.t]
+        if hint.type is not None:
+            assert hint.type < len(bundle.vocabulary)
+            hint_type = bundle.vocabulary[hint.type]
             if allowed_hint_types is not None:
                 assert hint_type in allowed_hint_types
-        for patch in hint.p:
-            assert patch.l < patch.r
-            if patch.v is not None:
-                assert patch.v < len(bundle.vocabulary)
+        for patch in hint.patches:
+            assert patch.left < patch.right
+            if patch.value is not None:
+                assert patch.value < len(bundle.vocabulary)

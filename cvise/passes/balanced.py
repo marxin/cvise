@@ -56,16 +56,18 @@ class BalancedPass(HintBasedPass):
             if start_pos is None:
                 return None
             if config.to_delete == Deletion.ALL:
-                p = Patch(l=start_pos, r=file_pos + 1)
+                p = Patch(left=start_pos, right=file_pos + 1)
                 if config.replacement:
-                    p.v = 0  # the first (and the only) string from the vocabulary
-                return Hint(p=[p])
+                    p.value = 0  # the first (and the only) string from the vocabulary
+                return Hint(patches=[p])
             if config.to_delete == Deletion.ONLY:
-                return Hint(p=[Patch(l=start_pos, r=start_pos + 1), Patch(l=file_pos, r=file_pos + 1)])
+                return Hint(
+                    patches=[Patch(left=start_pos, right=start_pos + 1), Patch(left=file_pos, right=file_pos + 1)]
+                )
             if config.to_delete == Deletion.INSIDE:
                 if file_pos - start_pos <= 1:
                     return None  # don't create an empty hint
-                return Hint(p=[Patch(l=start_pos + 1, r=file_pos)])
+                return Hint(patches=[Patch(left=start_pos + 1, right=file_pos)])
             raise ValueError(f'Unexpected config {config}')
 
         hints = []

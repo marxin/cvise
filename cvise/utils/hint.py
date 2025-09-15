@@ -9,7 +9,7 @@ heuristics and to perform reduction more efficiently (as algorithms can now be
 applied to all heuristics in a uniform way).
 """
 
-from copy import copy, deepcopy
+from copy import deepcopy
 from dataclasses import dataclass, field
 import json
 import msgspec
@@ -25,15 +25,15 @@ FORMAT_NAME = 'cvise_hints_v0'
 
 
 class Patch(msgspec.Struct, kw_only=True, omit_defaults=True):
-    l: int
-    r: int
-    f: Optional[int] = None
-    v: Optional[int] = None
+    left: int = msgspec.field(name='l')
+    right: int = msgspec.field(name='r')
+    file: Optional[int] = msgspec.field(default=None, name='f')
+    value: Optional[int] = msgspec.field(default=None, name='v')
 
 
 class Hint(msgspec.Struct, omit_defaults=True):
-    p: List[Patch]
-    t: Optional[int] = None
+    patches: List[Patch] = msgspec.field(name='p')
+    type: Optional[int] = msgspec.field(default=None, name='t')
 
 
 @dataclass
@@ -146,9 +146,11 @@ def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: 
     path_to_patches = {}
     for bundle in bundles:
         for hint in bundle.hints:
-            for patch in hint.p:
-                p = _PatchWithBundleRef(l=patch.l, r=patch.r, f=patch.f, v=patch.v, bundle=bundle)
-                file_rel = Path(bundle.vocabulary[patch.f]) if patch.f is not None else Path()
+            for patch in hint.patches:
+                p = _PatchWithBundleRef(
+                    left=patch.left, right=patch.right, file=patch.file, value=patch.value, bundle=bundle
+                )
+                file_rel = Path(bundle.vocabulary[patch.file]) if patch.file is not None else Path()
                 path_to_patches.setdefault(file_rel, []).append(p)
 
     # Enumerate all files in the source location and apply corresponding patches, if any, to each.
@@ -179,20 +181,18 @@ def apply_hint_patches_to_file(
     new_data = b''
     start_pos = 0
     for p in merged_patches:
-        left: int = p.l
-        right: int = p.r
         bundle: HintBundle = p.bundle
-        assert start_pos <= left < len(orig_data)
-        assert left < right <= len(orig_data)
+        assert start_pos <= p.left < len(orig_data)
+        assert p.left < p.right <= len(orig_data)
         # Add the unmodified chunk up to the current patch begin.
-        new_data += orig_data[start_pos:left]
+        new_data += orig_data[start_pos : p.left]
         # Skip the original chunk inside the current patch.
-        start_pos = right
+        start_pos = p.right
         stats.size_delta_per_pass.setdefault(bundle.pass_name, 0)
-        stats.size_delta_per_pass[bundle.pass_name] -= right - left
+        stats.size_delta_per_pass[bundle.pass_name] -= p.right - p.left
         # Insert the replacement value, if provided.
-        if p.v is not None:
-            to_insert = bundle.vocabulary[p.v].encode()
+        if p.value is not None:
+            to_insert = bundle.vocabulary[p.value].encode()
             new_data += to_insert
             stats.size_delta_per_pass[bundle.pass_name] += len(to_insert)
     # Add the unmodified chunk after the last patch end.
@@ -268,7 +268,7 @@ def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
     """Splits the bundle into multiple, one per each hint type."""
     grouped: Dict[str, HintBundle] = {}
     for h in bundle.hints:
-        type = bundle.vocabulary[h.t] if h.t is not None else ''
+        type = bundle.vocabulary[h.type] if h.type is not None else ''
         if type not in grouped:
             grouped[type] = HintBundle(vocabulary=bundle.vocabulary, hints=[], pass_name=bundle.pass_name)
         # FIXME: drop the 't' property in favor of storing it once, in the bundle's preamble
@@ -317,11 +317,11 @@ def merge_overlapping_patches(patches: Sequence[Patch]) -> Sequence[Patch]:
     """Returns non-overlapping hint patches, merging patches where necessary."""
 
     def sorting_key(patch):
-        is_replacement = patch.v is not None
+        is_replacement = patch.value is not None
         # Among all patches starting in the same location, use additional criteria:
         # * prefer seeing larger patches first, hence sort by decreasing "r";
         # * (if still a tie) prefer deletion over text replacement.
-        return patch.l, -patch.r, is_replacement
+        return patch.left, -patch.right, is_replacement
 
     merged = []
     for patch in sorted(patches, key=sorting_key):
@@ -338,12 +338,12 @@ def patches_overlap(first: Patch, second: Patch) -> bool:
     Only real overlaps (with at least one common character) are counted - False
     is returned for patches merely touching each other.
     """
-    return max(first.l, second.l) < min(first.r, second.r)
+    return max(first.left, second.left) < min(first.right, second.right)
 
 
 def extend_end_to_fit(patch: Patch, appended_patch: Patch) -> None:
     """Modifies the first patch so that the second patch fits into it."""
-    patch.r = max(patch.r, appended_patch.r)
+    patch.right = max(patch.right, appended_patch.right)
 
 
 def _mkdir_up_to(dir_to_create: Path, last_parent_dir: Path) -> None:

@@ -59,9 +59,9 @@ class ClexHintsPass(HintBasedPass):
             if not line.isspace():
                 hint = decoder.decode(line)
                 # Shift file identifiers according to their position in the vocabulary.
-                for patch in hint.p:
-                    if patch.f is not None:
-                        patch.f += len(orig_vocab)
+                for patch in hint.patches:
+                    if patch.file is not None:
+                        patch.file += len(orig_vocab)
                 hints.append(hint)
         return HintBundle(vocabulary=orig_vocab + files_vocab, hints=hints)
 

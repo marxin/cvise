@@ -26,7 +26,7 @@ class BlankPass(HintBasedPass):
                 end_pos = file_pos + len(line)
                 for idx, pattern in enumerate(self.PATTERNS.values()):
                     if re.match(pattern, line) is not None:
-                        hints.append(Hint(t=idx, p=[Patch(l=file_pos, r=end_pos)]))
+                        hints.append(Hint(type=idx, patches=[Patch(left=file_pos, right=end_pos)]))
                 file_pos = end_pos
 
         # This relies on Python dictionaries keeping the order of keys stable (true since Python 3.7).

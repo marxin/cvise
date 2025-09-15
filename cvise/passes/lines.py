@@ -48,10 +48,10 @@ class LinesPass(HintBasedPass):
             file_pos = 0
             for line in in_file:
                 end_pos = file_pos + len(line)
-                patch = Patch(l=file_pos, r=end_pos)
+                patch = Patch(left=file_pos, right=end_pos)
                 if file_id is not None:
-                    patch.f = file_id
-                hints.append(Hint(p=[patch]))
+                    patch.file = file_id
+                hints.append(Hint(patches=[patch]))
                 file_pos = end_pos
         return hints
 
@@ -75,8 +75,8 @@ class LinesPass(HintBasedPass):
         for line in stdout.splitlines():
             if not line.isspace():
                 hint = decoder.decode(line)
-                assert len(hint.p) == 1
+                assert len(hint.patches) == 1
                 if file_id is not None:
-                    hint.p[0].f = file_id
+                    hint.patches[0].file = file_id
                 hints.append(hint)
         return hints
