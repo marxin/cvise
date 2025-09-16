@@ -44,8 +44,7 @@ class TreeSitterPass(HintBasedPass):
         # When reading, gracefully handle EOF because the tool might've failed with no output.
         stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
-        decoder = msgspec.json.Decoder()
-        vocab = decoder.decode(vocab_line) if vocab_line else []
+        vocab = msgspec.json.decode(vocab_line) if vocab_line else []
 
         hints = []
         decoder = msgspec.json.Decoder(type=Hint)

@@ -50,8 +50,7 @@ class ClexHintsPass(HintBasedPass):
         # When reading, gracefully handle EOF because the tool might've failed with no output.
         stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
-        decoder = msgspec.json.Decoder()
-        orig_vocab = decoder.decode(vocab_line) if vocab_line else []
+        orig_vocab = msgspec.json.decode(vocab_line) if vocab_line else []
 
         hints = []
         decoder = msgspec.json.Decoder(type=Hint)
