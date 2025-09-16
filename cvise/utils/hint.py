@@ -128,6 +128,11 @@ class HintApplicationStats:
         return [kv[0] for kv in ordered]
 
 
+class _BundlePreamble(msgspec.Struct, omit_defaults=True):
+    format: str  # the FORMAT_NAME default is not set here, to avoid being omitted by msgspec serialization
+    pass_: str = msgspec.field(default='', name='pass')
+
+
 # A singleton encoder object, to save time on recreating it.
 json_encoder: Union[msgspec.json.Encoder, None] = None
 
@@ -242,25 +247,27 @@ def load_hints(hints_file_path: Path, begin_index: Union[int, None], end_index: 
     Whether the hints file is compressed is determined based on the file extension."""
     if begin_index is not None and end_index is not None:
         assert begin_index < end_index
-    bundle = HintBundle(hints=[])
     with zstandard.open(hints_file_path, 'rt') if hints_file_path.suffix == '.zst' else open(hints_file_path) as f:
-        decoder = msgspec.json.Decoder()
-        parse_preamble(try_parse_json_line(next(f), decoder), bundle)
+        preamble_decoder = msgspec.json.Decoder(type=_BundlePreamble)
+        preamble = try_parse_json_line(next(f), preamble_decoder)
+        if preamble.format != FORMAT_NAME:
+            raise RuntimeError(
+                f'Failed to parse hint bundle preamble: expected format "{FORMAT_NAME}", instead got '
+                + repr(preamble.format)
+            )
 
-        vocab = try_parse_json_line(next(f), decoder)
-        # Do a lightweight check that'd catch a basic mistake (a hint object coming instead of a vocabulary array). We
-        # don't want to perform full type/schema checking during loading due to performance concerns.
-        if not isinstance(vocab, list):
-            raise RuntimeError(f'Failed to read hint vocabulary: expected array, instead got: {vocab}')
-        bundle.vocabulary = vocab
+        vocab_decoder = msgspec.json.Decoder(type=List[str])
+        vocab = try_parse_json_line(next(f), vocab_decoder)
 
         hint_decoder = msgspec.json.Decoder(type=Hint)
+        hints = []
         for i, line in enumerate(f):
             if begin_index is not None and i < begin_index:
                 continue
             if end_index is not None and i >= end_index:
                 continue
-            bundle.hints.append(try_parse_json_line(line, hint_decoder))
+            hints.append(try_parse_json_line(line, hint_decoder))
+    bundle = HintBundle(hints=hints, pass_name=preamble.pass_, vocabulary=vocab)
     return bundle
 
 
@@ -276,26 +283,8 @@ def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
     return grouped
 
 
-def make_preamble(bundle: HintBundle) -> Dict[str, Any]:
-    preamble = {
-        'format': FORMAT_NAME,
-    }
-    if bundle.pass_name:
-        preamble['pass'] = bundle.pass_name
-    return preamble
-
-
-def parse_preamble(json: Any, bundle: HintBundle) -> None:
-    if not isinstance(json, dict):
-        raise RuntimeError(f'Failed to parse hint bundle preamble: expected object, instead got {json}')
-    format = json.get('format')
-    if format != FORMAT_NAME:
-        raise RuntimeError(
-            f'Failed to parse hint bundle preamble: expected format "{FORMAT_NAME}", instead got {repr(format)}'
-        )
-
-    if 'pass' in json:
-        bundle.pass_name = json['pass']
+def make_preamble(bundle: HintBundle) -> _BundlePreamble:
+    return _BundlePreamble(format=FORMAT_NAME, pass_=bundle.pass_name)
 
 
 def write_compact_json(value: Any, file: TextIO) -> None:

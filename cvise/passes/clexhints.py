@@ -2,6 +2,7 @@ import msgspec
 from pathlib import Path
 import re
 import subprocess
+from typing import List
 
 from cvise.passes.abstract import SubsegmentState
 from cvise.passes.hint_based import HintBasedPass
@@ -50,7 +51,8 @@ class ClexHintsPass(HintBasedPass):
         # When reading, gracefully handle EOF because the tool might've failed with no output.
         stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
-        orig_vocab = msgspec.json.decode(vocab_line) if vocab_line else []
+        vocab_decoder = msgspec.json.Decoder(type=List[str])
+        orig_vocab = vocab_decoder.decode(vocab_line) if vocab_line else []
 
         hints = []
         decoder = msgspec.json.Decoder(type=Hint)
