@@ -24,14 +24,14 @@ from cvise.utils.fileutil import mkdir_up_to
 FORMAT_NAME = 'cvise_hints_v0'
 
 
-class Patch(msgspec.Struct, kw_only=True, omit_defaults=True):
+class Patch(msgspec.Struct, omit_defaults=True, gc=False):
     left: int = msgspec.field(name='l')
     right: int = msgspec.field(name='r')
     file: Optional[int] = msgspec.field(default=None, name='f')
     value: Optional[int] = msgspec.field(default=None, name='v')
 
 
-class Hint(msgspec.Struct, omit_defaults=True):
+class Hint(msgspec.Struct, omit_defaults=True, gc=False):
     patches: List[Patch] = msgspec.field(name='p')
     type: Optional[int] = msgspec.field(default=None, name='t')
 
@@ -141,20 +141,20 @@ def is_special_hint_type(type: str) -> bool:
     return type.startswith('@')
 
 
-class _PatchWithBundleRef(Patch):
-    bundle: HintBundle
+class _PatchWithBundleRef(msgspec.Struct, gc=False):
+    patch: Patch
+    bundle_id: int
 
 
 def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationStats:
     """Creates the destination file/dir by applying the specified hints to the contents of the source file/dir."""
     # Take patches from all hints and group them by the file which they're applied to.
     path_to_patches = {}
-    for bundle in bundles:
+    for bundle_id, bundle in enumerate(bundles):
         for hint in bundle.hints:
             for patch in hint.patches:
-                p = _PatchWithBundleRef(
-                    left=patch.left, right=patch.right, file=patch.file, value=patch.value, bundle=bundle
-                )
+                # Copying sub-structs improves data locality, helping performance in practice.
+                p = _PatchWithBundleRef(patch=patch.__copy__(), bundle_id=bundle_id)
                 file_rel = Path(bundle.vocabulary[patch.file]) if patch.file is not None else Path()
                 path_to_patches.setdefault(file_rel, []).append(p)
 
@@ -172,21 +172,26 @@ def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: 
             mkdir_up_to(file_dest.parent, destination_path.parent)
 
         patches_to_apply = path_to_patches.get(file_rel, [])
-        apply_hint_patches_to_file(patches_to_apply, source_file=path, destination_file=file_dest, stats=stats)
+        apply_hint_patches_to_file(patches_to_apply, bundles, source_file=path, destination_file=file_dest, stats=stats)
 
     return stats
 
 
 def apply_hint_patches_to_file(
-    patches: List[_PatchWithBundleRef], source_file: Path, destination_file: Path, stats: HintApplicationStats
+    patches: List[_PatchWithBundleRef],
+    bundles: List[HintBundle],
+    source_file: Path,
+    destination_file: Path,
+    stats: HintApplicationStats,
 ) -> None:
     merged_patches = merge_overlapping_patches(patches)
     orig_data = source_file.read_bytes()
 
     new_data = b''
     start_pos = 0
-    for p in merged_patches:
-        bundle: HintBundle = p.bundle
+    for patch_ref in merged_patches:
+        p: Patch = patch_ref.patch
+        bundle: HintBundle = bundles[patch_ref.bundle_id]
         assert start_pos <= p.left < len(orig_data)
         assert p.left < p.right <= len(orig_data)
         # Add the unmodified chunk up to the current patch begin.
@@ -225,17 +230,18 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
 
         # "offset=-1" means appending ot the end of the buf
         json_encoder.encode_into(make_preamble(bundle), buf, -1)
-        buf.append(ord('\n'))
+        newline = ord('\n')
+        buf.append(newline)
 
         json_encoder.encode_into(bundle.vocabulary, buf, -1)
-        buf.append(ord('\n'))
+        buf.append(newline)
 
         for h in bundle.hints:
             if len(buf) > WRITE_BUFFER:
                 f.write(buf)
                 buf.clear()
             json_encoder.encode_into(h, buf, -1)
-            buf.append(ord('\n'))
+            buf.append(newline)
         f.write(buf)
 
 
@@ -302,17 +308,17 @@ def try_parse_json_line(text: str, decoder) -> Any:
         raise RuntimeError(f'Failed to decode line "{text}": {e}') from e
 
 
-def merge_overlapping_patches(patches: Sequence[Patch]) -> Sequence[Patch]:
+def merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequence[_PatchWithBundleRef]:
     """Returns non-overlapping hint patches, merging patches where necessary."""
 
-    def sorting_key(patch):
-        is_replacement = patch.value is not None
+    def sorting_key(p: _PatchWithBundleRef):
+        is_replacement = p.patch.value is not None
         # Among all patches starting in the same location, use additional criteria:
         # * prefer seeing larger patches first, hence sort by decreasing "r";
         # * (if still a tie) prefer deletion over text replacement.
-        return patch.left, -patch.right, is_replacement
+        return p.patch.left, -p.patch.right, is_replacement
 
-    merged = []
+    merged: List[_PatchWithBundleRef] = []
     for patch in sorted(patches, key=sorting_key):
         if merged and patches_overlap(merged[-1], patch):
             extend_end_to_fit(merged[-1], patch)
@@ -321,18 +327,18 @@ def merge_overlapping_patches(patches: Sequence[Patch]) -> Sequence[Patch]:
     return merged
 
 
-def patches_overlap(first: Patch, second: Patch) -> bool:
+def patches_overlap(first: _PatchWithBundleRef, second: _PatchWithBundleRef) -> bool:
     """Checks whether two patches overlap.
 
     Only real overlaps (with at least one common character) are counted - False
     is returned for patches merely touching each other.
     """
-    return max(first.left, second.left) < min(first.right, second.right)
+    return max(first.patch.left, second.patch.left) < min(first.patch.right, second.patch.right)
 
 
-def extend_end_to_fit(patch: Patch, appended_patch: Patch) -> None:
+def extend_end_to_fit(patch_ref: _PatchWithBundleRef, appended: _PatchWithBundleRef) -> None:
     """Modifies the first patch so that the second patch fits into it."""
-    patch.right = max(patch.right, appended_patch.right)
+    patch_ref.patch.right = max(patch_ref.patch.right, appended.patch.right)
 
 
 def _mkdir_up_to(dir_to_create: Path, last_parent_dir: Path) -> None:
