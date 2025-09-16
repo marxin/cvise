@@ -55,10 +55,10 @@ class ClexHintsPass(HintBasedPass):
         orig_vocab = vocab_decoder.decode(vocab_line) if vocab_line else []
 
         hints = []
-        decoder = msgspec.json.Decoder(type=Hint)
+        hint_decoder = msgspec.json.Decoder(type=Hint)
         for line in stdout:
             if not line.isspace():
-                hint = decoder.decode(line)
+                hint = hint_decoder.decode(line)
                 # Shift file identifiers according to their position in the vocabulary.
                 for patch in hint.patches:
                     if patch.file is not None:

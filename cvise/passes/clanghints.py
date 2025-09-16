@@ -142,8 +142,8 @@ class ClangHintsPass(HintBasedPass):
         vocab = vocab_decoder.decode(vocab_line) if vocab_line else []
 
         hints = []
-        decoder = msgspec.json.Decoder(type=Hint)
+        hint_decoder = msgspec.json.Decoder(type=Hint)
         for line in stdout:
             if not line.isspace():
-                hints.append(decoder.decode(line))
+                hints.append(hint_decoder.decode(line))
         return HintBundle(vocabulary=vocab, hints=hints)
