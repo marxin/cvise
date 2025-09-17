@@ -133,8 +133,11 @@ class _BundlePreamble(msgspec.Struct, omit_defaults=True):
     pass_: str = msgspec.field(default='', name='pass')
 
 
-# A singleton encoder object, to save time on recreating it.
-json_encoder: Union[msgspec.json.Encoder, None] = None
+# Singleton encoder/decoder objects, to save time on recreating them.
+_json_encoder: Optional[msgspec.json.Encoder] = None
+_preamble_decoder: Optional[msgspec.json.Encoder] = None
+_vocab_decoder: Optional[msgspec.json.Encoder] = None
+_hint_decoder: Optional[msgspec.json.Encoder] = None
 
 
 def is_special_hint_type(type: str) -> bool:
@@ -221,26 +224,27 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
     # Use chunks of this or greater size when calling into Zstandard.
     WRITE_BUFFER = 2**18
 
-    global json_encoder
-    if json_encoder is None:
-        json_encoder = msgspec.json.Encoder()
+    global _json_encoder
+    if _json_encoder is None:
+        _json_encoder = msgspec.json.Encoder()
+    encoder = _json_encoder  # cache in local variables, which are presumably faster
 
     with zstandard.open(hints_file_path, 'wb') as f:
         buf = bytearray()
 
-        # "offset=-1" means appending ot the end of the buf
-        json_encoder.encode_into(make_preamble(bundle), buf, -1)
+        # "offset=-1" means appending to the end of the buf
+        encoder.encode_into(make_preamble(bundle), buf, -1)
         newline = ord('\n')
         buf.append(newline)
 
-        json_encoder.encode_into(bundle.vocabulary, buf, -1)
+        encoder.encode_into(bundle.vocabulary, buf, -1)
         buf.append(newline)
 
         for h in bundle.hints:
             if len(buf) > WRITE_BUFFER:
                 f.write(buf)
                 buf.clear()
-            json_encoder.encode_into(h, buf, -1)
+            encoder.encode_into(h, buf, -1)
             buf.append(newline)
         f.write(buf)
 
@@ -253,8 +257,17 @@ def load_hints(hints_file_path: Path, begin_index: Union[int, None], end_index: 
     Whether the hints file is compressed is determined based on the file extension."""
     if begin_index is not None and end_index is not None:
         assert begin_index < end_index
+
+    global _preamble_decoder, _vocab_decoder, _hint_decoder
+    if _preamble_decoder is None:  # lazily initialize singletons
+        _preamble_decoder = msgspec.json.Decoder(type=_BundlePreamble)
+        _vocab_decoder = msgspec.json.Decoder(type=List[str])
+        _hint_decoder = msgspec.json.Decoder(type=Hint)
+    preamble_decoder = _preamble_decoder  # cache in local variables, which are presumably faster
+    vocab_decoder = _vocab_decoder
+    hint_decoder = _hint_decoder
+
     with zstandard.open(hints_file_path, 'rt') if hints_file_path.suffix == '.zst' else open(hints_file_path) as f:
-        preamble_decoder = msgspec.json.Decoder(type=_BundlePreamble)
         preamble = try_parse_json_line(next(f), preamble_decoder)
         if preamble.format != FORMAT_NAME:
             raise RuntimeError(
@@ -262,10 +275,8 @@ def load_hints(hints_file_path: Path, begin_index: Union[int, None], end_index: 
                 + repr(preamble.format)
             )
 
-        vocab_decoder = msgspec.json.Decoder(type=List[str])
         vocab = try_parse_json_line(next(f), vocab_decoder)
 
-        hint_decoder = msgspec.json.Decoder(type=Hint)
         hints = []
         for i, line in enumerate(f):
             if begin_index is not None and i < begin_index:
@@ -301,7 +312,7 @@ def write_compact_json(value: Any, file: TextIO) -> None:
     json.dump(value, file, check_circular=False, separators=(',', ':'))
 
 
-def try_parse_json_line(text: str, decoder) -> Any:
+def try_parse_json_line(text: str, decoder: msgspec.json.Decoder) -> Any:
     try:
         return decoder.decode(text)
     except msgspec.MsgspecError as e:
