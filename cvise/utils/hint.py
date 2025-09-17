@@ -145,6 +145,7 @@ class _BundlePreamble(msgspec.Struct, omit_defaults=True):
 
 # Singleton encoder/decoder objects, to save time on recreating them.
 _json_encoder: Optional[msgspec.json.Encoder] = None
+_encoding_buf: Optional[bytearray] = None
 _preamble_decoder: Optional[msgspec.json.Encoder] = None
 _vocab_decoder: Optional[msgspec.json.Encoder] = None
 _hint_decoder: Optional[msgspec.json.Encoder] = None
@@ -234,27 +235,30 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
     # Use chunks of this or greater size when calling into Zstandard.
     WRITE_BUFFER = 2**18
 
-    global _json_encoder
-    if _json_encoder is None:
+    global _json_encoder, _encoding_buf
+    if _json_encoder is None:  # lazily initialize singletons
         _json_encoder = msgspec.json.Encoder()
+        _encoding_buf = bytearray()
     encoder = _json_encoder  # cache in local variables, which are presumably faster
+    buf = _encoding_buf
 
     with zstandard.open(hints_file_path, 'wb') as f:
-        buf = bytearray()
-
-        # "offset=-1" means appending to the end of the buf
-        encoder.encode_into(make_preamble(bundle), buf, -1)
+        # leave "offset" at default, to make sure the buffer is cleared
+        encoder.encode_into(make_preamble(bundle), buf)
         newline = ord('\n')
         buf.append(newline)
 
+        # "offset=-1" means appending to the end of the buf
         encoder.encode_into([s.decode() for s in bundle.vocabulary], buf, -1)
         buf.append(newline)
 
         for h in bundle.hints:
-            if len(buf) > WRITE_BUFFER:
+            if len(buf) <= WRITE_BUFFER:
+                offset = -1
+            else:
                 f.write(buf)
-                buf.clear()
-            encoder.encode_into(h, buf, -1)
+                offset = 0
+            encoder.encode_into(h, buf, offset)
             buf.append(newline)
         f.write(buf)
 
