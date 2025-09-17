@@ -154,7 +154,7 @@ def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: 
         for hint in bundle.hints:
             for patch in hint.patches:
                 # Copying sub-structs improves data locality, helping performance in practice.
-                p = _PatchWithBundleRef(patch=patch.__copy__(), bundle_id=bundle_id)
+                p = _PatchWithBundleRef(patch.__copy__(), bundle_id)
                 file_rel = Path(bundle.vocabulary[patch.file]) if patch.file is not None else Path()
                 path_to_patches.setdefault(file_rel, []).append(p)
 
