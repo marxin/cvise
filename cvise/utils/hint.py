@@ -284,8 +284,7 @@ def load_hints(hints_file_path: Path, begin_index: Union[int, None], end_index: 
             if end_index is not None and i >= end_index:
                 continue
             hints.append(try_parse_json_line(line, hint_decoder))
-    bundle = HintBundle(hints=hints, pass_name=preamble.pass_, vocabulary=vocab)
-    return bundle
+    return HintBundle(hints=hints, pass_name=preamble.pass_, vocabulary=vocab)
 
 
 def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
