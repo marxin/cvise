@@ -2,10 +2,11 @@ import msgspec
 from pathlib import Path
 import re
 import subprocess
+from typing import List
 
 from cvise.passes.abstract import SubsegmentState
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils.hint import HintBundle
+from cvise.utils.hint import Hint, HintBundle
 from cvise.utils.process import ProcessEventNotifier
 
 
@@ -50,17 +51,18 @@ class ClexHintsPass(HintBasedPass):
         # When reading, gracefully handle EOF because the tool might've failed with no output.
         stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
-        decoder = msgspec.json.Decoder()
-        orig_vocab = decoder.decode(vocab_line) if vocab_line else []
+        vocab_decoder = msgspec.json.Decoder(type=List[str])
+        orig_vocab = vocab_decoder.decode(vocab_line) if vocab_line else []
 
         hints = []
+        hint_decoder = msgspec.json.Decoder(type=Hint)
         for line in stdout:
             if not line.isspace():
-                hint = decoder.decode(line)
+                hint = hint_decoder.decode(line)
                 # Shift file identifiers according to their position in the vocabulary.
-                for patch in hint['p']:
-                    if 'f' in patch:
-                        patch['f'] += len(orig_vocab)
+                for patch in hint.patches:
+                    if patch.file is not None:
+                        patch.file += len(orig_vocab)
                 hints.append(hint)
         return HintBundle(vocabulary=orig_vocab + files_vocab, hints=hints)
 

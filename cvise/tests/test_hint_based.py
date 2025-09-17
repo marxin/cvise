@@ -3,12 +3,12 @@ from typing import Dict, List, Sequence, Union
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.tests.testabstract import collect_all_transforms, iterate_pass, validate_hint_bundle
-from cvise.utils.hint import HintBundle, load_hints
+from cvise.utils.hint import Hint, HintBundle, load_hints, Patch
 from cvise.utils.process import ProcessEventNotifier
 
 
 class StubHintBasedPass(HintBasedPass):
-    def __init__(self, contents_to_hints: Dict[bytes, Sequence[object]], vocabulary: Union[List[str], None] = None):
+    def __init__(self, contents_to_hints: Dict[bytes, Sequence[Hint]], vocabulary: Union[List[str], None] = None):
         super().__init__()
         self.contents_to_hints = contents_to_hints
         self.vocabulary = vocabulary or []
@@ -26,7 +26,7 @@ class StubHintBasedPass(HintBasedPass):
 
 def test_hint_based_first_char_once(tmp_path: Path):
     """Test the case of a single hint."""
-    hint = {'p': [{'l': 0, 'r': 1}]}
+    hint = Hint(patches=[Patch(left=0, right=1)])
     pass_ = StubHintBasedPass(
         {
             b'foo': [hint],
@@ -44,9 +44,9 @@ def test_hint_based_first_char_once(tmp_path: Path):
 
 def test_hint_based_last_char_repeatedly(tmp_path: Path):
     """Test the case of applying a single hint that's different every time."""
-    hint_byte0 = {'p': [{'l': 0, 'r': 1}]}
-    hint_byte1 = {'p': [{'l': 1, 'r': 2}]}
-    hint_byte2 = {'p': [{'l': 2, 'r': 3}]}
+    hint_byte0 = Hint(patches=[Patch(left=0, right=1)])
+    hint_byte1 = Hint(patches=[Patch(left=1, right=2)])
+    hint_byte2 = Hint(patches=[Patch(left=2, right=3)])
     pass_ = StubHintBasedPass(
         {
             b'foo': [hint_byte2],
@@ -70,9 +70,9 @@ def test_hint_based_all_chars_grouped(tmp_path: Path):
     The logic that chooses ranges of hints to be attempted (the binary search)
     is mostly irrelevant for the test - we only expect it to try *all* hints
     together."""
-    hint_byte0 = {'p': [{'l': 0, 'r': 1}]}
-    hint_byte1 = {'p': [{'l': 1, 'r': 2}]}
-    hint_byte2 = {'p': [{'l': 2, 'r': 3}]}
+    hint_byte0 = Hint(patches=[Patch(left=0, right=1)])
+    hint_byte1 = Hint(patches=[Patch(left=1, right=2)])
+    hint_byte2 = Hint(patches=[Patch(left=2, right=3)])
     pass_ = StubHintBasedPass(
         {
             b'foo': [hint_byte0, hint_byte1, hint_byte2],
@@ -94,10 +94,10 @@ def test_hint_based_state_iteration(tmp_path: Path):
     Unlike iterate_pass-based tests which pretend that any transformation leads
     to a successful interestingness test and proceed immediately, here we
     verify how different hints are attempted."""
-    hint_bytes01 = {'p': [{'l': 0, 'r': 2}]}
-    hint_bytes12 = {'p': [{'l': 1, 'r': 3}]}
-    hint_bytes45 = {'p': [{'l': 4, 'r': 6}]}
-    hint_bytes2345 = {'p': [{'l': 2, 'r': 6}]}
+    hint_bytes01 = Hint(patches=[Patch(left=0, right=2)])
+    hint_bytes12 = Hint(patches=[Patch(left=1, right=3)])
+    hint_bytes45 = Hint(patches=[Patch(left=4, right=6)])
+    hint_bytes2345 = Hint(patches=[Patch(left=2, right=6)])
     pass_ = StubHintBasedPass(
         {
             b'abc def': [hint_bytes01, hint_bytes12, hint_bytes45, hint_bytes2345],
@@ -119,10 +119,10 @@ def test_hint_based_state_iteration(tmp_path: Path):
 def test_hint_based_multiple_types(tmp_path: Path):
     """Test advancing through hints of multiple types."""
     vocab = ['space_removal', 'b_removal']
-    hint_space1 = {'t': 0, 'p': [{'l': 3, 'r': 4}]}
-    hint_space2 = {'t': 0, 'p': [{'l': 7, 'r': 8}]}
-    hint_b1 = {'t': 1, 'p': [{'l': 1, 'r': 2}]}
-    hint_b2 = {'t': 1, 'p': [{'l': 6, 'r': 7}]}
+    hint_space1 = Hint(type=0, patches=[Patch(left=3, right=4)])
+    hint_space2 = Hint(type=0, patches=[Patch(left=7, right=8)])
+    hint_b1 = Hint(type=1, patches=[Patch(left=1, right=2)])
+    hint_b2 = Hint(type=1, patches=[Patch(left=6, right=7)])
     pass_ = StubHintBasedPass(
         {
             b'aba cab a': [hint_b1, hint_space1, hint_b2, hint_space2],
@@ -148,9 +148,9 @@ def test_hint_based_type1_fewer_than_type2(tmp_path: Path):
     Verify that subranges of same-typed hints are checked, but differently-typed hints aren't mixed.
     """
     vocab = ['type0', 'type1']
-    hint1 = {'t': 0, 'p': [{'l': 0, 'r': 1}]}
-    hint2 = {'t': 1, 'p': [{'l': 1, 'r': 2}]}
-    hint3 = {'t': 1, 'p': [{'l': 2, 'r': 3}]}
+    hint1 = Hint(type=0, patches=[Patch(left=0, right=1)])
+    hint2 = Hint(type=1, patches=[Patch(left=1, right=2)])
+    hint3 = Hint(type=1, patches=[Patch(left=2, right=3)])
     pass_ = StubHintBasedPass(
         {
             b'abc': [hint1, hint2, hint3],
@@ -174,9 +174,9 @@ def test_hint_based_type2_fewer_than_type1(tmp_path: Path):
     Verify that subranges of same-typed hints are checked, but differently-typed hints aren't mixed.
     """
     vocab = ['type0', 'type1']
-    hint1 = {'t': 0, 'p': [{'l': 0, 'r': 1}]}
-    hint2 = {'t': 0, 'p': [{'l': 1, 'r': 2}]}
-    hint3 = {'t': 1, 'p': [{'l': 2, 'r': 3}]}
+    hint1 = Hint(type=0, patches=[Patch(left=0, right=1)])
+    hint2 = Hint(type=0, patches=[Patch(left=1, right=2)])
+    hint3 = Hint(type=1, patches=[Patch(left=2, right=3)])
     pass_ = StubHintBasedPass(
         {
             b'abc': [hint1, hint2, hint3],
@@ -197,10 +197,10 @@ def test_hint_based_type2_fewer_than_type1(tmp_path: Path):
 def test_hint_based_non_utf8(tmp_path: Path):
     """Test the case of non UTF-8 inputs."""
     input = b'f\0o\xffo\xc3\x84'
-    hint12 = {'p': [{'l': 1, 'r': 2}]}
-    hint23 = {'p': [{'l': 2, 'r': 3}]}
-    hint34 = {'p': [{'l': 3, 'r': 4}]}
-    hint57 = {'p': [{'l': 5, 'r': 7}]}
+    hint12 = Hint(patches=[Patch(left=1, right=2)])
+    hint23 = Hint(patches=[Patch(left=2, right=3)])
+    hint34 = Hint(patches=[Patch(left=3, right=4)])
+    hint57 = Hint(patches=[Patch(left=5, right=7)])
     pass_ = StubHintBasedPass(
         {
             input: [hint12, hint23, hint34, hint57],
@@ -223,8 +223,8 @@ def test_hint_based_special_hints_not_attempted(tmp_path: Path):
     input = b'foo'
     test_case = tmp_path / 'input.txt'
     vocab = ['sometype', '@specialtype']
-    hint_regular = {'t': 0, 'p': [{'l': 0, 'r': 1}]}
-    hint_special = {'t': 1, 'p': [{'l': 1, 'r': 2}]}
+    hint_regular = Hint(type=0, patches=[Patch(left=0, right=1)])
+    hint_special = Hint(type=1, patches=[Patch(left=1, right=2)])
     pass_ = StubHintBasedPass(
         {
             input: [hint_regular, hint_special],
@@ -244,7 +244,7 @@ def test_hint_based_special_hints_stored(tmp_path: Path):
     input = b'foo'
     test_case = tmp_path / 'input.txt'
     hint_type = '@specialtype'
-    hint = {'t': 0, 'p': [{'l': 1, 'r': 2}]}
+    hint = Hint(type=0, patches=[Patch(left=1, right=2)])
     pass_ = StubHintBasedPass(
         {
             input: [hint],

@@ -1,7 +1,8 @@
 import jsonschema
+import msgspec
 from pathlib import Path
 import tempfile
-from typing import Set, Tuple, Union
+from typing import Optional, Set, Tuple, Union
 
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintBasedPass, HintState
@@ -70,15 +71,19 @@ def validate_stored_hints(state: Union[HintState, None], pass_: HintBasedPass) -
         validate_hint_bundle(bundle, output_types)
 
 
-def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Set[str]) -> None:
+def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Optional[Set[str]] = None) -> None:
     for hint in bundle.hints:
-        jsonschema.validate(hint, HINT_SCHEMA_STRICT)
+        # Check against JSON Schema.
+        json_dump = msgspec.json.encode(hint)
+        dict_obj = msgspec.json.decode(json_dump)
+        jsonschema.validate(dict_obj, HINT_SCHEMA_STRICT)
         # Also check the things that the JSON Schema cannot enforce.
-        if 't' in hint:
-            assert hint['t'] < len(bundle.vocabulary)
-            hint_type = bundle.vocabulary[hint['t']]
-            assert hint_type in allowed_hint_types
-        for patch in hint['p']:
-            assert patch['l'] < patch['r']
-            if 'v' in patch:
-                assert patch['v'] < len(bundle.vocabulary)
+        if hint.type is not None:
+            assert hint.type < len(bundle.vocabulary)
+            hint_type = bundle.vocabulary[hint.type]
+            if allowed_hint_types is not None:
+                assert hint_type in allowed_hint_types
+        for patch in hint.patches:
+            assert patch.left < patch.right
+            if patch.value is not None:
+                assert patch.value < len(bundle.vocabulary)

@@ -1,9 +1,8 @@
-import json
-import jsonschema
+import msgspec
 from pathlib import Path
 import pytest
 
-from cvise.utils.hint import apply_hints, HintBundle, load_hints, store_hints, HINT_SCHEMA
+from cvise.utils.hint import apply_hints, Hint, HintBundle, load_hints, Patch, store_hints
 from cvise.tests.testabstract import validate_hint_bundle
 
 
@@ -24,9 +23,9 @@ def tmp_hints_file(tmp_path: Path) -> Path:
 
 def test_apply_hints_delete_prefix(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_text('Foo bar')
-    hint = {'p': [{'l': 0, 'r': 4}]}
-    jsonschema.validate(hint, schema=HINT_SCHEMA)
+    hint = Hint(patches=[Patch(left=0, right=4)])
     bundle = HintBundle(hints=[hint])
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -35,9 +34,9 @@ def test_apply_hints_delete_prefix(tmp_test_case: Path, tmp_transformed_file: Pa
 
 def test_apply_hints_delete_suffix(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_text('Foo bar')
-    hint = {'p': [{'l': 3, 'r': 7}]}
-    jsonschema.validate(hint, schema=HINT_SCHEMA)
+    hint = Hint(patches=[Patch(left=3, right=7)])
     bundle = HintBundle(hints=[hint])
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -46,9 +45,9 @@ def test_apply_hints_delete_suffix(tmp_test_case: Path, tmp_transformed_file: Pa
 
 def test_apply_hints_delete_middle(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_text('Foo bar baz')
-    hint = {'p': [{'l': 3, 'r': 7}]}
-    jsonschema.validate(hint, schema=HINT_SCHEMA)
+    hint = Hint(patches=[Patch(left=3, right=7)])
     bundle = HintBundle(hints=[hint])
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -57,12 +56,11 @@ def test_apply_hints_delete_middle(tmp_test_case: Path, tmp_transformed_file: Pa
 
 def test_apply_hints_delete_middle_multiple(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_text('Foo bar baz')
-    hint1 = {'p': [{'l': 3, 'r': 4}]}
-    hint2 = {'p': [{'l': 7, 'r': 8}]}
+    hint1 = Hint(patches=[Patch(left=3, right=4)])
+    hint2 = Hint(patches=[Patch(left=7, right=8)])
     hints = [hint1, hint2]
-    for h in hints:
-        jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(hints=hints)
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -71,9 +69,9 @@ def test_apply_hints_delete_middle_multiple(tmp_test_case: Path, tmp_transformed
 
 def test_apply_hints_delete_all(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_text('Foo bar')
-    hint = {'p': [{'l': 0, 'r': 7}]}
-    jsonschema.validate(hint, schema=HINT_SCHEMA)
+    hint = Hint(patches=[Patch(left=0, right=7)])
     bundle = HintBundle(hints=[hint])
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -83,13 +81,12 @@ def test_apply_hints_delete_all(tmp_test_case: Path, tmp_transformed_file: Path)
 def test_apply_hints_delete_touching(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_text('Foo bar baz')
     # It's essentially the deletion of [3..7).
-    hint1 = {'p': [{'l': 3, 'r': 4}]}
-    hint2 = {'p': [{'l': 6, 'r': 7}]}
-    hint3 = {'p': [{'l': 5, 'r': 6}, {'l': 4, 'r': 5}]}
+    hint1 = Hint(patches=[Patch(left=3, right=4)])
+    hint2 = Hint(patches=[Patch(left=6, right=7)])
+    hint3 = Hint(patches=[Patch(left=5, right=6), Patch(left=4, right=5)])
     hints = [hint1, hint2, hint3]
-    for h in hints:
-        jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(hints=hints)
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -99,12 +96,11 @@ def test_apply_hints_delete_touching(tmp_test_case: Path, tmp_transformed_file: 
 def test_apply_hints_delete_overlapping(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_text('Foo bar baz')
     # It's essentially the deletion of [3..7).
-    hint1 = {'p': [{'l': 3, 'r': 6}]}
-    hint2 = {'p': [{'l': 4, 'r': 7}]}
+    hint1 = Hint(patches=[Patch(left=3, right=6)])
+    hint2 = Hint(patches=[Patch(left=4, right=7)])
     hints = [hint1, hint2]
-    for h in hints:
-        jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(hints=hints)
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -113,12 +109,11 @@ def test_apply_hints_delete_overlapping(tmp_test_case: Path, tmp_transformed_fil
 
 def test_apply_hints_delete_nested(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_text('Foo bar baz')
-    hint1 = {'p': [{'l': 4, 'r': 6}]}
-    hint2 = {'p': [{'l': 3, 'r': 7}]}
+    hint1 = Hint(patches=[Patch(left=4, right=6)])
+    hint2 = Hint(patches=[Patch(left=3, right=7)])
     hints = [hint1, hint2]
-    for h in hints:
-        jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(hints=hints)
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -129,9 +124,9 @@ def test_apply_hints_replace_with_shorter(tmp_test_case: Path, tmp_transformed_f
     """Test a hint replacing a fragment with a shorter value."""
     tmp_test_case.write_text('Foo foobarbaz baz')
     vocab = ['xyz']
-    hint = {'p': [{'l': 4, 'r': 13, 'v': 0}]}
-    jsonschema.validate(hint, schema=HINT_SCHEMA)
+    hint = Hint(patches=[Patch(left=4, right=13, value=0)])
     bundle = HintBundle(vocabulary=vocab, hints=[hint])
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -142,9 +137,9 @@ def test_apply_hints_replace_with_longer(tmp_test_case: Path, tmp_transformed_fi
     """Test a hint replacing a fragment with a longer value."""
     tmp_test_case.write_text('Foo x baz')
     vocab = ['z', 'abacaba']
-    hint = {'p': [{'l': 4, 'r': 5, 'v': 1}]}
-    jsonschema.validate(hint, schema=HINT_SCHEMA)
+    hint = Hint(patches=[Patch(left=4, right=5, value=1)])
     bundle = HintBundle(vocabulary=vocab, hints=[hint])
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -155,12 +150,11 @@ def test_apply_hints_replacement_inside_deletion(tmp_test_case: Path, tmp_transf
     """Test that a replacement is a no-op if happening inside a to-be-deleted fragment."""
     tmp_test_case.write_text('Foo bar baz')
     vocab = ['x']
-    hint1 = {'p': [{'l': 5, 'r': 6, 'v': 0}]}  # replaces "a" with "x" in "bar"
-    hint2 = {'p': [{'l': 4, 'r': 7}]}  # deletes "bar"
+    hint1 = Hint(patches=[Patch(left=5, right=6, value=0)])  # replaces "a" with "x" in "bar"
+    hint2 = Hint(patches=[Patch(left=4, right=7)])  # deletes "bar"
     hints = [hint1, hint2]
-    for h in hints:
-        jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=hints)
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -171,12 +165,11 @@ def test_apply_hints_deletion_inside_replacement(tmp_test_case: Path, tmp_transf
     """Test that a deletion is a no-op if happening inside a to-be-replaced fragment."""
     tmp_test_case.write_text('Foo bar baz')
     vocab = ['some']
-    hint1 = {'p': [{'l': 5, 'r': 6}]}  # deletes "a" in "bar"
-    hint2 = {'p': [{'l': 4, 'r': 7, 'v': 0}]}  # replaces "bar" with "some"
+    hint1 = Hint(patches=[Patch(left=5, right=6)])  # deletes "a" in "bar"
+    hint2 = Hint(patches=[Patch(left=4, right=7, value=0)])  # replaces "bar" with "some"
     hints = [hint1, hint2]
-    for h in hints:
-        jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=hints)
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -190,12 +183,11 @@ def test_apply_hints_replacement_of_deleted_prefix(tmp_test_case: Path, tmp_tran
     wins in a group of overlapping hints" that'd suffice for other tests."""
     tmp_test_case.write_text('Foo bar baz')
     vocab = ['x']
-    hint1 = {'p': [{'l': 4, 'r': 5, 'v': 0}]}  # replaces "b" with "x" in "bar"
-    hint2 = {'p': [{'l': 4, 'r': 7}]}  # deletes "bar"
+    hint1 = Hint(patches=[Patch(left=4, right=5, value=0)])  # replaces "b" with "x" in "bar"
+    hint2 = Hint(patches=[Patch(left=4, right=7)])  # deletes "bar"
     hints = [hint1, hint2]
-    for h in hints:
-        jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=hints)
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -206,13 +198,12 @@ def test_apply_hints_replacement_and_deletion_touching(tmp_test_case: Path, tmp_
     """Test that deletions and replacements in touching, but not overlapping, fragments are applied independently."""
     tmp_test_case.write_text('Foo bar baz')
     vocab = ['some']
-    hint1 = {'p': [{'l': 5, 'r': 7, 'v': 0}]}  # replaces "ar" with "some"
-    hint2 = {'p': [{'l': 4, 'r': 5}]}  # deletes "b" in "bar"
-    hint3 = {'p': [{'l': 7, 'r': 8}]}  # deletes " " after "bar"
+    hint1 = Hint(patches=[Patch(left=5, right=7, value=0)])  # replaces "ar" with "some"
+    hint2 = Hint(patches=[Patch(left=4, right=5)])  # deletes "b" in "bar"
+    hint3 = Hint(patches=[Patch(left=7, right=8)])  # deletes " " after "bar"
     hints = [hint1, hint2, hint3]
-    for h in hints:
-        jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=hints)
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -226,12 +217,11 @@ def test_apply_hints_overlapping_replacements(tmp_test_case: Path, tmp_transform
     break. At the moment, the leftwise patch wins in this case, but this is subject to change in the future."""
     tmp_test_case.write_text('abcd')
     vocab = ['foo', 'x']
-    hint1 = {'p': [{'l': 1, 'r': 3, 'v': 0}]}  # replaces "bc" with "foo"
-    hint2 = {'p': [{'l': 2, 'r': 4, 'v': 1}]}  # replaces "cd" with "x"
+    hint1 = Hint(patches=[Patch(left=1, right=3, value=0)])  # replaces "bc" with "foo"
+    hint2 = Hint(patches=[Patch(left=2, right=4, value=1)])  # replaces "cd" with "x"
     hints = [hint1, hint2]
-    for h in hints:
-        jsonschema.validate(h, schema=HINT_SCHEMA)
     bundle = HintBundle(vocabulary=vocab, hints=hints)
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -240,14 +230,13 @@ def test_apply_hints_overlapping_replacements(tmp_test_case: Path, tmp_transform
 
 def test_apply_hints_multiple_bundles(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_text('foobar')
-    hint02 = {'p': [{'l': 0, 'r': 2}]}
-    hint13 = {'p': [{'l': 1, 'r': 3}]}
-    hint24 = {'p': [{'l': 2, 'r': 4}]}
-    hints = [hint02, hint13, hint24]
-    for h in hints:
-        jsonschema.validate(h, schema=HINT_SCHEMA)
+    hint02 = Hint(patches=[Patch(left=0, right=2)])
+    hint13 = Hint(patches=[Patch(left=1, right=3)])
+    hint24 = Hint(patches=[Patch(left=2, right=4)])
     bundle1 = HintBundle(hints=[hint13])
     bundle2 = HintBundle(hints=[hint02, hint24])
+    validate_hint_bundle(bundle1)
+    validate_hint_bundle(bundle2)
 
     apply_hints([bundle1, bundle2], tmp_test_case, tmp_transformed_file)
 
@@ -256,13 +245,12 @@ def test_apply_hints_multiple_bundles(tmp_test_case: Path, tmp_transformed_file:
 
 def test_apply_hints_utf8(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_text('Brötchen 🍴')
-    hint1 = {'p': [{'l': 0, 'r': 1}, {'l': 5, 'r': 7}]}
-    hint2 = {'p': [{'l': 10, 'r': 14}]}
-    hints = [hint1]
-    for h in hints:
-        jsonschema.validate(h, schema=HINT_SCHEMA)
+    hint1 = Hint(patches=[Patch(left=0, right=1), Patch(left=5, right=7)])
+    hint2 = Hint(patches=[Patch(left=10, right=14)])
     bundle1 = HintBundle(hints=[hint1])
     bundle2 = HintBundle(hints=[hint2])
+    validate_hint_bundle(bundle1)
+    validate_hint_bundle(bundle2)
 
     apply_hints([bundle1], tmp_test_case, tmp_transformed_file)
     assert tmp_transformed_file.read_text() == 'röten 🍴'
@@ -272,9 +260,9 @@ def test_apply_hints_utf8(tmp_test_case: Path, tmp_transformed_file: Path):
 
 def test_apply_hints_non_unicode(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_bytes(b'\0F\xffoo')
-    hint = {'p': [{'l': 2, 'r': 3}]}
-    jsonschema.validate(hint, schema=HINT_SCHEMA)
+    hint = Hint(patches=[Patch(left=2, right=3)])
     bundle = HintBundle(hints=[hint])
+    validate_hint_bundle(bundle)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -288,9 +276,9 @@ def test_apply_hints_dir(tmp_path: Path):
     (input_dir / 'foo.h').write_text('unsigned foo;')
     (input_dir / 'bar.cc').write_text('void bar();')
     vocab = ['foo.h', 'bar.cc']
-    hint_oo = {'p': [{'l': 10, 'r': 12, 'f': 0}]}
-    hint_un = {'p': [{'l': 0, 'r': 2, 'f': 0}]}
-    hint_ar = {'p': [{'l': 6, 'r': 8, 'f': 1}]}
+    hint_oo = Hint(patches=[Patch(left=10, right=12, file=0)])
+    hint_un = Hint(patches=[Patch(left=0, right=2, file=0)])
+    hint_ar = Hint(patches=[Patch(left=6, right=8, file=1)])
     bundle = HintBundle(hints=[hint_oo, hint_un, hint_ar], vocabulary=vocab)
     validate_hint_bundle(bundle, allowed_hint_types=set())
 
@@ -322,14 +310,13 @@ def test_apply_hints_dir_nonexisting_parent(tmp_path: Path):
 
 def test_apply_hints_statistics(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_text('Foo bar baz')
-    hint03 = {'p': [{'l': 0, 'r': 3}]}
-    hint07 = {'p': [{'l': 0, 'r': 7}]}
-    hint89 = {'p': [{'l': 8, 'r': 9}]}
-    hints = [hint03, hint07, hint89]
-    for h in hints:
-        jsonschema.validate(h, schema=HINT_SCHEMA)
+    hint03 = Hint(patches=[Patch(left=0, right=3)])
+    hint07 = Hint(patches=[Patch(left=0, right=7)])
+    hint89 = Hint(patches=[Patch(left=8, right=9)])
     bundle1 = HintBundle(hints=[hint03, hint89], pass_name='pass1')
     bundle2 = HintBundle(hints=[hint07], pass_name='pass2')
+    validate_hint_bundle(bundle1)
+    validate_hint_bundle(bundle2)
 
     stats = apply_hints([bundle1, bundle2], tmp_test_case, tmp_transformed_file)
 
@@ -340,8 +327,8 @@ def test_apply_hints_statistics(tmp_test_case: Path, tmp_transformed_file: Path)
 
 def test_store_load_hints(tmp_hints_file):
     vocab = ['new text']
-    hint1 = {'p': [{'l': 0, 'r': 1}]}
-    hint2 = {'p': [{'l': 2, 'r': 3}, {'l': 4, 'r': 5, 'v': 0}]}
+    hint1 = Hint(patches=[Patch(left=0, right=1)])
+    hint2 = Hint(patches=[Patch(left=2, right=3), Patch(left=4, right=5, value=0)])
     hints = HintBundle(vocabulary=vocab, hints=[hint1, hint2])
     store_hints(hints, tmp_hints_file)
 
@@ -352,12 +339,12 @@ def test_store_load_hints(tmp_hints_file):
 
 def test_hints_storage_compression(tmp_hints_file: Path):
     COUNT = 10000
-    hints = [{'p': [{'l': i, 'r': i + 1}]} for i in range(COUNT)]
+    hints = [Hint(patches=[Patch(left=i, right=i + 1)]) for i in range(COUNT)]
     bundle = HintBundle(hints=hints)
     store_hints(bundle, tmp_hints_file)
 
     # Check that the file is significantly smaller than a regular JSON representation (without extra spaces around
     # separators).
     RATIO_AT_LEAST = 10
-    hints_json_size = len(json.dumps(hints, separators=(',', ':')))
+    hints_json_size = len(msgspec.json.encode(hints))
     assert tmp_hints_file.stat().st_size * RATIO_AT_LEAST < hints_json_size

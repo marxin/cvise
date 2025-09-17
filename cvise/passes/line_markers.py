@@ -2,7 +2,7 @@ from pathlib import Path
 import re
 
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils.hint import HintBundle
+from cvise.utils.hint import Hint, HintBundle, Patch
 
 
 class LineMarkersPass(HintBasedPass):
@@ -35,6 +35,6 @@ class LineMarkersPass(HintBasedPass):
             for line in in_file.readlines():
                 end_pos = file_pos + len(line)
                 if self.line_regex.search(line):
-                    hints.append({'p': [{'l': file_pos, 'r': end_pos}]})
+                    hints.append(Hint(patches=[Patch(left=file_pos, right=end_pos)]))
                 file_pos = end_pos
         return HintBundle(hints=hints)

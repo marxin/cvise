@@ -4,7 +4,7 @@ import subprocess
 from typing import List
 
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils.hint import HintBundle
+from cvise.utils.hint import Hint, HintBundle
 from cvise.utils.process import ProcessEventNotifier
 
 
@@ -44,11 +44,12 @@ class TreeSitterPass(HintBasedPass):
         # When reading, gracefully handle EOF because the tool might've failed with no output.
         stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
-        decoder = msgspec.json.Decoder()
-        vocab = decoder.decode(vocab_line) if vocab_line else []
+        vocab_decoder = msgspec.json.Decoder(type=List[str])
+        vocab = vocab_decoder.decode(vocab_line) if vocab_line else []
 
         hints = []
+        hint_decoder = msgspec.json.Decoder(type=Hint)
         for line in stdout:
             if not line.isspace():
-                hints.append(decoder.decode(line))
+                hints.append(hint_decoder.decode(line))
         return HintBundle(vocabulary=vocab, hints=hints)

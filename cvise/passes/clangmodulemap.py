@@ -5,10 +5,10 @@ from enum import Enum, unique
 import fnmatch
 from pathlib import Path
 import re
-from typing import Dict, List, Union
+from typing import List, Union
 
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils.hint import HintBundle
+from cvise.utils.hint import Hint, HintBundle, Patch
 
 
 _FILE_PATTERNS = ('*.cppmap', '*.modulemap')
@@ -44,7 +44,7 @@ class ClangModuleMapPass(HintBasedPass):
         interesting_paths = [p for p in paths if _interesting_file(p)]
 
         vocab: List[str] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
-        hints: List[Dict] = []
+        hints: List[Hint] = []
         for path in interesting_paths:
             file = _parse_file(path)
 
@@ -99,84 +99,84 @@ class _ModuleMapFile:
     unclassified_lines: List[_SourceLoc]
 
 
-def _create_hints_for_module(mod: _ModuleDecl, file_id: int, toplevel: bool, hints: List[Dict]) -> None:
+def _create_hints_for_module(mod: _ModuleDecl, file_id: int, toplevel: bool, hints: List[Hint]) -> None:
     empty = not mod.headers and not mod.uses and not mod.submodules
     if not toplevel and empty:
         hints.append(
-            {
-                't': _Vocab.DELETE_EMPTY_SUBMODULE.value[0],
-                'p': [
-                    {
-                        'f': file_id,
-                        'l': mod.loc.begin,
-                        'r': mod.loc.end,
-                    }
+            Hint(
+                type=_Vocab.DELETE_EMPTY_SUBMODULE.value[0],
+                patches=[
+                    Patch(
+                        file=file_id,
+                        left=mod.loc.begin,
+                        right=mod.loc.end,
+                    )
                 ],
-            }
+            )
         )
 
     if not toplevel and not empty:
         hints.append(
-            {
-                't': _Vocab.INLINE_SUBMODULE_CONTENTS.value[0],
-                'p': [
-                    {
-                        'f': file_id,
-                        'l': mod.title_loc.begin,
-                        'r': mod.title_loc.end,
-                    },
-                    {
-                        'f': file_id,
-                        'l': mod.close_brace_loc.begin,
-                        'r': mod.close_brace_loc.end,
-                    },
+            Hint(
+                type=_Vocab.INLINE_SUBMODULE_CONTENTS.value[0],
+                patches=[
+                    Patch(
+                        file=file_id,
+                        left=mod.title_loc.begin,
+                        right=mod.title_loc.end,
+                    ),
+                    Patch(
+                        file=file_id,
+                        left=mod.close_brace_loc.begin,
+                        right=mod.close_brace_loc.end,
+                    ),
                 ],
-            }
+            )
         )
 
     for header in mod.headers:
         hints.append(
-            {
-                't': _Vocab.MAKE_HEADER_NON_MODULAR.value[0],
-                'p': [
-                    {
-                        'f': file_id,
-                        'l': header.loc.begin,
-                        'r': header.loc.end,
-                    }
+            Hint(
+                type=_Vocab.MAKE_HEADER_NON_MODULAR.value[0],
+                patches=[
+                    Patch(
+                        file=file_id,
+                        left=header.loc.begin,
+                        right=header.loc.end,
+                    )
                 ],
-            }
+            )
         )
     for use in mod.uses:
         hints.append(
-            {
-                't': _Vocab.DELETE_USE_DECL.value[0],
-                'p': [
-                    {
-                        'f': file_id,
-                        'l': use.loc.begin,
-                        'r': use.loc.end,
-                    }
+            Hint(
+                type=_Vocab.DELETE_USE_DECL.value[0],
+                patches=[
+                    Patch(
+                        file=file_id,
+                        left=use.loc.begin,
+                        right=use.loc.end,
+                    )
                 ],
-            }
+            )
         )
     for submod in mod.submodules:
         _create_hints_for_module(submod, file_id, toplevel=False, hints=hints)
 
 
-def _create_hints_for_unclassified_lines(unclassified_lines: List[_SourceLoc], file_id: int, hints: List[Dict]) -> None:
+def _create_hints_for_unclassified_lines(unclassified_lines: List[_SourceLoc], file_id: int, hints: List[Hint]) -> None:
     for loc in unclassified_lines:
         hints.append(
-            {
-                't': _Vocab.DELETE_LINE.value[0],
-                'p': [
-                    {
-                        'f': file_id,
-                        'l': loc.begin,
-                        'r': loc.end,
-                    }
+            Hint(
+                type=_Vocab.DELETE_LINE.value[0],
+                patches=[
+                    Patch(
+                        file=file_id,
+                        left=loc.begin,
+                        right=loc.end,
+                    )
                 ],
-            }
+            )
         )
 
 
