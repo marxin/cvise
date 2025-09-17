@@ -254,10 +254,10 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
 
         for h in bundle.hints:
             if len(buf) <= WRITE_BUFFER:
-                offset = -1
+                offset = -1  # append to the end of the buf
             else:
                 f.write(buf)
-                offset = 0
+                offset = 0  # clear the buf
             encoder.encode_into(h, buf, offset)
             buf.append(newline)
         f.write(buf)
