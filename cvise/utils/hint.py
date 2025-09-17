@@ -10,7 +10,7 @@ applied to all heuristics in a uniform way).
 """
 
 from copy import deepcopy
-from dataclasses import dataclass, field
+import dataclasses
 import json
 import msgspec
 from pathlib import Path
@@ -25,6 +25,11 @@ FORMAT_NAME = 'cvise_hints_v0'
 
 
 class Patch(msgspec.Struct, omit_defaults=True, gc=False):
+    """Describes a single patch inside a hint.
+
+    See HINT_PATCH_SCHEMA.
+    """
+
     left: int = msgspec.field(name='l')
     right: int = msgspec.field(name='r')
     file: Optional[int] = msgspec.field(default=None, name='f')
@@ -32,11 +37,16 @@ class Patch(msgspec.Struct, omit_defaults=True, gc=False):
 
 
 class Hint(msgspec.Struct, omit_defaults=True, gc=False):
+    """Describes a single hint.
+
+    See HINT_SCHEMA.
+    """
+
     patches: List[Patch] = msgspec.field(name='p')
     type: Optional[int] = msgspec.field(default=None, name='t')
 
 
-@dataclass
+@dataclasses.dataclass
 class HintBundle:
     """Stores a collection of hints.
 
@@ -54,7 +64,7 @@ class HintBundle:
     pass_name: str = ''
     # Strings that hints can refer to.
     # Note: a simple "= []" wouldn't be suitable because mutable default values are error-prone in Python.
-    vocabulary: List[str] = field(default_factory=list)
+    vocabulary: List[str] = dataclasses.field(default_factory=list)
 
 
 # JSON Schemas:
@@ -119,7 +129,7 @@ HINT_SCHEMA_STRICT['additionalProperties'] = False
 HINT_SCHEMA_STRICT['properties']['p']['items'] = HINT_PATCH_SCHEMA_STRICT
 
 
-@dataclass
+@dataclasses.dataclass
 class HintApplicationStats:
     size_delta_per_pass: Dict[str, int]
 
