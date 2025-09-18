@@ -14,7 +14,7 @@ import dataclasses
 import json
 import msgspec
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Sequence, TextIO
+from typing import Any, Dict, List, Optional, Sequence, TextIO
 import zstandard
 
 from cvise.utils.fileutil import mkdir_up_to
@@ -361,7 +361,7 @@ def _lines_range(f: TextIO, begin_index: Optional[int], end_index: Optional[int]
     for _ in range(begin_index or 0):
         next(f)  # simply discard
     if end_index is None:
-        return [s for s in f]
+        return list(f)
     cnt = end_index - (begin_index or 0)
     return [next(f) for _ in range(cnt)]
 
