@@ -155,13 +155,13 @@ class BracketRemovingPass(HintBasedPass):
     """Attempts removing pairs of brackets (not nested) and their contents."""
 
     def output_hint_types(self):
-        return ['remove-brackets']
+        return [b'remove-brackets']
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         hints = []
         for m in re.finditer(r'\([^()]*\)', test_case.read_text()):
             hints.append(Hint(type=0, patches=[Patch(left=m.start(), right=m.end())]))
-        return HintBundle(hints=hints, vocabulary=['remove-brackets'])
+        return HintBundle(hints=hints, vocabulary=[b'remove-brackets'])
 
 
 class InsideBracketsRemovingPass(HintBasedPass):
@@ -172,13 +172,13 @@ class InsideBracketsRemovingPass(HintBasedPass):
     """
 
     def input_hint_types(self):
-        return ['remove-brackets']
+        return [b'remove-brackets']
 
     def generate_hints(self, test_case: Path, dependee_hints: List[HintBundle], *args, **kwargs):
         hints = []
         for input_bundle in dependee_hints:
             for input_hint in input_bundle.hints:
-                assert input_bundle.vocabulary[input_hint.type] == 'remove-brackets'
+                assert input_bundle.vocabulary[input_hint.type] == b'remove-brackets'
                 assert len(input_hint.patches) == 1
                 input_patch = input_hint.patches[0]
                 if input_patch.right - input_patch.left == 1:

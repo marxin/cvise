@@ -123,7 +123,7 @@ def test_apply_hints_delete_nested(tmp_test_case: Path, tmp_transformed_file: Pa
 def test_apply_hints_replace_with_shorter(tmp_test_case: Path, tmp_transformed_file: Path):
     """Test a hint replacing a fragment with a shorter value."""
     tmp_test_case.write_text('Foo foobarbaz baz')
-    vocab = ['xyz']
+    vocab = [b'xyz']
     hint = Hint(patches=[Patch(left=4, right=13, value=0)])
     bundle = HintBundle(vocabulary=vocab, hints=[hint])
     validate_hint_bundle(bundle)
@@ -136,7 +136,7 @@ def test_apply_hints_replace_with_shorter(tmp_test_case: Path, tmp_transformed_f
 def test_apply_hints_replace_with_longer(tmp_test_case: Path, tmp_transformed_file: Path):
     """Test a hint replacing a fragment with a longer value."""
     tmp_test_case.write_text('Foo x baz')
-    vocab = ['z', 'abacaba']
+    vocab = [b'z', b'abacaba']
     hint = Hint(patches=[Patch(left=4, right=5, value=1)])
     bundle = HintBundle(vocabulary=vocab, hints=[hint])
     validate_hint_bundle(bundle)
@@ -149,7 +149,7 @@ def test_apply_hints_replace_with_longer(tmp_test_case: Path, tmp_transformed_fi
 def test_apply_hints_replacement_inside_deletion(tmp_test_case: Path, tmp_transformed_file: Path):
     """Test that a replacement is a no-op if happening inside a to-be-deleted fragment."""
     tmp_test_case.write_text('Foo bar baz')
-    vocab = ['x']
+    vocab = [b'x']
     hint1 = Hint(patches=[Patch(left=5, right=6, value=0)])  # replaces "a" with "x" in "bar"
     hint2 = Hint(patches=[Patch(left=4, right=7)])  # deletes "bar"
     hints = [hint1, hint2]
@@ -164,7 +164,7 @@ def test_apply_hints_replacement_inside_deletion(tmp_test_case: Path, tmp_transf
 def test_apply_hints_deletion_inside_replacement(tmp_test_case: Path, tmp_transformed_file: Path):
     """Test that a deletion is a no-op if happening inside a to-be-replaced fragment."""
     tmp_test_case.write_text('Foo bar baz')
-    vocab = ['some']
+    vocab = [b'some']
     hint1 = Hint(patches=[Patch(left=5, right=6)])  # deletes "a" in "bar"
     hint2 = Hint(patches=[Patch(left=4, right=7, value=0)])  # replaces "bar" with "some"
     hints = [hint1, hint2]
@@ -182,7 +182,7 @@ def test_apply_hints_replacement_of_deleted_prefix(tmp_test_case: Path, tmp_tran
     This covers the specific implementation detail of conflict resolution, beyond the simple rule "the leftmost hint
     wins in a group of overlapping hints" that'd suffice for other tests."""
     tmp_test_case.write_text('Foo bar baz')
-    vocab = ['x']
+    vocab = [b'x']
     hint1 = Hint(patches=[Patch(left=4, right=5, value=0)])  # replaces "b" with "x" in "bar"
     hint2 = Hint(patches=[Patch(left=4, right=7)])  # deletes "bar"
     hints = [hint1, hint2]
@@ -197,7 +197,7 @@ def test_apply_hints_replacement_of_deleted_prefix(tmp_test_case: Path, tmp_tran
 def test_apply_hints_replacement_and_deletion_touching(tmp_test_case: Path, tmp_transformed_file: Path):
     """Test that deletions and replacements in touching, but not overlapping, fragments are applied independently."""
     tmp_test_case.write_text('Foo bar baz')
-    vocab = ['some']
+    vocab = [b'some']
     hint1 = Hint(patches=[Patch(left=5, right=7, value=0)])  # replaces "ar" with "some"
     hint2 = Hint(patches=[Patch(left=4, right=5)])  # deletes "b" in "bar"
     hint3 = Hint(patches=[Patch(left=7, right=8)])  # deletes " " after "bar"
@@ -216,7 +216,7 @@ def test_apply_hints_overlapping_replacements(tmp_test_case: Path, tmp_transform
     As there's no ideal solution for this kind of merge conflict, the main goal is to verify the implementation doesn't
     break. At the moment, the leftwise patch wins in this case, but this is subject to change in the future."""
     tmp_test_case.write_text('abcd')
-    vocab = ['foo', 'x']
+    vocab = [b'foo', b'x']
     hint1 = Hint(patches=[Patch(left=1, right=3, value=0)])  # replaces "bc" with "foo"
     hint2 = Hint(patches=[Patch(left=2, right=4, value=1)])  # replaces "cd" with "x"
     hints = [hint1, hint2]
@@ -275,7 +275,7 @@ def test_apply_hints_dir(tmp_path: Path):
     input_dir.mkdir()
     (input_dir / 'foo.h').write_text('unsigned foo;')
     (input_dir / 'bar.cc').write_text('void bar();')
-    vocab = ['foo.h', 'bar.cc']
+    vocab = [b'foo.h', b'bar.cc']
     hint_oo = Hint(patches=[Patch(left=10, right=12, file=0)])
     hint_un = Hint(patches=[Patch(left=0, right=2, file=0)])
     hint_ar = Hint(patches=[Patch(left=6, right=8, file=1)])
@@ -326,7 +326,7 @@ def test_apply_hints_statistics(tmp_test_case: Path, tmp_transformed_file: Path)
 
 
 def test_store_load_hints(tmp_hints_file):
-    vocab = ['new text']
+    vocab = [b'new text']
     hint1 = Hint(patches=[Patch(left=0, right=1)])
     hint2 = Hint(patches=[Patch(left=2, right=3), Patch(left=4, right=5, value=0)])
     hints = HintBundle(vocabulary=vocab, hints=[hint1, hint2])

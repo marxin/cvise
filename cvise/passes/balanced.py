@@ -36,7 +36,7 @@ class BalancedPass(HintBasedPass):
         vocabulary = []
         if config.replacement:
             assert config.to_delete == Deletion.ALL
-            vocabulary.append(config.replacement)
+            vocabulary.append(config.replacement.encode())
 
         contents = test_case.read_bytes()
         prefixes = (

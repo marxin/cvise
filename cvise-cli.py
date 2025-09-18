@@ -544,11 +544,11 @@ def do_reduce(args):
 def do_apply_hints(args):
     if args.hints_file is None:
         sys.exit('--hints-file is mandatory for --action=apply-hints')
-    if args.hint_begin_index is None:
-        sys.exit('--hint-begin-index is mandatory for --action=apply-hints')
-    if args.hint_end_index is None:
-        sys.exit('--hint-end-index is mandatory for --action=apply-hints')
-    if args.hint_begin_index >= args.hint_end_index:
+    if (
+        args.hint_begin_index is not None
+        and args.hint_end_index is not None
+        and args.hint_begin_index >= args.hint_end_index
+    ):
         sys.exit('HINT_BEGIN_INDEX must be smaller than HINT_END_INDEX')
     if len(args.test_cases) > 1:
         sys.exit('exactly one TEST_CASE must be supplied')

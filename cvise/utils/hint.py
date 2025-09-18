@@ -14,7 +14,7 @@ import dataclasses
 import json
 import msgspec
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, TextIO, Union
+from typing import Any, Dict, List, Optional, Sequence, TextIO
 import zstandard
 
 from cvise.utils.fileutil import mkdir_up_to
@@ -64,7 +64,7 @@ class HintBundle:
     pass_name: str = ''
     # Strings that hints can refer to.
     # Note: a simple "= []" wouldn't be suitable because mutable default values are error-prone in Python.
-    vocabulary: List[str] = dataclasses.field(default_factory=list)
+    vocabulary: List[bytes] = dataclasses.field(default_factory=list)
 
 
 # JSON Schemas:
@@ -145,13 +145,14 @@ class _BundlePreamble(msgspec.Struct, omit_defaults=True):
 
 # Singleton encoder/decoder objects, to save time on recreating them.
 _json_encoder: Optional[msgspec.json.Encoder] = None
+_encoding_buf: Optional[bytearray] = None
 _preamble_decoder: Optional[msgspec.json.Encoder] = None
 _vocab_decoder: Optional[msgspec.json.Encoder] = None
 _hint_decoder: Optional[msgspec.json.Encoder] = None
 
 
-def is_special_hint_type(type: str) -> bool:
-    return type.startswith('@')
+def is_special_hint_type(type: bytes) -> bool:
+    return type.startswith(b'@')
 
 
 class _PatchWithBundleRef(msgspec.Struct, gc=False):
@@ -168,7 +169,7 @@ def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: 
             for patch in hint.patches:
                 # Copying sub-structs improves data locality, helping performance in practice.
                 p = _PatchWithBundleRef(patch.__copy__(), bundle_id)
-                file_rel = Path(bundle.vocabulary[patch.file]) if patch.file is not None else Path()
+                file_rel = Path(bundle.vocabulary[patch.file].decode()) if patch.file is not None else Path()
                 path_to_patches.setdefault(file_rel, []).append(p)
 
     # Enumerate all files in the source location and apply corresponding patches, if any, to each.
@@ -198,9 +199,9 @@ def apply_hint_patches_to_file(
     stats: HintApplicationStats,
 ) -> None:
     merged_patches = merge_overlapping_patches(patches)
-    orig_data = source_file.read_bytes()
+    orig_data = memoryview(source_file.read_bytes())
 
-    new_data = b''
+    new_data = bytearray()
     start_pos = 0
     for patch_ref in merged_patches:
         p: Patch = patch_ref.patch
@@ -208,18 +209,18 @@ def apply_hint_patches_to_file(
         assert start_pos <= p.left < len(orig_data)
         assert p.left < p.right <= len(orig_data)
         # Add the unmodified chunk up to the current patch begin.
-        new_data += orig_data[start_pos : p.left]
+        new_data.extend(orig_data[start_pos : p.left])
         # Skip the original chunk inside the current patch.
         start_pos = p.right
         stats.size_delta_per_pass.setdefault(bundle.pass_name, 0)
         stats.size_delta_per_pass[bundle.pass_name] -= p.right - p.left
         # Insert the replacement value, if provided.
         if p.value is not None:
-            to_insert = bundle.vocabulary[p.value].encode()
+            to_insert = bundle.vocabulary[p.value]
             new_data += to_insert
             stats.size_delta_per_pass[bundle.pass_name] += len(to_insert)
     # Add the unmodified chunk after the last patch end.
-    new_data += orig_data[start_pos:]
+    new_data.extend(orig_data[start_pos:])
 
     destination_file.write_bytes(new_data)
 
@@ -234,32 +235,35 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
     # Use chunks of this or greater size when calling into Zstandard.
     WRITE_BUFFER = 2**18
 
-    global _json_encoder
-    if _json_encoder is None:
+    global _json_encoder, _encoding_buf
+    if _json_encoder is None:  # lazily initialize singletons
         _json_encoder = msgspec.json.Encoder()
+        _encoding_buf = bytearray()
     encoder = _json_encoder  # cache in local variables, which are presumably faster
+    buf = _encoding_buf
 
     with zstandard.open(hints_file_path, 'wb') as f:
-        buf = bytearray()
-
-        # "offset=-1" means appending to the end of the buf
-        encoder.encode_into(make_preamble(bundle), buf, -1)
+        # leave "offset" at default, to make sure the buffer is cleared
+        encoder.encode_into(make_preamble(bundle), buf)
         newline = ord('\n')
         buf.append(newline)
 
-        encoder.encode_into(bundle.vocabulary, buf, -1)
+        # "offset=-1" means appending to the end of the buf
+        encoder.encode_into([s.decode() for s in bundle.vocabulary], buf, -1)
         buf.append(newline)
 
         for h in bundle.hints:
-            if len(buf) > WRITE_BUFFER:
+            if len(buf) <= WRITE_BUFFER:
+                offset = -1  # append to the end of the buf
+            else:
                 f.write(buf)
-                buf.clear()
-            encoder.encode_into(h, buf, -1)
+                offset = 0  # clear the buf
+            encoder.encode_into(h, buf, offset)
             buf.append(newline)
         f.write(buf)
 
 
-def load_hints(hints_file_path: Path, begin_index: Union[int, None], end_index: Union[int, None]) -> HintBundle:
+def load_hints(hints_file_path: Path, begin_index: Optional[int], end_index: Optional[int]) -> HintBundle:
     """Deserializes hints from a file.
 
     If provided, the [begin; end) half-range can be used to only load hints with the specified indices.
@@ -284,24 +288,16 @@ def load_hints(hints_file_path: Path, begin_index: Union[int, None], end_index: 
                 f'Failed to parse hint bundle preamble: expected format "{FORMAT_NAME}", instead got '
                 + repr(preamble.format)
             )
-
         vocab = try_parse_json_line(next(f), vocab_decoder)
-
-        hints = []
-        for i, line in enumerate(f):
-            if begin_index is not None and i < begin_index:
-                continue
-            if end_index is not None and i >= end_index:
-                continue
-            hints.append(try_parse_json_line(line, hint_decoder))
-    return HintBundle(hints=hints, pass_name=preamble.pass_, vocabulary=vocab)
+        hints = [try_parse_json_line(s, hint_decoder) for s in _lines_range(f, begin_index, end_index)]
+    return HintBundle(hints=hints, pass_name=preamble.pass_, vocabulary=[s.encode() for s in vocab])
 
 
-def group_hints_by_type(bundle: HintBundle) -> Dict[str, HintBundle]:
+def group_hints_by_type(bundle: HintBundle) -> Dict[bytes, HintBundle]:
     """Splits the bundle into multiple, one per each hint type."""
-    grouped: Dict[str, HintBundle] = {}
+    grouped: Dict[bytes, HintBundle] = {}
     for h in bundle.hints:
-        type = bundle.vocabulary[h.type] if h.type is not None else ''
+        type = bundle.vocabulary[h.type] if h.type is not None else b''
         if type not in grouped:
             grouped[type] = HintBundle(vocabulary=bundle.vocabulary, hints=[], pass_name=bundle.pass_name)
         # FIXME: drop the 't' property in favor of storing it once, in the bundle's preamble
@@ -359,6 +355,15 @@ def patches_overlap(first: _PatchWithBundleRef, second: _PatchWithBundleRef) -> 
 def extend_end_to_fit(patch_ref: _PatchWithBundleRef, appended: _PatchWithBundleRef) -> None:
     """Modifies the first patch so that the second patch fits into it."""
     patch_ref.patch.right = max(patch_ref.patch.right, appended.patch.right)
+
+
+def _lines_range(f: TextIO, begin_index: Optional[int], end_index: Optional[int]) -> List[str]:
+    for _ in range(begin_index or 0):
+        next(f)  # simply discard
+    if end_index is None:
+        return list(f)
+    cnt = end_index - (begin_index or 0)
+    return [next(f) for _ in range(cnt)]
 
 
 def _mkdir_up_to(dir_to_create: Path, last_parent_dir: Path) -> None:

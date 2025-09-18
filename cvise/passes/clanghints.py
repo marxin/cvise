@@ -139,7 +139,7 @@ class ClangHintsPass(HintBasedPass):
         stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
         vocab_decoder = msgspec.json.Decoder(type=List[str])
-        vocab = vocab_decoder.decode(vocab_line) if vocab_line else []
+        vocab = [s.encode() for s in vocab_decoder.decode(vocab_line)] if vocab_line else []
 
         hints = []
         hint_decoder = msgspec.json.Decoder(type=Hint)

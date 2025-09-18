@@ -8,14 +8,14 @@ from cvise.utils.hint import Hint, HintBundle, Patch
 
 class BlankPass(HintBasedPass):
     PATTERNS = {
-        'blankline': rb'^\s*$',
-        'hashline': rb'^#',
+        b'blankline': rb'^\s*$',
+        b'hashline': rb'^#',
     }
 
     def check_prerequisites(self):
         return True
 
-    def output_hint_types(self) -> List[str]:
+    def output_hint_types(self) -> List[bytes]:
         return list(self.PATTERNS.keys())
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
