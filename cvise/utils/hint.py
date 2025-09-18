@@ -14,7 +14,7 @@ import dataclasses
 import json
 import msgspec
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, TextIO, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, TextIO
 import zstandard
 
 from cvise.utils.fileutil import mkdir_up_to
@@ -263,7 +263,7 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
         f.write(buf)
 
 
-def load_hints(hints_file_path: Path, begin_index: Union[int, None], end_index: Union[int, None]) -> HintBundle:
+def load_hints(hints_file_path: Path, begin_index: Optional[int], end_index: Optional[int]) -> HintBundle:
     """Deserializes hints from a file.
 
     If provided, the [begin; end) half-range can be used to only load hints with the specified indices.
@@ -291,14 +291,19 @@ def load_hints(hints_file_path: Path, begin_index: Union[int, None], end_index: 
 
         vocab = try_parse_json_line(next(f), vocab_decoder)
 
-        hints = []
-        for i, line in enumerate(f):
-            if begin_index is not None and i < begin_index:
-                continue
-            if end_index is not None and i >= end_index:
-                continue
-            hints.append(try_parse_json_line(line, hint_decoder))
+        hints = [try_parse_json_line(s, hint_decoder) for s in _lines_range(f, begin_index, end_index)]
     return HintBundle(hints=hints, pass_name=preamble.pass_, vocabulary=[s.encode() for s in vocab])
+
+
+def _lines_range(f: TextIO, begin_index: Optional[int], end_index: Optional[int]) -> Iterator[bytes]:
+    for _ in range(begin_index or 0):
+        next(f)  # simply discard
+    if end_index is None:
+        for s in f:
+            yield s
+    else:
+        for _ in range(end_index - (begin_index or 0)):
+            yield next(f)
 
 
 def group_hints_by_type(bundle: HintBundle) -> Dict[bytes, HintBundle]:
