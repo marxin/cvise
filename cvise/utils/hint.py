@@ -288,22 +288,9 @@ def load_hints(hints_file_path: Path, begin_index: Optional[int], end_index: Opt
                 f'Failed to parse hint bundle preamble: expected format "{FORMAT_NAME}", instead got '
                 + repr(preamble.format)
             )
-
         vocab = try_parse_json_line(next(f), vocab_decoder)
-
         hints = [try_parse_json_line(s, hint_decoder) for s in _lines_range(f, begin_index, end_index)]
     return HintBundle(hints=hints, pass_name=preamble.pass_, vocabulary=[s.encode() for s in vocab])
-
-
-def _lines_range(f: TextIO, begin_index: Optional[int], end_index: Optional[int]) -> Iterator[bytes]:
-    for _ in range(begin_index or 0):
-        next(f)  # simply discard
-    if end_index is None:
-        for s in f:
-            yield s
-    else:
-        for _ in range(end_index - (begin_index or 0)):
-            yield next(f)
 
 
 def group_hints_by_type(bundle: HintBundle) -> Dict[bytes, HintBundle]:
@@ -368,6 +355,15 @@ def patches_overlap(first: _PatchWithBundleRef, second: _PatchWithBundleRef) -> 
 def extend_end_to_fit(patch_ref: _PatchWithBundleRef, appended: _PatchWithBundleRef) -> None:
     """Modifies the first patch so that the second patch fits into it."""
     patch_ref.patch.right = max(patch_ref.patch.right, appended.patch.right)
+
+
+def _lines_range(f: TextIO, begin_index: Optional[int], end_index: Optional[int]) -> List[str]:
+    for _ in range(begin_index or 0):
+        next(f)  # simply discard
+    if end_index is None:
+        return [s for s in f]
+    cnt = end_index - (begin_index or 0)
+    return [next(f) for _ in range(cnt)]
 
 
 def _mkdir_up_to(dir_to_create: Path, last_parent_dir: Path) -> None:
