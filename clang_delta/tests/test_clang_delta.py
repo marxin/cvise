@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
-from typing import Union
+from typing import Optional, Union
 import unittest
 
 
@@ -38,19 +38,19 @@ def run_clang_delta(testcase: str, arguments: str) -> str:
     return subprocess.check_output(cmd, shell=True, encoding='utf8')
 
 
-def run_apply_hints(hints_file: Path, begin_index: int, end_index: int, testcase: str) -> str:
+def run_apply_hints(hints_file: Path, begin_index: Optional[int], end_index: Optional[int], testcase: str) -> str:
     hints_tool = Path(__file__).parent.parent.parent / 'cvise-cli.py'
     cmd = [
         hints_tool,
         '--action=apply-hints',
         '--hints-file',
         hints_file,
-        '--hint-begin-index',
-        str(begin_index),
-        '--hint-end-index',
-        str(end_index),
         get_testcase_path(testcase),
     ]
+    if begin_index is not None:
+        cmd += ['--hint-begin-index', str(begin_index)]
+    if end_index is not None:
+        cmd += ['--hint-end-index', str(end_index)]
     return subprocess.check_output(cmd, encoding='utf-8')
 
 
@@ -1165,8 +1165,8 @@ class TestClangDelta(unittest.TestCase):
         self.check_clang_delta_hints(
             'replace-function-def-with-decl/simple.cpp',
             '--transformation=replace-function-def-with-decl --preserve-routine=Moo::foo',
-            begin_index=0,
-            end_index=9999,
+            begin_index=None,
+            end_index=None,
             output_file='replace-function-def-with-decl/simple.cpp.preserve_foo.output',
         )
 
