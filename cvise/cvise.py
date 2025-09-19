@@ -22,6 +22,7 @@ from cvise.passes.indent import IndentPass
 from cvise.passes.ints import IntsPass
 from cvise.passes.line_markers import LineMarkersPass
 from cvise.passes.lines import LinesPass
+from cvise.passes.makefile import MakefilePass
 from cvise.passes.peep import PeepPass
 from cvise.passes.special import SpecialPass
 from cvise.passes.ternary import TernaryPass
@@ -88,6 +89,7 @@ class CVise:
         'ints': IntsPass,
         'line_markers': LineMarkersPass,
         'lines': LinesPass,
+        'makefile': MakefilePass,
         'peep': PeepPass,
         'special': SpecialPass,
         'ternary': TernaryPass,
