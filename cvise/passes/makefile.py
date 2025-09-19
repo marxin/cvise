@@ -13,7 +13,7 @@ _FILE_NAMES = ('Makefile', 'makefile', 'GNUmakefile')
 @unique
 class _Vocab(Enum):
     # Items must be listed in the index order; indices must be contiguous and start from zero.
-    REMOVE_COMMAND_ARGUMENT = (0, 'remove-command-argument')
+    REMOVE_COMMAND_ARGUMENT = (0, b'remove-command-argument')
 
 
 class MakefilePass(HintBasedPass):
@@ -25,19 +25,19 @@ class MakefilePass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
-    def output_hint_types(self) -> List[str]:
+    def output_hint_types(self) -> List[bytes]:
         return [v.value[1] for v in _Vocab]
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         paths = list(test_case.rglob('*')) if test_case.is_dir() else [test_case]
         interesting_paths = [p for p in paths if _interesting_file(p)]
 
-        vocab: List[str] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
+        vocab: List[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
         hints: List[Hint] = []
         for path in interesting_paths:
             mk = makefileparser.parse(path)
-
-            vocab.append(str(path.relative_to(test_case)))
+            rel_path = path.relative_to(test_case)
+            vocab.append(str(rel_path).encode())
             file_id = len(vocab) - 1
             _create_hints_for_makefile(mk, file_id, hints)
 

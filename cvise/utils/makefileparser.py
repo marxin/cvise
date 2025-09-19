@@ -45,20 +45,21 @@ class Makefile:
 
 
 def parse(makefile_path: Path) -> Makefile:
+    lines: List[bytearray] = []
     with open(makefile_path, 'rb') as f:
-        lines: List[bytes] = []
-        for s in f:
+        for cur_s in f:
+            cur = bytearray(cur_s)
             if lines and lines[-1].rstrip(b'\r\n').endswith(b'\\'):
                 pos = lines[-1].rfind(b'\\')
-                # TODO: Correctly handle line continuations, without introducing an extra space.
+                # TODO: Correctly handle line continuations, without introducing extra spaces.
                 lines[-1][pos] = ord(b' ')
-                if s.startswith(b'\t'):
-                    s[0] = ord(b' ')
-                lines[-1] += s
+                if cur.startswith(b'\t'):
+                    cur[0] = ord(b' ')
+                lines[-1].extend(cur)
             else:
-                lines.append(s)
+                lines.append(cur)
 
-    mk = Makefile(rules=[], unclassified_lines=[], phony_targets=[])
+    mk = Makefile(rules=[], unclassified_lines=[], phony_targets=set())
     file_pos = 0
     for line in lines:
         loc = SourceLoc(begin=file_pos, end=file_pos + len(line))
@@ -77,7 +78,7 @@ def parse(makefile_path: Path) -> Makefile:
             mk.unclassified_lines.append(loc)
 
     if phony_rule := _find_phony_rule(mk):
-        mk.phony_targets = [t.value for t in phony_rule.prereqs]
+        mk.phony_targets = {t.value for t in phony_rule.prereqs}
     return mk
 
 
