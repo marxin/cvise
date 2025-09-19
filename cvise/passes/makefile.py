@@ -1,6 +1,6 @@
 from enum import Enum, unique
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import makefileparser
@@ -13,7 +13,7 @@ _FILE_NAMES = ('Makefile', 'makefile', 'GNUmakefile')
 @unique
 class _Vocab(Enum):
     # Items must be listed in the index order; indices must be contiguous and start from zero.
-    REMOVE_COMMAND_ARGUMENT = (0, b'remove-command-argument')
+    REMOVE_ARGUMENT_FROM_ALL_COMMANDS = (0, b'remove-argument-from-all-commands')
 
 
 class MakefilePass(HintBasedPass):
@@ -35,11 +35,10 @@ class MakefilePass(HintBasedPass):
         vocab: List[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
         hints: List[Hint] = []
         for path in interesting_paths:
-            mk = makefileparser.parse(path)
             rel_path = path.relative_to(test_case)
             vocab.append(str(rel_path).encode())
             file_id = len(vocab) - 1
-            _create_hints_for_makefile(mk, file_id, hints)
+            _create_hints_for_makefile(path, file_id, hints)
 
         return HintBundle(hints=hints, vocabulary=vocab)
 
@@ -48,13 +47,18 @@ def _interesting_file(path: Path) -> bool:
     return path.name in _FILE_NAMES
 
 
-def _create_hints_for_makefile(mk: makefileparser.Makefile, file_id: int, hints: List[Hint]) -> None:
+def _create_hints_for_makefile(path: Path, file_id: int, hints: List[Hint]) -> None:
+    mk = makefileparser.parse(path)
+
+    arg_to_locs: Dict[bytes, List[makefileparser.SourceLoc]] = {}
     for rule in mk.rules:
         for recipe_line in rule.recipe:
             for arg in recipe_line.args:
-                hints.append(
-                    Hint(
-                        type=_Vocab.REMOVE_COMMAND_ARGUMENT.value[0],
-                        patches=[Patch(left=arg.loc.begin, right=arg.loc.end, file=file_id)],
-                    )
-                )
+                arg_to_locs.setdefault(arg.value, []).append(arg.loc)
+    for locs in arg_to_locs.values():
+        hints.append(
+            Hint(
+                type=_Vocab.REMOVE_ARGUMENT_FROM_ALL_COMMANDS.value[0],
+                patches=[Patch(left=loc.begin, right=loc.end, file=file_id) for loc in locs],
+            )
+        )

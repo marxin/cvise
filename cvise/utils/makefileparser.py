@@ -1,5 +1,7 @@
+from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
+import shlex
 from typing import List, Optional, Set
 
 
@@ -13,6 +15,15 @@ class SourceLoc:
 class TextWithLoc:
     loc: SourceLoc
     value: bytes
+
+    def substr(self, begin: int, end: Optional[int] = None) -> TextWithLoc:
+        assert self.loc.begin + begin <= self.loc.end
+        if end is not None:
+            assert self.loc.begin + begin <= self.loc.begin + end <= self.loc.end
+        return TextWithLoc(
+            SourceLoc(self.loc.begin + begin, self.loc.end if end is None else self.loc.begin + end),
+            self.value[begin:end],
+        )
 
 
 @dataclass
@@ -63,12 +74,13 @@ def parse(makefile_path: Path) -> Makefile:
     file_pos = 0
     for line in lines:
         loc = SourceLoc(begin=file_pos, end=file_pos + len(line))
+        line_with_loc = TextWithLoc(loc, line)
         file_pos = loc.end
-        if mk.rules and (recipe := _parse_recipe_line(line, loc)):
+        if mk.rules and (recipe := _parse_recipe_line(line_with_loc)):
             rule = mk.rules[-1]
             rule.loc.end = loc.end
             rule.recipe.append(recipe)
-        elif rule := _parse_rule_line(line, loc):
+        elif rule := _parse_rule_line(line_with_loc):
             mk.rules.append(rule)
         elif mk.rules:
             rule = mk.rules[-1]
@@ -82,53 +94,57 @@ def parse(makefile_path: Path) -> Makefile:
     return mk
 
 
-def _parse_rule_line(line: bytes, loc: SourceLoc) -> Optional[Rule]:
-    if line.startswith(b'\t'):
+def _parse_rule_line(line: TextWithLoc) -> Optional[Rule]:
+    if line.value.startswith(b'\t'):
         return None
-    semicolon_pos = line.find(b':')
+    semicolon_pos = line.value.find(b':')
     if semicolon_pos == -1:
         return None
-    comment_start = line.find(b'#')
+    comment_start = line.value.find(b'#')
     if comment_start != -1:
         if semicolon_pos >= comment_start:
             return None
-        line = line[:comment_start]
-    targets = _to_path_with_locs(_split(line[:semicolon_pos], loc))
-    prereqs = _to_path_with_locs(_split(line[semicolon_pos + 1 :], loc))
-    # Loc, recipe, unclassified_lines will be updated to real values later.
-    return Rule(loc=loc, targets=targets, prereqs=prereqs, recipe=[], unclassified_lines=[])
+        line = line.substr(0, comment_start)
+
+    before_semicolon = line.substr(0, semicolon_pos)
+    targets = _to_paths(_get_tok_locs(before_semicolon, before_semicolon.value.split()))
+
+    after_semicolon = line.substr(semicolon_pos + 1)
+    prereqs = _to_paths(_get_tok_locs(after_semicolon, after_semicolon.value.split()))
+
+    # Loc, recipe, unclassified_lines may get updated later when parsing recipe lines.
+    return Rule(loc=line.loc, targets=targets, prereqs=prereqs, recipe=[], unclassified_lines=[])
 
 
-def _parse_recipe_line(line: bytes, loc: SourceLoc) -> Optional[RecipeLine]:
-    if not line.startswith(b'\t'):
+def _parse_recipe_line(line: TextWithLoc) -> Optional[RecipeLine]:
+    if not line.value.startswith(b'\t'):
         return None
-    loc.begin += 1
-    line = line[1:]
-    if line.startswith(b'@'):
-        loc.begin += 1
-        line = line[1:]
-    cmd = _split(line, loc)
-    if not cmd:
+    line = line.substr(1)
+    if line.value.startswith(b'@'):
+        line = line.substr(1)
+    cmd_toks = [s.encode() for s in shlex.split(line.value.decode())]
+    cmd_tok_locs = _get_tok_locs(line, cmd_toks)
+    if not cmd_tok_locs:
         return None
-    return RecipeLine(loc=loc, program=cmd[0], args=cmd[1:])
+    return RecipeLine(loc=line.loc, program=cmd_tok_locs[0], args=cmd_tok_locs[1:])
 
 
-def _split(text: bytes, loc: SourceLoc) -> List[TextWithLoc]:
+def _get_tok_locs(text: TextWithLoc, tokens: List[bytes]) -> List[TextWithLoc]:
     start_pos = 0
-    toks = []
-    for tok in text.split():
+    tok_locs = []
+    for tok in tokens:
         # Determine the token's position - split() doesn't return how many whitespaces were skipped.
-        pos = text.find(tok, start_pos)
+        pos = text.value.find(tok, start_pos)
         assert pos != -1
-        begin = loc.begin + pos
+        begin = text.loc.begin + pos
         end = begin + len(tok)
         tok_loc = SourceLoc(begin=begin, end=end)
-        toks.append(TextWithLoc(loc=tok_loc, value=tok))
+        tok_locs.append(TextWithLoc(loc=tok_loc, value=tok))
         start_pos = pos + len(tok)
-    return toks
+    return tok_locs
 
 
-def _to_path_with_locs(toks: List[TextWithLoc]) -> List[PathWithLoc]:
+def _to_paths(toks: List[TextWithLoc]) -> List[PathWithLoc]:
     return [PathWithLoc(tok.loc, Path(str(tok.value))) for tok in toks]
 
 

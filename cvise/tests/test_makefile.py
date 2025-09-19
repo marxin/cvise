@@ -23,11 +23,11 @@ def init_pass(tmp_dir: Path, test_case_path: Path) -> Tuple[MakefilePass, Any]:
     return pass_, state
 
 
-def test_remove_target(tmp_path: Path, test_case_path: Path):
+def test_remove_argument(tmp_path: Path, test_case_path: Path):
     (test_case_path / 'Makefile').write_text(
         """
-a.o:
-\tgcc -barbaz foo.c
+a.out:
+\tgcc -Wall foo.c
         """,
     )
     p, state = init_pass(tmp_path, test_case_path)
@@ -37,8 +37,33 @@ a.o:
         (
             'Makefile',
             b"""
-a.o:
+a.out:
 \tgcc  foo.c
+        """,
+        ),
+    ) in all_transforms
+
+
+def test_remove_argument_from_all_commands(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'makefile').write_text(
+        """
+a.out:
+\tgcc -Wall foo.c
+b.out:
+\tgcc -Werror -Wall -o b.out bar.c
+        """,
+    )
+    p, state = init_pass(tmp_path, test_case_path)
+    all_transforms = collect_all_transforms_dir(p, state, test_case_path)
+
+    assert (
+        (
+            'makefile',
+            b"""
+a.out:
+\tgcc  foo.c
+b.out:
+\tgcc -Werror  -o b.out bar.c
         """,
         ),
     ) in all_transforms
