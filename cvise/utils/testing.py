@@ -830,10 +830,11 @@ class TestManager:
             if self.success_candidate and self.should_proceed_with_success_candidate():
                 break
 
-        for job in self.jobs:
-            self.cancel_job(job)
-        self.mp_task_loss_workaround.execute(self.worker_pool)
-        self.release_all_jobs()
+        if self.jobs:
+            for job in self.jobs:
+                self.cancel_job(job)
+            self.mp_task_loss_workaround.execute(self.worker_pool)  # only do it if at least one job canceled
+            self.release_all_jobs()
 
     def run_passes(self, passes: List[AbstractPass], interleaving: bool):
         assert len(passes) == 1 or interleaving
