@@ -122,7 +122,7 @@ def _parse_recipe_line(line: TextWithLoc) -> Optional[RecipeLine]:
     line = line.substr(1)
     if line.value.startswith(b'@'):
         line = line.substr(1)
-    cmd_toks = [s.encode() for s in shlex.split(line.value.decode())]
+    cmd_toks = [s.encode() for s in shlex.split(line.value.decode(), comments=True)]
     cmd_tok_locs = _get_tok_locs(line, cmd_toks)
     if not cmd_tok_locs:
         return None

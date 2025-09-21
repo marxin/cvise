@@ -1,5 +1,6 @@
 from enum import Enum, unique
 from pathlib import Path
+import re
 from typing import Dict, List
 
 from cvise.passes.hint_based import HintBasedPass
@@ -8,12 +9,15 @@ from cvise.utils.hint import Hint, HintBundle, Patch
 
 
 _FILE_NAMES = ('Makefile', 'makefile', 'GNUmakefile')
+_TWO_TOKEN_OPTIONS = re.compile(rb'-o|-I|-iquote|-isystem|-Xclang')
+_REMOVAL_BLOCKLIST = re.compile(rb'-o.*|-I.*')
+_TWO_TOKEN_OPTIONS_REMOVAL_BLOCKLIST = re.compile(rb'-o|-I|-iquote|-isystem')
 
 
 @unique
 class _Vocab(Enum):
     # Items must be listed in the index order; indices must be contiguous and start from zero.
-    REMOVE_ARGUMENT_FROM_ALL_COMMANDS = (0, b'remove-argument-from-all-commands')
+    REMOVE_ARGUMENTS_ACROSS_ALL_COMMANDS = (0, b'remove-arguments-across-all-commands')
 
 
 class MakefilePass(HintBasedPass):
@@ -50,15 +54,35 @@ def _interesting_file(path: Path) -> bool:
 def _create_hints_for_makefile(path: Path, file_id: int, hints: List[Hint]) -> None:
     mk = makefileparser.parse(path)
 
-    arg_to_locs: Dict[bytes, List[makefileparser.SourceLoc]] = {}
+    # Removing argument(s) across all commands.
+    arg_locs: Dict[bytes, List[makefileparser.SourceLoc]] = {}
     for rule in mk.rules:
         for recipe_line in rule.recipe:
-            for arg in recipe_line.args:
-                arg_to_locs.setdefault(arg.value, []).append(arg.loc)
-    for locs in arg_to_locs.values():
+            for arg_group in _get_removable_arg_groups(recipe_line.args):
+                key = b' '.join(a.value for a in arg_group)
+                arg_locs.setdefault(key, []).extend(a.loc for a in arg_group)
+    for locs in arg_locs.values():
         hints.append(
             Hint(
-                type=_Vocab.REMOVE_ARGUMENT_FROM_ALL_COMMANDS.value[0],
+                type=_Vocab.REMOVE_ARGUMENTS_ACROSS_ALL_COMMANDS.value[0],
                 patches=[Patch(left=loc.begin, right=loc.end, file=file_id) for loc in locs],
             )
         )
+
+
+def _get_removable_arg_groups(args: List[makefileparser.TextWithLoc]) -> List[List[makefileparser.TextWithLoc]]:
+    two_token_option = None
+    removable = []
+    for arg in args:
+        if two_token_option:
+            if not _TWO_TOKEN_OPTIONS_REMOVAL_BLOCKLIST.match(two_token_option.value):
+                removable.append([two_token_option, arg])
+            two_token_option = None
+            continue
+        if _TWO_TOKEN_OPTIONS.match(arg.value):
+            two_token_option = arg
+            continue
+        if _REMOVAL_BLOCKLIST.match(arg.value):
+            continue
+        removable.append([arg])
+    return removable
