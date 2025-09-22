@@ -230,6 +230,8 @@ class PassContext:
     state: Any
     # The state that succeeded in the previous batch of jobs - to be passed as succeeded_state to advance_on_success().
     taken_succeeded_state: Any
+    # The number of jobs started within the current batch (run_parallel_tests()).
+    current_batch_jobs: int
     # Currently running transform jobs, as the (order, state) mapping.
     running_transform_order_to_state: Dict[int, Any]
     # When True, the pass is considered dysfunctional and shouldn't be used anymore.
@@ -251,6 +253,7 @@ class PassContext:
             temporary_root=Path(root),
             state=None,
             taken_succeeded_state=None,
+            current_batch_jobs=0,
             running_transform_order_to_state={},
             defunct=False,
             timeout_count=0,
@@ -791,7 +794,6 @@ class TestManager:
     def run_parallel_tests(self) -> None:
         assert not self.jobs
         self.current_batch_start_order = self.order
-        self.next_pass_id = 0
         self.giveup_reported = False
         assert self.success_candidate is None
         if self.interleaving:
@@ -800,6 +802,7 @@ class TestManager:
         for pass_id, ctx in enumerate(self.pass_contexts):
             # Clean up the information about previously running jobs.
             ctx.running_transform_order_to_state = {}
+            ctx.current_batch_jobs = 0
             # Unfinished initializations from the last run will need to be restarted.
             if ctx.stage == PassStage.IN_INIT:
                 ctx.stage = PassStage.BEFORE_INIT
@@ -1052,11 +1055,15 @@ class TestManager:
                 self.schedule_fold(folding_state)
                 return True
         # 4. Attempting a transformation using the next heuristic in the round-robin fashion.
-        if any(ctx.can_transform_now() for ctx in self.pass_contexts):
-            while not self.pass_contexts[self.next_pass_id].can_transform_now():
-                self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
-            self.schedule_transform(self.next_pass_id)
-            self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
+        pass_id = None
+        for cand_id, ctx in enumerate(self.pass_contexts):
+            if not ctx.can_transform_now():
+                continue
+            if pass_id is not None and self.pass_contexts[pass_id].current_batch_jobs <= ctx.current_batch_jobs:
+                continue
+            pass_id = cand_id
+        if pass_id is not None:
+            self.schedule_transform(pass_id)
             return True
         return False
 
@@ -1110,6 +1117,7 @@ class TestManager:
             )
         )
 
+        ctx.current_batch_jobs += 1
         ctx.stage = PassStage.IN_INIT
         self.order += 1
 
@@ -1153,6 +1161,7 @@ class TestManager:
         assert self.order not in ctx.running_transform_order_to_state
         ctx.running_transform_order_to_state[self.order] = ctx.state
 
+        ctx.current_batch_jobs += 1
         self.order += 1
         ctx.state = ctx.pass_.advance(self.current_test_case, ctx.state)
 
