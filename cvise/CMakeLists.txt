@@ -98,6 +98,7 @@ set(SOURCE_FILES
   "tests/testabstract.py"
   "tests/test_balanced.py"
   "tests/test_blank.py"
+  "tests/test_cache.py"
   "tests/test_clanghints.py"
   "tests/test_clangmodulemap.py"
   "tests/test_clexhints.py"
