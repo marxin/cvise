@@ -17,8 +17,10 @@ and letting the code raise the exception to trigger the shutdown.
 from contextlib import contextmanager
 import enum
 import os
+from pathlib import Path
 import signal
 from typing import Iterator
+import weakref
 
 
 @enum.unique
@@ -67,6 +69,10 @@ def scoped_mode(new_mode: Mode) -> Iterator[None]:
         _implicit_maybe_retrigger_action()
 
 
+def signal_observed_for_testing() -> bool:
+    return _sigint_observed or _sigterm_observed
+
+
 def _on_signal(signum: int, frame) -> None:
     global _sigint_observed
     global _sigterm_observed
@@ -77,9 +83,12 @@ def _on_signal(signum: int, frame) -> None:
 
     if _is_on_demand_mode():
         return
+    if _mode == Mode.RAISE_EXCEPTION and not _can_raise_in_frame(frame):
+        # This is to avoid the "Exception ignored in" log spam.
+        return
     # Prefer the standard signal handler in case there's some nontrivial logic in it (e.g., not raising an exception
     # depending on stack frame contents).
-    if _mode == Mode.RAISE_EXCEPTION and signum == signal.SIGTERM:
+    if _mode == Mode.RAISE_EXCEPTION and signum == signal.SIGINT:
         signal.default_int_handler(signum, frame)
     else:
         _trigger_signal_action(signum)
@@ -105,3 +114,14 @@ def _trigger_signal_action(signum: int) -> None:
     else:
         raise ValueError(f'Unexpected signal {signum}')
     # no code after this point - this is unreachable
+
+
+def _can_raise_in_frame(frame) -> bool:
+    while frame is not None:
+        if frame.f_code:
+            if frame.f_code.co_name == '__del__':
+                return False
+            if Path(frame.f_code.co_filename).stem == Path(weakref.__file__).stem:
+                return False
+        frame = frame.f_back
+    return True
