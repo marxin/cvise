@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import os
 from pathlib import Path
 import random
@@ -74,13 +75,20 @@ def copy_test_case(source: Path, destination_parent: Path) -> None:
         shutil.copy2(source, destination_parent / source)
 
 
-def replace_test_case_atomically(source: Path, destination: Path) -> None:
+def replace_test_case_atomically(source: Path, destination: Path, move: bool = True) -> None:
     # First prepare the contents in a temporary location in the same folder as the destination path, and then rename/swap
     # it with the destination. We use the fact that a rename is atomic on popular file systems, within a single file
     # system's boundaries.
     if source.is_dir():
         with _robust_temp_dir(dir=destination.parent) as tmp_dir:
-            new_path = Path(shutil.move(source, Path(tmp_dir)))
+            tmp_path = Path(tmp_dir)
+
+            new_path = tmp_path / source.name
+            if move:
+                shutil.move(source, new_path)
+            else:
+                shutil.copytree(source, new_path)
+
             old_destination = Path(f'{new_path}tmp')
             try:
                 destination.rename(old_destination)
@@ -94,8 +102,16 @@ def replace_test_case_atomically(source: Path, destination: Path) -> None:
         with CloseableTemporaryFile(dir=destination.parent) as tmp:
             tmp_path = Path(tmp.name)
             tmp.close()
-            shutil.move(source, tmp_path)
+            if move:
+                shutil.move(source, tmp_path)
+            else:
+                shutil.copy2(source, tmp_path)
             tmp_path.rename(destination)
+
+
+def hash_test_case(test_case: Path) -> bytes:
+    with open(test_case, 'rb', buffering=0) as f:
+        return hashlib.file_digest(f, 'sha256').digest()
 
 
 def _get_test_case_files(test_case: Path) -> Iterable[Path]:
