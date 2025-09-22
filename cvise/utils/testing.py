@@ -348,7 +348,6 @@ class TestManager:
     TEMP_PREFIX = 'cvise-'
     BUG_DIR_PREFIX = 'cvise_bug_'
     EXTRA_DIR_PREFIX = 'cvise_extra_'
-    EVENT_LOOP_TIMEOUT = 1  # seconds
     # How often passes should be reinitialized (see maybe_schedule_job()). Chosen at 1% to not slow down the overall
     # reduction in case reinits don't lead to new discoveries.
     REINIT_JOB_INTERVAL = 100
@@ -822,7 +821,9 @@ class TestManager:
                 pass
 
             # no more jobs could be scheduled at the moment - wait for some results
-            wait([j.future for j in self.jobs], return_when=FIRST_COMPLETED, timeout=self.EVENT_LOOP_TIMEOUT)
+            wait([j.future for j in self.jobs] + [sigmonitor.get_future()], return_when=FIRST_COMPLETED)
+            sigmonitor.maybe_retrigger_action()
+
             self.workaround_missing_timeouts()
             self.process_done_futures()
 

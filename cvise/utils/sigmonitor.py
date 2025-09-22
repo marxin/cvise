@@ -14,11 +14,12 @@ Ctrl-C keystroke. This helper allows to prevent whether a signal was observer
 and letting the code raise the exception to trigger the shutdown.
 """
 
+from concurrent.futures import Future
 from contextlib import contextmanager
 import enum
 import os
 import signal
-from typing import Iterator
+from typing import Iterator, Optional
 
 
 @enum.unique
@@ -31,6 +32,7 @@ class Mode(enum.Enum):
 _mode: Mode = Mode.RAISE_EXCEPTION
 _sigint_observed: bool = False
 _sigterm_observed: bool = False
+_future: Optional[Future] = None
 
 
 def init(mode: Mode) -> None:
@@ -40,6 +42,9 @@ def init(mode: Mode) -> None:
     # would result in an infinite recursion).
     signal.signal(signal.SIGTERM, _on_signal)
     signal.signal(signal.SIGINT, _on_signal)
+
+    global _future
+    _future = Future()
 
 
 def maybe_retrigger_action() -> None:
@@ -67,6 +72,11 @@ def scoped_mode(new_mode: Mode) -> Iterator[None]:
         _implicit_maybe_retrigger_action()
 
 
+def get_future() -> Future:
+    assert _future is not None
+    return _future
+
+
 def _on_signal(signum: int, frame) -> None:
     global _sigint_observed
     global _sigterm_observed
@@ -74,6 +84,7 @@ def _on_signal(signum: int, frame) -> None:
         _sigterm_observed = True
     elif signum == signal.SIGINT:
         _sigint_observed = True
+    _future.set_exception(_create_exception(signum))
 
     if _is_on_demand_mode():
         return
@@ -98,10 +109,14 @@ def _implicit_maybe_retrigger_action() -> None:
 def _trigger_signal_action(signum: int) -> None:
     if _mode == Mode.QUICK_EXIT:
         os._exit(1)
-    elif signum == signal.SIGTERM:
-        raise SystemExit(1)
-    elif signum == signal.SIGINT:
-        raise KeyboardInterrupt()
     else:
-        raise ValueError(f'Unexpected signal {signum}')
+        raise _create_exception(signum)
     # no code after this point - this is unreachable
+
+
+def _create_exception(signum: int) -> BaseException:
+    if signum == signal.SIGINT:
+        return KeyboardInterrupt()
+    if signum == signal.SIGTERM:
+        return SystemExit(1)
+    raise ValueError('No signal')
