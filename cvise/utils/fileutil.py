@@ -1,12 +1,17 @@
 import contextlib
 import hashlib
+import io
 import os
 from pathlib import Path
 import random
 import shutil
 import string
 import tempfile
-from typing import Iterable, Iterator, Union
+from typing import Iterable, Iterator, Optional, Union
+
+
+# Singleton buffer for hash_test_case(), to avoid reallocations.
+_hash_buf: Optional[bytearray] = None
 
 
 # TODO: use tempfile.NamedTemporaryFile(delete_on_close=False) since Python 3.12 is the oldest supported release
@@ -110,8 +115,20 @@ def replace_test_case_atomically(source: Path, destination: Path, move: bool = T
 
 
 def hash_test_case(test_case: Path) -> bytes:
-    with open(test_case, 'rb', buffering=0) as f:
-        return hashlib.file_digest(f, 'sha256').digest()
+    # TODO: use hashlib.file_digest once Python 3.11 is the oldest supported release
+    BUF_SIZE = 2**18
+
+    global _hash_buf
+    if _hash_buf is None:  # lazily initialize singleton
+        _hash_buf = bytearray(BUF_SIZE)
+    buf = _hash_buf  # cache in local variables, which are presumably faster
+
+    buf_view = memoryview(buf)
+    hash = hashlib.sha256()
+    with io.FileIO(test_case, 'r') as f:  # use FileIO instead of open() as otherwise linters don't allow readinto()
+        while read_size := f.readinto(buf_view):
+            hash.update(buf_view[:read_size])
+    return hash.digest()
 
 
 def _get_test_case_files(test_case: Path) -> Iterable[Path]:
