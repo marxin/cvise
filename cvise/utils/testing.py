@@ -440,7 +440,8 @@ class TestManager:
         self.mp_task_loss_workaround = MPTaskLossWorkaround(self.parallel_tests)
 
     def __enter__(self):
-        self.exit_stack.enter_context(self.cache)
+        if self.cache:
+            self.exit_stack.enter_context(self.cache)
 
         if self.key_logger:
             self.exit_stack.enter_context(self.key_logger)
