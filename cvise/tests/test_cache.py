@@ -48,6 +48,20 @@ def test_cache_add_lookup(cache: Cache, cache_tmp_prefix: str):
     assert cache.lookup(PASSES, FAKE_HASH_OTHER) is None
 
 
+def test_cache_add_same_hash_different_result(cache: Cache):
+    PASSES = []
+    FAKE_HASH = b'42'
+    test_case = Path('foo.txt')
+    test_case.write_text('x')
+    cache.add(PASSES, FAKE_HASH, test_case)
+    test_case.write_text('y')
+    cache.add(PASSES, FAKE_HASH, test_case)
+
+    cached_path = cache.lookup(PASSES, FAKE_HASH)
+    assert cached_path is not None
+    assert cached_path.read_text() == 'y'
+
+
 def test_cache_lookup_per_pass(cache: Cache):
     FAKE_HASH = b'42'
     first_passes = [FakePass(arg='a')]

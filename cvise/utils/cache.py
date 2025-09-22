@@ -37,9 +37,15 @@ class Cache:
     def add(self, passes: Sequence[AbstractPass], hash_before: bytes, path_after: Path) -> None:
         key = self._key(passes)
         mapping = self._items.setdefault(key, {})
-        if len(mapping) >= self.MAX_ITEMS_PER_PASS_GROUP:
-            evict_hash, evict_item = next(iter(mapping.items()))
-            fileutil.rmfolder(evict_item.tmp_dir)
+
+        evict_hash = None
+        if hash_before in mapping:
+            evict_hash = hash_before
+        elif len(mapping) >= self.MAX_ITEMS_PER_PASS_GROUP:
+            evict_hash = next(iter(mapping.keys()))
+
+        if evict_hash is not None:
+            fileutil.rmfolder(mapping[evict_hash].tmp_dir)
             del mapping[evict_hash]
 
         tmp_dir = Path(tempfile.mkdtemp(prefix=self._tmp_prefix))
