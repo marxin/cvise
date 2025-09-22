@@ -5,7 +5,7 @@ from enum import Enum, unique
 import fnmatch
 from pathlib import Path
 import re
-from typing import List, Union
+from typing import Dict, List, Union
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.hint import Hint, HintBundle, Patch
