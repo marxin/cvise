@@ -17,11 +17,12 @@ _FILE_PATTERNS = ('*.cppmap', '*.modulemap')
 @unique
 class _Vocab(Enum):
     # Items must be listed in the index order; indices must be contiguous and start from zero.
-    MAKE_HEADER_NON_MODULAR = (0, b'make-header-non-modular')
-    DELETE_USE_DECL = (1, b'delete-use-decl')
-    DELETE_EMPTY_SUBMODULE = (2, b'delete-empty-submodule')
-    INLINE_SUBMODULE_CONTENTS = (3, b'inline-submodule-contents')
-    DELETE_LINE = (4, b'delete-line')
+    FILEREF = (0, b'@fileref')
+    MAKE_HEADER_NON_MODULAR = (1, b'make-header-non-modular')
+    DELETE_USE_DECL = (2, b'delete-use-decl')
+    DELETE_EMPTY_SUBMODULE = (3, b'delete-empty-submodule')
+    INLINE_SUBMODULE_CONTENTS = (4, b'inline-submodule-contents')
+    DELETE_LINE = (5, b'delete-line')
 
 
 class ClangModuleMapPass(HintBasedPass):
@@ -44,16 +45,18 @@ class ClangModuleMapPass(HintBasedPass):
         interesting_paths = [p for p in paths if _interesting_file(p)]
 
         vocab: List[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
+        path_to_vocab: Dict[Path, int] = {}
         hints: List[Hint] = []
         for path in interesting_paths:
             file = _parse_file(path)
 
             rel_path = path.relative_to(test_case)
-            vocab.append(str(rel_path).encode())
-            file_id = len(vocab) - 1
+            file_id = _get_vocab_id(rel_path, vocab, path_to_vocab)
 
             for mod in file.modules:
-                _create_hints_for_module(mod, file_id, toplevel=True, hints=hints)
+                _create_hints_for_module(
+                    mod, test_case, file_id, toplevel=True, hints=hints, vocab=vocab, path_to_vocab=path_to_vocab
+                )
             _create_hints_for_unclassified_lines(file.unclassified_lines, file_id, hints)
 
         return HintBundle(hints=hints, vocabulary=vocab)
@@ -100,7 +103,24 @@ class _ModuleMapFile:
     unclassified_lines: List[_SourceLoc]
 
 
-def _create_hints_for_module(mod: _ModuleDecl, file_id: int, toplevel: bool, hints: List[Hint]) -> None:
+def _get_vocab_id(path: Path, vocab: List[bytes], path_to_vocab: Dict[Path, int]) -> int:
+    if path in path_to_vocab:
+        return path_to_vocab[path]
+    vocab.append(str(path).encode())
+    id = len(vocab) - 1
+    path_to_vocab[path] = id
+    return id
+
+
+def _create_hints_for_module(
+    mod: _ModuleDecl,
+    test_case: Path,
+    file_id: int,
+    toplevel: bool,
+    hints: List[Hint],
+    vocab: List[bytes],
+    path_to_vocab: Dict[Path, int],
+) -> None:
     empty = not mod.headers and not mod.uses and not mod.submodules
     if not toplevel and empty:
         hints.append(
@@ -136,6 +156,21 @@ def _create_hints_for_module(mod: _ModuleDecl, file_id: int, toplevel: bool, hin
         )
 
     for header in mod.headers:
+        if (test_case / header.file_path).exists():
+            header_file_id = _get_vocab_id(Path(header.file_path), vocab, path_to_vocab)
+            hints.append(
+                Hint(
+                    type=_Vocab.FILEREF.value[0],
+                    patches=[
+                        Patch(
+                            file=file_id,
+                            left=header.loc.begin,
+                            right=header.loc.end,
+                        )
+                    ],
+                    extra=header_file_id,
+                )
+            )
         hints.append(
             Hint(
                 type=_Vocab.MAKE_HEADER_NON_MODULAR.value[0],
@@ -162,7 +197,9 @@ def _create_hints_for_module(mod: _ModuleDecl, file_id: int, toplevel: bool, hin
             )
         )
     for submod in mod.submodules:
-        _create_hints_for_module(submod, file_id, toplevel=False, hints=hints)
+        _create_hints_for_module(
+            submod, test_case, file_id, toplevel=False, hints=hints, vocab=vocab, path_to_vocab=path_to_vocab
+        )
 
 
 def _create_hints_for_unclassified_lines(unclassified_lines: List[_SourceLoc], file_id: int, hints: List[Hint]) -> None:

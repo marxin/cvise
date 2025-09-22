@@ -4,6 +4,7 @@ from typing import Any, Tuple
 
 from cvise.passes.clangmodulemap import ClangModuleMapPass
 from cvise.tests.testabstract import collect_all_transforms_dir, validate_stored_hints
+from cvise.utils.hint import load_hints
 from cvise.utils.process import ProcessEventNotifier
 
 
@@ -315,3 +316,26 @@ def test_delete_exports(tmp_path: Path, test_case_path: Path):
             }""",
         ),
     ) in all_transforms
+
+
+def test_fileref(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'A.modulemap').write_text(
+        """
+            module "some_module" {
+                header "a.h"
+                header "nonexisting.h"
+                module "nested" {
+                    header "b.h"
+                }
+            }
+        """,
+    )
+    (test_case_path / 'a.h').touch()
+    (test_case_path / 'b.h').touch()
+    p, state = init_pass(tmp_path, test_case_path)
+    bundle_paths = state.hint_bundle_paths()
+
+    assert b'@fileref' in bundle_paths
+    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
+    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    assert refs == {b'a.h', b'b.h'}
