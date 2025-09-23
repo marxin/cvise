@@ -2,7 +2,7 @@ from enum import Enum, auto, unique
 from dataclasses import dataclass
 from pathlib import Path
 import re
-from typing import List, Union
+from typing import List, Optional, Union
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import nestedmatcher
@@ -29,16 +29,33 @@ class BalancedPass(HintBasedPass):
     def check_prerequisites(self):
         return True
 
+    def supports_dir_test_cases(self):
+        return True
+
     def generate_hints(self, test_case: Path, *args, **kwargs):
         config = self.__get_config()
-        open_ch = ord(config.search.value[0])
-        close_ch = ord(config.search.value[1])
         vocabulary = []
         if config.replacement:
             assert config.to_delete == Deletion.ALL
             vocabulary.append(config.replacement.encode())
 
-        contents = test_case.read_bytes()
+        hints = []
+        if test_case.is_dir():
+            for path in test_case.rglob('*'):
+                if not path.is_dir() and not path.is_symlink():
+                    rel_path = path.relative_to(test_case)
+                    vocabulary.append(str(rel_path).encode())
+                    file_id = len(vocabulary) - 1
+                    self._generate_hints_for_file(path, config, file_id, hints)
+        else:
+            self._generate_hints_for_file(test_case, config, file_id=None, hints=hints)
+        return HintBundle(hints=hints, vocabulary=vocabulary)
+
+    def _generate_hints_for_file(self, path: Path, config: Config, file_id: Optional[int], hints: List[Hint]):
+        open_ch = ord(config.search.value[0])
+        close_ch = ord(config.search.value[1])
+
+        contents = path.read_bytes()
         prefixes = (
             [m.span() for m in re.finditer(config.search_prefix.encode(), contents)] if config.search_prefix else []
         )
@@ -56,21 +73,23 @@ class BalancedPass(HintBasedPass):
             if start_pos is None:
                 return None
             if config.to_delete == Deletion.ALL:
-                p = Patch(left=start_pos, right=file_pos + 1)
+                p = Patch(left=start_pos, right=file_pos + 1, file=file_id)
                 if config.replacement:
-                    p.value = 0  # the first (and the only) string from the vocabulary
+                    p.value = 0  # when config.replacement is used, the first string in the vocabulary points to it
                 return Hint(patches=[p])
             if config.to_delete == Deletion.ONLY:
                 return Hint(
-                    patches=[Patch(left=start_pos, right=start_pos + 1), Patch(left=file_pos, right=file_pos + 1)]
+                    patches=[
+                        Patch(left=start_pos, right=start_pos + 1, file=file_id),
+                        Patch(left=file_pos, right=file_pos + 1, file=file_id),
+                    ]
                 )
             if config.to_delete == Deletion.INSIDE:
                 if file_pos - start_pos <= 1:
                     return None  # don't create an empty hint
-                return Hint(patches=[Patch(left=start_pos + 1, right=file_pos)])
+                return Hint(patches=[Patch(left=start_pos + 1, right=file_pos, file=file_id)])
             raise ValueError(f'Unexpected config {config}')
 
-        hints = []
         # Scan the text left-to-right and maintain active (not yet matched) open brackets in a stack; None denotes a
         # "bad" open bracket - without the expected prefix.
         active_stack: List[Union[int, None]] = []
@@ -82,8 +101,6 @@ class BalancedPass(HintBasedPass):
                 start_pos = active_stack.pop()
                 if h := create_hint(start_pos, file_pos):
                     hints.append(h)
-
-        return HintBundle(hints=hints, vocabulary=vocabulary)
 
     def __get_config(self):
         BalancedExpr = nestedmatcher.BalancedExpr

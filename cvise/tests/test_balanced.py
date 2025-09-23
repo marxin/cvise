@@ -6,7 +6,7 @@ import unittest
 from cvise.passes.abstract import PassResult
 from cvise.passes.balanced import BalancedPass
 from cvise.passes.hint_based import HintState
-from cvise.tests.testabstract import collect_all_transforms
+from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir
 from cvise.utils.process import ProcessEventNotifier
 
 
@@ -61,6 +61,16 @@ class BalancedParensTestCase(unittest.TestCase):
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This (is a  test)!\n')
+
+    def test_parens_dir(self):
+        self.input_path.mkdir()
+        (self.input_path / 'a.txt').write_text('This is a (simple) test!\n')
+        (self.input_path / 'b.txt').write_text('This (is a (simple) test)\n')
+
+        state = self._pass_new()
+        all_transforms = collect_all_transforms_dir(self.pass_, state, self.input_path)
+
+        self.assertIn((('a.txt', b'This is a  test!\n'), ('b.txt', b'This \n')), all_transforms)
 
 
 class BalancedParensOnlyTestCase(unittest.TestCase):
