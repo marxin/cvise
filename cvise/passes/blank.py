@@ -38,7 +38,7 @@ class BlankPass(HintBasedPass):
 
         return HintBundle(hints=hints, vocabulary=vocab)
 
-    def _generate_hints_for_file(self, path: Path, file_id: Optional[int], hints: List[Hint]):
+    def _generate_hints_for_file(self, path: Path, file_id: Optional[int], hints: List[Hint]) -> None:
         with open(path, 'rb') as in_file:
             file_pos = 0
             for line in in_file:
