@@ -4,7 +4,7 @@ from typing import Tuple, Union
 
 from cvise.passes.hint_based import HintState
 from cvise.passes.blank import BlankPass
-from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
+from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir, validate_stored_hints
 from cvise.utils.process import ProcessEventNotifier
 
 
@@ -77,3 +77,14 @@ def test_non_utf8(tmp_path: Path, input_path: Path):
         """
         in all_transforms
     )
+
+
+def test_dir_test_case(tmp_path: Path):
+    input_dir = tmp_path / 'test_case'
+    input_dir.mkdir()
+    (input_dir / 'bar.h').write_text('int\n\nx;\n')
+    (input_dir / 'foo.cc').write_text('void f()\n \n{}\n')
+    p, state = init_pass(tmp_path, input_dir)
+    all_transforms = collect_all_transforms_dir(p, state, input_dir)
+
+    assert (('bar.h', b'int\nx;\n'), ('foo.cc', b'void f()\n{}\n')) in all_transforms
