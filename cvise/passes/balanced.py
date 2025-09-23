@@ -51,7 +51,7 @@ class BalancedPass(HintBasedPass):
             self._generate_hints_for_file(test_case, config, file_id=None, hints=hints)
         return HintBundle(hints=hints, vocabulary=vocabulary)
 
-    def _generate_hints_for_file(self, path: Path, config: Config, file_id: Optional[int], hints: List[Hint]):
+    def _generate_hints_for_file(self, path: Path, config: Config, file_id: Optional[int], hints: List[Hint]) -> None:
         open_ch = ord(config.search.value[0])
         close_ch = ord(config.search.value[1])
 
@@ -102,7 +102,7 @@ class BalancedPass(HintBasedPass):
                 if h := create_hint(start_pos, file_pos):
                     hints.append(h)
 
-    def __get_config(self):
+    def __get_config(self) -> Config:
         BalancedExpr = nestedmatcher.BalancedExpr
         if self.arg == 'square-inside':
             return Config(search=BalancedExpr.squares, to_delete=Deletion.INSIDE)
