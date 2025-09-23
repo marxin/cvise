@@ -23,7 +23,7 @@ import concurrent.futures
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils import fileutil, mplogging, sigmonitor
+from cvise.utils import cache, fileutil, mplogging, sigmonitor
 from cvise.utils.error import AbsolutePathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
@@ -230,6 +230,8 @@ class PassContext:
     state: Any
     # The state that succeeded in the previous batch of jobs - to be passed as succeeded_state to advance_on_success().
     taken_succeeded_state: Any
+    # The number of jobs started within the current batch (run_parallel_tests()).
+    current_batch_jobs: int
     # Currently running transform jobs, as the (order, state) mapping.
     running_transform_order_to_state: Dict[int, Any]
     # When True, the pass is considered dysfunctional and shouldn't be used anymore.
@@ -251,6 +253,7 @@ class PassContext:
             temporary_root=Path(root),
             state=None,
             taken_succeeded_state=None,
+            current_batch_jobs=0,
             running_transform_order_to_state={},
             defunct=False,
             timeout_count=0,
@@ -403,7 +406,7 @@ class TestManager:
             self.test_cases.add(test_case)
 
         self.orig_total_file_size = self.total_file_size
-        self.cache = {}
+        self.cache = None if self.no_cache else cache.Cache(f'{self.TEMP_PREFIX}cache-')
         self.pass_contexts: List[PassContext] = []
         self.interleaving: bool = False
         if not self.is_valid_test(self.test_script):
@@ -439,6 +442,9 @@ class TestManager:
         self.mp_task_loss_workaround = MPTaskLossWorkaround(self.parallel_tests)
 
     def __enter__(self):
+        if self.cache:
+            self.exit_stack.enter_context(self.cache)
+
         if self.key_logger:
             self.exit_stack.enter_context(self.key_logger)
         self.exit_stack.enter_context(self.process_monitor)
@@ -790,7 +796,6 @@ class TestManager:
     def run_parallel_tests(self) -> None:
         assert not self.jobs
         self.current_batch_start_order = self.order
-        self.next_pass_id = 0
         self.giveup_reported = False
         assert self.success_candidate is None
         if self.interleaving:
@@ -799,6 +804,7 @@ class TestManager:
         for pass_id, ctx in enumerate(self.pass_contexts):
             # Clean up the information about previously running jobs.
             ctx.running_transform_order_to_state = {}
+            ctx.current_batch_jobs = 0
             # Unfinished initializations from the last run will need to be restarted.
             if ctx.stage == PassStage.IN_INIT:
                 ctx.stage = PassStage.BEFORE_INIT
@@ -831,10 +837,11 @@ class TestManager:
             if self.success_candidate and self.should_proceed_with_success_candidate():
                 break
 
-        for job in self.jobs:
-            self.cancel_job(job)
-        self.mp_task_loss_workaround.execute(self.worker_pool)
-        self.release_all_jobs()
+        if self.jobs:
+            for job in self.jobs:
+                self.cancel_job(job)
+            self.mp_task_loss_workaround.execute(self.worker_pool)  # only do it if at least one job canceled
+            self.release_all_jobs()
 
     def run_passes(self, passes: List[AbstractPass], interleaving: bool):
         assert len(passes) == 1 or interleaving
@@ -854,7 +861,6 @@ class TestManager:
             self.pass_contexts.append(PassContext.create(pass_))
         self.interleaving = interleaving
         self.jobs = []
-        cache_key = repr([c.pass_ for c in self.pass_contexts])
 
         pass_titles = ', '.join(repr(c.pass_) for c in self.pass_contexts)
         logging.info(f'===< {pass_titles} >===')
@@ -872,9 +878,9 @@ class TestManager:
                     continue
 
                 if not self.no_cache:
-                    test_case_before_pass = test_case.read_bytes()
-                    if cache_key in self.cache and test_case_before_pass in self.cache[cache_key]:
-                        test_case.write_bytes(self.cache[cache_key][test_case_before_pass])
+                    hash_before_pass = fileutil.hash_test_case(test_case)
+                    if cached_path := self.cache.lookup(passes, hash_before_pass):
+                        fileutil.replace_test_case_atomically(cached_path, test_case, move=False)
                         logging.info(f'cache hit for {test_case}')
                         continue
 
@@ -927,11 +933,8 @@ class TestManager:
                         logging.info(f'skipping after {success_count} successful transformations')
                         break
 
-                # Cache result of this pass
                 if not self.no_cache:
-                    if cache_key not in self.cache:
-                        self.cache[cache_key] = {}
-                    self.cache[cache_key][test_case_before_pass] = test_case.read_bytes()
+                    self.cache.add(passes, hash_before_pass, test_case)
 
             self.restore_mode()
             self.remove_roots()
@@ -1053,11 +1056,15 @@ class TestManager:
                 self.schedule_fold(folding_state)
                 return True
         # 4. Attempting a transformation using the next heuristic in the round-robin fashion.
-        if any(ctx.can_transform_now() for ctx in self.pass_contexts):
-            while not self.pass_contexts[self.next_pass_id].can_transform_now():
-                self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
-            self.schedule_transform(self.next_pass_id)
-            self.next_pass_id = (self.next_pass_id + 1) % len(self.pass_contexts)
+        pass_id = None
+        for cand_id, ctx in enumerate(self.pass_contexts):
+            if not ctx.can_transform_now():
+                continue
+            if pass_id is not None and self.pass_contexts[pass_id].current_batch_jobs <= ctx.current_batch_jobs:
+                continue
+            pass_id = cand_id
+        if pass_id is not None:
+            self.schedule_transform(pass_id)
             return True
         return False
 
@@ -1111,6 +1118,7 @@ class TestManager:
             )
         )
 
+        ctx.current_batch_jobs += 1
         ctx.stage = PassStage.IN_INIT
         self.order += 1
 
@@ -1154,6 +1162,7 @@ class TestManager:
         assert self.order not in ctx.running_transform_order_to_state
         ctx.running_transform_order_to_state[self.order] = ctx.state
 
+        ctx.current_batch_jobs += 1
         self.order += 1
         ctx.state = ctx.pass_.advance(self.current_test_case, ctx.state)
 

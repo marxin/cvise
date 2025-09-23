@@ -18,8 +18,10 @@ from concurrent.futures import Future
 from contextlib import contextmanager
 import enum
 import os
+from pathlib import Path
 import signal
 from typing import Iterator, Optional
+import weakref
 
 
 @enum.unique
@@ -76,6 +78,10 @@ def get_future() -> Future:
     assert _future is not None
     return _future
 
+  
+def signal_observed_for_testing() -> bool:
+    return _sigint_observed or _sigterm_observed
+
 
 def _on_signal(signum: int, frame) -> None:
     global _sigint_observed
@@ -88,9 +94,12 @@ def _on_signal(signum: int, frame) -> None:
 
     if _is_on_demand_mode():
         return
+    if _mode == Mode.RAISE_EXCEPTION and not _can_raise_in_frame(frame):
+        # This is to avoid the "Exception ignored in" log spam.
+        return
     # Prefer the standard signal handler in case there's some nontrivial logic in it (e.g., not raising an exception
     # depending on stack frame contents).
-    if _mode == Mode.RAISE_EXCEPTION and signum == signal.SIGTERM:
+    if _mode == Mode.RAISE_EXCEPTION and signum == signal.SIGINT:
         signal.default_int_handler(signum, frame)
     else:
         _trigger_signal_action(signum)
@@ -120,3 +129,14 @@ def _create_exception(signum: int) -> BaseException:
     if signum == signal.SIGTERM:
         return SystemExit(1)
     raise ValueError('No signal')
+
+
+def _can_raise_in_frame(frame) -> bool:
+    while frame is not None:
+        if frame.f_code:
+            if frame.f_code.co_name == '__del__':
+                return False
+            if frame.f_code.co_filename and Path(frame.f_code.co_filename).stem == Path(weakref.__file__).stem:
+                return False
+        frame = frame.f_back
+    return True
