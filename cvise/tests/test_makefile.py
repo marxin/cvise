@@ -27,13 +27,13 @@ def test_remove_argument(tmp_path: Path, test_case_path: Path):
     (test_case_path / 'Makefile').write_text(
         """
 a.out:
-\tgcc -Wall foo.c
+\tgcc -ansi foo.c
         """,
     )
     p, state = init_pass(tmp_path, test_case_path)
     all_transforms = collect_all_transforms_dir(p, state, test_case_path)
 
-    # "-Wall" removed
+    # "-ansi" removed
     assert (
         (
             'Makefile',
@@ -49,7 +49,7 @@ a.out:
             'Makefile',
             b"""
 a.out:
-\t -Wall foo.c
+\t -ansi foo.c
         """,
         ),
     ) not in all_transforms
@@ -117,18 +117,41 @@ b.o:
     ) not in all_transforms
 
 
-def test_remove_argument_from_all_commands(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+def test_dont_remove_blocklisted_argument(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'Makefile').write_text(
         """
-a.out:
+a.o:
 \tgcc -Wall foo.c
-b.out:
-\tgcc -Werror -Wall -o b.out bar.c
         """,
     )
     p, state = init_pass(tmp_path, test_case_path)
     all_transforms = collect_all_transforms_dir(p, state, test_case_path)
 
+    # "-Wall" not removed
+    assert (
+        (
+            'Makefile',
+            b"""
+a.o:
+\tgcc  foo.c
+        """,
+        ),
+    ) not in all_transforms
+
+
+def test_remove_argument_from_all_commands(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'makefile').write_text(
+        """
+a.out:
+\tgcc -ansi foo.c
+b.out:
+\tgcc -fsigned-char -ansi -o b.out bar.c
+        """,
+    )
+    p, state = init_pass(tmp_path, test_case_path)
+    all_transforms = collect_all_transforms_dir(p, state, test_case_path)
+
+    # "-ansi" removed from all commands
     assert (
         (
             'makefile',
@@ -136,7 +159,41 @@ b.out:
 a.out:
 \tgcc  foo.c
 b.out:
-\tgcc -Werror  -o b.out bar.c
+\tgcc -fsigned-char  -o b.out bar.c
+        """,
+        ),
+    ) in all_transforms
+
+
+def test_continuation(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'makefile').write_text(
+        """
+a.out:
+\tgcc -ansi foo.c
+b.out: \
+    a.out
+\tgcc \
+\t    -fsigned-char \
+\t    -ansi \
+\t    -o b.out bar.c
+        """,
+    )
+    p, state = init_pass(tmp_path, test_case_path)
+    all_transforms = collect_all_transforms_dir(p, state, test_case_path)
+
+    # "-ansi" removed from all commands
+    assert (
+        (
+            'makefile',
+            b"""
+a.out:
+\tgcc  foo.c
+b.out: \
+    a.out
+\tgcc \
+\t    -fsigned-char \
+\t     \
+\t    -o b.out bar.c
         """,
         ),
     ) in all_transforms
