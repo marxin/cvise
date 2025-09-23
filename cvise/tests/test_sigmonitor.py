@@ -8,7 +8,7 @@ import queue
 import signal
 import threading
 import time
-from typing import Iterator
+from typing import Iterator, Type
 import weakref
 
 from cvise.utils import sigmonitor
@@ -102,15 +102,40 @@ def test_raise_exception_on_demand(
 @pytest.mark.parametrize(
     'signum,expected_exception', [(signal.SIGINT, KeyboardInterrupt), (signal.SIGTERM, SystemExit)]
 )
-def test_raise_exception_in_del(
+def test_raise_exception_on_demand_signal_twice(
     process_ready_event: threading.Event,
     process_result_queue: queue.Queue,
     signum: int,
     expected_exception: BaseException,
 ):
     proc = multiprocessing.Process(
+        target=_process_main_calling_retrigger,
+        args=(sigmonitor.Mode.RAISE_EXCEPTION_ON_DEMAND, process_ready_event, process_result_queue),
+    )
+    proc.start()
+    process_ready_event.wait()
+
+    for _ in range(2):
+        os.kill(proc.pid, signum)
+
+    with _assert_duration_less_than(_SLEEP_INFINITY / 2):
+        proc.join()
+    assert not process_result_queue.empty()
+    assert process_result_queue.get() == expected_exception
+
+
+@pytest.mark.parametrize(
+    'signum,expected_exception', [(signal.SIGINT, KeyboardInterrupt), (signal.SIGTERM, SystemExit)]
+)
+def test_raise_exception_in_del(
+    process_ready_event: threading.Event,
+    process_result_queue: queue.Queue,
+    signum: int,
+    expected_exception: Type[BaseException],
+):
+    proc = multiprocessing.Process(
         target=_process_main_sleeping_in_del,
-        args=(sigmonitor.Mode.RAISE_EXCEPTION, process_ready_event, process_result_queue),
+        args=(sigmonitor.Mode.RAISE_EXCEPTION, process_ready_event, process_result_queue, expected_exception),
     )
     proc.start()
     process_ready_event.wait()
@@ -136,7 +161,7 @@ def test_raise_exception_in_finalize(
 ):
     proc = multiprocessing.Process(
         target=_process_main_sleeping_in_finalize,
-        args=(sigmonitor.Mode.RAISE_EXCEPTION, process_ready_event, process_result_queue),
+        args=(sigmonitor.Mode.RAISE_EXCEPTION, process_ready_event, process_result_queue, expected_exception),
     )
     proc.start()
     process_ready_event.wait()
@@ -155,10 +180,12 @@ def _process_main_sleeping(
     mode: sigmonitor.Mode, process_ready_event: threading.Event, process_result_queue: queue.Queue
 ):
     sigmonitor.init(mode)
+    assert not sigmonitor.get_future().done()
     try:
         process_ready_event.set()
         time.sleep(_SLEEP_INFINITY)
     except BaseException as e:
+        assert type(sigmonitor.get_future().exception(timeout=0)) is type(e)
         process_result_queue.put(type(e))
     else:
         process_result_queue.put(None)
@@ -168,21 +195,27 @@ def _process_main_calling_retrigger(
     mode: sigmonitor.Mode, process_ready_event: threading.Event, process_result_queue: queue.Queue
 ):
     sigmonitor.init(mode)
+    assert not sigmonitor.get_future().done()
     process_ready_event.set()
     for _ in range(_SLEEP_INFINITY):
         time.sleep(1)
         try:
             sigmonitor.maybe_retrigger_action()
         except BaseException as e:
+            assert type(sigmonitor.get_future().exception(timeout=0)) is type(e)
             process_result_queue.put(type(e))
             return
     process_result_queue.put(None)
 
 
 def _process_main_sleeping_in_del(
-    mode: sigmonitor.Mode, process_ready_event: threading.Event, process_result_queue: queue.Queue
+    mode: sigmonitor.Mode,
+    process_ready_event: threading.Event,
+    process_result_queue: queue.Queue,
+    expected_exception: Type[BaseException],
 ):
     sigmonitor.init(mode)
+    assert not sigmonitor.get_future().done()
 
     class A:
         def __del__(self):
@@ -195,6 +228,7 @@ def _process_main_sleeping_in_del(
             except BaseException as e:
                 process_result_queue.put(('del', type(e)))
             else:
+                assert type(sigmonitor.get_future().exception(timeout=0)) is expected_exception
                 process_result_queue.put(('del', None))
 
     A()
@@ -208,9 +242,13 @@ def _process_main_sleeping_in_del(
 
 
 def _process_main_sleeping_in_finalize(
-    mode: sigmonitor.Mode, process_ready_event: threading.Event, process_result_queue: queue.Queue
+    mode: sigmonitor.Mode,
+    process_ready_event: threading.Event,
+    process_result_queue: queue.Queue,
+    expected_exception: Type[BaseException],
 ):
     sigmonitor.init(mode)
+    assert not sigmonitor.get_future().done()
 
     def finalizer():
         try:
@@ -222,6 +260,7 @@ def _process_main_sleeping_in_finalize(
         except BaseException as e:
             process_result_queue.put(('finalize', type(e)))
         else:
+            assert type(sigmonitor.get_future().exception(timeout=0)) is expected_exception
             process_result_queue.put(('finalize', None))
 
     class A:
