@@ -16,7 +16,7 @@ def input_path(tmp_path: Path) -> Path:
 def init_pass(depth, tmp_dir: Path, input_path: Path) -> Tuple[LinesPass, Any]:
     pass_ = LinesPass(depth, find_external_programs())
     state = pass_.new(input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[])
-    validate_stored_hints(state, pass_)
+    validate_stored_hints(state, pass_, input_path)
     return pass_, state
 
 

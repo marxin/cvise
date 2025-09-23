@@ -1,6 +1,7 @@
 import msgspec
 from pathlib import Path
-from typing import Dict, List, Union
+import subprocess
+from typing import List, Optional
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.hint import Hint, HintBundle, Patch
@@ -15,69 +16,60 @@ class LinesPass(HintBasedPass):
         return True
 
     def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
-        vocab = []
+        is_dir = test_case.is_dir()
+        paths = [p for p in test_case.rglob('*') if not p.is_dir() and not p.is_symlink()] if is_dir else [test_case]
+        vocab = [str(p.relative_to(test_case)).encode() for p in paths] if is_dir else []
+
         hints = []
-        decoder = msgspec.json.Decoder(type=Hint)
-        if test_case.is_dir():
-            for path in test_case.rglob('*'):
-                if not path.is_dir():
-                    rel_path = path.relative_to(test_case)
-                    vocab.append(str(rel_path).encode())
-                    file_id = len(vocab) - 1
-                    hints += self._generate_hints_for_file(path, decoder, process_event_notifier, file_id)
+        if self.arg == 'None':
+            for i, path in enumerate(paths):
+                file_id = i if is_dir else None
+                self._generate_hints_for_text_lines(path, file_id, hints)
         else:
-            hints += self._generate_hints_for_file(test_case, decoder, process_event_notifier, file_id=None)
+            self._generate_topformflat_hints(test_case, is_dir, paths, process_event_notifier, hints)
+
         return HintBundle(hints=hints, vocabulary=vocab)
 
-    def _generate_hints_for_file(
-        self,
-        file_path: Path,
-        decoder: msgspec.json.Decoder,
-        process_event_notifier: ProcessEventNotifier,
-        file_id: Union[int, None],
-    ) -> List[Dict]:
-        if self.arg == 'None':
-            # None means no topformflat
-            return self._generate_hints_for_text_lines(file_path, file_id)
-        else:
-            return self._generate_topformflat_hints(file_path, decoder, process_event_notifier, file_id)
-
-    def _generate_hints_for_text_lines(self, test_case: Path, file_id: Union[int, None]) -> List[Dict]:
+    def _generate_hints_for_text_lines(self, input_path: Path, file_id: Optional[int], hints: List[Hint]) -> None:
         """Generate a hint per each line in the input as written."""
-        hints = []
-        with open(test_case, 'rb') as in_file:
+        with open(input_path, 'rb') as in_file:
             file_pos = 0
             for line in in_file:
                 end_pos = file_pos + len(line)
-                patch = Patch(left=file_pos, right=end_pos)
-                if file_id is not None:
-                    patch.file = file_id
-                hints.append(Hint(patches=[patch]))
+                hints.append(Hint(patches=[Patch(left=file_pos, right=end_pos, file=file_id)]))
                 file_pos = end_pos
-        return hints
 
     def _generate_topformflat_hints(
         self,
         test_case: Path,
-        decoder: msgspec.json.Decoder,
+        is_dir: bool,
+        paths: List[Path],
         process_event_notifier: ProcessEventNotifier,
-        file_id: Union[int, None],
-    ) -> List[Dict]:
+        hints: List[Hint],
+    ) -> None:
         """Generate hints via the modified topformflat tool.
 
         A single hint here is, roughly, a curly brace surrounded block at the
         nesting level specified by the arg integer.
         """
-        cmd = [self.external_programs['topformflat_hints'], self.arg]
-        with open(test_case, 'rb') as in_file:
-            stdout = process_event_notifier.check_output(cmd, stdin=in_file)
+        # If the test case is a single file, simply specify its path via cmd line. If it's a directory, enumerate all
+        # files (we do it on the Python side for flexibility) and send the list via stdin (to not hit the cmd line size
+        # limit).
+        if is_dir:
+            work_dir = test_case
+            stdin = b'\n'.join(bytes(p) for p in paths)
+            cmd_file_arg = '--'
+        else:
+            work_dir = '.'
+            stdin = b''
+            cmd_file_arg = str(test_case)
 
-        hints = []
+        cmd = [self.external_programs['topformflat_hints'], self.arg, cmd_file_arg]
+        stdout = process_event_notifier.check_output(cmd, cwd=work_dir, stdin=subprocess.PIPE, input=stdin)
+
+        decoder = msgspec.json.Decoder(type=Hint)
         for line in stdout.splitlines():
             if not line.isspace():
                 hint = decoder.decode(line)
                 assert len(hint.patches) == 1
-                if file_id is not None:
-                    hint.patches[0].file = file_id
                 hints.append(hint)
-        return hints

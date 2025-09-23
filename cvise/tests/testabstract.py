@@ -61,21 +61,21 @@ def collect_all_transforms_dir(pass_: AbstractPass, state, input_path: Path) -> 
     return all_outputs
 
 
-def validate_stored_hints(state: Union[HintState, None], pass_: HintBasedPass) -> None:
+def validate_stored_hints(state: Union[HintState, None], pass_: HintBasedPass, test_case: Path) -> None:
     if state is None:
         return
     output_types = set(pass_.output_hint_types())
     for substate in state.per_type_states:
         path = state.tmp_dir / substate.hints_file_name
         bundle = load_hints(path, 0, substate.underlying_state.instances)
-        validate_hint_bundle(bundle, output_types)
+        validate_hint_bundle(bundle, test_case, output_types)
     for substate in state.special_hints:
         path = state.tmp_dir / substate.hints_file_name
         bundle = load_hints(path, 0, substate.hint_count)
-        validate_hint_bundle(bundle, output_types)
+        validate_hint_bundle(bundle, test_case, output_types)
 
 
-def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Optional[Set[bytes]] = None) -> None:
+def validate_hint_bundle(bundle: HintBundle, test_case: Path, allowed_hint_types: Optional[Set[bytes]] = None) -> None:
     for hint in bundle.hints:
         # Check against JSON Schema.
         json_dump = msgspec.json.encode(hint)
@@ -90,8 +90,15 @@ def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Optional[Set[by
         if hint.extra is not None:
             assert hint.extra < len(bundle.vocabulary)
             if hint.type is not None and bundle.vocabulary[hint.type] == b'@fileref':
-                assert not Path(bundle.vocabulary[hint.extra].decode()).is_absolute()
+                path = Path(bundle.vocabulary[hint.extra].decode())
+                assert not path.is_absolute()
+                assert (test_case / path).exists()
         for patch in hint.patches:
             assert patch.left < patch.right
+            assert (patch.file is not None) == test_case.is_dir()
+            if patch.file is not None:
+                path = Path(bundle.vocabulary[patch.file].decode())
+                assert not path.is_absolute()
+                assert (test_case / path).exists()
             if patch.value is not None:
                 assert patch.value < len(bundle.vocabulary)
