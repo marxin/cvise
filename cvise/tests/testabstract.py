@@ -69,6 +69,10 @@ def validate_stored_hints(state: Union[HintState, None], pass_: HintBasedPass) -
         path = state.tmp_dir / substate.hints_file_name
         bundle = load_hints(path, 0, substate.underlying_state.instances)
         validate_hint_bundle(bundle, output_types)
+    for substate in state.special_hints:
+        path = state.tmp_dir / substate.hints_file_name
+        bundle = load_hints(path, 0, substate.hint_count)
+        validate_hint_bundle(bundle, output_types)
 
 
 def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Optional[Set[bytes]] = None) -> None:
@@ -83,6 +87,10 @@ def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Optional[Set[by
             hint_type = bundle.vocabulary[hint.type]
             if allowed_hint_types is not None:
                 assert hint_type in allowed_hint_types
+        if hint.extra is not None:
+            assert hint.extra < len(bundle.vocabulary)
+            if hint.type is not None and bundle.vocabulary[hint.type] == b'@fileref':
+                assert not Path(bundle.vocabulary[hint.extra].decode()).is_absolute()
         for patch in hint.patches:
             assert patch.left < patch.right
             if patch.value is not None:

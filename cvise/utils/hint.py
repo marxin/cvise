@@ -44,6 +44,7 @@ class Hint(msgspec.Struct, omit_defaults=True, gc=False):
 
     patches: List[Patch] = msgspec.field(name='p')
     type: Optional[int] = msgspec.field(default=None, name='t')
+    extra: Optional[int] = msgspec.field(default=None, name='e')
 
 
 @dataclasses.dataclass
@@ -116,6 +117,14 @@ HINT_SCHEMA = {
                 'intended to be consumed by other passes as input data. Types not starting from "@" are just used as a '
                 'way to split hints from a particular pass into distinct groups, to guide the generic logic that '
                 'attempts taking consecutive ranges of same-typed hints.'
+            ),
+            'type': 'integer',
+            'minimum': 0,
+        },
+        'e': {
+            'description': (
+                'Extra value associated with the hint, as an index in the vocabulary. For example, for "@fileref" '
+                'hints this contains the path of the mentioned file.'
             ),
             'type': 'integer',
             'minimum': 0,
