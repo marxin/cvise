@@ -317,10 +317,12 @@ static void hints_toks(void) {
     if (tok_list[i].kind == TOK_WS || tok_list[i].kind == TOK_NEWLINE)
       continue;
     int cut_start = tok_list[i].start_pos;
-    // Also eat subsequent spaces, so that two consecutive hints remove both
-    // tokens with all spaces between them.
-    while (i + 1 < toks && (tok_list[i + 1].kind == TOK_WS ||
-                            tok_list[i + 1].kind == TOK_NEWLINE)) {
+    // Also eat subsequent spaces within the same file, so that two consecutive
+    // hints remove both tokens with all spaces between them.
+    while (i + 1 < toks &&
+           (tok_list[i + 1].kind == TOK_WS ||
+            tok_list[i + 1].kind == TOK_NEWLINE) &&
+           tok_list[i + 1].file_id == tok_list[i].file_id) {
       ++i;
     }
     int cut_end = tok_list[i].start_pos + tok_list[i].len;
