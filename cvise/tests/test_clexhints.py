@@ -239,9 +239,9 @@ def test_directory_input_leading_trailing_spaces(tmp_path: Path):
     test_case = tmp_path / 'test_case'
     test_case.mkdir()
     (test_case / 'a.txt').write_text('\nint\n')
-    (test_case / 'b.txt').write_text('\nint\n')
+    (test_case / 'b.txt').write_text('\nchar\n')
     p, state = init_pass('rm-toks-1-to-1', tmp_path, test_case)
     all_transforms = collect_all_transforms_dir(p, state, test_case)
 
-    assert (('a.txt', b'\n'), ('b.txt', b'\nint\n')) in all_transforms
+    assert (('a.txt', b'\n'), ('b.txt', b'\nchar\n')) in all_transforms
     assert (('a.txt', b'\nint\n'), ('b.txt', b'\n')) in all_transforms
