@@ -378,3 +378,25 @@ def test_hash_dir_different_subdirs(tmp_path: Path):
     (dir_b / 'bar').mkdir()
 
     assert hash_test_case(dir_a) != hash_test_case(dir_b)
+
+
+def test_hash_dir_same_symlinks(tmp_path: Path):
+    dir_a = tmp_path / 'a'
+    dir_a.mkdir()
+    (dir_a / 'foo').symlink_to('bar')
+    dir_b = tmp_path / 'b'
+    dir_b.mkdir()
+    (dir_b / 'foo').symlink_to('bar')
+
+    assert hash_test_case(dir_a) == hash_test_case(dir_b)
+
+
+def test_hash_dir_different_symlinks(tmp_path: Path):
+    dir_a = tmp_path / 'a'
+    dir_a.mkdir()
+    (dir_a / 'foo').symlink_to('bar')
+    dir_b = tmp_path / 'b'
+    dir_b.mkdir()
+    (dir_b / 'foo').symlink_to('barbaz')
+
+    assert hash_test_case(dir_a) != hash_test_case(dir_b)
