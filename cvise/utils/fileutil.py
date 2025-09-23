@@ -143,15 +143,15 @@ def _hash_dir_tree(dir: Path, buf: memoryview) -> bytes:
     descendants = sorted(dir.rglob('*'))
     for path in descendants:
         rel_path = str(path.relative_to(dir)).encode()
-        dir_hash.update(f'{len(rel_path)}#'.encode())
-        dir_hash.update(rel_path)
+        path_hash = hashlib.sha256(rel_path).digest()
+        dir_hash.update(path_hash)
 
         dir_hash.update(bytes([path.is_dir(), path.is_file(), path.is_symlink()]))
 
         if path.is_symlink():
-            dest = str(Path(os.readlink(path))).encode()
-            dir_hash.update(f'{len(dest)}#'.encode())
-            dir_hash.update(dest)
+            dest_path = str(Path(os.readlink(path))).encode()
+            dest_path_hash = hashlib.sha256(dest_path).digest()
+            dir_hash.update(dest_path_hash)
         elif path.is_file():
             dir_hash.update(_hash_file(path, buf))
     return dir_hash.digest()
