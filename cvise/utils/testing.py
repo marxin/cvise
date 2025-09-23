@@ -24,12 +24,15 @@ from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import cache, fileutil, mplogging, sigmonitor
-from cvise.utils.error import AbsolutePathTestCaseError
-from cvise.utils.error import InsaneTestCaseError
-from cvise.utils.error import InvalidInterestingnessTestError
-from cvise.utils.error import InvalidTestCaseError
-from cvise.utils.error import PassBugError
-from cvise.utils.error import ZeroSizeError
+from cvise.utils.error import (
+    AbsolutePathTestCaseError,
+    InsaneTestCaseError,
+    InvalidInterestingnessTestError,
+    InvalidTestCaseError,
+    PassBugError,
+    ScriptInsideTestCaseError,
+    ZeroSizeError,
+)
 from cvise.utils.folding import FoldingManager, FoldingStateIn, FoldingStateOut
 from cvise.utils.hint import load_hints
 from cvise.utils.process import MPContextHook, MPTaskLossWorkaround, ProcessEventNotifier, ProcessMonitor
@@ -403,6 +406,8 @@ class TestManager:
             self.check_file_permissions(test_case, [os.F_OK, os.R_OK, os.W_OK], InvalidTestCaseError)
             if test_case.parent.is_absolute():
                 raise AbsolutePathTestCaseError(test_case)
+            if test_case.resolve() in self.test_script.resolve().parents:
+                raise ScriptInsideTestCaseError(test_case, self.test_script)
             self.test_cases.add(test_case)
 
         self.orig_total_file_size = self.total_file_size

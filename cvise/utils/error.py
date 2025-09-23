@@ -64,6 +64,15 @@ class InvalidInterestingnessTestError(InvalidFileError):
         return f"The specified interestingness test '{self.path}' cannot be executed!"
 
 
+class ScriptInsideTestCaseError(CViseError):
+    def __init__(self, test_case_path: Path, script_path: Path):
+        self.test_case_path = test_case_path
+        self.script_path = script_path
+
+    def __str__(self):
+        return f"Interestingness test '{self.script_path}' is inside test case directory '{self.test_case_path}'!"
+
+
 class ZeroSizeError(CViseError):
     def __init__(self, test_cases: Set[Path]):
         super().__init__()

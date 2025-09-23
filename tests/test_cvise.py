@@ -28,7 +28,9 @@ def start_cvise(arguments: List[str], tmp_path: Path, overridden_subprocess_tmpd
     new_env = os.environ.copy()
     new_env['TMPDIR'] = str(overridden_subprocess_tmpdir)
 
-    return subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding='utf8', env=new_env, cwd=tmp_path)
+    return subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8', env=new_env, cwd=tmp_path
+    )
 
 
 def check_cvise(
@@ -39,8 +41,8 @@ def check_cvise(
     work_path.chmod(0o644)
 
     proc = start_cvise([testcase] + arguments, tmp_path, overridden_subprocess_tmpdir)
-    proc.communicate()
-    assert proc.returncode == 0
+    _stdout, stderr = proc.communicate()
+    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n' + stderr
 
     content = work_path.read_text()
     assert content in expected
@@ -145,8 +147,8 @@ def test_interleaving_lines_passes(tmp_path: Path, overridden_subprocess_tmpdir:
         tmp_path,
         overridden_subprocess_tmpdir,
     )
-    proc.communicate()
-    assert proc.returncode == 0
+    _stdout, stderr = proc.communicate()
+    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n' + stderr
     assert (
         testcase_path.read_text()
         == """
@@ -184,8 +186,8 @@ def test_apply_hints(tmp_path: Path, overridden_subprocess_tmpdir: Path):
         tmp_path,
         overridden_subprocess_tmpdir,
     )
-    stdout, _ = proc.communicate()
-    assert proc.returncode == 0
+    stdout, stderr = proc.communicate()
+    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n' + stderr
     assert stdout == 'ad'
     assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
 
@@ -204,9 +206,9 @@ def test_non_ascii(tmp_path: Path, overridden_subprocess_tmpdir: Path):
         tmp_path,
         overridden_subprocess_tmpdir,
     )
-    proc.communicate()
+    _stdout, stderr = proc.communicate()
 
-    assert proc.returncode == 0
+    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n' + stderr
     # The reduced result may or may not include the trailing line break - this depends on random ordering factors.
     assert testcase_path.read_text() in ('int foo;', 'int foo;\n')
     assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
@@ -242,8 +244,33 @@ def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
         tmp_path,
         overridden_subprocess_tmpdir,
     )
-    proc.communicate()
+    _stdout, stderr = proc.communicate()
 
-    assert proc.returncode == 0
+    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n' + stderr
     assert (test_case / 'a.h').read_text() == 'int x ;\n'
     assert (test_case / 'a.cc').read_text() == '#include "a.h"\nint nextHi = x;\n'
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_script_inside_test_case_error(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    test_case = tmp_path / 'repro'
+    test_case.mkdir()
+    (test_case / 'foo.txt').touch()
+    interestingness_test = test_case / 'check.sh'
+    interestingness_test.write_text(f'#!/bin/sh\ntrue\n')
+    interestingness_test.chmod(interestingness_test.stat().st_mode | stat.S_IEXEC)
+
+    proc = start_cvise(
+        [
+            str(interestingness_test),
+            'repro',
+            '--tidy',
+            '--no-cache',
+        ],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    _stdout, stderr = proc.communicate()
+
+    assert proc.returncode != 0, f'Process succeeded unexpectedly; stderr:\n' + stderr
+    assert 'is inside test case directory' in stderr
