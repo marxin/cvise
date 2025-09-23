@@ -89,7 +89,8 @@ def validate_hint_bundle(bundle: HintBundle, allowed_hint_types: Optional[Set[by
                 assert hint_type in allowed_hint_types
         if hint.extra is not None:
             assert hint.extra < len(bundle.vocabulary)
-            assert not Path(bundle.vocabulary[hint.extra].decode()).is_absolute()
+            if hint.type is not None and bundle.vocabulary[hint.type] == b'@fileref':
+                assert not Path(bundle.vocabulary[hint.extra].decode()).is_absolute()
         for patch in hint.patches:
             assert patch.left < patch.right
             if patch.value is not None:
