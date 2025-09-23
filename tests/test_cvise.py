@@ -257,7 +257,7 @@ def test_script_inside_test_case_error(tmp_path: Path, overridden_subprocess_tmp
     test_case.mkdir()
     (test_case / 'foo.txt').touch()
     interestingness_test = test_case / 'check.sh'
-    interestingness_test.write_text(f'#!/bin/sh\ntrue\n')
+    interestingness_test.write_text('#!/bin/sh\ntrue\n')
     interestingness_test.chmod(interestingness_test.stat().st_mode | stat.S_IEXEC)
 
     proc = start_cvise(
@@ -272,5 +272,5 @@ def test_script_inside_test_case_error(tmp_path: Path, overridden_subprocess_tmp
     )
     _stdout, stderr = proc.communicate()
 
-    assert proc.returncode != 0, f'Process succeeded unexpectedly; stderr:\n' + stderr
+    assert proc.returncode != 0, 'Process succeeded unexpectedly; stderr:\n' + stderr
     assert 'is inside test case directory' in stderr
