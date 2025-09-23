@@ -235,7 +235,7 @@ def test_directory_input(tmp_path: Path):
     assert (('a.c', b'int x;'), ('b.c', b'char y')) in all_transforms
 
 
-def test_directory_input_space_across_file(tmp_path: Path):
+def test_directory_input_leading_trailing_spaces(tmp_path: Path):
     test_case = tmp_path / 'test_case'
     test_case.mkdir()
     (test_case / 'a.txt').write_text('\nint\n')
