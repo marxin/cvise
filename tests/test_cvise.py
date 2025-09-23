@@ -237,7 +237,6 @@ def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
             'gcc -c repro/a.cc && grep "nextHi = x" repro/a.cc',
             'repro',
             '--tidy',
-            '--no-cache',
         ],
         tmp_path,
         overridden_subprocess_tmpdir,
