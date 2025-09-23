@@ -9,9 +9,10 @@ from cvise.utils.hint import Hint, HintBundle, Patch
 
 
 _FILE_NAMES = ('Makefile', 'makefile', 'GNUmakefile')
-_TWO_TOKEN_OPTIONS = re.compile(rb'-o|-I|-iquote|-isystem|-Xclang')
-_REMOVAL_BLOCKLIST = re.compile(rb'-o.*|-I.*')
-_TWO_TOKEN_OPTIONS_REMOVAL_BLOCKLIST = re.compile(rb'-o|-I|-iquote|-isystem')
+# TODO: make these configurable
+_TWO_TOKEN_OPTIONS = re.compile(rb'-I|-iquote|-isystem|-o|-Xclang')
+_REMOVAL_BLOCKLIST = re.compile(rb'-fallow-pcm-with-compiler-errors|-ferror-limit=.*|-fmax-errors=.*|-fmodule-map-file-home-is-cwd|-fno-crash-diagnostics|-fno-cxx-modules|-fno-implicit-module-maps|-fno-implicit-modules|-fsyntax-only|-I.*|-no-pedantic|--no-pedantic|-nostdinc++|-nostdlib++|--no-warnings|-o.*|-pedantic|--pedantic|-pedantic-errors|--pedantic-errors|-w|-W.*|-fpermissive|-Xclang=-emit-module|-Xclang=-fno-cxx-modules|-Xclang=-fmodule-map-file-home-is-cwd')
+_TWO_TOKEN_OPTIONS_REMOVAL_BLOCKLIST = re.compile(rb'-I .*|-iquote .*|-isystem .*|-o .*|-Xclang -fallow-pcm-with-compiler-errors')
 
 
 @unique
@@ -75,7 +76,7 @@ def _get_removable_arg_groups(args: List[makefileparser.TextWithLoc]) -> List[Li
     removable = []
     for arg in args:
         if two_token_option:
-            if not _TWO_TOKEN_OPTIONS_REMOVAL_BLOCKLIST.match(two_token_option.value):
+            if not _TWO_TOKEN_OPTIONS_REMOVAL_BLOCKLIST.match(two_token_option.value + b' ' + arg):
                 removable.append([two_token_option, arg])
             two_token_option = None
             continue
