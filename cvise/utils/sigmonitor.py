@@ -78,7 +78,7 @@ def get_future() -> Future:
     assert _future is not None
     return _future
 
-  
+
 def signal_observed_for_testing() -> bool:
     return _sigint_observed or _sigterm_observed
 
