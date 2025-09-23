@@ -23,7 +23,7 @@ import concurrent.futures
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintBasedPass
-from cvise.utils import fileutil, mplogging, sigmonitor
+from cvise.utils import cache, fileutil, mplogging, sigmonitor
 from cvise.utils.error import AbsolutePathTestCaseError
 from cvise.utils.error import InsaneTestCaseError
 from cvise.utils.error import InvalidInterestingnessTestError
@@ -407,7 +407,7 @@ class TestManager:
             self.test_cases.add(test_case)
 
         self.orig_total_file_size = self.total_file_size
-        self.cache = {}
+        self.cache = None if self.no_cache else cache.Cache(f'{self.TEMP_PREFIX}cache-')
         self.pass_contexts: List[PassContext] = []
         self.interleaving: bool = False
         if not self.is_valid_test(self.test_script):
@@ -443,6 +443,9 @@ class TestManager:
         self.mp_task_loss_workaround = MPTaskLossWorkaround(self.parallel_tests)
 
     def __enter__(self):
+        if self.cache:
+            self.exit_stack.enter_context(self.cache)
+
         if self.key_logger:
             self.exit_stack.enter_context(self.key_logger)
         self.exit_stack.enter_context(self.process_monitor)
@@ -857,7 +860,6 @@ class TestManager:
             self.pass_contexts.append(PassContext.create(pass_))
         self.interleaving = interleaving
         self.jobs = []
-        cache_key = repr([c.pass_ for c in self.pass_contexts])
 
         pass_titles = ', '.join(repr(c.pass_) for c in self.pass_contexts)
         logging.info(f'===< {pass_titles} >===')
@@ -875,9 +877,9 @@ class TestManager:
                     continue
 
                 if not self.no_cache:
-                    test_case_before_pass = test_case.read_bytes()
-                    if cache_key in self.cache and test_case_before_pass in self.cache[cache_key]:
-                        test_case.write_bytes(self.cache[cache_key][test_case_before_pass])
+                    hash_before_pass = fileutil.hash_test_case(test_case)
+                    if cached_path := self.cache.lookup(passes, hash_before_pass):
+                        fileutil.replace_test_case_atomically(cached_path, test_case, move=False)
                         logging.info(f'cache hit for {test_case}')
                         continue
 
@@ -930,11 +932,8 @@ class TestManager:
                         logging.info(f'skipping after {success_count} successful transformations')
                         break
 
-                # Cache result of this pass
                 if not self.no_cache:
-                    if cache_key not in self.cache:
-                        self.cache[cache_key] = {}
-                    self.cache[cache_key][test_case_before_pass] = test_case.read_bytes()
+                    self.cache.add(passes, hash_before_pass, test_case)
 
             self.restore_mode()
             self.remove_roots()

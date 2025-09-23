@@ -16,6 +16,7 @@ from cvise.utils.fileutil import (
     copy_test_case,
     get_file_size,
     get_line_count,
+    hash_test_case,
     mkdir_up_to,
     replace_test_case_atomically,
 )
@@ -301,3 +302,24 @@ def _stress_test_atomicity(path_to_check: Path, init_callback: Callable, test_co
         for j in range(min(TEST_HALVING_STEPS, i + 1)):
             assert result_callback(run_subprocess(critical_time + step * j)) != _AtomicityResult.CONTENTS_UNEXPECTED
             assert result_callback(run_subprocess(critical_time - step * j)) != _AtomicityResult.CONTENTS_UNEXPECTED
+
+
+def test_hash_equality(tmp_path: Path):
+    path_a = tmp_path / 'a.txt'
+    path_a.write_text('foo')
+    path_b = tmp_path / 'b.txt'
+    path_b.write_text('foo')
+    path_c = tmp_path / 'c.txt'
+    path_c.write_text('bar')
+
+    assert hash_test_case(path_a) == hash_test_case(path_b)
+    assert hash_test_case(path_a) != hash_test_case(path_c)
+
+
+def test_hash_empty_file(tmp_path: Path):
+    path_a = tmp_path / 'a.txt'
+    path_a.touch()
+    path_b = tmp_path / 'b.txt'
+    path_b.touch()
+
+    assert hash_test_case(path_a) == hash_test_case(path_b)

@@ -1,11 +1,17 @@
 import contextlib
+import hashlib
+import io
 import os
 from pathlib import Path
 import random
 import shutil
 import string
 import tempfile
-from typing import Iterable, Iterator, Union
+from typing import Iterable, Iterator, Optional, Union
+
+
+# Singleton buffer for hash_test_case(), to avoid reallocations.
+_hash_buf: Optional[bytearray] = None
 
 
 # TODO: use tempfile.NamedTemporaryFile(delete_on_close=False) since Python 3.12 is the oldest supported release
@@ -74,13 +80,20 @@ def copy_test_case(source: Path, destination_parent: Path) -> None:
         shutil.copy2(source, destination_parent / source)
 
 
-def replace_test_case_atomically(source: Path, destination: Path) -> None:
+def replace_test_case_atomically(source: Path, destination: Path, move: bool = True) -> None:
     # First prepare the contents in a temporary location in the same folder as the destination path, and then rename/swap
     # it with the destination. We use the fact that a rename is atomic on popular file systems, within a single file
     # system's boundaries.
     if source.is_dir():
         with _robust_temp_dir(dir=destination.parent) as tmp_dir:
-            new_path = Path(shutil.move(source, Path(tmp_dir)))
+            tmp_path = Path(tmp_dir)
+
+            new_path = tmp_path / source.name
+            if move:
+                shutil.move(source, new_path)
+            else:
+                shutil.copytree(source, new_path)
+
             old_destination = Path(f'{new_path}tmp')
             try:
                 destination.rename(old_destination)
@@ -94,8 +107,28 @@ def replace_test_case_atomically(source: Path, destination: Path) -> None:
         with CloseableTemporaryFile(dir=destination.parent) as tmp:
             tmp_path = Path(tmp.name)
             tmp.close()
-            shutil.move(source, tmp_path)
+            if move:
+                shutil.move(source, tmp_path)
+            else:
+                shutil.copy2(source, tmp_path)
             tmp_path.rename(destination)
+
+
+def hash_test_case(test_case: Path) -> bytes:
+    # TODO: use hashlib.file_digest once Python 3.11 is the oldest supported release
+    BUF_SIZE = 2**18
+
+    global _hash_buf
+    if _hash_buf is None:  # lazily initialize singleton
+        _hash_buf = bytearray(BUF_SIZE)
+    buf = _hash_buf  # cache in local variables, which are presumably faster
+
+    buf_view = memoryview(buf)
+    hash = hashlib.sha256()
+    with io.FileIO(test_case, 'r') as f:  # use FileIO instead of open() as otherwise linters don't allow readinto()
+        while read_size := f.readinto(buf_view):
+            hash.update(buf_view[:read_size])
+    return hash.digest()
 
 
 def _get_test_case_files(test_case: Path) -> Iterable[Path]:
