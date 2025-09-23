@@ -114,6 +114,7 @@ set(SOURCE_FILES
   "tests/test_nestedmatcher.py"
   "tests/test_peep.py"
   "tests/test_process.py"
+  "tests/test_sigmonitor.py"
   "tests/test_special.py"
   "tests/test_ternary.py"
   "tests/test_test_manager.py"
