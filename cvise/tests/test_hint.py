@@ -25,7 +25,7 @@ def test_apply_hints_delete_prefix(tmp_test_case: Path, tmp_transformed_file: Pa
     tmp_test_case.write_text('Foo bar')
     hint = Hint(patches=[Patch(left=0, right=4)])
     bundle = HintBundle(hints=[hint])
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -36,7 +36,7 @@ def test_apply_hints_delete_suffix(tmp_test_case: Path, tmp_transformed_file: Pa
     tmp_test_case.write_text('Foo bar')
     hint = Hint(patches=[Patch(left=3, right=7)])
     bundle = HintBundle(hints=[hint])
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -47,7 +47,7 @@ def test_apply_hints_delete_middle(tmp_test_case: Path, tmp_transformed_file: Pa
     tmp_test_case.write_text('Foo bar baz')
     hint = Hint(patches=[Patch(left=3, right=7)])
     bundle = HintBundle(hints=[hint])
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -60,7 +60,7 @@ def test_apply_hints_delete_middle_multiple(tmp_test_case: Path, tmp_transformed
     hint2 = Hint(patches=[Patch(left=7, right=8)])
     hints = [hint1, hint2]
     bundle = HintBundle(hints=hints)
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -71,7 +71,7 @@ def test_apply_hints_delete_all(tmp_test_case: Path, tmp_transformed_file: Path)
     tmp_test_case.write_text('Foo bar')
     hint = Hint(patches=[Patch(left=0, right=7)])
     bundle = HintBundle(hints=[hint])
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -86,7 +86,7 @@ def test_apply_hints_delete_touching(tmp_test_case: Path, tmp_transformed_file: 
     hint3 = Hint(patches=[Patch(left=5, right=6), Patch(left=4, right=5)])
     hints = [hint1, hint2, hint3]
     bundle = HintBundle(hints=hints)
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -100,7 +100,7 @@ def test_apply_hints_delete_overlapping(tmp_test_case: Path, tmp_transformed_fil
     hint2 = Hint(patches=[Patch(left=4, right=7)])
     hints = [hint1, hint2]
     bundle = HintBundle(hints=hints)
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -113,7 +113,7 @@ def test_apply_hints_delete_nested(tmp_test_case: Path, tmp_transformed_file: Pa
     hint2 = Hint(patches=[Patch(left=3, right=7)])
     hints = [hint1, hint2]
     bundle = HintBundle(hints=hints)
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -126,7 +126,7 @@ def test_apply_hints_replace_with_shorter(tmp_test_case: Path, tmp_transformed_f
     vocab = [b'xyz']
     hint = Hint(patches=[Patch(left=4, right=13, value=0)])
     bundle = HintBundle(vocabulary=vocab, hints=[hint])
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -139,7 +139,7 @@ def test_apply_hints_replace_with_longer(tmp_test_case: Path, tmp_transformed_fi
     vocab = [b'z', b'abacaba']
     hint = Hint(patches=[Patch(left=4, right=5, value=1)])
     bundle = HintBundle(vocabulary=vocab, hints=[hint])
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -154,7 +154,7 @@ def test_apply_hints_replacement_inside_deletion(tmp_test_case: Path, tmp_transf
     hint2 = Hint(patches=[Patch(left=4, right=7)])  # deletes "bar"
     hints = [hint1, hint2]
     bundle = HintBundle(vocabulary=vocab, hints=hints)
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -169,7 +169,7 @@ def test_apply_hints_deletion_inside_replacement(tmp_test_case: Path, tmp_transf
     hint2 = Hint(patches=[Patch(left=4, right=7, value=0)])  # replaces "bar" with "some"
     hints = [hint1, hint2]
     bundle = HintBundle(vocabulary=vocab, hints=hints)
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -187,7 +187,7 @@ def test_apply_hints_replacement_of_deleted_prefix(tmp_test_case: Path, tmp_tran
     hint2 = Hint(patches=[Patch(left=4, right=7)])  # deletes "bar"
     hints = [hint1, hint2]
     bundle = HintBundle(vocabulary=vocab, hints=hints)
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -203,7 +203,7 @@ def test_apply_hints_replacement_and_deletion_touching(tmp_test_case: Path, tmp_
     hint3 = Hint(patches=[Patch(left=7, right=8)])  # deletes " " after "bar"
     hints = [hint1, hint2, hint3]
     bundle = HintBundle(vocabulary=vocab, hints=hints)
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -221,7 +221,7 @@ def test_apply_hints_overlapping_replacements(tmp_test_case: Path, tmp_transform
     hint2 = Hint(patches=[Patch(left=2, right=4, value=1)])  # replaces "cd" with "x"
     hints = [hint1, hint2]
     bundle = HintBundle(vocabulary=vocab, hints=hints)
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -235,8 +235,8 @@ def test_apply_hints_multiple_bundles(tmp_test_case: Path, tmp_transformed_file:
     hint24 = Hint(patches=[Patch(left=2, right=4)])
     bundle1 = HintBundle(hints=[hint13])
     bundle2 = HintBundle(hints=[hint02, hint24])
-    validate_hint_bundle(bundle1)
-    validate_hint_bundle(bundle2)
+    validate_hint_bundle(bundle1, tmp_test_case)
+    validate_hint_bundle(bundle2, tmp_test_case)
 
     apply_hints([bundle1, bundle2], tmp_test_case, tmp_transformed_file)
 
@@ -249,8 +249,8 @@ def test_apply_hints_utf8(tmp_test_case: Path, tmp_transformed_file: Path):
     hint2 = Hint(patches=[Patch(left=10, right=14)])
     bundle1 = HintBundle(hints=[hint1])
     bundle2 = HintBundle(hints=[hint2])
-    validate_hint_bundle(bundle1)
-    validate_hint_bundle(bundle2)
+    validate_hint_bundle(bundle1, tmp_test_case)
+    validate_hint_bundle(bundle2, tmp_test_case)
 
     apply_hints([bundle1], tmp_test_case, tmp_transformed_file)
     assert tmp_transformed_file.read_text() == 'röten 🍴'
@@ -262,7 +262,7 @@ def test_apply_hints_non_unicode(tmp_test_case: Path, tmp_transformed_file: Path
     tmp_test_case.write_bytes(b'\0F\xffoo')
     hint = Hint(patches=[Patch(left=2, right=3)])
     bundle = HintBundle(hints=[hint])
-    validate_hint_bundle(bundle)
+    validate_hint_bundle(bundle, tmp_test_case)
 
     apply_hints([bundle], tmp_test_case, tmp_transformed_file)
 
@@ -280,7 +280,7 @@ def test_apply_hints_dir(tmp_path: Path):
     hint_un = Hint(patches=[Patch(left=0, right=2, file=0)])
     hint_ar = Hint(patches=[Patch(left=6, right=8, file=1)])
     bundle = HintBundle(hints=[hint_oo, hint_un, hint_ar], vocabulary=vocab)
-    validate_hint_bundle(bundle, allowed_hint_types=set())
+    validate_hint_bundle(bundle, input_dir, allowed_hint_types=set())
 
     output_dir = tmp_path / 'output'
     apply_hints([bundle], input_dir, output_dir)
@@ -300,7 +300,7 @@ def test_apply_hints_dir_nonexisting_parent(tmp_path: Path):
     (input_dir / 'foo.h').write_text('foo')
     (input_dir / 'bar.cc').write_text('void bar();')
     bundle = HintBundle(hints=[])
-    validate_hint_bundle(bundle, allowed_hint_types=set())
+    validate_hint_bundle(bundle, tmp_test_case, allowed_hint_types=set())
 
     non_existing_dir = tmp_path / 'nonexisting'
     output_dir = non_existing_dir / 'output'
@@ -315,8 +315,8 @@ def test_apply_hints_statistics(tmp_test_case: Path, tmp_transformed_file: Path)
     hint89 = Hint(patches=[Patch(left=8, right=9)])
     bundle1 = HintBundle(hints=[hint03, hint89], pass_name='pass1')
     bundle2 = HintBundle(hints=[hint07], pass_name='pass2')
-    validate_hint_bundle(bundle1)
-    validate_hint_bundle(bundle2)
+    validate_hint_bundle(bundle1, tmp_test_case)
+    validate_hint_bundle(bundle2, tmp_test_case)
 
     stats = apply_hints([bundle1, bundle2], tmp_test_case, tmp_transformed_file)
 

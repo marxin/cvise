@@ -20,7 +20,7 @@ class StubHintBasedPass(HintBasedPass):
         contents = test_case.read_bytes()
         hints = self.contents_to_hints.get(contents, [])
         bundle = HintBundle(vocabulary=self.vocabulary, hints=hints)
-        validate_hint_bundle(bundle, allowed_hint_types=set(self.output_hint_types()))
+        validate_hint_bundle(bundle, test_case, allowed_hint_types=set(self.output_hint_types()))
         return bundle
 
 

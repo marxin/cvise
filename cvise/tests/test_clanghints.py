@@ -27,7 +27,7 @@ def init_pass(transformation: str, tmp_dir: Path, input_path: Path) -> Tuple[Cla
         process_event_notifier=ProcessEventNotifier(None),
         dependee_hints=[],
     )
-    validate_stored_hints(state, pass_)
+    validate_stored_hints(state, pass_, input_path)
     return pass_, state
 
 
