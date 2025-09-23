@@ -52,9 +52,9 @@ def init(mode: Mode) -> None:
 def maybe_retrigger_action() -> None:
     # If multiple signals occurred, prefer SIGTERM.
     if _sigterm_observed:
-        _trigger_signal_action(signal.SIGTERM)
+        _trigger_signal_action(signal.SIGTERM, _create_exception(signal.SIGTERM))
     elif _sigint_observed:
-        _trigger_signal_action(signal.SIGINT)
+        _trigger_signal_action(signal.SIGINT, _create_exception(signal.SIGINT))
 
 
 @contextmanager
@@ -90,7 +90,10 @@ def _on_signal(signum: int, frame) -> None:
         _sigterm_observed = True
     elif signum == signal.SIGINT:
         _sigint_observed = True
-    _future.set_exception(_create_exception(signum))
+
+    exception = _create_exception(signum)
+    if not _future.done():
+        _future.set_exception(exception)
 
     if _is_on_demand_mode():
         return
@@ -102,7 +105,7 @@ def _on_signal(signum: int, frame) -> None:
     if _mode == Mode.RAISE_EXCEPTION and signum == signal.SIGINT:
         signal.default_int_handler(signum, frame)
     else:
-        _trigger_signal_action(signum)
+        _trigger_signal_action(signum, exception)
     # no code after this point - the action above might've raised the exception or terminated the process
 
 
@@ -115,11 +118,11 @@ def _implicit_maybe_retrigger_action() -> None:
         maybe_retrigger_action()
 
 
-def _trigger_signal_action(signum: int) -> None:
+def _trigger_signal_action(signum: int, exception: BaseException) -> None:
     if _mode == Mode.QUICK_EXIT:
         os._exit(1)
     else:
-        raise _create_exception(signum)
+        raise exception
     # no code after this point - this is unreachable
 
 
