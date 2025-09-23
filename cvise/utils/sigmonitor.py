@@ -121,7 +121,7 @@ def _can_raise_in_frame(frame) -> bool:
         if frame.f_code:
             if frame.f_code.co_name == '__del__':
                 return False
-            if Path(frame.f_code.co_filename).stem == Path(weakref.__file__).stem:
+            if frame.f_code.co_filename and Path(frame.f_code.co_filename).stem == Path(weakref.__file__).stem:
                 return False
         frame = frame.f_back
     return True
