@@ -129,7 +129,6 @@ HINT_SCHEMA = {
             'description': 'Patches that this hint consists of',
             'type': 'array',
             'items': HINT_PATCH_SCHEMA,
-            'minItems': 1,
         },
         't': {
             'description': (

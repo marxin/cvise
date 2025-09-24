@@ -32,11 +32,11 @@ def test_unused_files_deleted(tmp_path: Path, test_case_path: Path):
     (test_case_path / 'foo.h').touch()
     (test_case_path / 'bar.h').touch()
     (test_case_path / 'z.h').touch()
-    # Fake filerefs from main.c to bar.h and to itself. TODO: replace the reference-to-itself with a zero-length patch array.
+    # Fake filerefs from main.c to bar.h and from unspecified location to main.c.
     filerefs_bundle = HintBundle(
         hints=[
             Hint(type=0, patches=[Patch(left=0, right=1, file=1)], extra=2),
-            Hint(type=0, patches=[Patch(left=0, right=1, file=1)], extra=1),
+            Hint(type=0, patches=[], extra=1),
         ],
         vocabulary=[b'@fileref', b'main.c', b'bar.h'],
     )
