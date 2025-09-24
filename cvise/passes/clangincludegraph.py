@@ -65,7 +65,7 @@ class ClangIncludeGraphPass(HintBasedPass):
         edges: Set[_Edge] = set()
         for cmd in commands:
             proc = [self.external_programs['clang_include_graph']] + cmd
-            stdout = process_event_notifier.check_output(proc)
+            stdout = process_event_notifier.check_output(proc, cwd=test_case)
             toks = _split_by_null_char(stdout)
             while True:
                 try:
@@ -132,8 +132,8 @@ def _split_by_null_char(data: bytes) -> Iterator[str]:
 
 
 def _get_vocab_id(path: Path, test_case: Path, vocab: List[bytes], path_to_vocab: Dict[Path, int]) -> Optional[int]:
-    path = path.resolve()
-    test_case = test_case.resolve()
+    if not path.is_absolute():
+        path = (test_case / path).resolve()
     if not path.is_relative_to(test_case):
         return None
     rel_path = path.relative_to(test_case)

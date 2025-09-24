@@ -1,4 +1,5 @@
 from pathlib import Path
+import pytest
 from typing import Any, Tuple
 
 from cvise.passes.clangincludegraph import ClangIncludeGraphPass
@@ -15,7 +16,7 @@ def init_pass(tmp_dir: Path, input_path: Path) -> Tuple[ClangIncludeGraphPass, A
     return pass_, state
 
 
-def test_include(tmp_path: Path):
+def test_header_chain(tmp_path: Path):
     input_dir = tmp_path / 'test_case'
     input_dir.mkdir()
     (input_dir / 'main.cc').write_text('#include "foo.h"\n')
@@ -30,3 +31,22 @@ def test_include(tmp_path: Path):
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
     refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
     assert refs == {b'bar.h', b'foo.h'}
+
+
+@pytest.mark.parametrize('cmd_flag', ['-Isub', '-I sub', '-iquotesub', '-iquote sub'])
+def test_include_search_path(tmp_path: Path, cmd_flag: str):
+    input_dir = tmp_path / 'test_case'
+    input_dir.mkdir()
+    sub_dir = input_dir / 'sub'
+    sub_dir.mkdir()
+    (input_dir / 'main.cc').write_text('#include "foo.h"\n')
+    (input_dir / sub_dir / 'foo.h').touch()
+    (input_dir / 'Makefile').write_text(f'a.out:\n\tgcc -c {cmd_flag} -Wall main.cc\n')
+    p, state = init_pass(tmp_path, input_dir)
+    assert state is not None
+    bundle_paths = state.hint_bundle_paths()
+
+    assert b'@fileref' in bundle_paths
+    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
+    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    assert refs == {b'sub/foo.h'}
