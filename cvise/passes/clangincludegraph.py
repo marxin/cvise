@@ -59,8 +59,8 @@ class ClangIncludeGraphPass(HintBasedPass):
         path_to_vocab: Dict[Path, int] = {}
         hints: List[Hint] = []
         for (from_path, left_loc, right_loc), to_path_set in graph.items():
+            from_id = _get_vocab_id(from_path, test_case, vocab, path_to_vocab)
             for to_path in to_path_set:
-                from_id = _get_vocab_id(from_path, test_case, vocab, path_to_vocab)
                 to_id = _get_vocab_id(to_path, test_case, vocab, path_to_vocab)
                 # TODO: support edges from an external header back into the header in the test case
                 if from_id is not None and to_id is not None:
@@ -102,6 +102,8 @@ def _split_by_null_char(data: bytes) -> Iterator[str]:
 
 
 def _get_vocab_id(path: Path, test_case: Path, vocab: List[bytes], path_to_vocab: Dict[Path, int]) -> Optional[int]:
+    path = path.resolve()
+    test_case = test_case.resolve()
     if not path.is_relative_to(test_case):
         return None
     rel_path = path.relative_to(test_case)
