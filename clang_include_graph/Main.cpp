@@ -38,7 +38,7 @@ public:
                           OptionalFileEntryRef File, StringRef SearchPath,
                           StringRef RelativePath,
 #if LLVM_VERSION_MAJOR < 19
-                          const Module *Imported,
+                          const clang::Module *Imported,
 #else
                           const Module *SuggestedModule, bool ModuleImported,
 #endif

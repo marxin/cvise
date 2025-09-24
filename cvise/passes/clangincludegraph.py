@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 import re
 from typing import Dict, Iterator, List, Optional, Set, Tuple
@@ -17,7 +18,24 @@ _TWO_TOK_OPTIONS = re.compile(_PARAMETERIZED_OPTIONS)
 _HINT_VOCAB = (b'@fileref',)
 
 
+@dataclass(frozen=True, order=True)
+class _Edge:
+    """Edge in the inclusion graph.
+
+    A node is None if the path is outside the test case.
+    """
+
+    from_path: Path
+    from_node: Optional[int]
+    loc_begin: int
+    loc_end: int
+    to_path: Path
+    to_node: Optional[int]
+
+
 class ClangIncludeGraphPass(HintBasedPass):
+    """Extracts information on which C/C++ headers are included and from which files."""
+
     def check_prerequisites(self):
         return self.check_external_program('clang_include_graph')
 
@@ -41,7 +59,9 @@ class ClangIncludeGraphPass(HintBasedPass):
                         if cmd := _get_cmd_for_preprocessor(recipe_line.args, mk_path):
                             commands.append(cmd)
 
-        graph: Dict[Tuple[Path, int, int], Set[Path]] = {}
+        vocab: List[bytes] = list(_HINT_VOCAB)
+        path_to_vocab: Dict[Path, int] = {}
+        edges: Set[_Edge] = set()
         for cmd in commands:
             proc = [self.external_programs['clang_include_graph']] + cmd
             stdout = process_event_notifier.check_output(proc)
@@ -49,25 +69,30 @@ class ClangIncludeGraphPass(HintBasedPass):
             while True:
                 try:
                     from_path = Path(next(toks))
-                    left_loc = int(next(toks))
-                    right_loc = int(next(toks))
+                    loc_begin = int(next(toks))
+                    loc_end = int(next(toks))
                     to_path = Path(next(toks))
                 except StopIteration:
                     break
-                graph.setdefault((from_path, left_loc, right_loc), set()).add(to_path)
-
-        vocab: List[bytes] = list(_HINT_VOCAB)
-        path_to_vocab: Dict[Path, int] = {}
-        hints: List[Hint] = []
-        for (from_path, left_loc, right_loc), to_path_set in graph.items():
-            from_id = _get_vocab_id(from_path, test_case, vocab, path_to_vocab)
-            for to_path in to_path_set:
-                to_id = _get_vocab_id(to_path, test_case, vocab, path_to_vocab)
-                # TODO: support edges from an external header back into the header in the test case
-                if from_id is not None and to_id is not None:
-                    hints.append(
-                        Hint(type=0, patches=[Patch(left=left_loc, right=right_loc, file=from_id)], extra=to_id)
+                from_node = _get_vocab_id(from_path, test_case, vocab, path_to_vocab)
+                to_node = _get_vocab_id(to_path, test_case, vocab, path_to_vocab)
+                edges.add(
+                    _Edge(
+                        from_path=from_path,
+                        from_node=from_node,
+                        loc_begin=loc_begin,
+                        loc_end=loc_end,
+                        to_path=to_path,
+                        to_node=to_node,
                     )
+                )
+
+        hints: List[Hint] = []
+        for e in sorted(edges):
+            if e.from_node is not None and e.to_node is not None:
+                hints.append(
+                    Hint(type=0, patches=[Patch(left=e.loc_begin, right=e.loc_end, file=e.from_node)], extra=e.to_node)
+                )
         return HintBundle(hints=hints, vocabulary=vocab)
 
 
