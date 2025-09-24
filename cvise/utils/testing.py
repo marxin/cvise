@@ -1078,7 +1078,10 @@ class TestManager:
         for cand_id, ctx in enumerate(self.pass_contexts):
             if not ctx.can_transform_now():
                 continue
-            if pass_id is not None and self.pass_contexts[pass_id].current_batch_pass_job_counter <= ctx.current_batch_pass_job_counter:
+            if (
+                pass_id is not None
+                and self.pass_contexts[pass_id].current_batch_pass_job_counter <= ctx.current_batch_pass_job_counter
+            ):
                 continue
             pass_id = cand_id
         if pass_id is not None:
