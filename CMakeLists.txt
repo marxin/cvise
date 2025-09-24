@@ -217,6 +217,7 @@ add_test(NAME all COMMAND ${Python3_EXECUTABLE} -m pytest)
 include(GNUInstallDirs)
 
 add_subdirectory(clang_delta)
+add_subdirectory(clang_include_graph)
 add_subdirectory(clex)
 add_subdirectory(cvise)
 add_subdirectory(delta)

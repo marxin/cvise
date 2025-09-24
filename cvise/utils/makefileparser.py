@@ -5,6 +5,9 @@ import shlex
 from typing import List, Optional, Set
 
 
+FILE_NAMES = ('Makefile', 'makefile', 'GNUmakefile')
+
+
 @dataclass
 class SourceLoc:
     begin: int

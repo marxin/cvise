@@ -1,3 +1,4 @@
+#include <limits>
 #include <memory>
 #include <utility>
 
@@ -39,17 +40,22 @@ public:
 #if LLVM_VERSION_MAJOR < 19
                           const Module *Imported,
 #else
-                          const Module *SuggestedModule,
-                          bool ModuleImported,
+                          const Module *SuggestedModule, bool ModuleImported,
 #endif
                           SrcMgr::CharacteristicKind FileType) override {
     if (!File) {
       // Ignore broken includes.
       return;
     }
-    outs() << SourceMgr.getFilename(HashLoc) << " "
-           << SourceMgr.getSpellingLineNumber(HashLoc) << " " << File->getName()
-           << "\n";
+    SourceLocation EndOfLine = SourceMgr.translateLineCol(
+        SourceMgr.getFileID(HashLoc), SourceMgr.getSpellingLineNumber(HashLoc),
+        /*Col=*/std::numeric_limits<unsigned>::max());
+    unsigned L = SourceMgr.getFileOffset(HashLoc);
+    unsigned R = SourceMgr.getFileOffset(EndOfLine);
+    outs() << SourceMgr.getFilename(HashLoc) << '\0'
+           << L << '\0'
+           << R << '\0'
+           << File->getName() << '\0';
   }
 
 private:
@@ -77,7 +83,7 @@ public:
 } // namespace
 
 static cl::extrahelp CommonHelp(CommonOptionsParser::HelpMessage);
-static cl::OptionCategory ToolCategory("inclusion-graph options");
+static cl::OptionCategory ToolCategory("clang_include_graph options");
 
 int main(int argc, const char **argv) {
   llvm::sys::PrintStackTraceOnErrorSignal(argv[0]);
@@ -88,8 +94,8 @@ int main(int argc, const char **argv) {
     return 1;
   }
 
-  auto Err = Executor->get()->execute(
-      std::make_unique<InclusionGraphActionFactory>());
+  auto Err =
+      Executor->get()->execute(std::make_unique<InclusionGraphActionFactory>());
   if (Err) {
     errs() << toString(std::move(Err)) << "\n";
   }
