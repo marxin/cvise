@@ -32,7 +32,7 @@ class RmUnusedFilesPass(HintBasedPass):
                 referenced_files.add(test_case / bundle.vocabulary[hint.extra].decode())
 
         all_files = set(p for p in test_case.rglob('*') if not p.is_dir())
-        unmentioned_files = all_files - referenced_files
+        unmentioned_files = sorted(all_files - referenced_files)
 
         vocab = [_RM] + [str(p.relative_to(test_case)).encode() for p in unmentioned_files]
         hints = []
