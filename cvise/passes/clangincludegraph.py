@@ -10,8 +10,8 @@ from cvise.utils.process import ProcessEventNotifier
 
 
 _RECOGNIZED_PROGRAMS = re.compile(r'\bCC\b|clang|CLANG|\bCXX\b|g++|G++|gcc|GCC')
-_SIMPLE_OPTIONS = r'-no-canonical-prefixes|-nostdinc|-nostdinc++|--no-sysroot-suffix'
-_PARAMETERIZED_OPTIONS = r'-B|-D|--embed-dir|-I|-idirafter|-imultilib|-iplugindir|-iprefix|-iquote|-isysroot|-isystem|-iwithprefix|-iwithprefixbefore|--sysroot'
+_SIMPLE_OPTIONS = r'-no-canonical-prefixes|-nostdinc|-nostdinc++|--no-sysroot-suffix|-pthread|-undef'
+_PARAMETERIZED_OPTIONS = r'-B|-D|--embed-dir|-finput-charset|-fmax-include-depth|-I|-idirafter|-include|-imacros|-imultilib|-iplugindir|-iprefix|-iquote|-isysroot|-isystem|-iwithprefix|-iwithprefixbefore|-resource-dir|--sysroot|-U|-Xpreprocessor'
 _INPUT_FILE_NAMES = re.compile(r'[^-].*\.(c|C|c\+\+|cc|cp|cpp|CPP|cppm|cppmap|cxx|h|H||h\+\+|hp|hpp|HPP|hxx|modulemap)')
 _ONE_TOK_OPTIONS = re.compile(f'({_SIMPLE_OPTIONS})|(({_PARAMETERIZED_OPTIONS}).+)')
 _TWO_TOK_OPTIONS = re.compile(_PARAMETERIZED_OPTIONS)
