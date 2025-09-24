@@ -1,4 +1,3 @@
-from enum import Enum, unique
 from pathlib import Path
 import re
 from typing import Dict, Iterator, List, Optional, Set, Tuple
