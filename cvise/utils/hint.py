@@ -33,6 +33,7 @@ class Patch(msgspec.Struct, omit_defaults=True, gc=False):
     left: int = msgspec.field(name='l')
     right: int = msgspec.field(name='r')
     file: Optional[int] = msgspec.field(default=None, name='f')
+    operation: Optional[int] = msgspec.field(default=None, name='o')
     value: Optional[int] = msgspec.field(default=None, name='v')
 
 
@@ -71,7 +72,10 @@ class HintBundle:
 # JSON Schemas:
 
 HINT_PATCH_SCHEMA = {
-    'description': 'Hint patch object. By default, unless a specific property is specified, the object denotes a simple deletion of the specified chunk.',
+    'description': (
+        'Hint patch object. By default, unless a specific property is specified, the object denotes a simple deletion '
+        'of the specified chunk.'
+    ),
     'type': 'object',
     'properties': {
         'l': {
@@ -80,16 +84,33 @@ HINT_PATCH_SCHEMA = {
             'minimum': 0,
         },
         'r': {
-            'description': "Right position of the chunk (index of the next character in the text after the chunk's last character). Must be greater than 'l'.",
+            'description': (
+                "Right position of the chunk (index of the next character in the text after the chunk's last '"
+                "'character). Must be greater than 'l'."
+            ),
             'type': 'integer',
         },
         'f': {
-            'description': 'Specifies file where the patch is to be applied - the path is the string with the specified index in the vocabulary. Must be specified iff the input is a directory.',
+            'description': (
+                'Specifies file where the patch is to be applied - the path is the string with the specified index in '
+                'the vocabulary. Must be specified iff the input is a directory.'
+            ),
+            'type': 'integer',
+            'minimum': 0,
+        },
+        'o': {
+            'description': (
+                'Specifies the type of the special operation to be performed on the file/chunk. The number specifies '
+                'the index in the vocabulary. The only currently supported operation is "rm" - deleting the file.'
+            ),
             'type': 'integer',
             'minimum': 0,
         },
         'v': {
-            'description': 'Indicates that the chunk needs to be replaced with a new value - the string with the specified index in the vocabulary.',
+            'description': (
+                'Indicates that the chunk needs to be replaced with a new value - the string with the specified index '
+                'in the vocabulary.'
+            ),
             'type': 'integer',
             'minimum': 0,
         },
@@ -195,12 +216,14 @@ def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: 
             mkdir_up_to(file_dest.parent, destination_path.parent)
 
         patches_to_apply = path_to_patches.get(file_rel, [])
-        apply_hint_patches_to_file(patches_to_apply, bundles, source_file=path, destination_file=file_dest, stats=stats)
+        _apply_hint_patches_to_file(
+            patches_to_apply, bundles, source_file=path, destination_file=file_dest, stats=stats
+        )
 
     return stats
 
 
-def apply_hint_patches_to_file(
+def _apply_hint_patches_to_file(
     patches: List[_PatchWithBundleRef],
     bundles: List[HintBundle],
     source_file: Path,
@@ -211,12 +234,15 @@ def apply_hint_patches_to_file(
     orig_data = memoryview(source_file.read_bytes())
 
     new_data = bytearray()
+    should_rm = False
     start_pos = 0
     for patch_ref in merged_patches:
         p: Patch = patch_ref.patch
         bundle: HintBundle = bundles[patch_ref.bundle_id]
-        assert start_pos <= p.left < len(orig_data)
-        assert p.left < p.right <= len(orig_data)
+        assert start_pos <= p.left <= len(orig_data)
+        assert p.left <= p.right <= len(orig_data)
+        if p.operation is not None and bundle.vocabulary[p.operation] == b'rm':
+            should_rm = True
         # Add the unmodified chunk up to the current patch begin.
         new_data.extend(orig_data[start_pos : p.left])
         # Skip the original chunk inside the current patch.
@@ -231,7 +257,8 @@ def apply_hint_patches_to_file(
     # Add the unmodified chunk after the last patch end.
     new_data.extend(orig_data[start_pos:])
 
-    destination_file.write_bytes(new_data)
+    if not should_rm:  # otherwise don't create the file - this is equvalent to removing it
+        destination_file.write_bytes(new_data)
 
 
 def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
