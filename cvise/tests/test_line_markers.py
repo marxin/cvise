@@ -16,7 +16,7 @@ def init_pass(tmp_path: Path, input_path: Path):
     state = pass_.new(
         input_path, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
     )
-    validate_stored_hints(state, pass_)
+    validate_stored_hints(state, pass_, input_path)
     return pass_, state
 
 

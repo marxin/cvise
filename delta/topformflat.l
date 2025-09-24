@@ -15,6 +15,9 @@ void diag(char const *str);
 void possibleChunkBegin(int pos);
 void possibleChunkEnd(int pos);
 
+// index of file that's currently being parsed, or -1 for a single-file input.
+int file_id = 0;
+
 // index of byte where the current yytext ends in the input.
 int token_end_pos = 0;
 
@@ -40,8 +43,6 @@ int whitespace_end_pos = -1;
 
 /* optimize the scanner for performance */
 %option fast
-/* don't try to call yywrap() */
-%option noyywrap
 /* dsw: don't define yyunput() */
 %option nounput
 /* support all characters, including UTF-8 */
@@ -127,35 +128,85 @@ void possibleChunkEnd(int pos)
   if (nesting == threshold && chunk_start_pos < pos) {
     // Skip deleting chunks consisting of whitespaces only.
     if (chunk_start_pos < whitespace_start_pos || pos > whitespace_end_pos) {
-      printf("{\"p\":[{\"l\":%d,\"r\":%d}]}\n", chunk_start_pos, pos);
+      printf("{\"p\":[{\"l\":%d,\"r\":%d", chunk_start_pos, pos);
+      if (file_id != -1)
+        printf(",\"f\":%d", file_id);
+      printf("}]}\n");
     }
   }
   possibleChunkBegin(pos);
 }
 
+void reset_to_initial_state(void) {
+  BEGIN(INITIAL);
+  token_end_pos = 0;
+  chunk_start_pos = 0;
+  nesting = 0;
+  whitespace_start_pos = -1;
+  whitespace_end_pos = -1;
+}
+
+int yywrap(void) {
+  // In case there's some chunk of text remaining - e.g., if the file is not
+  // EOL-terminated and the last line was a preprocessor directive.
+  possibleChunkEnd(token_end_pos);
+
+  if (file_id == -1)
+    return 1;
+  if (yyin) {
+    fclose(yyin);
+    yyin = NULL;
+    ++file_id;
+  }
+  char *line = NULL;
+  size_t size = 0;
+  ssize_t nread = getline(&line, &size, stdin);
+  if (nread == -1) {
+    free(line);
+    return 1;
+  }
+  if (nread > 0 && line[nread - 1] == '\n')
+    line[nread - 1] = 0;
+  if (!strlen(line)) {
+    free(line);
+    return 1;
+  }
+  yyin = fopen(line, "r");
+  free(line);
+  reset_to_initial_state();
+  return !yyin;
+}
+
 char *version = "2025.6.25";
 int main(int argc, char *argv[])
 {
-  if (isatty(0)) {
+  if (argc != 3) {
     printf("topformflat_hints version %s\n", version);
-    printf("usage: %s [threshold] <input.c >hints.jsonl\n", argv[0]);
+    printf("USAGE: %s threshold file >hints.jsonl\n", argv[0]);
     printf("  The threshold (default: 0) specifies at what nesting level\n"
            "  of braces will line breaks be allowed (or inserted).  By\n"
            "  starting with 0, you get all top-level forms, one per line\n"
            "  (roughly).  Increasing the threshold leads to finer-grained\n"
            "  structure on each line.  The intent is to use the delta\n"
            "  minimizer on each level of granularity.\n");
-    return 0;
+    return 1;
   }
 
-  if (argc >= 2) {
-    threshold = atoi(argv[1]);    // user-specified threshold
+  threshold = atoi(argv[1]);    // user-specified threshold
+
+  if (strcmp(argv[2], "--") == 0) {
+    file_id = 0;
+    yyin = NULL;
+    yywrap();
+  } else {
+    file_id = -1;
+    yyin = fopen(argv[2], "r");
+    if (!yyin) {
+      fprintf(stderr, "Cannot open file: %s\n", argv[2]);
+      return 2;
+    }
   }
 
-  yyin = stdin;
   yylex();
-  // In case there's some chunk of text remaining - e.g., if the file is not
-  // EOL-terminated and the last line was a preprocessor directive.
-  possibleChunkEnd(token_end_pos);
   return 0;
 }
