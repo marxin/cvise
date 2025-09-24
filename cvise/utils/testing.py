@@ -1058,8 +1058,8 @@ class TestManager:
             ctx = self.pass_contexts[pass_id]
             assert ctx.stage == PassStage.ENUMERATING
             assert ctx.state is None
+            ctx.stage = PassStage.BEFORE_INIT
             if ctx.can_init_now(ready_hint_types):
-                ctx.stage = PassStage.BEFORE_INIT
                 self.last_reinit_job_order = self.order
                 self.schedule_init(pass_id, ready_hint_types)
                 return True
