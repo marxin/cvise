@@ -304,7 +304,7 @@ def _stress_test_atomicity(path_to_check: Path, init_callback: Callable, test_co
             assert result_callback(run_subprocess(critical_time - step * j)) != _AtomicityResult.CONTENTS_UNEXPECTED
 
 
-def test_hash_equality(tmp_path: Path):
+def test_hash_equality_file(tmp_path: Path):
     path_a = tmp_path / 'a.txt'
     path_a.write_text('foo')
     path_b = tmp_path / 'b.txt'
@@ -323,3 +323,80 @@ def test_hash_empty_file(tmp_path: Path):
     path_b.touch()
 
     assert hash_test_case(path_a) == hash_test_case(path_b)
+
+
+def test_hash_dir_same_files(tmp_path: Path):
+    dir_a = tmp_path / 'a'
+    dir_a.mkdir()
+    (dir_a / 'foo.txt').write_text('foo')
+    dir_b = tmp_path / 'b'
+    dir_b.mkdir()
+    (dir_b / 'foo.txt').write_text('foo')
+
+    assert hash_test_case(dir_a) == hash_test_case(dir_b)
+
+
+def test_hash_dir_different_file_paths(tmp_path: Path):
+    dir_a = tmp_path / 'a'
+    dir_a.mkdir()
+    (dir_a / 'foo.txt').write_text('foo')
+    dir_b = tmp_path / 'b'
+    dir_b.mkdir()
+    (dir_b / 'bar.txt').write_text('foo')
+
+    assert hash_test_case(dir_a) != hash_test_case(dir_b)
+
+
+def test_hash_dir_different_file_contents(tmp_path: Path):
+    dir_a = tmp_path / 'a'
+    dir_a.mkdir()
+    (dir_a / 'foo.txt').write_text('foo')
+    dir_b = tmp_path / 'b'
+    dir_b.mkdir()
+    (dir_b / 'foo.txt').write_text('bar')
+
+    assert hash_test_case(dir_a) != hash_test_case(dir_b)
+
+
+def test_hash_dir_same_subdirs(tmp_path: Path):
+    dir_a = tmp_path / 'a'
+    dir_a.mkdir()
+    (dir_a / 'foo').mkdir()
+    dir_b = tmp_path / 'b'
+    dir_b.mkdir()
+    (dir_b / 'foo').mkdir()
+
+    assert hash_test_case(dir_a) == hash_test_case(dir_b)
+
+
+def test_hash_dir_different_subdirs(tmp_path: Path):
+    dir_a = tmp_path / 'a'
+    dir_a.mkdir()
+    (dir_a / 'foo').mkdir()
+    dir_b = tmp_path / 'b'
+    dir_b.mkdir()
+    (dir_b / 'bar').mkdir()
+
+    assert hash_test_case(dir_a) != hash_test_case(dir_b)
+
+
+def test_hash_dir_same_symlinks(tmp_path: Path):
+    dir_a = tmp_path / 'a'
+    dir_a.mkdir()
+    (dir_a / 'foo').symlink_to('bar')
+    dir_b = tmp_path / 'b'
+    dir_b.mkdir()
+    (dir_b / 'foo').symlink_to('bar')
+
+    assert hash_test_case(dir_a) == hash_test_case(dir_b)
+
+
+def test_hash_dir_different_symlinks(tmp_path: Path):
+    dir_a = tmp_path / 'a'
+    dir_a.mkdir()
+    (dir_a / 'foo').symlink_to('bar')
+    dir_b = tmp_path / 'b'
+    dir_b.mkdir()
+    (dir_b / 'foo').symlink_to('barbaz')
+
+    assert hash_test_case(dir_a) != hash_test_case(dir_b)

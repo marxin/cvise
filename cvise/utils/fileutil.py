@@ -124,11 +124,37 @@ def hash_test_case(test_case: Path) -> bytes:
     buf = _hash_buf  # cache in local variables, which are presumably faster
 
     buf_view = memoryview(buf)
+    if test_case.is_dir():
+        return _hash_dir_tree(test_case, buf_view)
+    else:
+        return _hash_file(test_case, buf_view)
+
+
+def _hash_file(path: Path, buf: memoryview) -> bytes:
     hash = hashlib.sha256()
-    with io.FileIO(test_case, 'r') as f:  # use FileIO instead of open() as otherwise linters don't allow readinto()
-        while read_size := f.readinto(buf_view):
-            hash.update(buf_view[:read_size])
+    with io.FileIO(path, 'r') as f:  # use FileIO instead of open() as otherwise linters don't allow readinto()
+        while read_size := f.readinto(buf):
+            hash.update(buf[:read_size])
     return hash.digest()
+
+
+def _hash_dir_tree(dir: Path, buf: memoryview) -> bytes:
+    dir_hash = hashlib.sha256()
+    descendants = sorted(dir.rglob('*'))
+    for path in descendants:
+        rel_path = str(path.relative_to(dir)).encode()
+        path_hash = hashlib.sha256(rel_path).digest()
+        dir_hash.update(path_hash)
+
+        dir_hash.update(bytes([path.is_dir(), path.is_file(), path.is_symlink()]))
+
+        if path.is_symlink():
+            dest_path = str(Path(os.readlink(path))).encode()
+            dest_path_hash = hashlib.sha256(dest_path).digest()
+            dir_hash.update(dest_path_hash)
+        elif path.is_file():
+            dir_hash.update(_hash_file(path, buf))
+    return dir_hash.digest()
 
 
 def _get_test_case_files(test_case: Path) -> Iterable[Path]:
