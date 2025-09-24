@@ -90,6 +90,7 @@ class ClangIncludeGraphPass(HintBasedPass):
 
         hints: List[Hint] = []
         for e in sorted(edges):
+            # TODO: support edges from a non-test-case header back into the test-case header
             if e.from_node is not None and e.to_node is not None:
                 hints.append(
                     Hint(type=0, patches=[Patch(left=e.loc_begin, right=e.loc_end, file=e.from_node)], extra=e.to_node)
@@ -124,7 +125,7 @@ def _split_by_null_char(data: bytes) -> Iterator[str]:
     start = 0
     while start < len(data):
         sep = data.find(b'\0', start)
-        if sep == -1:
+        if sep == -1:  # shouldn't happen normally, but protect from it just in case
             sep = len(data)
         yield data[start:sep].decode()
         start = sep + 1
