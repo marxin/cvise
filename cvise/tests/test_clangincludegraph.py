@@ -11,7 +11,7 @@ from cvise.utils.process import ProcessEventNotifier
 def init_pass(tmp_dir: Path, input_path: Path) -> Tuple[ClangIncludeGraphPass, Any]:
     pass_ = ClangIncludeGraphPass(external_programs=find_external_programs())
     state = pass_.new(input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[])
-    validate_stored_hints(state, pass_)
+    validate_stored_hints(state, pass_, input_path)
     return pass_, state
 
 
