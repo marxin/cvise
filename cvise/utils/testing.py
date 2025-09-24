@@ -237,8 +237,8 @@ class PassContext:
     pass_job_counter: int
     # The value of pass_job_counter used for scheduling the most recent successful job.
     last_success_pass_job_counter: int
-    # The number of jobs started within the current batch (run_parallel_tests()).
-    current_batch_pass_job_counter: int
+    # The value of pass_job_counter when the current batch (run_parallel_tests()) started.
+    current_batch_start_job_counter: int
     # Currently running transform jobs, as the (order, state) mapping.
     running_transform_order_to_state: Dict[int, Any]
     # When True, the pass is considered dysfunctional (due to an issue) and shouldn't be used anymore.
@@ -262,12 +262,20 @@ class PassContext:
             taken_succeeded_state=None,
             pass_job_counter=0,
             last_success_pass_job_counter=0,
-            current_batch_pass_job_counter=0,
+            current_batch_start_job_counter=0,
             running_transform_order_to_state={},
             defunct=False,
             timeout_count=0,
             hint_bundle_paths={},
         )
+
+    def jobs_in_current_batch(self) -> int:
+        assert self.pass_job_counter >= self.current_batch_start_job_counter
+        return self.pass_job_counter - self.current_batch_start_job_counter
+
+    def jobs_since_last_success(self) -> int:
+        assert self.pass_job_counter >= self.last_success_pass_job_counter
+        return self.pass_job_counter - self.last_success_pass_job_counter
 
     def can_init_now(self, ready_hint_types: Set[bytes]) -> bool:
         """Whether the pass new() method can be scheduled."""
@@ -776,7 +784,7 @@ class TestManager:
 
         if not self.no_give_up and job.pass_id is not None:
             ctx = self.pass_contexts[job.pass_id]
-            if not ctx.defunct and ctx.pass_job_counter - ctx.last_success_pass_job_counter > self.GIVEUP_CONSTANT:
+            if not ctx.defunct and ctx.jobs_since_last_success() > self.GIVEUP_CONSTANT:
                 self.report_pass_bug(job, 'pass got stuck')
                 ctx.defunct = True
                 return PassCheckingOutcome.STOP
@@ -821,7 +829,7 @@ class TestManager:
         for pass_id, ctx in enumerate(self.pass_contexts):
             # Clean up the information about previously running jobs.
             ctx.running_transform_order_to_state = {}
-            ctx.current_batch_pass_job_counter = 0
+            ctx.current_batch_start_job_counter = ctx.pass_job_counter
             # Unfinished initializations from the last run will need to be restarted.
             if ctx.stage == PassStage.IN_INIT:
                 ctx.stage = PassStage.BEFORE_INIT
@@ -1080,7 +1088,7 @@ class TestManager:
                 continue
             if (
                 pass_id is not None
-                and self.pass_contexts[pass_id].current_batch_pass_job_counter <= ctx.current_batch_pass_job_counter
+                and self.pass_contexts[pass_id].jobs_in_current_batch() <= ctx.jobs_in_current_batch()
             ):
                 continue
             pass_id = cand_id
@@ -1141,7 +1149,6 @@ class TestManager:
         )
 
         ctx.pass_job_counter += 1
-        ctx.current_batch_pass_job_counter += 1
         ctx.stage = PassStage.IN_INIT
         self.order += 1
 
@@ -1187,7 +1194,6 @@ class TestManager:
         ctx.running_transform_order_to_state[self.order] = ctx.state
 
         ctx.pass_job_counter += 1
-        ctx.current_batch_pass_job_counter += 1
         self.order += 1
         ctx.state = ctx.pass_.advance(self.current_test_case, ctx.state)
 
