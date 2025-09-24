@@ -352,7 +352,7 @@ def test_give_up_on_stuck_pass(input_file: Path, manager):
 
 @patch('cvise.utils.testing.TestManager.GIVEUP_CONSTANT', 100)
 def test_interleaving_gives_up_only_stuck_passes(input_file: Path, manager):
-    """Check that when some passes get stuck in interleaving mode, they're stopped meanwhile others continue."""
+    """Check that when some passes get stuck in interleaving mode, others continue to be used."""
     stuck_pass = AlwaysInvalidPass()
     occasionally_working_pass = InvalidAndEveryNLinesPass(testing.TestManager.GIVEUP_CONSTANT // 3)
     manager.run_passes([stuck_pass, occasionally_working_pass], interleaving=True)
