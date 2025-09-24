@@ -38,11 +38,12 @@ class ClangIncludeGraphPass(HintBasedPass):
                 for recipe_line in rule.recipe:
                     program = recipe_line.program.value.decode()
                     if _RECOGNIZED_PROGRAMS.match(program):
-                        commands.append(_get_args_for_preprocessor(recipe_line.args, mk_path))
+                        if cmd := _get_cmd_for_preprocessor(recipe_line.args, mk_path):
+                            commands.append(cmd)
 
         graph: Dict[Tuple[Path, int, int], Set[Path]] = {}
-        for command in commands:
-            proc = [self.external_programs['clang_include_graph']] + command
+        for cmd in commands:
+            proc = [self.external_programs['clang_include_graph']] + cmd
             stdout = process_event_notifier.check_output(proc)
             toks = _split_by_null_char(stdout)
             while True:
@@ -70,7 +71,7 @@ class ClangIncludeGraphPass(HintBasedPass):
         return HintBundle(hints=hints, vocabulary=vocab)
 
 
-def _get_args_for_preprocessor(args: List[makefileparser.TextWithLoc], mk_path: Path) -> List[str]:
+def _get_cmd_for_preprocessor(args: List[makefileparser.TextWithLoc], mk_path: Path) -> Optional[List[str]]:
     input_files = []
     options = []
     i = 0
@@ -88,6 +89,8 @@ def _get_args_for_preprocessor(args: List[makefileparser.TextWithLoc], mk_path: 
             i += 1
         else:
             i += 1
+    if not input_files:
+        return None
     return [str(mk_path.parent / p) for p in input_files] + ['--'] + options
 
 
