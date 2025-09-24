@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 import re
-from typing import Dict, Iterator, List, Optional, Set, Tuple
+from typing import Dict, Iterator, List, Optional, Set
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import makefileparser
@@ -22,7 +22,8 @@ _HINT_VOCAB = (b'@fileref',)
 class _Edge:
     """Edge in the inclusion graph.
 
-    A node is None if the path is outside the test case.
+    A node is None if the path is outside the test case (e.g., a test case header includes a system/resourcedir header,
+    or vice versa).
     """
 
     from_path: Path
