@@ -11,6 +11,11 @@ from cvise.utils.hint import HINT_SCHEMA_STRICT, HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
 
 
+_TYPES_WITH_PATH_EXTRA = (b'@fileref',)
+_TYPES_ALLOWING_EMPTY_PATCHES = (b'@fileref',)
+_KNOWN_OPERATIONS = (b'rm',)
+
+
 def iterate_pass(current_pass: AbstractPass, path: Path, **kwargs) -> None:
     state = current_pass.new(path, **kwargs)
     while state is not None:
@@ -87,18 +92,26 @@ def validate_hint_bundle(bundle: HintBundle, test_case: Path, allowed_hint_types
             hint_type = bundle.vocabulary[hint.type]
             if allowed_hint_types is not None:
                 assert hint_type in allowed_hint_types
+        if hint.type is None or bundle.vocabulary[hint.type] not in _TYPES_ALLOWING_EMPTY_PATCHES:
+            assert len(hint.patches) > 0
         if hint.extra is not None:
             assert hint.extra < len(bundle.vocabulary)
-            if hint.type is not None and bundle.vocabulary[hint.type] == b'@fileref':
+            if hint.type is not None and bundle.vocabulary[hint.type] in _TYPES_WITH_PATH_EXTRA:
                 path = Path(bundle.vocabulary[hint.extra].decode())
                 assert not path.is_absolute()
                 assert (test_case / path).exists()
         for patch in hint.patches:
-            assert patch.left < patch.right
+            assert patch.left <= patch.right
             assert (patch.file is not None) == test_case.is_dir()
             if patch.file is not None:
+                assert patch.file < len(bundle.vocabulary)
                 path = Path(bundle.vocabulary[patch.file].decode())
                 assert not path.is_absolute()
                 assert (test_case / path).exists()
+            if patch.operation is not None:
+                assert patch.operation < len(bundle.vocabulary)
+                assert bundle.vocabulary[patch.operation] in _KNOWN_OPERATIONS
+            else:
+                assert patch.left < patch.right  # only special operations can use zero-size patches
             if patch.value is not None:
                 assert patch.value < len(bundle.vocabulary)
