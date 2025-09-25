@@ -136,9 +136,7 @@ def _split_by_spaces(text: TextWithLoc) -> List[TextWithLoc]:
     for tok in text.value.split():
         # Determine the token's position - split() doesn't return how many whitespaces were skipped.
         pos = text.value.find(tok, start_pos)
-        assert pos != -1, f'\ntok={tok}\ntext={text}\nstart_pos={start_pos}'
-        # if pos == -1:
-        #     return []
+        assert pos != -1
         tok_locs.append(text.substr(pos, pos + len(tok)))
         start_pos = pos + len(tok)
     return tok_locs
@@ -177,7 +175,7 @@ def _split_shell_cmd_line(text: TextWithLoc) -> List[TextWithLoc]:
                 and i + 1 < n
                 and text.value[i + 1] in ('$', '`', '"', '\\', '\n', '\r')
             ):  # backslash escape sequence
-                tok += text.value[i + 1]
+                tok.append(chr(text.value[i + 1]))
                 i += 2
                 continue
             elif c.isspace() and not active_quote:
