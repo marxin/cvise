@@ -110,17 +110,15 @@ static cl::OptionCategory ToolCategory("clang_include_graph options");
 
 static std::vector<std::string> getSourcePaths(int argc, const char **argv) {
   std::vector<const char *> Args(argv + 1, argv + argc);
-  llvm::IntrusiveRefCntPtr<clang::DiagnosticOptions> DiagOpts =
-      new clang::DiagnosticOptions();
   SuppressingDiagConsumer DiagConsumer;
   llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine> Diags =
       new clang::DiagnosticsEngine(
           llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs>(
               new clang::DiagnosticIDs()),
 #if LLVM_VERSION_MAJOR < 21
-          &*DiagOpts,
+          new clang::DiagnosticOptions(),
 #else
-          *DiagOpts,
+          std::make_unique<clang::DiagnosticOptions>(),
 #endif
           &DiagConsumer, /*ShouldOwnClient=*/false);
 
