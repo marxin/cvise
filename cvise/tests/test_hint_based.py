@@ -263,3 +263,4 @@ def test_hint_based_special_hints_stored(tmp_path: Path):
 
     all_transforms = collect_all_transforms(pass_, state, test_case)
     assert all_transforms == set()
+    assert pass_.advance(test_case, state) is None
