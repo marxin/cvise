@@ -159,3 +159,27 @@ good2.o:
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
     refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
     assert refs == {b'good1.h', b'good2.h'}
+
+
+def test_includes_from_outside(tmp_path: Path):
+    """Test that we detect a header as used if it's included from a header not belonging to the test case."""
+    input_dir = tmp_path / 'test_case'
+    input_dir.mkdir()
+    header_outside = tmp_path / 'outside.h'
+    header_outside.write_text('#include "inside.h"')
+    (input_dir / 'main.c').write_text(f'#include "{header_outside}"\n')
+    (input_dir / 'inside.h').touch()
+    (input_dir / 'Makefile').write_text(
+        """
+a.out:
+\tgcc -I. main.c
+        """
+    )
+    p, state = init_pass(tmp_path, input_dir)
+    assert state is not None
+    bundle_paths = state.hint_bundle_paths()
+
+    assert b'@fileref' in bundle_paths
+    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
+    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    assert refs == {b'inside.h'}

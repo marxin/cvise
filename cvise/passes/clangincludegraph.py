@@ -81,11 +81,12 @@ class ClangIncludeGraphPass(HintBasedPass):
 
         hints: List[Hint] = []
         for e in sorted(edges):
-            # TODO: support edges from a non-test-case header back into the test-case header
-            if e.from_node is not None and e.to_node is not None:
-                hints.append(
-                    Hint(type=0, patches=[Patch(left=e.loc_begin, right=e.loc_end, file=e.from_node)], extra=e.to_node)
-                )
+            if e.to_node is not None:
+                # If a file was included from a file inside test case, create a patch pointing to the include directive;
+                # otherwise leave the hint patchless (e.g., a system/resource dir header including a standard library
+                # header that's included into the test case).
+                patches = [] if e.from_node is None else [Patch(left=e.loc_begin, right=e.loc_end, file=e.from_node)]
+                hints.append(Hint(type=0, patches=patches, extra=e.to_node))
         return HintBundle(hints=hints, vocabulary=vocab)
 
 
