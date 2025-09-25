@@ -22,7 +22,8 @@ _TWO_TOKEN_OPTIONS_REMOVAL_BLOCKLIST = re.compile(
 @unique
 class _Vocab(Enum):
     # Items must be listed in the index order; indices must be contiguous and start from zero.
-    REMOVE_ARGUMENTS_ACROSS_ALL_COMMANDS = (0, b'remove-arguments-across-all-commands')
+    FILEREF = (0, b'@fileref')
+    REMOVE_ARGUMENTS_ACROSS_ALL_COMMANDS = (1, b'remove-arguments-across-all-commands')
 
 
 class MakefilePass(HintBasedPass):
@@ -58,6 +59,16 @@ def _interesting_file(path: Path) -> bool:
 
 def _create_hints_for_makefile(path: Path, file_id: int, hints: List[Hint]) -> None:
     mk = makefileparser.parse(path)
+
+    # Assume all makefiles to be used (typically the interestingness test would do so), not trying to delete them in
+    # RmUnusedFilesPass.
+    hints.append(
+        Hint(
+            type=_Vocab.FILEREF.value[0],
+            patches=[],
+            extra=file_id,
+        )
+    )
 
     # Removing argument(s) across all commands.
     arg_locs: Dict[bytes, List[makefileparser.SourceLoc]] = {}
