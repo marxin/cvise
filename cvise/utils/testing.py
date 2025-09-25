@@ -17,7 +17,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Any, Callable, Dict, List, Mapping, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Union
 import concurrent.futures
 
 from cvise.cvise import CVise
@@ -233,11 +233,15 @@ class PassContext:
     state: Any
     # The state that succeeded in the previous batch of jobs - to be passed as succeeded_state to advance_on_success().
     taken_succeeded_state: Any
-    # The number of jobs started within the current batch (run_parallel_tests()).
-    current_batch_jobs: int
+    # The overall number of jobs that have been started for the pass, throughout the whole run_passes() invocation.
+    pass_job_counter: int
+    # The value of pass_job_counter used for scheduling the most recent successful job.
+    last_success_pass_job_counter: int
+    # The value of pass_job_counter when the current batch (run_parallel_tests()) started.
+    current_batch_start_job_counter: int
     # Currently running transform jobs, as the (order, state) mapping.
     running_transform_order_to_state: Dict[int, Any]
-    # When True, the pass is considered dysfunctional and shouldn't be used anymore.
+    # When True, the pass is considered dysfunctional (due to an issue) and shouldn't be used anymore.
     defunct: bool
     # How many times a job for this pass timed out.
     timeout_count: int
@@ -256,12 +260,22 @@ class PassContext:
             temporary_root=Path(root),
             state=None,
             taken_succeeded_state=None,
-            current_batch_jobs=0,
+            pass_job_counter=0,
+            last_success_pass_job_counter=0,
+            current_batch_start_job_counter=0,
             running_transform_order_to_state={},
             defunct=False,
             timeout_count=0,
             hint_bundle_paths={},
         )
+
+    def jobs_in_current_batch(self) -> int:
+        assert self.pass_job_counter >= self.current_batch_start_job_counter
+        return self.pass_job_counter - self.current_batch_start_job_counter
+
+    def jobs_since_last_success(self) -> int:
+        assert self.pass_job_counter >= self.last_success_pass_job_counter
+        return self.pass_job_counter - self.last_success_pass_job_counter
 
     def can_init_now(self, ready_hint_types: Set[bytes]) -> bool:
         """Whether the pass new() method can be scheduled."""
@@ -294,9 +308,10 @@ class Job:
     order: int
 
     # If this job executes a method of a pass, these store pointers to it; None otherwise.
-    pass_: Union[AbstractPass, None]
-    pass_id: Union[int, None]
+    pass_: Optional[AbstractPass]
+    pass_id: Optional[int]
     pass_name: str
+    pass_job_counter: Optional[int]
 
     start_time: float
     timeout: float
@@ -719,12 +734,15 @@ class TestManager:
     def handle_finished_transform_job(self, job: Job) -> None:
         env: TestEnvironment = job.future.result()
         self.pass_statistic.add_executed(job.pass_, job.start_time, self.parallel_tests)
-        if job.pass_id is not None:
-            self.pass_contexts[job.pass_id].running_transform_order_to_state.pop(job.order)
+
+        ctx = self.pass_contexts[job.pass_id] if job.pass_id is not None else None
+        if ctx:
+            ctx.running_transform_order_to_state.pop(job.order)
 
         outcome = self.check_pass_result(job)
         if outcome == PassCheckingOutcome.STOP:
-            self.pass_contexts[job.pass_id].state = None
+            assert ctx is not None
+            ctx.state = None
             return
         if outcome == PassCheckingOutcome.IGNORE:
             self.pass_statistic.add_failure(job.pass_)
@@ -736,6 +754,8 @@ class TestManager:
         self.maybe_update_success_candidate(job.order, job.pass_, job.pass_id, env)
         if self.interleaving:
             self.folding_manager.on_transform_job_success(env.state)
+        if ctx:
+            ctx.last_success_pass_job_counter = max(ctx.last_success_pass_job_counter, job.pass_job_counter)
 
     def check_pass_result(self, job: Job):
         test_env: TestEnvironment = job.future.result()
@@ -762,11 +782,12 @@ class TestManager:
                 self.report_pass_bug(job, 'pass error')
                 return PassCheckingOutcome.STOP
 
-        if not self.no_give_up and test_env.order - self.current_batch_start_order > self.GIVEUP_CONSTANT:
-            if not self.giveup_reported:
+        if not self.no_give_up and job.pass_id is not None:
+            ctx = self.pass_contexts[job.pass_id]
+            if not ctx.defunct and ctx.jobs_since_last_success() > self.GIVEUP_CONSTANT:
                 self.report_pass_bug(job, 'pass got stuck')
-                self.giveup_reported = True
-            return PassCheckingOutcome.STOP
+                ctx.defunct = True
+                return PassCheckingOutcome.STOP
         return PassCheckingOutcome.IGNORE
 
     def maybe_update_success_candidate(
@@ -801,7 +822,6 @@ class TestManager:
     def run_parallel_tests(self) -> None:
         assert not self.jobs
         self.current_batch_start_order = self.order
-        self.giveup_reported = False
         assert self.success_candidate is None
         if self.interleaving:
             self.folding_manager = FoldingManager()
@@ -809,7 +829,7 @@ class TestManager:
         for pass_id, ctx in enumerate(self.pass_contexts):
             # Clean up the information about previously running jobs.
             ctx.running_transform_order_to_state = {}
-            ctx.current_batch_jobs = 0
+            ctx.current_batch_start_job_counter = ctx.pass_job_counter
             # Unfinished initializations from the last run will need to be restarted.
             if ctx.stage == PassStage.IN_INIT:
                 ctx.stage = PassStage.BEFORE_INIT
@@ -1031,7 +1051,7 @@ class TestManager:
         ready_hint_types = self.get_fully_initialized_hint_types()
         for pass_id, ctx in enumerate(self.pass_contexts):
             if ctx.can_init_now(ready_hint_types):
-                self.schedule_init(pass_id)
+                self.schedule_init(pass_id, ready_hint_types)
                 return True
         # 2. Reinitializing a previously finished pass.
         # We throttle reinits (only once out of REINIT_JOB_INTERVAL jobs) because they're only occasionally useful: for
@@ -1047,9 +1067,10 @@ class TestManager:
             assert ctx.stage == PassStage.ENUMERATING
             assert ctx.state is None
             ctx.stage = PassStage.BEFORE_INIT
-            self.last_reinit_job_order = self.order
-            self.schedule_init(pass_id)
-            return True
+            if ctx.can_init_now(ready_hint_types):
+                self.last_reinit_job_order = self.order
+                self.schedule_init(pass_id, ready_hint_types)
+                return True
         # 3. Attempting a fold (simultaneous application) of previously discovered successful transformations; only
         # supported in the "interleaving" pass execution mode.
         if self.interleaving:
@@ -1065,7 +1086,10 @@ class TestManager:
         for cand_id, ctx in enumerate(self.pass_contexts):
             if not ctx.can_transform_now():
                 continue
-            if pass_id is not None and self.pass_contexts[pass_id].current_batch_jobs <= ctx.current_batch_jobs:
+            if (
+                pass_id is not None
+                and self.pass_contexts[pass_id].jobs_in_current_batch() <= ctx.jobs_in_current_batch()
+            ):
                 continue
             pass_id = cand_id
         if pass_id is not None:
@@ -1073,9 +1097,9 @@ class TestManager:
             return True
         return False
 
-    def schedule_init(self, pass_id: int) -> None:
+    def schedule_init(self, pass_id: int, ready_hint_types: Set[bytes]) -> None:
         ctx = self.pass_contexts[pass_id]
-        assert ctx.can_init_now(self.get_fully_initialized_hint_types())
+        assert ctx.can_init_now(ready_hint_types)
 
         dependee_types = ctx.pass_.input_hint_types() if isinstance(ctx.pass_, HintBasedPass) else set()
         dependee_bundle_paths = []
@@ -1117,13 +1141,14 @@ class TestManager:
                 pass_=ctx.pass_,
                 pass_id=pass_id,
                 pass_name=repr(ctx.pass_),
+                pass_job_counter=ctx.pass_job_counter,
                 start_time=time.monotonic(),
                 timeout=init_timeout,
                 temporary_folder=None,
             )
         )
 
-        ctx.current_batch_jobs += 1
+        ctx.pass_job_counter += 1
         ctx.stage = PassStage.IN_INIT
         self.order += 1
 
@@ -1159,6 +1184,7 @@ class TestManager:
                 pass_=ctx.pass_,
                 pass_id=pass_id,
                 pass_name=repr(ctx.pass_),
+                pass_job_counter=ctx.pass_job_counter,
                 start_time=time.monotonic(),
                 timeout=self.timeout,
                 temporary_folder=folder,
@@ -1167,7 +1193,7 @@ class TestManager:
         assert self.order not in ctx.running_transform_order_to_state
         ctx.running_transform_order_to_state[self.order] = ctx.state
 
-        ctx.current_batch_jobs += 1
+        ctx.pass_job_counter += 1
         self.order += 1
         ctx.state = ctx.pass_.advance(self.current_test_case, ctx.state)
 
@@ -1198,6 +1224,7 @@ class TestManager:
                 pass_=None,
                 pass_id=None,
                 pass_name='Folding',
+                pass_job_counter=None,
                 start_time=time.monotonic(),
                 timeout=self.timeout,
                 temporary_folder=folder,

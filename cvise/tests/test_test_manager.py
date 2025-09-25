@@ -70,17 +70,17 @@ class HungPass(StubPass):
         return (PassResult.INVALID, state)
 
 
-class NInvalidThenLinesPass(NaiveLinePass):
-    """Starts removing lines after the first N invalid results."""
+class InvalidAndEveryNLinesPass(NaiveLinePass):
+    """Removes a line every N job; others exit with INVALID."""
 
     def __init__(self, invalid_n):
         super().__init__()
         self.invalid_n = invalid_n
 
     def transform(self, test_case: Path, state, *args, **kwargs):
-        if state < self.invalid_n:
+        if (state + 1) % self.invalid_n != 0:
             return (PassResult.INVALID, state)
-        return super().transform(test_case, state, *args, **kwargs)
+        return super().transform(test_case, state // self.invalid_n, *args, **kwargs)
 
 
 class OneOffLinesPass(NaiveLinePass):
@@ -334,7 +334,7 @@ def test_succeed_via_n_one_off_passes(input_file: Path, manager):
 def test_succeed_after_n_invalid_results(input_file: Path, manager):
     """Check that we still succeed even if the first few invocations were unsuccessful."""
     INVALID_N = 15
-    p = NInvalidThenLinesPass(INVALID_N)
+    p = InvalidAndEveryNLinesPass(INVALID_N)
     manager.run_passes([p], interleaving=False)
     assert input_file.read_text() == ''
     assert bug_dir_count() == 0
@@ -347,6 +347,17 @@ def test_give_up_on_stuck_pass(input_file: Path, manager):
     manager.run_passes([p], interleaving=False)
     assert input_file.read_text() == INPUT_DATA
     # The "pass got stuck" report.
+    assert bug_dir_count() == 1
+
+
+@patch('cvise.utils.testing.TestManager.GIVEUP_CONSTANT', 100)
+def test_interleaving_gives_up_only_stuck_passes(input_file: Path, manager):
+    """Check that when some passes get stuck in interleaving mode, others continue to be used."""
+    stuck_pass = AlwaysInvalidPass()
+    occasionally_working_pass = InvalidAndEveryNLinesPass(testing.TestManager.GIVEUP_CONSTANT // 3)
+    manager.run_passes([stuck_pass, occasionally_working_pass], interleaving=True)
+    assert input_file.read_text() == ''
+    # The "pass got stuck" report (for the stuck pass).
     assert bug_dir_count() == 1
 
 
