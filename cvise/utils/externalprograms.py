@@ -9,6 +9,7 @@ DESTDIR = os.getenv('DESTDIR', '')
 def find_external_programs():
     programs = {
         'clang_delta': 'clang_delta',
+        'clang_include_graph': 'clang_include_graph',
         'clex': 'clex',
         'topformflat_hints': 'delta',
         'treesitter_delta': 'treesitter_delta',

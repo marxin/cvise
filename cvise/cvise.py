@@ -10,6 +10,7 @@ from cvise.passes.blank import BlankPass
 from cvise.passes.clang import ClangPass
 from cvise.passes.clangbinarysearch import ClangBinarySearchPass
 from cvise.passes.clanghints import ClangHintsPass
+from cvise.passes.clangincludegraph import ClangIncludeGraphPass
 from cvise.passes.clangmodulemap import ClangModuleMapPass
 from cvise.passes.clex import ClexPass
 from cvise.passes.clexhints import ClexHintsPass
@@ -78,6 +79,7 @@ class CVise:
         'clang': ClangPass,
         'clangbinarysearch': ClangBinarySearchPass,
         'clanghints': ClangHintsPass,
+        'clangincludegraph': ClangIncludeGraphPass,
         'clangmodulemap': ClangModuleMapPass,
         'clex': ClexPass,
         'clexhints': ClexHintsPass,

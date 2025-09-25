@@ -8,7 +8,6 @@ from cvise.utils import makefileparser
 from cvise.utils.hint import Hint, HintBundle, Patch
 
 
-_FILE_NAMES = ('Makefile', 'makefile', 'GNUmakefile')
 # TODO: make these configurable
 _TWO_TOKEN_OPTIONS = re.compile(rb'-I|-iquote|-isystem|-o|-Xclang')
 _REMOVAL_BLOCKLIST = re.compile(
@@ -40,21 +39,17 @@ class MakefilePass(HintBasedPass):
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         paths = list(test_case.rglob('*')) if test_case.is_dir() else [test_case]
-        interesting_paths = [p for p in paths if _interesting_file(p)]
+        makefiles = [p for p in paths if p.name in makefileparser.FILE_NAMES]
 
         vocab: List[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
         hints: List[Hint] = []
-        for path in interesting_paths:
+        for path in makefiles:
             rel_path = path.relative_to(test_case)
             vocab.append(str(rel_path).encode())
             file_id = len(vocab) - 1
             _create_hints_for_makefile(path, file_id, hints)
 
         return HintBundle(hints=hints, vocabulary=vocab)
-
-
-def _interesting_file(path: Path) -> bool:
-    return path.name in _FILE_NAMES
 
 
 def _create_hints_for_makefile(path: Path, file_id: int, hints: List[Hint]) -> None:
