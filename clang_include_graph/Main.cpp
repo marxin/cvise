@@ -117,7 +117,12 @@ static std::vector<std::string> getSourcePaths(int argc, const char **argv) {
       new clang::DiagnosticsEngine(
           llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs>(
               new clang::DiagnosticIDs()),
-          &*DiagOpts, &DiagConsumer, /*ShouldOwnClient=*/false);
+#if LLVM_VERSION_MAJOR < 21
+          &*DiagOpts,
+#else
+          &*DiagOpts,
+#endif
+          &DiagConsumer, /*ShouldOwnClient=*/false);
 
   auto Invocation = std::make_shared<clang::CompilerInvocation>();
   if (!clang::CompilerInvocation::CreateFromArgs(*Invocation, Args, *Diags)) {
