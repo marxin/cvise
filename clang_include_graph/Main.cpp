@@ -120,7 +120,7 @@ static std::vector<std::string> getSourcePaths(int argc, const char **argv) {
 #if LLVM_VERSION_MAJOR < 21
           &*DiagOpts,
 #else
-          &*DiagOpts,
+          *DiagOpts,
 #endif
           &DiagConsumer, /*ShouldOwnClient=*/false);
 
