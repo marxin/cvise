@@ -16,7 +16,7 @@ class RmUnusedFilesPass(HintBasedPass):
     applicable to test cases that are directories.
 
     The information about file usage has to be supplied by other passes, like MakefilePass, ClangIncludeGraphPass, etc.,
-    in form of "@fileref" hints. Any file that's not mentioned in any of the hints as being referred-by is attempted to
+    in form of "@fileref" hints. Any file that's not mentioned in any of the hints as being referred-to is attempted to
     be deleted.
     """
 
