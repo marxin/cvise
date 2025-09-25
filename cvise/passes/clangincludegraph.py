@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from pathlib import Path
-import re
 from typing import Dict, Iterator, List, Optional, Set
 
 from cvise.passes.hint_based import HintBasedPass

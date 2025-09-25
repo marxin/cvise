@@ -89,8 +89,6 @@ def test_unrelated_commands(tmp_path: Path):
     """Test that we don't run preprocessor on files only mentioned in non-compilation commands."""
     input_dir = tmp_path / 'test_case'
     input_dir.mkdir()
-    sub_dir = input_dir / 'sub'
-    sub_dir.mkdir()
     (input_dir / 'good.cpp').write_text('#include "header.hpp"\n')
     (input_dir / 'header.hpp').touch()
     (input_dir / 'bad.cpp').write_text('#include "nonexisting.h"\n')
@@ -110,6 +108,28 @@ foo.txt:
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
     refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
     assert refs == {b'header.hpp'}
+
+
+def test_unknown_flags(tmp_path: Path):
+    """Test that we still get hints from the preprocessor even if unknown command-line flags are present."""
+    input_dir = tmp_path / 'test_case'
+    input_dir.mkdir()
+    (input_dir / 'good.c').write_text('#include "header.h"\n')
+    (input_dir / 'header.h').touch()
+    (input_dir / 'Makefile').write_text(
+        """
+a.out:
+\tclang -foobar good.c -abacaba
+        """
+    )
+    p, state = init_pass(tmp_path, input_dir)
+    assert state is not None
+    bundle_paths = state.hint_bundle_paths()
+
+    assert b'@fileref' in bundle_paths
+    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
+    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    assert refs == {b'header.h'}
 
 
 def test_some_commands_fail(tmp_path: Path):
