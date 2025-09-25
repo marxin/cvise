@@ -107,6 +107,10 @@ class HintState:
         return self.per_type_states[self.ptr].underlying_state.real_chunk()
 
     def advance(self) -> Union[HintState, None]:
+        if not self.per_type_states:
+            # This is reachable if only special hint types are present.
+            return None
+
         # First, prepare the current type's sub-state to point to the next enumeration step.
         new_substate = self.per_type_states[self.ptr].advance()
         if new_substate is None and len(self.per_type_states) == 1:
