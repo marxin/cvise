@@ -175,7 +175,7 @@ def _split_shell_cmd_line(text: TextWithLoc) -> List[TextWithLoc]:
                 and i + 1 < n
                 and text.value[i + 1] in ('$', '`', '"', '\\', '\n', '\r')
             ):  # backslash escape sequence
-                tok.append(chr(text.value[i + 1]))
+                tok.append(text.value[i + 1])
                 i += 2
                 continue
             elif c.isspace() and not active_quote:
