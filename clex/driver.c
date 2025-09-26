@@ -482,27 +482,29 @@ int yywrap(void) {
   }
   char *line = NULL;
   size_t size = 0;
-  ssize_t nread = getline(&line, &size, stdin);
-  if (nread == -1) {
-    free(line);
-    return 1;
-  }
-  if (nread > 0 && line[nread - 1] == '\n')
-    line[nread - 1] = 0;
-  if (!strlen(line)) {
+  ssize_t nread = getdelim(&line, &size, 0, stdin);
+  if (nread == -1 || !strlen(line)) {
     free(line);
     return 1;
   }
   yyin = fopen(line, "r");
-  free(line);
-  reset_to_initial_state();
+  if (!yyin) {
+    fprintf(stderr, "Cannot open file: %s\n", line);
+    free(line);
+    return 1;
+  }
   tok_end_pos = 0;
-  return !yyin;
+  restart_with_new_file();
+  free(line);
+  return 0;
 }
 
 int main(int argc, char *argv[]) {
   if (argc != 4) {
     printf("USAGE: %s command index file\n", argv[0]);
+    printf("  \"--\" can be specified instead of file, in which case input\n"
+           "  file paths should be sent as null-character-separated list into\n"
+           "  stdin.\n");
     exit(STOP);
   }
 
@@ -545,7 +547,8 @@ int main(int argc, char *argv[]) {
   if (strcmp(argv[3], "--") == 0) {
     file_id = 0;
     yyin = NULL;
-    yywrap();
+    if (yywrap())
+      exit(STOP);
   } else {
     file_id = -1;
     yyin = fopen(argv[3], "r");

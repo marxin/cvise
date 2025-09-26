@@ -26,7 +26,7 @@ extern int yyleng;
  */
 extern int count;
 extern int tok_end_pos;
-void reset_to_initial_state(void);
+void restart_with_new_file(void);
 
 enum tok_kind {
   TOK_KEYWORD = 999,

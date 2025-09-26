@@ -34,11 +34,11 @@ class ClexHintsPass(HintBasedPass):
         if test_case.is_dir():
             work_dir = test_case
             paths = [p.relative_to(test_case) for p in test_case.rglob('*') if not p.is_dir()]
-            stdin = b'\n'.join(bytes(p) for p in paths)
+            stdin = b'\0'.join(bytes(p) for p in paths)
             files_vocab = [str(p).encode() for p in paths]
             cmd_arg = '--'
         else:
-            work_dir = '.'
+            work_dir = None
             stdin = b''
             files_vocab = []
             cmd_arg = str(test_case)
