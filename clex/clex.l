@@ -128,30 +128,23 @@ L?\"(\\.|[^\\"])*\"	{ process_token(TOK_STRING); }
 "\\"                    { process_token(TOK_OTHER); }
 
 "/*"        {
-                     for ( ; ; )  {
-                         int c;
-                         /* eat up text of comment */
-                         do {
-                            c = input();
-                            ++tok_end_pos;
-                         } while (c != '*' && c != EOF);
-
-                         if ( c == '*' )
-                             {
-                             do {
-                                c = input();
-                                ++tok_end_pos;
-                             } while (c == '*');
-                             if ( c == '/' )
-                                 break;    /* found the end */
-                             }
-
-                         if ( c == EOF )
-                             {
-                                 exit(STOP);
-                             }
+                int start_file_id = file_id;
+                int prev = 0;
+                for (;;)  {
+                    int c = input();
+                    if (c == EOF)
+                        break;
+                    if (file_id != start_file_id) {
+                        /* don't cross file boundaries */
+                        unput(c);
+                        break;
                     }
-           }
+                    ++tok_end_pos;
+                    if (c == '/' && prev == '*')
+                        break;  /* found the end */
+                    prev = c;
+                }
+            }
 
 [ \t\v\f]		{ process_token(TOK_WS); }
 

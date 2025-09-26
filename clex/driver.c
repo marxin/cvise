@@ -37,13 +37,14 @@ struct tok_t {
   int start_pos;
 };
 
-static int file_id;
+int file_id;
 static struct tok_t *tok_list;
 static int toks;
 static int max_toks;
 static const int initial_length = 1;
 
 static int add_tok(char *str, enum tok_kind kind) {
+  // fprintf(stderr, "add_tok\n");
   assert(str);
   if (toks >= max_toks) {
     max_toks *= 2;
