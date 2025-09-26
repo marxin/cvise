@@ -197,3 +197,94 @@ b.out: \
         """,
         ),
     ) in all_transforms
+
+
+def test_argument_with_escaped_quotes(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'Makefile').write_text(
+        """
+a.o:
+\tgcc -Dfoo=\\"x y\\" foo.c
+        """,
+    )
+    p, state = init_pass(tmp_path, test_case_path)
+    all_transforms = collect_all_transforms_dir(p, state, test_case_path)
+
+    # -D... removed
+    assert (
+        (
+            'Makefile',
+            b"""
+a.o:
+\tgcc  foo.c
+        """,
+        ),
+    ) in all_transforms
+    # the argument isn't half-removed
+    assert (
+        (
+            'Makefile',
+            b"""
+a.o:
+\tgcc -Dfoo=\\"x  foo.c
+        """,
+        ),
+    ) not in all_transforms
+    assert (
+        (
+            'Makefile',
+            b"""
+a.o:
+\tgcc  y\\" foo.c
+        """,
+        ),
+    ) not in all_transforms
+
+
+def test_argument_with_nested_quotes(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'Makefile').write_text(
+        """
+a.o:
+\tgcc '-Dfoo="x y"' foo.c
+        """,
+    )
+    p, state = init_pass(tmp_path, test_case_path)
+    all_transforms = collect_all_transforms_dir(p, state, test_case_path)
+
+    # -D... removed
+    assert (
+        (
+            'Makefile',
+            b"""
+a.o:
+\tgcc  foo.c
+        """,
+        ),
+    ) in all_transforms
+    # the argument isn't partially-removed
+    assert (
+        (
+            'Makefile',
+            b"""
+a.o:
+\tgcc '-Dfoo="x  foo.c
+        """,
+        ),
+    ) not in all_transforms
+    assert (
+        (
+            'Makefile',
+            b"""
+a.o:
+\tgcc  y"' foo.c
+        """,
+        ),
+    ) not in all_transforms
+    assert (
+        (
+            'Makefile',
+            b"""
+a.o:
+\tgcc '-Dfoo=' foo.c
+        """,
+        ),
+    ) not in all_transforms

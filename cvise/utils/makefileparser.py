@@ -1,7 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
-import shlex
 from typing import List, Optional, Set
 
 
@@ -110,10 +109,10 @@ def _parse_rule_line(line: TextWithLoc) -> Optional[Rule]:
         line = line.substr(0, comment_start)
 
     before_semicolon = line.substr(0, semicolon_pos)
-    targets = _to_paths(_get_tok_locs(before_semicolon, before_semicolon.value.split()))
+    targets = _to_paths(_split_by_spaces(before_semicolon))
 
     after_semicolon = line.substr(semicolon_pos + 1)
-    prereqs = _to_paths(_get_tok_locs(after_semicolon, after_semicolon.value.split()))
+    prereqs = _to_paths(_split_by_spaces(after_semicolon))
 
     # Loc, recipe, unclassified_lines may get updated later when parsing recipe lines.
     return Rule(loc=line.loc, targets=targets, prereqs=prereqs, recipe=[], unclassified_lines=[])
@@ -125,25 +124,68 @@ def _parse_recipe_line(line: TextWithLoc) -> Optional[RecipeLine]:
     line = line.substr(1)
     if line.value.startswith(b'@'):
         line = line.substr(1)
-    cmd_toks = [s.encode() for s in shlex.split(line.value.decode(), comments=True)]
-    cmd_tok_locs = _get_tok_locs(line, cmd_toks)
+    cmd_tok_locs = _split_shell_cmd_line(line)
     if not cmd_tok_locs:
         return None
     return RecipeLine(loc=line.loc, program=cmd_tok_locs[0], args=cmd_tok_locs[1:])
 
 
-def _get_tok_locs(text: TextWithLoc, tokens: List[bytes]) -> List[TextWithLoc]:
+def _split_by_spaces(text: TextWithLoc) -> List[TextWithLoc]:
     start_pos = 0
     tok_locs = []
-    for tok in tokens:
+    for tok in text.value.split():
         # Determine the token's position - split() doesn't return how many whitespaces were skipped.
         pos = text.value.find(tok, start_pos)
         assert pos != -1
-        begin = text.loc.begin + pos
-        end = begin + len(tok)
-        tok_loc = SourceLoc(begin=begin, end=end)
-        tok_locs.append(TextWithLoc(loc=tok_loc, value=tok))
+        tok_locs.append(text.substr(pos, pos + len(tok)))
         start_pos = pos + len(tok)
+    return tok_locs
+
+
+def _split_shell_cmd_line(text: TextWithLoc) -> List[TextWithLoc]:
+    # Note: not using shlex because it doesn't report token locations.
+
+    tok_locs = []
+    i = 0
+    n = len(text.value)
+    while i < n:
+        # Skip spaces before the next token.
+        while i < n and chr(text.value[i]).isspace():
+            i += 1
+        if i == n:
+            break
+
+        begin = i
+        tok = bytearray()
+        active_quote = None
+        while i < n:
+            c = chr(text.value[i])
+            if c in ('"', "'"):
+                if c == active_quote:  # quotes end
+                    active_quote = None
+                    i += 1
+                    continue
+                if not active_quote:  # quotes start
+                    active_quote = c
+                    i += 1
+                    continue
+            elif (
+                c == '\\'
+                and active_quote == '"'
+                and i + 1 < n
+                and text.value[i + 1] in ('$', '`', '"', '\\', '\n', '\r')
+            ):  # backslash escape sequence
+                tok.append(text.value[i + 1])
+                i += 2
+                continue
+            elif c.isspace() and not active_quote:
+                break
+            tok.append(ord(c))
+            i += 1
+
+        loc = SourceLoc(begin=text.loc.begin + begin, end=text.loc.begin + i)
+        tok_locs.append(TextWithLoc(loc, tok))
+
     return tok_locs
 
 
