@@ -100,6 +100,7 @@ def validate_hint_bundle(bundle: HintBundle, test_case: Path, allowed_hint_types
                 path = Path(bundle.vocabulary[hint.extra].decode())
                 assert not path.is_absolute()
                 assert (test_case / path).exists()
+                assert (test_case / path).is_relative_to(test_case)
         for patch in hint.patches:
             assert patch.left <= patch.right
             assert (patch.file is not None) == test_case.is_dir()
@@ -108,6 +109,8 @@ def validate_hint_bundle(bundle: HintBundle, test_case: Path, allowed_hint_types
                 path = Path(bundle.vocabulary[patch.file].decode())
                 assert not path.is_absolute()
                 assert (test_case / path).exists()
+                assert (test_case / path).is_relative_to(test_case)
+                assert patch.right <= (test_case / path).stat().st_size
             if patch.operation is not None:
                 assert patch.operation < len(bundle.vocabulary)
                 assert bundle.vocabulary[patch.operation] in _KNOWN_OPERATIONS

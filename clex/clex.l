@@ -165,6 +165,7 @@ int count = 0;
 // index of byte where the current yytext ends in the input.
 int tok_end_pos = 0;
 
-void reset_to_initial_state(void) {
+void restart_with_new_file(void) {
     BEGIN(INITIAL);
+    YY_NEW_FILE;
 }

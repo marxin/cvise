@@ -160,21 +160,21 @@ int yywrap(void) {
   }
   char *line = NULL;
   size_t size = 0;
-  ssize_t nread = getline(&line, &size, stdin);
-  if (nread == -1) {
-    free(line);
-    return 1;
-  }
-  if (nread > 0 && line[nread - 1] == '\n')
-    line[nread - 1] = 0;
-  if (!strlen(line)) {
+  ssize_t nread = getdelim(&line, &size, 0, stdin);
+  if (nread == -1 || !strlen(line)) {
     free(line);
     return 1;
   }
   yyin = fopen(line, "r");
-  free(line);
+  if (!yyin) {
+    fprintf(stderr, "Cannot open file: %s\n", line);
+    free(line);
+    return 1;
+  }
   reset_to_initial_state();
-  return !yyin;
+  yyrestart(yyin);
+  free(line);
+  return 0;
 }
 
 char *version = "2025.6.25";
@@ -197,7 +197,8 @@ int main(int argc, char *argv[])
   if (strcmp(argv[2], "--") == 0) {
     file_id = 0;
     yyin = NULL;
-    yywrap();
+    if (yywrap())
+      return 2;
   } else {
     file_id = -1;
     yyin = fopen(argv[2], "r");

@@ -57,10 +57,10 @@ class LinesPass(HintBasedPass):
         # limit).
         if is_dir:
             work_dir = test_case
-            stdin = b'\n'.join(bytes(p) for p in paths)
+            stdin = b'\0'.join(bytes(p.relative_to(test_case)) for p in paths)
             cmd_file_arg = '--'
         else:
-            work_dir = '.'
+            work_dir = None
             stdin = b''
             cmd_file_arg = str(test_case)
 

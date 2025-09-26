@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
   std::vector<std::filesystem::path> InputPaths;
   if (MultiFile) {
     std::string Line;
-    while (std::getline(std::cin, Line)) {
+    while (std::getline(std::cin, Line, '\0')) {
       if (Line.empty())
         continue;
       InputPaths.push_back(std::move(Line));
