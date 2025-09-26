@@ -183,6 +183,9 @@ int main(int argc, char *argv[])
   if (argc != 3) {
     printf("topformflat_hints version %s\n", version);
     printf("USAGE: %s threshold file >hints.jsonl\n", argv[0]);
+    printf("  \"--\" can be specified instead of file, in which case input\n"
+           "  file paths should be sent as null-character-separated list into\n"
+           "  stdin.\n");
     printf("  The threshold (default: 0) specifies at what nesting level\n"
            "  of braces will line breaks be allowed (or inserted).  By\n"
            "  starting with 0, you get all top-level forms, one per line\n"

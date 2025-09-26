@@ -60,8 +60,8 @@ int main(int argc, char *argv[]) {
 
   if (argc != 3) {
     std::cerr << "Usage: " << argv[0] << " transformation input/file/path\n"
-              << "  or, for multi-file, send the paths as newline-separated "
-                 "list in stdin: "
+              << "  or, for multi-file, send the paths as "
+                 "null-character-separated list in stdin: "
               << argv[0] << " transformation --\n"
               << "transformation: one of \"replace-function-def-with-decl\", "
                  "\"erase-namespace\", \"remove-function\".\n";

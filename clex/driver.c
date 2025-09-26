@@ -502,6 +502,9 @@ int yywrap(void) {
 int main(int argc, char *argv[]) {
   if (argc != 4) {
     printf("USAGE: %s command index file\n", argv[0]);
+    printf("  \"--\" can be specified instead of file, in which case input\n"
+           "  file paths should be sent as null-character-separated list into\n"
+           "  stdin.\n");
     exit(STOP);
   }
 
