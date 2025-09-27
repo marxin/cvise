@@ -24,6 +24,7 @@ IS			(u|U|l|L)*
 #endif
 
 #include <defs.h>
+#include <limits.h>
 
 // update the position whenever a token is about to be processed
 // (this macro is triggered by Flex prior to executing the matched rule’s action).
@@ -129,27 +130,23 @@ L?\"(\\.|[^\\"])*\"	{ process_token(TOK_STRING); }
 "\\"                    { process_token(TOK_OTHER); }
 
 "/*"        {
-                     for ( ; ; )  {
-                         int c;
-                         while ( (c = input()) != '*' &&
-                                  c != EOF )
-                             ;    /* eat up text of comment */
-
-                         if ( c == '*' )
-                             {
-                             while ( (c = input()) == '*' )
-                                 ;
-                             if ( c == '/' )
-                                 break;    /* found the end */
-                             }
-
-                         if ( c == EOF )
-                             {
-                             fprintf(stderr, "EOF in comment" );
-			     assert (0);
-                             }
+                int start_file_id = file_id;
+                int prev = 0;
+                for (;;)  {
+                    int c = input();
+                    if (c == EOF || file_id == INT_MAX)
+                        break;
+                    if (file_id != start_file_id) {
+                        /* don't cross file boundaries */
+                        unput(c);
+                        break;
                     }
-           }
+                    ++tok_end_pos;
+                    if (c == '/' && prev == '*')
+                        break;  /* found the end */
+                    prev = c;
+                }
+            }
 
 [ \t\v\n\f]		{ process_token(TOK_WS); }
 

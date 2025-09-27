@@ -1,5 +1,6 @@
 from pathlib import Path
 import pytest
+import stat
 from typing import Any, List, Tuple
 
 from cvise.passes.abstract import SubsegmentState
@@ -245,3 +246,29 @@ def test_directory_input_leading_trailing_spaces(tmp_path: Path):
 
     assert (('a.txt', b'\n'), ('b.txt', b'\nchar\n')) in all_transforms
     assert (('a.txt', b'\nint\n'), ('b.txt', b'\n')) in all_transforms
+
+
+def test_directory_unclosed_c_comment(tmp_path: Path):
+    """Test that we don't let C comments across file boundaries"""
+    test_case = tmp_path / 'test_case'
+    test_case.mkdir()
+    (test_case / 'a.c').write_text('int /*\n')
+    (test_case / 'b.c').write_text('char /*\n')
+    p, state = init_pass('rm-toks-1-to-1', tmp_path, test_case)
+    all_transforms = collect_all_transforms_dir(p, state, test_case)
+
+    assert (('a.c', b'/*\n'), ('b.c', b'char /*\n')) in all_transforms
+    assert (('a.c', b'int /*\n'), ('b.c', b'/*\n')) in all_transforms
+
+
+def test_directory_file_reading_failure(tmp_path: Path):
+    """Test that the pass doesn't raise exceptions or hang when some file is unreadable."""
+    test_case = tmp_path / 'test_case'
+    test_case.mkdir()
+    file = test_case / 'foo.c'
+    file.touch()
+    file.chmod(file.stat().st_mode & ~stat.S_IRUSR)
+    p, state = init_pass('rm-toks-1-to-1', tmp_path, test_case)
+    all_transforms = collect_all_transforms_dir(p, state, test_case)
+
+    assert all_transforms == set()
