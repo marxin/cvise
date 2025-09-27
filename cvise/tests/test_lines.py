@@ -815,3 +815,15 @@ def test_multi_file_arg_0(tmp_path: Path):
     ) in all_transforms
     assert (('bar.cc', b'void f() {\n}\nvoid g() {\n}\n'), ('foo.cc', b'int x;\n')) in all_transforms
     assert (('bar.cc', b'\n'), ('foo.cc', b'\n')) in all_transforms
+
+
+def test_multi_file_arg_0_unclosed_block(tmp_path: Path):
+    input_dir = tmp_path / 'test_case'
+    input_dir.mkdir()
+    (input_dir / 'bar.h').write_text('namespace {\n')
+    (input_dir / 'foo.h').write_text('class A {\n')
+    p, state = init_pass('0', tmp_path, input_dir)
+    all_transforms = collect_all_transforms_dir(p, state, input_dir)
+
+    assert (('bar.h', b''), ('foo.h', b'class A {\n')) in all_transforms
+    assert (('bar.h', b'namespace {\n'), ('foo.h', b'')) in all_transforms
