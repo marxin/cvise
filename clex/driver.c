@@ -14,6 +14,7 @@
 #undef NDEBUG
 
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -64,6 +65,7 @@ static int add_tok(char *str, enum tok_kind kind) {
 }
 
 void process_token(enum tok_kind kind) {
+  assert(file_id != INT_MAX);
   add_tok(yytext, kind);
   count++;
 }
@@ -474,29 +476,33 @@ void define(int tok_index) {
 }
 
 int yywrap(void) {
-  if (file_id == -1)
+  if (file_id == -1) {
+    file_id = INT_MAX;
     return 1;
+  }
+  char *path = NULL;
+  size_t size = 0;
+  ssize_t nread = getdelim(&path, &size, 0, stdin);
+  if (nread == -1 || !strlen(path)) {
+    free(path);
+    file_id = INT_MAX;
+    return 1;
+  }
+  FILE* f = fopen(path, "r");
+  if (!f) {
+    fprintf(stderr, "Cannot open file: %s\n", path);
+    free(path);
+    file_id = INT_MAX;
+    return 1;
+  }
+  free(path);
   if (yyin) {
     fclose(yyin);
-    yyin = NULL;
     ++file_id;
   }
-  char *line = NULL;
-  size_t size = 0;
-  ssize_t nread = getdelim(&line, &size, 0, stdin);
-  if (nread == -1 || !strlen(line)) {
-    free(line);
-    return 1;
-  }
-  yyin = fopen(line, "r");
-  if (!yyin) {
-    fprintf(stderr, "Cannot open file: %s\n", line);
-    free(line);
-    return 1;
-  }
+  yyin = f;
   tok_end_pos = 0;
   restart_with_new_file();
-  free(line);
   return 0;
 }
 
