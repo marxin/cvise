@@ -133,7 +133,7 @@ L?\"(\\.|[^\\"])*\"	{ process_token(TOK_STRING); }
                 int prev = 0;
                 for (;;)  {
                     int c = input();
-                    if (c == EOF)
+                    if (c == EOF || file_id == INT_MAX)
                         break;
                     if (file_id != start_file_id) {
                         /* don't cross file boundaries */
