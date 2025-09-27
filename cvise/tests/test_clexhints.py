@@ -262,6 +262,7 @@ def test_directory_unclosed_c_comment(tmp_path: Path):
 
 
 def test_directory_file_reading_failure(tmp_path: Path):
+    """Test that the pass doesn't raise exceptions or hang when some file is unreadable."""
     test_case = tmp_path / 'test_case'
     test_case.mkdir()
     file = test_case / 'foo.c'
