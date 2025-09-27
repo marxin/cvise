@@ -24,6 +24,7 @@ IS			(u|U|l|L)*
 #endif
 
 #include <defs.h>
+#include <limits.h>
 
 // update the position whenever a token is about to be processed
 // (this macro is triggered by Flex prior to executing the matched rule’s action).
