@@ -7,11 +7,12 @@ from typing import Optional, Set, Tuple, Union
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.fileutil import CloseableTemporaryFile
-from cvise.utils.hint import HINT_SCHEMA_STRICT, HintBundle, is_special_hint_type, load_hints
+from cvise.utils.hint import HINT_SCHEMA_STRICT, HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
 
 
 _TYPES_WITH_PATH_EXTRA = (b'@fileref',)
+_TYPES_ALLOWING_EMPTY_PATCHES = (b'@fileref',)
 _KNOWN_OPERATIONS = (b'rm',)
 
 
@@ -91,7 +92,7 @@ def validate_hint_bundle(bundle: HintBundle, test_case: Path, allowed_hint_types
             hint_type = bundle.vocabulary[hint.type]
             if allowed_hint_types is not None:
                 assert hint_type in allowed_hint_types
-        if hint.type is None or not is_special_hint_type(bundle.vocabulary[hint.type]):
+        if hint.type is None or bundle.vocabulary[hint.type] not in _TYPES_ALLOWING_EMPTY_PATCHES:
             assert len(hint.patches) > 0
         if hint.extra is not None:
             assert hint.extra < len(bundle.vocabulary)

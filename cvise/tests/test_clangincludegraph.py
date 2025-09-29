@@ -4,7 +4,6 @@ from typing import Any, Tuple
 
 from cvise.passes.clangincludegraph import ClangIncludeGraphPass
 from cvise.tests.testabstract import validate_stored_hints
-from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.externalprograms import find_external_programs
 from cvise.utils.hint import load_hints
 from cvise.utils.process import ProcessEventNotifier
@@ -12,24 +11,7 @@ from cvise.utils.process import ProcessEventNotifier
 
 def init_pass(tmp_dir: Path, input_path: Path) -> Tuple[ClangIncludeGraphPass, Any]:
     pass_ = ClangIncludeGraphPass(external_programs=find_external_programs())
-
-    sub_passes = pass_.create_subordinate_passes()
-    sub_bundles = []
-    for p in sub_passes:
-        assert isinstance(p, HintBasedPass)
-        assert set(p.output_hint_types()) <= set(pass_.input_hint_types())
-        sub_state = p.new(
-            input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
-        )
-        validate_stored_hints(sub_state, p, input_path)
-        if sub_state is None:
-            continue
-        for path in sub_state.hint_bundle_paths().values():
-            sub_bundles.append(load_hints(path, begin_index=None, end_index=None))
-
-    state = pass_.new(
-        input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=sub_bundles
-    )
+    state = pass_.new(input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[])
     validate_stored_hints(state, pass_, input_path)
     return pass_, state
 

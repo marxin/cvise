@@ -150,6 +150,7 @@ HINT_SCHEMA = {
             'minimum': 0,
         },
     },
+    'required': ['p'],
 }
 
 HINT_SCHEMA_STRICT = deepcopy(HINT_SCHEMA)
