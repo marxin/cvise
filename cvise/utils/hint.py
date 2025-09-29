@@ -379,6 +379,7 @@ def merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequenc
                 if cur.patch.right > prev.patch.right:
                     prev.patch = prev.patch.__replace__(right=cur.patch.right)
                 continue
+        # No overlap with previous items - just add the new patch.
         merged.append(cur)
     return merged
 
