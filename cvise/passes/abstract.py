@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 import random
 import shutil
-from typing import List, Self, Union
+from typing import Self, Union
 
 from cvise.utils.process import ProcessEventNotifier
 
