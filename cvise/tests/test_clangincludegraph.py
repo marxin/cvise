@@ -183,3 +183,68 @@ a.out:
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
     refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
     assert refs == {b'inside.h'}
+
+
+def test_clang_header_module(tmp_path: Path):
+    """Test include detection for headers in a Clang header module."""
+    input_dir = tmp_path / 'test_case'
+    input_dir.mkdir()
+    (input_dir / 'main.cc').write_text('#include "modular1.h"\n')
+    (input_dir / 'modular1.h').write_text('#include "modular2.h"\n')
+    (input_dir / 'modular2.h').write_text('#include "text.h"\n')
+    (input_dir / 'text.h').touch()
+    (input_dir / 'mod.cppmap').write_text(
+        """
+module mod {
+    header "modular1.h"
+    header "modular2.h"
+}
+        """
+    )
+    (input_dir / 'Makefile').write_text(
+        """
+mod.pcm:
+\tclang -fmodules -Xclang -emit-module -fmodule-name=mod mod.cppmap -o mod.pcm
+a.out: mod.pcm
+\tclang -fmodules -fmodule-file=mod.pcm main.cc
+        """
+    )
+    p, state = init_pass(tmp_path, input_dir)
+    assert state is not None
+    bundle_paths = state.hint_bundle_paths()
+
+    assert b'@fileref' in bundle_paths
+    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
+    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    assert refs == {b'modular1.h', b'modular2.h', b'text.h'}
+
+
+def test_clang_header_module_home_is_cwd(tmp_path: Path):
+    """Test that headers in Clang header modules are discovered when -fmodule-map-file-home-is-cwd is used."""
+    input_dir = tmp_path / 'test_case'
+    input_dir.mkdir()
+    (input_dir / 'sub').mkdir()
+    (input_dir / 'sub' / 'modular.h').write_text('#include "text.h"\n')
+    (input_dir / 'sub' / 'text.h').touch()
+    (input_dir / 'another_sub').mkdir()
+    (input_dir / 'another_sub' / 'mod.cppmap').write_text(
+        """
+module mod {
+    header "sub/modular.h"
+}
+        """
+    )
+    (input_dir / 'Makefile').write_text(
+        """
+mod.pcm:
+\tclang -c -fmodules -Xclang -emit-module -fmodule-name=mod -Xclang -fmodule-map-file-home-is-cwd -xc++ another_sub/mod.cppmap -o mod.pcm
+        """
+    )
+    p, state = init_pass(tmp_path, input_dir)
+    assert state is not None
+    bundle_paths = state.hint_bundle_paths()
+
+    assert b'@fileref' in bundle_paths
+    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
+    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    assert refs == {b'sub/modular.h', b'sub/text.h'}

@@ -1,11 +1,26 @@
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from typing import Dict, Iterator, List, Optional, Set
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import makefileparser
 from cvise.utils.hint import Hint, HintBundle, Patch
 from cvise.utils.process import ProcessEventNotifier
+
+
+# TODO: Make these parameters configurable.
+# Only execute clang_include_graph for the makefile recipe commands that start from the following programs. The goal is
+# to skip running the tool for non-compiler commands, like "mkdir".
+_RECOGNIZED_PROGRAMS = re.compile(r'\bCC\b|clang|CLANG|\bCXX\b|g++|G++|gcc|GCC')
+# Remove Clang C/C++ header module references, since built module PCMs aren't available without compiling the whole test
+# case. Remove "$(EXTRA_CFLAGS)" since the makefile substitution isn't used here and it'd look like a name of an input
+# file.
+_REMOVE_ARGS = re.compile(
+    r'(-Xclang=)?(-fmodule-map-file=.*|-fmodule-file=.*)|'
+    r'\$\(EXTRA_CFLAGS\)'
+)
+_PRECEDING_ARG_TO_REMOVE = re.compile(r'-Xclang')
 
 
 _HINT_VOCAB = (b'@fileref',)
@@ -48,7 +63,10 @@ class ClangIncludeGraphPass(HintBasedPass):
             mk = makefileparser.parse(mk_path)
             for rule in mk.rules:
                 for recipe_line in rule.recipe:
-                    cmd = [recipe_line.program.value.decode()] + [a.value.decode() for a in recipe_line.args]
+                    prog = recipe_line.program.value.decode()
+                    if not _RECOGNIZED_PROGRAMS.search(prog):
+                        continue
+                    cmd = [prog] + _filter_args(recipe_line.args)
                     commands.append(cmd)
 
         vocab: List[bytes] = list(_HINT_VOCAB)
@@ -88,6 +106,17 @@ class ClangIncludeGraphPass(HintBasedPass):
                 patches = [] if e.from_node is None else [Patch(left=e.loc_begin, right=e.loc_end, file=e.from_node)]
                 hints.append(Hint(type=0, patches=patches, extra=e.to_node))
         return HintBundle(hints=hints, vocabulary=vocab)
+
+
+def _filter_args(args: List[makefileparser.TextWithLoc]) -> List[str]:
+    filtered = []
+    for arg in args:
+        cur = arg.value.decode()
+        if not _REMOVE_ARGS.fullmatch(cur):
+            filtered.append(cur)
+        elif filtered and _PRECEDING_ARG_TO_REMOVE.fullmatch(filtered[-1]):
+            filtered.pop()
+    return filtered
 
 
 def _split_by_null_char(data: bytes) -> Iterator[str]:
