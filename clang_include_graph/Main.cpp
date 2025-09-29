@@ -1,7 +1,10 @@
 // Prints information about each text inclusion directive (like "#include").
 //
-// Input should be the full compiler command line, e.g.:
+// Input should be the compiler command line, e.g.:
 //   clang_include_graph clang -Dfoo bar.c
+//
+// Arguments that may break include resolution due to non-existing build files,
+// like -fmodule-file=, should not be passed.
 //
 // Output is a list of quadruples: the source file path, the begin and end
 // locations (as byte indices in the source file), the included file path. The
@@ -113,39 +116,39 @@ static std::vector<std::string> getSourcePaths(int argc, const char **argv) {
   SuppressingDiagConsumer DiagConsumer;
   auto DiagOpts =
 #if LLVM_VERSION_MAJOR < 21
-      llvm::IntrusiveRefCntPtr<clang::DiagnosticOptions>(
-          new clang::DiagnosticOptions());
+      IntrusiveRefCntPtr<DiagnosticOptions>(new DiagnosticOptions());
 #else
-      std::make_unique<clang::DiagnosticOptions>();
+      std::make_unique<DiagnosticOptions>();
 #endif
-  llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine> Diags =
-      new clang::DiagnosticsEngine(
-          llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs>(
-              new clang::DiagnosticIDs()),
+  IntrusiveRefCntPtr<DiagnosticsEngine> Diags = new DiagnosticsEngine(
+      IntrusiveRefCntPtr<DiagnosticIDs>(new DiagnosticIDs()),
 #if LLVM_VERSION_MAJOR < 21
-          DiagOpts,
+      DiagOpts,
 #else
-          *DiagOpts,
+      *DiagOpts,
 #endif
-          &DiagConsumer, /*ShouldOwnClient=*/false);
+      &DiagConsumer, /*ShouldOwnClient=*/false);
 
-  auto Invocation = std::make_shared<clang::CompilerInvocation>();
-  if (!clang::CompilerInvocation::CreateFromArgs(*Invocation, Args, *Diags)) {
-    llvm::errs() << "Failed to create CompilerInvocation from args\n";
+  auto Invocation = std::make_shared<CompilerInvocation>();
+  if (!CompilerInvocation::CreateFromArgs(*Invocation, Args, *Diags)) {
+    errs() << "Failed to create CompilerInvocation from args\n";
     exit(1);
   }
 
-  const clang::FrontendOptions &FEOpts = Invocation->getFrontendOpts();
+  const FrontendOptions &FEOpts = Invocation->getFrontendOpts();
   std::vector<std::string> SourcePaths;
   for (const auto &Input : FEOpts.Inputs) {
-    if (Input.isFile() && Input.getKind().getFormat() == InputKind::Source)
+    if (!Input.isFile())
+      continue;
+    auto Fmt = Input.getKind().getFormat();
+    if (Fmt == InputKind::Source || Fmt == InputKind::ModuleMap)
       SourcePaths.emplace_back(Input.getFile());
   }
   return SourcePaths;
 }
 
 int main(int argc, const char **argv) {
-  llvm::sys::PrintStackTraceOnErrorSignal(argv[0]);
+  sys::PrintStackTraceOnErrorSignal(argv[0]);
 
   std::vector<std::string> SourcePaths = getSourcePaths(argc - 1, argv + 1);
   if (SourcePaths.empty()) {
