@@ -12,7 +12,7 @@ from cvise.utils.process import ProcessEventNotifier
 # TODO: Make these parameters configurable.
 # Only execute clang_include_graph for the makefile recipe commands that start from the following programs. The goal is
 # to skip running the tool for non-compiler commands, like "mkdir".
-_RECOGNIZED_PROGRAMS = re.compile(r'\bCC\b|clang|CLANG|\bCXX\b|g++|G++|gcc|GCC')
+_RECOGNIZED_PROGRAMS = re.compile(r'\bCC\b|clang|CLANG|\bCXX\b|g\+\+|G\+\+|gcc|GCC')
 # Remove Clang C/C++ header module references, since built module PCMs aren't available without compiling the whole test
 # case. Remove "$(EXTRA_CFLAGS)" since the makefile substitution isn't used here and it'd look like a name of an input
 # file.
