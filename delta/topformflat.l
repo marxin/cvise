@@ -6,6 +6,8 @@
  * very heuristic... */
 
 %{
+#include <assert.h>
+#include <limits.h>
 #include <stdlib.h>     // atoi
 
 // debugging diagnostic, emitted when enabled
@@ -122,18 +124,24 @@ void possibleChunkBegin(int pos)
   }
 }
 
+void chunkEnd(int pos)
+{
+  if (chunk_start_pos >= pos)
+    return;  // Empty chunk.
+  if (whitespace_start_pos <= chunk_start_pos && pos <= whitespace_end_pos)
+    return;  // Skip deleting chunks consisting of whitespaces only.
+  printf("{\"p\":[{\"l\":%d,\"r\":%d", chunk_start_pos, pos);
+  if (file_id != -1)
+    printf(",\"f\":%d", file_id);
+  printf("}]}\n");
+}
+
 void possibleChunkEnd(int pos)
 {
+  assert(file_id != INT_MAX);
   // Only attempt deleting chunks exactly at the specified nesting.
-  if (nesting == threshold && chunk_start_pos < pos) {
-    // Skip deleting chunks consisting of whitespaces only.
-    if (chunk_start_pos < whitespace_start_pos || pos > whitespace_end_pos) {
-      printf("{\"p\":[{\"l\":%d,\"r\":%d", chunk_start_pos, pos);
-      if (file_id != -1)
-        printf(",\"f\":%d", file_id);
-      printf("}]}\n");
-    }
-  }
+  if (nesting == threshold)
+    chunkEnd(pos);
   possibleChunkBegin(pos);
 }
 
@@ -149,31 +157,36 @@ void reset_to_initial_state(void) {
 int yywrap(void) {
   // In case there's some chunk of text remaining - e.g., if the file is not
   // EOL-terminated and the last line was a preprocessor directive.
-  possibleChunkEnd(token_end_pos);
+  if (nesting >= threshold)
+    chunkEnd(token_end_pos);
 
-  if (file_id == -1)
+  if (file_id == -1) {
+    file_id = INT_MAX;
     return 1;
+  }
+  char *path = NULL;
+  size_t size = 0;
+  ssize_t nread = getdelim(&path, &size, 0, stdin);
+  if (nread == -1 || !strlen(path)) {
+    free(path);
+    file_id = INT_MAX;
+    return 1;
+  }
+  FILE* f = fopen(path, "r");
+  if (!f) {
+    fprintf(stderr, "Cannot open file: %s\n", path);
+    free(path);
+    file_id = INT_MAX;
+    return 1;
+  }
+  free(path);
   if (yyin) {
     fclose(yyin);
-    yyin = NULL;
     ++file_id;
   }
-  char *line = NULL;
-  size_t size = 0;
-  ssize_t nread = getdelim(&line, &size, 0, stdin);
-  if (nread == -1 || !strlen(line)) {
-    free(line);
-    return 1;
-  }
-  yyin = fopen(line, "r");
-  if (!yyin) {
-    fprintf(stderr, "Cannot open file: %s\n", line);
-    free(line);
-    return 1;
-  }
+  yyin = f;
   reset_to_initial_state();
   yyrestart(yyin);
-  free(line);
   return 0;
 }
 
