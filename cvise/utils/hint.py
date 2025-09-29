@@ -370,28 +370,17 @@ def merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequenc
         return p.patch.left, -p.patch.right, is_replacement
 
     merged: List[_PatchWithBundleRef] = []
-    for patch in sorted(patches, key=sorting_key):
-        if merged and _patches_overlap(merged[-1].patch, patch.patch):
-            merged[-1].patch = _extend_end_to_fit(merged[-1].patch, patch.patch)
-        else:
-            merged.append(patch)
+    for cur in sorted(patches, key=sorting_key):
+        if merged:
+            prev = merged[-1]
+            if max(prev.patch.left, cur.patch.left) < min(prev.patch.right, cur.patch.right):
+                # There's an overlap with the previous patch; note that only real overlaps (with at least one common
+                # character) are detected. Extend the previous patch to fix the new patch.
+                if cur.patch.right > prev.patch.right:
+                    prev.patch = prev.patch.__replace__(right=cur.patch.right)
+                continue
+        merged.append(cur)
     return merged
-
-
-def _patches_overlap(first: Patch, second: Patch) -> bool:
-    """Checks whether two patches overlap.
-
-    Only real overlaps (with at least one common character) are counted - False
-    is returned for patches merely touching each other.
-    """
-    return max(first.left, second.left) < min(first.right, second.right)
-
-
-def _extend_end_to_fit(patch: Patch, appended: Patch) -> Patch:
-    """Modifies the first patch so that the second patch fits into it."""
-    if appended.right <= patch.right:
-        return patch
-    return patch.__replace__(right=appended.right)
 
 
 def _lines_range(f: TextIO, begin_index: Optional[int], end_index: Optional[int]) -> List[str]:
