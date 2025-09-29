@@ -869,6 +869,11 @@ class TestManager:
             self.release_all_jobs()
 
     def run_passes(self, passes: List[AbstractPass], interleaving: bool):
+        extra_passes = []
+        for p in passes:
+            extra_passes += p.create_subordinate_passes()
+        passes += extra_passes
+
         assert len(passes) == 1 or interleaving
 
         if self.start_with_pass:
@@ -887,7 +892,7 @@ class TestManager:
         self.interleaving = interleaving
         self.jobs = []
 
-        pass_titles = ', '.join(repr(c.pass_) for c in self.pass_contexts)
+        pass_titles = ', '.join(repr(c.pass_) for c in self.pass_contexts if c.pass_.user_visible())
         logging.info(f'===< {pass_titles} >===')
 
         if self.total_file_size == 0:

@@ -1,8 +1,8 @@
-from dataclasses import dataclass
 from pathlib import Path
 import re
 from typing import Dict, Iterator, List, Optional, Set
 
+from cvise.passes.abstract import AbstractPass
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import makefileparser
 from cvise.utils.hint import Hint, HintBundle, Patch
@@ -22,24 +22,17 @@ _REMOVE_ARGS = re.compile(
 )
 _PRECEDING_ARG_TO_REMOVE = re.compile(r'-Xclang')
 
+# How many jobs to spawn for generating the hints: each job calls the clang_include_graph tool for its portion of
+# commands extracted from the makefile. This is used to reduce the wall clock time needed to initialize
+# ClangIncludeGraphPass on big inputs.
+#
+# Implementation-wise, each "job" is an instance of _ClangIncludeGraphMultiplexPass, which generates special hints
+# "@clang-include-graph-<number>"; the main pass ClangIncludeGraphPass then just merges them together. This is the
+# simplest way to parallelize initialization, reusing the standard C-Vise worker pool and respecting the --n parameter.
+_INIT_PARALLELIZATION = 10
 
 _HINT_VOCAB = (b'@fileref',)
-
-
-@dataclass(frozen=True, order=True)
-class _Edge:
-    """Edge in the inclusion graph.
-
-    A node is None if the path is outside the test case (e.g., a test case header includes a system/resourcedir header,
-    or vice versa).
-    """
-
-    from_path: Path
-    from_node: Optional[int]
-    loc_begin: int
-    loc_end: int
-    to_path: Path
-    to_node: Optional[int]
+_MULTIPLEX_PASS_HINT_TEMPLATE = '@clang-include-graph-{}'
 
 
 class ClangIncludeGraphPass(HintBasedPass):
@@ -51,27 +44,67 @@ class ClangIncludeGraphPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
+    def create_subordinate_passes(self) -> List[AbstractPass]:
+        return [_ClangIncludeGraphMultiplexPass(i, self.external_programs) for i in range(_INIT_PARALLELIZATION)]
+
+    def input_hint_types(self) -> List[bytes]:
+        return [_MULTIPLEX_PASS_HINT_TEMPLATE.format(i).encode() for i in range(_INIT_PARALLELIZATION)]
+
     def output_hint_types(self) -> List[bytes]:
         return list(_HINT_VOCAB)
 
-    def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
-        paths = list(test_case.rglob('*')) if test_case.is_dir() else [test_case]
-        makefiles = [p for p in paths if p.name in makefileparser.FILE_NAMES]
-
-        commands: List[List[str]] = []
-        for mk_path in makefiles:
-            mk = makefileparser.parse(mk_path)
-            for rule in mk.rules:
-                for recipe_line in rule.recipe:
-                    prog = recipe_line.program.value.decode()
-                    if not _RECOGNIZED_PROGRAMS.search(prog):
-                        continue
-                    cmd = [prog] + _filter_args(recipe_line.args)
-                    commands.append(cmd)
-
+    def generate_hints(self, test_case: Path, dependee_hints: List[HintBundle], *args, **kwargs):
         vocab: List[bytes] = list(_HINT_VOCAB)
         path_to_vocab: Dict[Path, int] = {}
-        edges: Set[_Edge] = set()
+        hints = set()
+        for bundle in dependee_hints:
+            for hint in bundle.hints:
+                new_hint = _remap_file_ids(hint, bundle, test_case, vocab, path_to_vocab)
+                hints.add(new_hint)
+        return HintBundle(hints=sorted(hints), vocabulary=vocab)
+
+
+def _remap_file_ids(
+    hint: Hint, bundle: HintBundle, test_case: Path, vocab: List[bytes], path_to_vocab: Dict[Path, int]
+) -> Hint:
+    patches = []
+    for p in hint.patches:
+        file_id = _get_vocab_id(Path(bundle.vocabulary[p.file].decode()), test_case, vocab, path_to_vocab)
+        patches.append(Patch(left=p.left, right=p.right, file=file_id))
+    extra = _get_vocab_id(Path(bundle.vocabulary[hint.extra].decode()), test_case, vocab, path_to_vocab)
+    return Hint(type=0, patches=tuple(patches), extra=extra)
+
+
+class _ClangIncludeGraphMultiplexPass(HintBasedPass):
+    """Performs one chunk of the work of ClangIncludeGraphPass, in a separate pass to allow init parallelization.
+
+    Processes commands with indices equal to the specified parameter modulo _INIT_PARALLELIZATION.
+    """
+
+    def __init__(self, modulo: int, external_programs):
+        super().__init__(external_programs=external_programs)
+        self._modulo = modulo
+        self._hint_type = _MULTIPLEX_PASS_HINT_TEMPLATE.format(self._modulo).encode()
+
+    def check_prerequisites(self):
+        return self.check_external_program('clang_include_graph')
+
+    def user_visible(self) -> bool:
+        return False
+
+    def supports_dir_test_cases(self):
+        return True
+
+    def output_hint_types(self) -> List[bytes]:
+        return [self._hint_type]
+
+    def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
+        all_commands = _get_all_makefile_commands(test_case)
+        commands = _get_kth_modulo_n(all_commands, self._modulo, _INIT_PARALLELIZATION)
+
+        vocab: List[bytes] = [self._hint_type]
+        path_to_vocab: Dict[Path, int] = {}
+        hints: Set[Hint] = set()
         for cmd in commands:
             proc = [self.external_programs['clang_include_graph']] + cmd
             stdout = process_event_notifier.check_output(proc, cwd=test_case)
@@ -84,28 +117,36 @@ class ClangIncludeGraphPass(HintBasedPass):
                     to_path = Path(next(toks))
                 except StopIteration:
                     break
-                from_node = _get_vocab_id(from_path, test_case, vocab, path_to_vocab)
                 to_node = _get_vocab_id(to_path, test_case, vocab, path_to_vocab)
-                edges.add(
-                    _Edge(
-                        from_path=from_path,
-                        from_node=from_node,
-                        loc_begin=loc_begin,
-                        loc_end=loc_end,
-                        to_path=to_path,
-                        to_node=to_node,
-                    )
-                )
-
-        hints: List[Hint] = []
-        for e in sorted(edges):
-            if e.to_node is not None:
+                if to_node is None:
+                    continue
+                from_node = _get_vocab_id(from_path, test_case, vocab, path_to_vocab)
                 # If a file was included from a file inside test case, create a patch pointing to the include directive;
                 # otherwise leave the hint patchless (e.g., a system/resource dir header including a standard library
                 # header that's included into the test case).
-                patches = () if e.from_node is None else (Patch(left=e.loc_begin, right=e.loc_end, file=e.from_node),)
-                hints.append(Hint(type=0, patches=patches, extra=e.to_node))
-        return HintBundle(hints=hints, vocabulary=vocab)
+                patches = () if from_node is None else (Patch(left=loc_begin, right=loc_end, file=from_node),)
+                hints.add(Hint(type=0, patches=patches, extra=to_node))
+
+        return HintBundle(hints=list(hints), vocabulary=vocab)
+
+
+def _get_all_makefile_commands(test_case: Path) -> List[List[str]]:
+    paths = list(test_case.rglob('*')) if test_case.is_dir() else [test_case]
+    makefiles = [p for p in paths if p.name in makefileparser.FILE_NAMES]
+
+    commands: List[List[str]] = []
+    for mk_path in sorted(makefiles):
+        mk = makefileparser.parse(mk_path)
+        for rule in mk.rules:
+            for recipe_line in rule.recipe:
+                prog = recipe_line.program.value.decode()
+                if _RECOGNIZED_PROGRAMS.search(prog):
+                    commands.append([prog] + _filter_args(recipe_line.args))
+    return commands
+
+
+def _get_kth_modulo_n(commands: List[List[str]], k: int, n: int) -> List[List[str]]:
+    return [c for i, c in enumerate(commands) if i % n == k]
 
 
 def _filter_args(args: List[makefileparser.TextWithLoc]) -> List[str]:
@@ -130,8 +171,10 @@ def _split_by_null_char(data: bytes) -> Iterator[str]:
 
 
 def _get_vocab_id(path: Path, test_case: Path, vocab: List[bytes], path_to_vocab: Dict[Path, int]) -> Optional[int]:
+    test_case = test_case.resolve()
     if not path.is_absolute():
-        path = (test_case / path).resolve()
+        path = test_case / path
+    path = path.resolve()
     if not path.is_relative_to(test_case):
         return None
     rel_path = path.relative_to(test_case)
