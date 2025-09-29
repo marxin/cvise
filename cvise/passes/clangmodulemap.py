@@ -126,13 +126,13 @@ def _create_hints_for_module(
         hints.append(
             Hint(
                 type=_Vocab.DELETE_EMPTY_SUBMODULE.value[0],
-                patches=[
+                patches=(
                     Patch(
                         file=file_id,
                         left=mod.loc.begin,
                         right=mod.loc.end,
-                    )
-                ],
+                    ),
+                ),
             )
         )
 
@@ -140,7 +140,7 @@ def _create_hints_for_module(
         hints.append(
             Hint(
                 type=_Vocab.INLINE_SUBMODULE_CONTENTS.value[0],
-                patches=[
+                patches=(
                     Patch(
                         file=file_id,
                         left=mod.title_loc.begin,
@@ -151,7 +151,7 @@ def _create_hints_for_module(
                         left=mod.close_brace_loc.begin,
                         right=mod.close_brace_loc.end,
                     ),
-                ],
+                ),
             )
         )
 
@@ -161,39 +161,39 @@ def _create_hints_for_module(
             hints.append(
                 Hint(
                     type=_Vocab.FILEREF.value[0],
-                    patches=[
+                    patches=(
                         Patch(
                             file=file_id,
                             left=header.loc.begin,
                             right=header.loc.end,
-                        )
-                    ],
+                        ),
+                    ),
                     extra=header_file_id,
                 )
             )
         hints.append(
             Hint(
                 type=_Vocab.MAKE_HEADER_NON_MODULAR.value[0],
-                patches=[
+                patches=(
                     Patch(
                         file=file_id,
                         left=header.loc.begin,
                         right=header.loc.end,
-                    )
-                ],
+                    ),
+                ),
             )
         )
     for use in mod.uses:
         hints.append(
             Hint(
                 type=_Vocab.DELETE_USE_DECL.value[0],
-                patches=[
+                patches=(
                     Patch(
                         file=file_id,
                         left=use.loc.begin,
                         right=use.loc.end,
-                    )
-                ],
+                    ),
+                ),
             )
         )
     for submod in mod.submodules:
@@ -207,13 +207,13 @@ def _create_hints_for_unclassified_lines(unclassified_lines: List[_SourceLoc], f
         hints.append(
             Hint(
                 type=_Vocab.DELETE_LINE.value[0],
-                patches=[
+                patches=(
                     Patch(
                         file=file_id,
                         left=loc.begin,
                         right=loc.end,
-                    )
-                ],
+                    ),
+                ),
             )
         )
 

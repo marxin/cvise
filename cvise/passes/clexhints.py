@@ -60,10 +60,11 @@ class ClexHintsPass(HintBasedPass):
             if not line.isspace():
                 hint = hint_decoder.decode(line)
                 # Shift file identifiers according to their position in the vocabulary.
-                for patch in hint.patches:
-                    if patch.file is not None:
-                        patch.file += len(orig_vocab)
-                hints.append(hint)
+                new_patches = tuple(
+                    p.__replace__(file=p.file + len(orig_vocab) if p.file is not None else None) for p in hint.patches
+                )
+                new_hint = hint.__replace__(patches=new_patches)
+                hints.append(new_hint)
         return HintBundle(vocabulary=orig_vocab + files_vocab, hints=hints)
 
     def create_elementary_state(self, hint_count: int):

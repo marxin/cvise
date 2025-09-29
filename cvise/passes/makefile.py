@@ -60,7 +60,7 @@ def _create_hints_for_makefile(path: Path, file_id: int, hints: List[Hint]) -> N
     hints.append(
         Hint(
             type=_Vocab.FILEREF.value[0],
-            patches=[],
+            patches=(),
             extra=file_id,
         )
     )
@@ -76,7 +76,7 @@ def _create_hints_for_makefile(path: Path, file_id: int, hints: List[Hint]) -> N
         hints.append(
             Hint(
                 type=_Vocab.REMOVE_ARGUMENTS_ACROSS_ALL_COMMANDS.value[0],
-                patches=[Patch(left=loc.begin, right=loc.end, file=file_id) for loc in locs],
+                patches=tuple(Patch(left=loc.begin, right=loc.end, file=file_id) for loc in locs),
             )
         )
 

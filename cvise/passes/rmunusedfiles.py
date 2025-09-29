@@ -51,14 +51,14 @@ class RmUnusedFilesPass(HintBasedPass):
             size = path.stat().st_size
             hints.append(
                 Hint(
-                    patches=[
+                    patches=(
                         Patch(
                             left=0,
                             right=size,
                             file=file_id,
                             operation=0,  # "rm"
-                        )
-                    ]
+                        ),
+                    )
                 )
             )
         return HintBundle(hints=hints, vocabulary=vocab)

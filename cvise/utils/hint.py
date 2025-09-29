@@ -14,7 +14,7 @@ import dataclasses
 import json
 import msgspec
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, TextIO
+from typing import Any, Dict, List, Optional, Sequence, TextIO, Tuple
 import zstandard
 
 from cvise.utils.fileutil import mkdir_up_to
@@ -24,26 +24,26 @@ from cvise.utils.fileutil import mkdir_up_to
 FORMAT_NAME = 'cvise_hints_v0'
 
 
-class Patch(msgspec.Struct, omit_defaults=True, gc=False):
+class Patch(msgspec.Struct, omit_defaults=True, gc=False, frozen=True, order=True, kw_only=True):
     """Describes a single patch inside a hint.
 
     See HINT_PATCH_SCHEMA.
     """
 
+    file: Optional[int] = msgspec.field(default=None, name='f')
     left: int = msgspec.field(name='l')
     right: int = msgspec.field(name='r')
-    file: Optional[int] = msgspec.field(default=None, name='f')
     operation: Optional[int] = msgspec.field(default=None, name='o')
     value: Optional[int] = msgspec.field(default=None, name='v')
 
 
-class Hint(msgspec.Struct, omit_defaults=True, gc=False):
+class Hint(msgspec.Struct, omit_defaults=True, gc=False, frozen=True, order=True):
     """Describes a single hint.
 
     See HINT_SCHEMA.
     """
 
-    patches: List[Patch] = msgspec.field(name='p')
+    patches: Tuple[Patch, ...] = msgspec.field(name='p')
     type: Optional[int] = msgspec.field(default=None, name='t')
     extra: Optional[int] = msgspec.field(default=None, name='e')
 
@@ -150,7 +150,6 @@ HINT_SCHEMA = {
             'minimum': 0,
         },
     },
-    'required': ['p'],
 }
 
 HINT_SCHEMA_STRICT = deepcopy(HINT_SCHEMA)
@@ -371,25 +370,27 @@ def merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequenc
 
     merged: List[_PatchWithBundleRef] = []
     for patch in sorted(patches, key=sorting_key):
-        if merged and patches_overlap(merged[-1], patch):
-            extend_end_to_fit(merged[-1], patch)
+        if merged and _patches_overlap(merged[-1].patch, patch.patch):
+            merged[-1].patch = _extend_end_to_fit(merged[-1].patch, patch.patch)
         else:
             merged.append(patch)
     return merged
 
 
-def patches_overlap(first: _PatchWithBundleRef, second: _PatchWithBundleRef) -> bool:
+def _patches_overlap(first: Patch, second: Patch) -> bool:
     """Checks whether two patches overlap.
 
     Only real overlaps (with at least one common character) are counted - False
     is returned for patches merely touching each other.
     """
-    return max(first.patch.left, second.patch.left) < min(first.patch.right, second.patch.right)
+    return max(first.left, second.left) < min(first.right, second.right)
 
 
-def extend_end_to_fit(patch_ref: _PatchWithBundleRef, appended: _PatchWithBundleRef) -> None:
+def _extend_end_to_fit(patch: Patch, appended: Patch) -> Patch:
     """Modifies the first patch so that the second patch fits into it."""
-    patch_ref.patch.right = max(patch_ref.patch.right, appended.patch.right)
+    if appended.right <= patch.right:
+        return patch
+    return patch.__replace__(right=appended.right)
 
 
 def _lines_range(f: TextIO, begin_index: Optional[int], end_index: Optional[int]) -> List[str]:

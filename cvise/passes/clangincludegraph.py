@@ -103,7 +103,7 @@ class ClangIncludeGraphPass(HintBasedPass):
                 # If a file was included from a file inside test case, create a patch pointing to the include directive;
                 # otherwise leave the hint patchless (e.g., a system/resource dir header including a standard library
                 # header that's included into the test case).
-                patches = [] if e.from_node is None else [Patch(left=e.loc_begin, right=e.loc_end, file=e.from_node)]
+                patches = () if e.from_node is None else (Patch(left=e.loc_begin, right=e.loc_end, file=e.from_node),)
                 hints.append(Hint(type=0, patches=patches, extra=e.to_node))
         return HintBundle(hints=hints, vocabulary=vocab)
 
