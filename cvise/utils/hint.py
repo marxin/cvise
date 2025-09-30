@@ -375,7 +375,7 @@ def merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequenc
             prev = merged[-1]
             if max(prev.patch.left, cur.patch.left) < min(prev.patch.right, cur.patch.right):
                 # There's an overlap with the previous patch; note that only real overlaps (with at least one common
-                # character) are detected. Extend the previous patch to fix the new patch.
+                # character) are detected. Extend the previous patch to fit the new patch.
                 if cur.patch.right > prev.patch.right:
                     prev.patch = prev.patch.__replace__(right=cur.patch.right)
                 continue
