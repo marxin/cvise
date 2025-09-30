@@ -54,6 +54,7 @@ class ClangIncludeGraphPass(HintBasedPass):
         return list(_HINT_VOCAB)
 
     def generate_hints(self, test_case: Path, dependee_hints: List[HintBundle], *args, **kwargs):
+        # Simply merge received hints - the actual work has been done by _ClangIncludeGraphMultiplexPass instances.
         vocab: List[bytes] = list(_HINT_VOCAB)
         path_to_vocab: Dict[Path, int] = {}
         hints = set()
