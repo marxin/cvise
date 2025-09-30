@@ -32,11 +32,13 @@ class TreeSitterPass(HintBasedPass):
             work_dir = test_case
             paths = [p.relative_to(test_case) for p in test_case.rglob('*') if not p.is_dir()]
             stdin = b'\0'.join(bytes(p) for p in paths)
+            files_vocab = [str(p).encode() for p in paths]  # avoid the complexity of escaping paths in C++ code
             cmd_arg = '--'
         else:
             work_dir = None
             paths = []
             stdin = b''
+            files_vocab = []
             cmd_arg = str(test_case)
 
         cmd = [self.external_programs['treesitter_delta'], self.arg, cmd_arg]
@@ -46,12 +48,11 @@ class TreeSitterPass(HintBasedPass):
         stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
         vocab_decoder = msgspec.json.Decoder(type=List[str])
-        vocab = [s.encode() for s in vocab_decoder.decode(vocab_line)] if vocab_line else []
-        vocab += [str(p).encode() for p in paths]  # input paths aren't printed by the tool, due to escaping complexity
+        orig_vocab = [s.encode() for s in vocab_decoder.decode(vocab_line)] if vocab_line else []
 
         hints = []
         hint_decoder = msgspec.json.Decoder(type=Hint)
         for line in stdout:
             if not line.isspace():
                 hints.append(hint_decoder.decode(line))
-        return HintBundle(vocabulary=vocab, hints=hints)
+        return HintBundle(vocabulary=orig_vocab + files_vocab, hints=hints)

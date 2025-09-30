@@ -89,6 +89,8 @@ int main(int argc, char *argv[]) {
     std::cerr << "Unknown transformation: " << TransformationName << "\n";
     return -1;
   }
+  // Input file paths will be added to the vocabulary by the Python code (to
+  // avoid the complexity of escaping them on the C++ side).
   std::vector<std::string> Vocab = Transform->getVocabulary();
   printVocab(Vocab);
 
