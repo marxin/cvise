@@ -98,8 +98,13 @@ bool RemoveBaseClass::isDirectlyDerivedFrom(const CXXRecordDecl *SubC,
     if (I->getType()->isDependentType())
       continue;
 
+    RecordType *RT = I->getType()->getAs<RecordType>();
+#if LLVM_VERSION_MAJOR < 22
+    const CXXRecordDecl *BaseDecl = dyn_cast<CXXRecordDecl>(RT->getDecl());
+#else
     const CXXRecordDecl *BaseDecl =
-      dyn_cast<CXXRecordDecl>(I->getType()->getAs<RecordType>()->getDecl());
+        dyn_cast<CXXRecordDecl>(RT->getOriginalDecl());
+#endif
     if (Base->getCanonicalDecl() == BaseDecl->getCanonicalDecl())
       return true;
   }
@@ -200,7 +205,9 @@ void RemoveBaseClass::copyBaseClassDecls(void)
 
 bool RemoveBaseClass::isTheBaseClass(const CXXBaseSpecifier &Specifier)
 {
-  const Type *Ty = TheBaseClass->getTypeForDecl();
+  const Type *Ty = TheBaseClass->getASTContext()
+                       .getCanonicalTagType(TheBaseClass)
+                       ->getTypePtr();
   return Context->hasSameType(Specifier.getType(),
                               Ty->getCanonicalTypeInternal());
 }
@@ -253,7 +260,10 @@ void RemoveBaseClass::rewriteOneCtor(const CXXConstructorDecl *Ctor)
       const Type *Ty = (*I)->getBaseClass();
       TransAssert(Ty && "Invalid Base Class Type!");
       if (Context->hasSameType(Ty->getCanonicalTypeInternal(),
-            TheBaseClass->getTypeForDecl()->getCanonicalTypeInternal())) {
+                               TheBaseClass->getASTContext()
+                                   .getCanonicalTagType(TheBaseClass)
+                                   ->getTypePtr()
+                                   ->getCanonicalTypeInternal())) {
         Init = (*I);
         break;
       }

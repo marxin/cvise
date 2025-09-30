@@ -342,7 +342,11 @@ bool CommonRenameClassRewriteVisitor<T>::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
   if (Ty->isUnionType())
     return true;
 
+#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(RTLoc.getDecl());
+#else
+  const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(RTLoc.getOriginalDecl());
+#endif
   if (!RD)
     return true;
 
