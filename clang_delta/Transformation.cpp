@@ -699,8 +699,13 @@ const DeclContext *Transformation::getDeclContextFromSpecifier(
 #endif
       {
         const Type *Ty = NNS->getAsType();
-        if (const RecordType *RT = Ty->getAs<RecordType>())
+        if (const RecordType *RT = Ty->getAs<RecordType>()) {
+#if LLVM_VERSION_MAJOR < 22
           return RT->getDecl();
+#else
+          return RT->getOriginalDecl();
+#endif
+        }
         if (const TypedefType *TT = Ty->getAs<TypedefType>()) {
           const TypedefNameDecl *TypeDecl = TT->getDecl();
           const Type *UnderlyingTy = TypeDecl->getUnderlyingType().getTypePtr();
