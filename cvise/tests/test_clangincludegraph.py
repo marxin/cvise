@@ -3,8 +3,8 @@ import pytest
 from typing import Any, Tuple
 
 from cvise.passes.clangincludegraph import ClangIncludeGraphPass
-from cvise.tests.testabstract import validate_stored_hints
 from cvise.passes.hint_based import HintBasedPass
+from cvise.tests.testabstract import validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
 from cvise.utils.hint import load_hints
 from cvise.utils.process import ProcessEventNotifier
