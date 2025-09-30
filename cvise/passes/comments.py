@@ -46,16 +46,12 @@ class CommentsPass(HintBasedPass):
         # * then - any number of "*" that aren't followed by "/", or of any other characters;
         # * finally - "*/".
         for m in re.finditer(rb'/\*(?:\*(?!/)|[^*])*\*/', prog, flags=re.DOTALL):
-            patch = Patch(left=m.start(), right=m.end())
-            if file_id is not None:
-                patch.file = file_id
-            hints.append(Hint(type=self.MULTI_LINE_VOCAB_ID, patches=[patch]))
+            patch = Patch(left=m.start(), right=m.end(), file=file_id)
+            hints.append(Hint(type=self.MULTI_LINE_VOCAB_ID, patches=(patch,)))
 
         # Remove all single-line comments.
         for m in re.finditer(rb'//.*$', prog, flags=re.MULTILINE):
-            patch = Patch(left=m.start(), right=m.end())
-            if file_id is not None:
-                patch.file = file_id
-            hints.append(Hint(type=self.SINGLE_LINE_VOCAB_ID, patches=[patch]))
+            patch = Patch(left=m.start(), right=m.end(), file=file_id)
+            hints.append(Hint(type=self.SINGLE_LINE_VOCAB_ID, patches=(patch,)))
 
         return hints

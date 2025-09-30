@@ -35,8 +35,8 @@ def test_unused_files_deleted(tmp_path: Path, test_case_path: Path):
     # Fake filerefs from a.c to foo.h and from unspecified location to a.c.
     filerefs_bundle = HintBundle(
         hints=[
-            Hint(type=0, patches=[Patch(left=0, right=1, file=1)], extra=2),
-            Hint(type=0, patches=[], extra=1),
+            Hint(type=0, patches=(Patch(left=0, right=1, file=1),), extra=2),
+            Hint(type=0, patches=(), extra=1),
         ],
         vocabulary=[b'@fileref', b'a.c', b'foo.h'],
     )

@@ -137,7 +137,7 @@ class LetterRemovingHintPass(HintBasedPass):
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         sz = test_case.stat().st_size
-        hints = [Hint(patches=[Patch(left=i, right=i + 1)]) for i in range(sz)]
+        hints = [Hint(patches=(Patch(left=i, right=i + 1),)) for i in range(sz)]
         return HintBundle(hints=hints)
 
 
@@ -160,7 +160,7 @@ class BracketRemovingPass(HintBasedPass):
     def generate_hints(self, test_case: Path, *args, **kwargs):
         hints = []
         for m in re.finditer(r'\([^()]*\)', test_case.read_text()):
-            hints.append(Hint(type=0, patches=[Patch(left=m.start(), right=m.end())]))
+            hints.append(Hint(type=0, patches=(Patch(left=m.start(), right=m.end()),)))
         return HintBundle(hints=hints, vocabulary=[b'remove-brackets'])
 
 
@@ -183,7 +183,7 @@ class InsideBracketsRemovingPass(HintBasedPass):
                 input_patch = input_hint.patches[0]
                 if input_patch.right - input_patch.left == 1:
                     continue  # don't create empty hints
-                hints.append(Hint(patches=[Patch(left=input_patch.left + 1, right=input_patch.right - 1)]))
+                hints.append(Hint(patches=(Patch(left=input_patch.left + 1, right=input_patch.right - 1),)))
         return HintBundle(hints=hints)
 
 

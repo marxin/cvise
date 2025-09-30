@@ -36,7 +36,7 @@ class LinesPass(HintBasedPass):
             file_pos = 0
             for line in in_file:
                 end_pos = file_pos + len(line)
-                hints.append(Hint(patches=[Patch(left=file_pos, right=end_pos, file=file_id)]))
+                hints.append(Hint(patches=(Patch(left=file_pos, right=end_pos, file=file_id),)))
                 file_pos = end_pos
 
     def _generate_topformflat_hints(
