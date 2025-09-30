@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 import random
 import shutil
-from typing import Self, Union
+from typing import List, Self, Union
 
 from cvise.utils.process import ProcessEventNotifier
 
@@ -176,12 +176,23 @@ class AbstractPass:
     def check_prerequisites(self):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'check_prerequisites'!")
 
+    def user_visible(self) -> bool:
+        """Whether to mention the pass to the user in the CLI by default (unless errors occur in it)."""
+        return True
+
     def supports_dir_test_cases(self):
         """Whether the pass supports input test cases that are directories (as opposed to single files).
 
         By default false; intended to be overridden by subclasses which do implement directory support.
         """
         return False
+
+    def create_subordinate_passes(self) -> List[Self]:
+        """Additional passes that perform the work needed for this pass.
+
+        By default empty; useful for implementing parallelization of pass initialization.
+        """
+        return []
 
     def new(
         self, test_case: Path, tmp_dir: Path, job_timeout: int, process_event_notifier: ProcessEventNotifier, **kwargs

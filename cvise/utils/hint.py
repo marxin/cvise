@@ -126,7 +126,7 @@ HINT_SCHEMA = {
     'type': 'object',
     'properties': {
         'p': {
-            'description': 'Patches that this hint consists of',
+            'description': 'Patches that this hint consists of. Must be nonempty, except for special hint types.',
             'type': 'array',
             'items': HINT_PATCH_SCHEMA,
         },
@@ -150,7 +150,6 @@ HINT_SCHEMA = {
             'minimum': 0,
         },
     },
-    'required': ['p'],
 }
 
 HINT_SCHEMA_STRICT = deepcopy(HINT_SCHEMA)
