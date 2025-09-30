@@ -36,7 +36,6 @@ class TreeSitterPass(HintBasedPass):
             cmd_arg = '--'
         else:
             work_dir = None
-            paths = []
             stdin = b''
             files_vocab = []
             cmd_arg = str(test_case)
