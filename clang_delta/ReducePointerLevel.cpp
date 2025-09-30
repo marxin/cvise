@@ -259,14 +259,22 @@ bool PointerLevelRewriteVisitor::VisitVarDecl(VarDecl *VD)
     if (!ArrayElemTy->isStructureType() && !ArrayElemTy->isUnionType())
       return true;
     if (const RecordType *RDTy = ArrayElemTy->getAs<RecordType>()) {
+#if LLVM_VERSION_MAJOR < 22
       const RecordDecl *RD = RDTy->getDecl();
+#else
+      const RecordDecl *RD = RDTy->getOriginalDecl();
+#endif
       ConsumerInstance->rewriteArrayInit(RD, VD->getInit());
     }
     return true;
   }
 
   if (const RecordType *RDTy = VDTy->getAs<RecordType>()) {
+#if LLVM_VERSION_MAJOR < 22
     const RecordDecl *RD = RDTy->getDecl();
+#else
+    const RecordDecl *RD = RDTy->getOriginalDecl();
+#endif
     ConsumerInstance->rewriteRecordInit(RD, VD->getInit());
   }
 
@@ -977,7 +985,11 @@ bool ReducePointerLevel::isPointerToSelf(const Type *Ty,
   if (!RD)
     return false;
 
+#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *NestedRD = RTy->getDecl();
+#else
+  const RecordDecl *NestedRD = RTy->getOriginalDecl();
+#endif
   return (RD->getCanonicalDecl() == NestedRD->getCanonicalDecl());
 }
 

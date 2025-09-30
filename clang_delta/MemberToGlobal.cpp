@@ -115,9 +115,9 @@ void MemberToGlobal::removeRecordQualifier(const NestedNameSpecifierLoc& NNSLoc)
     return;
 
 #if LLVM_VERSION_MAJOR < 22
-  const CXXRecordDecl *RD = NNSLoc.getNestedNameSpecifier()->getAsRecordDecl();
+  CXXRecordDecl *RD = NNSLoc.getNestedNameSpecifier()->getAsRecordDecl();
 #else
-  const CXXRecordDecl *RD = NNSLoc.getNestedNameSpecifier().getAsRecordDecl();
+  CXXRecordDecl *RD = NNSLoc.getNestedNameSpecifier().getAsRecordDecl();
 #endif
   if (isTheRecordDecl(RD)) {
     SourceRange SR = NNSLoc.getLocalSourceRange();
