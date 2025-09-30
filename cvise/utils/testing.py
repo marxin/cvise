@@ -246,7 +246,7 @@ class PassContext:
     # How many times a job for this pass timed out.
     timeout_count: int
     # Mapping from a hint type to a bundle path that the pass generated, for a hint-based pass.
-    hint_bundle_paths: Dict[str, Path]
+    hint_bundle_paths: Dict[bytes, Path]
 
     @staticmethod
     def create(pass_: AbstractPass) -> PassContext:
