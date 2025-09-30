@@ -34,7 +34,7 @@ class ReplaceDependentNameCollectionVisitor : public
   RecursiveASTVisitor<ReplaceDependentNameCollectionVisitor> {
 
 public:
-  explicit 
+  explicit
   ReplaceDependentNameCollectionVisitor(ReplaceDependentName *Instance)
     : ConsumerInstance(Instance)
   { }
@@ -55,14 +55,16 @@ bool ReplaceDependentNameCollectionVisitor::VisitDependentNameTypeLoc(
   return true;
 }
 
+#if LLVM_VERSION_MAJOR < 22
 bool ReplaceDependentNameCollectionVisitor::VisitElaboratedTypeLoc(
        ElaboratedTypeLoc TLoc)
 {
   ConsumerInstance->handleOneElaboratedTypeLoc(TLoc);
   return true;
 }
+#endif
 
-void ReplaceDependentName::Initialize(ASTContext &context) 
+void ReplaceDependentName::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new ReplaceDependentNameCollectionVisitor(this);
@@ -94,6 +96,7 @@ void ReplaceDependentName::HandleTranslationUnit(ASTContext &Ctx)
     TransError = TransInternalError;
 }
 
+#if LLVM_VERSION_MAJOR < 22
 SourceLocation ReplaceDependentName::getElaboratedTypeLocBegin(
                  const ElaboratedTypeLoc &TLoc)
 {
@@ -141,7 +144,7 @@ void ReplaceDependentName::handleOneElaboratedTypeLoc(
   ET->getNamedType().getAsStringInternal(TyStr, getPrintingPolicy());
   if (TyStr == Str)
     return;
-  
+
   ValidInstanceNum++;
   if (ValidInstanceNum == TransformationCounter) {
     TheTyName = Str;
@@ -150,6 +153,7 @@ void ReplaceDependentName::handleOneElaboratedTypeLoc(
     TheNameLocEnd = TLoc.getEndLoc();
   }
 }
+#endif
 
 void ReplaceDependentName::handleOneDependentNameTypeLoc(
        const DependentNameTypeLoc &TLoc)
@@ -158,7 +162,7 @@ void ReplaceDependentName::handleOneDependentNameTypeLoc(
   if (Loc.isInvalid() || isInIncludedFile(Loc))
     return;
 
-  const DependentNameType *DNT = 
+  const DependentNameType *DNT =
     dyn_cast<DependentNameType>(TLoc.getTypePtr());
   TransAssert(DNT && "NULL DependentNameType!");
 

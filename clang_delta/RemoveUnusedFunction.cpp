@@ -788,21 +788,30 @@ const FunctionDecl *RemoveUnusedFunction::getFunctionDeclFromSpecifier(
   std::unordered_set<const DeclContext *> seenDeclarations;
   const FunctionDecl *FD = NULL;
   switch (NNS->getKind()) {
-  case NestedNameSpecifier::Namespace:
-    FD = lookupFunctionDeclShallow(Name,
-                                   NNS->getAsNamespace(),
-                                   seenDeclarations);
+  case NestedNameSpecifier::Namespace: {
+#if LLVM_VERSION_MAJOR < 22
+    const DeclContext *DC = NNS->getAsNamespace();
+#else
+    const DeclContext *DC =
+        NNS->getAsNamespaceAndPrefix().Namespace->getDeclContext();
+#endif
+    FD = lookupFunctionDeclShallow(Name, DC, seenDeclarations);
     break;
-  case NestedNameSpecifier::NamespaceAlias:
+  }
+#if LLVM_VERSION_MAJOR < 22
+  case NestedNameSpecifier::NamespaceAlias: {
     FD = lookupFunctionDeclShallow(Name,
            NNS->getAsNamespaceAlias()->getNamespace(),
            seenDeclarations);
     break;
-  case NestedNameSpecifier::Global:
+  }
+#endif
+  case NestedNameSpecifier::Global: {
     FD = lookupFunctionDeclShallow(Name,
                                    Context->getTranslationUnitDecl(),
                                    seenDeclarations);
     break;
+  }
   default:
     return NULL;
   }

@@ -29,7 +29,7 @@ The pass supports functions, variables, typedefs and nested records. \n";
 static RegisterTransformation<MemberToGlobal>
          Trans("member-to-global", DescriptionMsg);
 
-class MemberToGlobal::CollectionVisitor : public 
+class MemberToGlobal::CollectionVisitor : public
   RecursiveASTVisitor<CollectionVisitor> {
 
 public:
@@ -66,6 +66,7 @@ public:
     return true;
   }
 
+#if LLVM_VERSION_MAJOR < 22
   bool VisitElaboratedTypeLoc(ElaboratedTypeLoc TL) {
     // Replace CLASS::TYPE by TYPE
     if (auto* TT = TL.getInnerType()->getAs<TypedefType>()) {
@@ -80,6 +81,7 @@ public:
 
     return true;
   }
+#endif
 
   bool VisitDeclRefExpr(DeclRefExpr* DRE) {
     if (ConsumerInstance->isTheDecl(DRE->getDecl())) {
@@ -93,7 +95,7 @@ private:
   MemberToGlobal *ConsumerInstance;
 };
 
-void MemberToGlobal::Initialize(ASTContext &context) 
+void MemberToGlobal::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
 }
@@ -112,7 +114,12 @@ void MemberToGlobal::removeRecordQualifier(const NestedNameSpecifierLoc& NNSLoc)
   if (!NNSLoc)
     return;
 
-  if (isTheRecordDecl(NNSLoc.getNestedNameSpecifier()->getAsRecordDecl())) {
+#if LLVM_VERSION_MAJOR < 22
+  const CXXRecordDecl *RD = NNSLoc.getNestedNameSpecifier()->getAsRecordDecl();
+#else
+  const CXXRecordDecl *RD = NNSLoc.getNestedNameSpecifier().getAsRecordDecl();
+#endif
+  if (isTheRecordDecl(RD)) {
     SourceRange SR = NNSLoc.getLocalSourceRange();
     SR.setEnd(SR.getEnd().getLocWithOffset(1));
 

@@ -98,11 +98,14 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
   ClangInstance = new CompilerInstance();
   assert(ClangInstance);
 
-  ClangInstance->createDiagnostics(
-#if LLVM_VERSION_MAJOR >= 20
-    *llvm::vfs::getRealFileSystem()
+#if LLVM_VERSION_MAJOR < 20
+  ClangInstance->createDiagnostics();
+#elif LLVM_VERSION_MAJOR < 22
+  ClangInstance->createDiagnostics(*llvm::vfs::getRealFileSystem());
+#else
+  ClangInstance->createVirtualFileSystem(llvm::vfs::getRealFileSystem());
+  ClangInstance->createDiagnostics();
 #endif
-  );
 
   TargetOptions &TargetOpts = ClangInstance->getTargetOpts();
   if (const char *env = getenv("CVISE_TARGET_TRIPLE")) {
