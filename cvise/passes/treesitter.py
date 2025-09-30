@@ -35,6 +35,7 @@ class TreeSitterPass(HintBasedPass):
             cmd_arg = '--'
         else:
             work_dir = None
+            paths = []
             stdin = b''
             cmd_arg = str(test_case)
 
@@ -46,6 +47,7 @@ class TreeSitterPass(HintBasedPass):
         vocab_line = next(stdout, None)
         vocab_decoder = msgspec.json.Decoder(type=List[str])
         vocab = [s.encode() for s in vocab_decoder.decode(vocab_line)] if vocab_line else []
+        vocab += [str(p).encode() for p in paths]  # input paths aren't printed by the tool, due to escaping complexity
 
         hints = []
         hint_decoder = msgspec.json.Decoder(type=Hint)

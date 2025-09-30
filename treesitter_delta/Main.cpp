@@ -90,8 +90,6 @@ int main(int argc, char *argv[]) {
     return -1;
   }
   std::vector<std::string> Vocab = Transform->getVocabulary();
-  if (MultiFile)
-    Vocab.insert(Vocab.end(), InputPaths.begin(), InputPaths.end());
   printVocab(Vocab);
 
   // Prepare the common parsing state.
@@ -110,8 +108,7 @@ int main(int argc, char *argv[]) {
       std::cerr << "Failed to parse " << InputPath << "\n";
       continue;
     }
-    auto FileId = MultiFile ? std::make_optional<int>(
-                                  Vocab.size() - InputPaths.size() + InputIndex)
+    auto FileId = MultiFile ? std::make_optional<int>(Vocab.size() + InputIndex)
                             : std::nullopt;
     Transform->processFile(Contents, *Tree, FileId);
   }
