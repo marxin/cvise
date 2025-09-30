@@ -377,7 +377,7 @@ def merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequenc
                 # There's an overlap with the previous patch; note that only real overlaps (with at least one common
                 # character) are detected. Extend the previous patch to fit the new patch.
                 if cur.patch.right > prev.patch.right:
-                    prev.patch = prev.patch.__replace__(right=cur.patch.right)
+                    prev.patch = msgspec.structs.replace(prev.patch, right=cur.patch.right)
                 continue
         # No overlap with previous items - just add the new patch.
         merged.append(cur)

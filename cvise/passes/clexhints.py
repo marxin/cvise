@@ -61,9 +61,10 @@ class ClexHintsPass(HintBasedPass):
                 hint = hint_decoder.decode(line)
                 # Shift file identifiers according to their position in the vocabulary.
                 new_patches = tuple(
-                    p.__replace__(file=p.file + len(orig_vocab) if p.file is not None else None) for p in hint.patches
+                    msgspec.structs.replace(p, file=None if p.file is None else p.file + len(orig_vocab))
+                    for p in hint.patches
                 )
-                new_hint = hint.__replace__(patches=new_patches)
+                new_hint = msgspec.structs.replace(hint, patches=new_patches)
                 hints.append(new_hint)
         return HintBundle(vocabulary=orig_vocab + files_vocab, hints=hints)
 
