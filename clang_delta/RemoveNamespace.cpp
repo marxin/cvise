@@ -91,8 +91,10 @@ public:
   bool VisitTemplateSpecializationTypeLoc(
          TemplateSpecializationTypeLoc TSPLoc);
 
+#if LLVM_VERSION_MAJOR < 22
   bool VisitDependentTemplateSpecializationTypeLoc(
          DependentTemplateSpecializationTypeLoc DTSLoc);
+#endif
 
   bool VisitInjectedClassNameTypeLoc(InjectedClassNameTypeLoc TyLoc);
 
@@ -226,9 +228,19 @@ bool RemoveNamespaceRewriteVisitor::VisitUsingDecl(UsingDecl *D)
   // check if this UsingDecl refers to the namespaced being removed
   NestedNameSpecifierLoc QualifierLoc = D->getQualifierLoc();
   TransAssert(QualifierLoc && "Bad QualifierLoc!");
+#if LLVM_VERSION_MAJOR < 22
   NestedNameSpecifierLoc PrefixLoc = QualifierLoc.getPrefix();
+#else
+  NestedNameSpecifierLoc PrefixLoc =
+      QualifierLoc.getAsNamespaceAndPrefix().Prefix;
+#endif
 
+#if LLVM_VERSION_MAJOR < 22
   const NestedNameSpecifier *NNS = D->getQualifier();
+#else
+  const NestedNameSpecifier NNSVal = QualifierLoc.getNestedNameSpecifier();
+  const NestedNameSpecifier *NNS = NNSVal ? &NNSVal : nullptr;
+#endif
   TransAssert(NNS && "Bad NameSpecifier!");
   if (ConsumerInstance->isTheNamespaceSpecifier(NNS) &&
       (!PrefixLoc || ConsumerInstance->isGlobalNamespace(PrefixLoc))) {
@@ -377,7 +389,11 @@ bool RemoveNamespaceRewriteVisitor::VisitDeclRefExpr(DeclRefExpr *DRE)
 
 bool RemoveNamespaceRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(RTLoc.getDecl());
+#else
+  const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(RTLoc.getOriginalDecl());
+#endif
   if (!RD)
     return true;
 
@@ -427,6 +443,7 @@ bool RemoveNamespaceRewriteVisitor::VisitTemplateSpecializationTypeLoc(
   return true;
 }
 
+#if LLVM_VERSION_MAJOR < 22
 // handle the case where a template specialization type cannot be resolved, e.g.
 // template <class T> struct Base {};
 // template <class T> struct Derived: public Base<T> {
@@ -473,11 +490,16 @@ bool RemoveNamespaceRewriteVisitor::VisitDependentTemplateSpecializationTypeLoc(
 
   return true;
 }
+#endif
 
 bool RemoveNamespaceRewriteVisitor::VisitInjectedClassNameTypeLoc(
        InjectedClassNameTypeLoc TyLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *CXXRD = TyLoc.getDecl();
+#else
+  const CXXRecordDecl *CXXRD = TyLoc.getOriginalDecl();
+#endif
   TransAssert(CXXRD && "Invalid CXXRecordDecl!");
 
   std::string Name;
@@ -493,7 +515,11 @@ bool RemoveNamespaceRewriteVisitor::VisitInjectedClassNameTypeLoc(
 
 bool RemoveNamespaceRewriteVisitor::VisitTypedefTypeLoc(TypedefTypeLoc TyLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const TypedefNameDecl *D = TyLoc.getTypedefNameDecl();
+#else
+  const TypedefNameDecl *D = TyLoc.getDecl();
+#endif
 
   std::string Name;
   if (ConsumerInstance->getNewName(D, Name)) {
@@ -506,7 +532,11 @@ bool RemoveNamespaceRewriteVisitor::VisitTypedefTypeLoc(TypedefTypeLoc TyLoc)
 
 bool RemoveNamespaceRewriteVisitor::VisitEnumTypeLoc(EnumTypeLoc TyLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const EnumDecl *D = TyLoc.getDecl();
+#else
+  const EnumDecl *D = TyLoc.getOriginalDecl();
+#endif
 
   std::string Name;
   if (ConsumerInstance->getNewName(D, Name)) {
@@ -547,16 +577,26 @@ bool RemoveNamespaceRewriteVisitor::TraverseNestedNameSpecifierLoc(
     return true;
 
   SmallVector<NestedNameSpecifierLoc, 8> QualifierLocs;
+#if LLVM_VERSION_MAJOR < 22
   for (; QualifierLoc; QualifierLoc = QualifierLoc.getPrefix())
+#else
+  for (; QualifierLoc;
+       QualifierLoc = QualifierLoc.getAsNamespaceAndPrefix().Prefix)
+#endif
     QualifierLocs.push_back(QualifierLoc);
 
   while (!QualifierLocs.empty()) {
     NestedNameSpecifierLoc Loc = QualifierLocs.pop_back_val();
     NestedNameSpecifier *NNS = Loc.getNestedNameSpecifier();
+#if LLVM_VERSION_MAJOR < 22
     NestedNameSpecifier::SpecifierKind Kind = NNS->getKind();
+#else
+    NestedNameSpecifier::Kind Kind = NNS->getKind();
+#endif
     const NamespaceDecl *ND = NULL;
 
     switch (Kind) {
+#if LLVM_VERSION_MAJOR < 22
       case NestedNameSpecifier::Namespace: {
         ND = NNS->getAsNamespace()->getCanonicalDecl();
         break;
@@ -573,6 +613,22 @@ bool RemoveNamespaceRewriteVisitor::TraverseNestedNameSpecifierLoc(
 #endif
         TraverseTypeLoc(Loc.getTypeLoc());
         break;
+#else
+      case NestedNameSpecifier::Kind::Namespace: {
+        if (auto* NS = dyn_cast<NamespaceDecl>(
+                NNS.getAsNamespaceAndPrefix().Namespace)) {
+          ND = NS->getCanonicalDecl();
+        } else if (auto* NAD = dyn_cast<NamespaceAliasDecl>(
+                       NNS.getAsNamespaceAndPrefix().Namespace)) {
+          if (!NAD->getQualifier())
+            ND = NAD->getNamespace()->getCanonicalDecl();
+        }
+        break;
+      }
+      case NestedNameSpecifier::Kind::TypeSpec:
+        TraverseTypeLoc(Loc.getAsTypeLoc());
+        break;
+#endif
       default:
         break;
     }
@@ -780,7 +836,11 @@ void RemoveNamespace::handleOneUsingShadowDecl(const UsingShadowDecl *UD,
   UsingDecl *D = dyn_cast<UsingDecl>(UD->getIntroducer());
 
   NestedNameSpecifierLoc QualifierLoc = D->getQualifierLoc();
+#if LLVM_VERSION_MAJOR < 22
   NestedNameSpecifier *NNS = QualifierLoc.getNestedNameSpecifier();
+#else
+  NestedNameSpecifier NNS = QualifierLoc.getNestedNameSpecifier();
+#endif
 
   // QualifierLoc could be ::foo, whose PrefixLoc is invalid, e.g.,
   // void foo();
@@ -788,7 +848,11 @@ void RemoveNamespace::handleOneUsingShadowDecl(const UsingShadowDecl *UD,
   //   using ::foo;
   //   void bar () { foo(); }
   // }
+#if LLVM_VERSION_MAJOR < 22
   if (NNS->getKind() != NestedNameSpecifier::Global) {
+#else
+  if (NNS.getKind() != NestedNameSpecifier::Kind::Global) {
+#endif
     // NestedNameSpecifierLoc PrefixLoc = QualifierLoc.getPrefix();
     RewriteHelper->getQualifierAsString(QualifierLoc, NewName);
   }
@@ -1040,7 +1104,7 @@ void RemoveNamespace::removeNamespace(const NamespaceDecl *ND)
     const char *StartBuf = SrcManager->getCharacterData(StartLoc);
     std::string NDStr(StartBuf, RangeSize);
     size_t Pos = NDStr.find('{');
-    if (Pos != std::string::npos) 
+    if (Pos != std::string::npos)
       EndLoc = StartLoc.getLocWithOffset(Pos);
   }
 
