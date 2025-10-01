@@ -686,6 +686,7 @@ const DeclContext *Transformation::getDeclContextFromSpecifier(
     NestedNameSpecifier::SpecifierKind Kind = NNS->getKind();
 
     switch (Kind) {
+#if LLVM_VERSION_MAJOR < 22
       case NestedNameSpecifier::Namespace: {
         return NNS->getAsNamespace()->getCanonicalDecl();
       }
@@ -696,6 +697,16 @@ const DeclContext *Transformation::getDeclContextFromSpecifier(
       case NestedNameSpecifier::TypeSpec: // Fall-through
 #if LLVM_VERSION_MAJOR <= 20
       case NestedNameSpecifier::TypeSpecWithTemplate:
+#endif
+#else
+      case NestedNameSpecifier::Kind::Namespace: {
+        const NamespaceDecl *NS = dyn_cast_if_present<NamespaceDecl>(
+            NNS->getAsNamespaceAndPrefix().Namespace);
+        if (!NS)
+          break;
+        return NS->getCanonicalDecl();
+      }
+      case NestedNameSpecifier::Kind::TypeSpec:
 #endif
       {
         const Type *Ty = NNS->getAsType();
@@ -710,7 +721,11 @@ const DeclContext *Transformation::getDeclContextFromSpecifier(
           const TypedefNameDecl *TypeDecl = TT->getDecl();
           const Type *UnderlyingTy = TypeDecl->getUnderlyingType().getTypePtr();
           if (const RecordType *RT = UnderlyingTy->getAs<RecordType>())
+#if LLVM_VERSION_MAJOR < 22
             return RT->getDecl();
+#else
+            return RT->getOriginalDecl();
+#endif
           if (const TemplateSpecializationType *TST =
               UnderlyingTy->getAs<TemplateSpecializationType>()) {
             return getBaseDeclFromTemplateSpecializationType(TST);
@@ -769,6 +784,7 @@ const CXXRecordDecl *Transformation::getBaseDeclFromType(const Type *Ty)
     return getBaseDeclFromTemplateSpecializationType(TSTy);
   }
 
+#if LLVM_VERSION_MAJOR < 22
   case Type::DependentTemplateSpecialization: {
     return NULL;
   }
@@ -778,6 +794,7 @@ const CXXRecordDecl *Transformation::getBaseDeclFromType(const Type *Ty)
     const Type *NamedT = ETy->getNamedType().getTypePtr();
     return getBaseDeclFromType(NamedT);
   }
+#endif
 
   case Type::Paren: {
     const ParenType *PT = dyn_cast<ParenType>(Ty);
@@ -1056,10 +1073,17 @@ bool Transformation::getDependentNameTypeString(
   const IdentifierInfo *IdInfo = DNT->getIdentifier();
   if (!IdInfo)
     return false;
+#if LLVM_VERSION_MAJOR < 22
   const NestedNameSpecifier *Specifier = DNT->getQualifier();
   if (!Specifier)
     return false;
   const Type *Ty = Specifier->getAsType();
+#else
+  const NestedNameSpecifier Specifier = DNT->getQualifier();
+  if (!Specifier)
+    return false;
+  const Type *Ty = Specifier.getAsType();
+#endif
   if (!Ty)
     return false;
   const CXXRecordDecl *Base = getBaseDeclFromType(Ty);
@@ -1094,10 +1118,12 @@ bool Transformation::getTypeString(const QualType &QT,
     return getTypeString(TP->getReplacementType(), Str, Typename);
   }
 
+#if LLVM_VERSION_MAJOR < 22
   case Type::Elaborated: {
     const ElaboratedType *ETy = dyn_cast<ElaboratedType>(Ty);
     return getTypeString(ETy->getNamedType(), Str, Typename);
   }
+#endif
 
   case Type::Typedef: {
     const TypedefType *TdefTy = dyn_cast<TypedefType>(Ty);
