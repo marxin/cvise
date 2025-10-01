@@ -34,7 +34,7 @@ from cvise.utils.error import (
     ZeroSizeError,
 )
 from cvise.utils.folding import FoldingManager, FoldingStateIn, FoldingStateOut
-from cvise.utils.hint import load_hints
+from cvise.utils.hint import is_special_hint_type, load_hints
 from cvise.utils.process import MPContextHook, MPTaskLossWorkaround, ProcessEventNotifier, ProcessMonitor
 from cvise.utils.readkey import KeyLogger
 import pebble
@@ -246,7 +246,7 @@ class PassContext:
     # How many times a job for this pass timed out.
     timeout_count: int
     # Mapping from a hint type to a bundle path that the pass generated, for a hint-based pass.
-    hint_bundle_paths: Dict[str, Path]
+    hint_bundle_paths: Dict[bytes, Path]
 
     @staticmethod
     def create(pass_: AbstractPass) -> PassContext:
@@ -293,6 +293,22 @@ class PassContext:
     def can_start_job_now(self, ready_hint_types: Set[bytes]) -> bool:
         """Whether any of the pass methods can be scheduled."""
         return self.can_init_now(ready_hint_types) or self.can_transform_now()
+
+    def can_schedule_for_restart(self) -> bool:
+        """Whether the restart of the pass could be scheduled.
+
+        The restart means reinitializing the pass and iterating through its states; it's useful in the interleaving mode
+        since after a pass finished its enumeration once, other passes might've performed reductions that unblocked new
+        reduction possibilities for this pass again.
+
+        Restarting isn't useful for passes that only produce "special" hints, since such hints are only used to convey
+        information to other passes but aren't enumerated as reduction attempts themselves.
+        """
+        return (
+            self.stage == PassStage.ENUMERATING
+            and self.state is None
+            and any(not is_special_hint_type(t) for t in self.hint_bundle_paths.keys())
+        )
 
 
 @unique
@@ -369,9 +385,9 @@ class TestManager:
     TEMP_PREFIX = 'cvise-'
     BUG_DIR_PREFIX = 'cvise_bug_'
     EXTRA_DIR_PREFIX = 'cvise_extra_'
-    # How often passes should be reinitialized (see maybe_schedule_job()). Chosen at 1% to not slow down the overall
-    # reduction in case reinits don't lead to new discoveries.
-    REINIT_JOB_INTERVAL = 100
+    # How often passes should be restarted (see maybe_schedule_job()). Chosen at 1% to not slow down the overall
+    # reduction in case restarts don't lead to new discoveries.
+    RESTART_JOB_INTERVAL = 100
     # Used for setting up timeouts on pass init jobs - the regular timeout is multiplied by this factor.
     INIT_TIMEOUT_FACTOR = 10
 
@@ -436,12 +452,12 @@ class TestManager:
         self.order: int = 0
         # Remembers the "order" that the first job in the current batch (run_parallel_tests()) got.
         self.current_batch_start_order: int = 0
-        # Identifies the most recent pass reinitialization job (whether in the current batch or not).
-        self.last_reinit_job_order: Union[int, None] = None
+        # Identifies the most recent pass restart job (whether in the current batch or not).
+        self.last_restart_job_order: Union[int, None] = None
         self.success_candidate: Union[SuccessCandidate, None] = None
         self.folding_manager: Union[FoldingManager, None] = None
-        # Ids of passes that are eligible for the reinitialization, in FIFO order.
-        self.pass_reinit_queue: List[int] = []
+        # Ids of passes that are eligible for the restart, in FIFO order.
+        self.pass_restart_queue: List[int] = []
 
         self.use_colordiff = (
             sys.stdout.isatty()
@@ -833,15 +849,10 @@ class TestManager:
             # Unfinished initializations from the last run will need to be restarted.
             if ctx.stage == PassStage.IN_INIT:
                 ctx.stage = PassStage.BEFORE_INIT
-            # Previously finished passes are eligible for reinitialization (used for "interleaving" mode only -
-            # in the old single-pass mode we're expected to return to let subsequent passes work).
-            if (
-                self.interleaving
-                and ctx.stage == PassStage.ENUMERATING
-                and ctx.state is None
-                and pass_id not in self.pass_reinit_queue
-            ):
-                self.pass_reinit_queue.append(pass_id)
+            # Previously finished passes are eligible for restart (used for "interleaving" mode only - in the old
+            # single-pass mode we're expected to return to let subsequent passes work).
+            if self.interleaving and pass_id not in self.pass_restart_queue and ctx.can_schedule_for_restart():
+                self.pass_restart_queue.append(pass_id)
 
         ready_hint_types = self.get_fully_initialized_hint_types()
         while self.jobs or any(c.can_start_job_now(ready_hint_types) for c in self.pass_contexts):
@@ -884,8 +895,8 @@ class TestManager:
                 return
 
         self.order = 1
-        self.last_reinit_job_order = None
-        self.pass_reinit_queue = []
+        self.last_restart_job_order = None
+        self.pass_restart_queue = []
         self.pass_contexts = []
         for pass_ in passes:
             self.pass_contexts.append(PassContext.create(pass_))
@@ -1058,22 +1069,22 @@ class TestManager:
             if ctx.can_init_now(ready_hint_types):
                 self.schedule_init(pass_id, ready_hint_types)
                 return True
-        # 2. Reinitializing a previously finished pass.
-        # We throttle reinits (only once out of REINIT_JOB_INTERVAL jobs) because they're only occasionally useful: for
-        # an unused code removal pass it's possible that more unused code after other passes made some deletions,
+        # 2. Restarting a previously finished pass.
+        # We throttle restarts (only once out of RESTART_JOB_INTERVAL jobs) because they're only occasionally useful:
+        # for an unused code removal pass it's possible that more unused code after other passes made some deletions,
         # meanwhile for a comment removal pass there's nothing more to discover after all comments have been removed.
-        # We use a FIFO queue, spanning across multiple job batches, to avoid repeatedly reinitializing some passes and
+        # We use a FIFO queue, spanning across multiple job batches, to avoid repeatedly restarting some passes and
         # never getting to others due to throttling.
-        if self.pass_reinit_queue and (
-            self.last_reinit_job_order is None or self.order - self.last_reinit_job_order >= self.REINIT_JOB_INTERVAL
+        if self.pass_restart_queue and (
+            self.last_restart_job_order is None or self.order - self.last_restart_job_order >= self.RESTART_JOB_INTERVAL
         ):
-            pass_id = self.pass_reinit_queue.pop(0)
+            pass_id = self.pass_restart_queue.pop(0)
             ctx = self.pass_contexts[pass_id]
             assert ctx.stage == PassStage.ENUMERATING
             assert ctx.state is None
             ctx.stage = PassStage.BEFORE_INIT
             if ctx.can_init_now(ready_hint_types):
-                self.last_reinit_job_order = self.order
+                self.last_restart_job_order = self.order
                 self.schedule_init(pass_id, ready_hint_types)
                 return True
         # 3. Attempting a fold (simultaneous application) of previously discovered successful transformations; only
