@@ -293,7 +293,7 @@ a.o:
 def test_remove_target(tmp_path: Path, test_case_path: Path):
     (test_case_path / 'Makefile').write_text(
         """
-prog:
+prog: a.o b.o
 \tgcc -o prog a.o b.o
 a.o:
 \tgcc -o a.o a.c
@@ -308,7 +308,7 @@ b.o:
         (
             'Makefile',
             b"""
-prog:
+prog:  b.o
 \tgcc -o prog  b.o
 b.o:
 \tgcc -o b.o b.c""",
@@ -319,8 +319,29 @@ b.o:
         (
             'Makefile',
             b"""
-prog:
-\tgcc -o prog a.o \na.o:
+prog: a.o \n\tgcc -o prog a.o \na.o:
 \tgcc -o a.o a.c\n""",
+        ),
+    ) in all_transforms
+
+
+def test_remove_target_precompiled_module(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'Makefile').write_text(
+        """
+a.out: mod.pcm
+\tclang -fmodules -fmodule-file=mod.pcm main.cc
+mod.pcm:
+\tclang -fmodules -Xclang -emit-module -fmodule-name=mod mod.cppmap -o mod.pcm
+        """,
+    )
+    p, state = init_pass(tmp_path, test_case_path)
+    all_transforms = collect_all_transforms_dir(p, state, test_case_path)
+
+    # "mod.pcm" removed
+    assert (
+        (
+            'Makefile',
+            b"""
+a.out: \n\tclang -fmodules  main.cc\n""",
         ),
     ) in all_transforms
