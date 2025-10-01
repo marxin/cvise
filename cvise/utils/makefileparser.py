@@ -5,6 +5,24 @@ from typing import List, Optional, Set
 
 
 FILE_NAMES = ('Makefile', 'makefile', 'GNUmakefile')
+_BUILTIN_TARGETS = (
+    Path('.DEFAULT'),
+    Path('.DELETE_ON_ERROR'),
+    Path('.EXPORT_ALL_VARIABLES'),
+    Path('.IGNORE'),
+    Path('.INTERMEDIATE'),
+    Path('.LOW_RESOLUTION_TIME'),
+    Path('.NOTINTERMEDIATE'),
+    Path('.NOTPARALLEL'),
+    Path('.ONESHELL'),
+    Path('.PHONY'),
+    Path('.POSIX'),
+    Path('.PRECIOUS'),
+    Path('.SECONDARY'),
+    Path('.SECONDEXPANSION'),
+    Path('.SILENT'),
+    Path('.SUFFIXES'),
+)
 
 
 @dataclass
@@ -17,6 +35,7 @@ class SourceLoc:
 class TextWithLoc:
     loc: SourceLoc
     value: bytes
+    preceding_spaces_loc: Optional[SourceLoc] = None
 
     def substr(self, begin: int, end: Optional[int] = None) -> TextWithLoc:
         assert self.loc.begin + begin <= self.loc.end
@@ -32,6 +51,7 @@ class TextWithLoc:
 class PathWithLoc:
     loc: SourceLoc
     value: Path
+    preceding_spaces_loc: Optional[SourceLoc] = None
 
 
 @dataclass
@@ -54,6 +74,7 @@ class Rule:
 class Makefile:
     rules: List[Rule]
     unclassified_lines: List[TextWithLoc]
+    builtin_targets: Set[Path]
     phony_targets: Set[Path]
 
 
@@ -72,7 +93,7 @@ def parse(makefile_path: Path) -> Makefile:
             else:
                 lines.append(cur)
 
-    mk = Makefile(rules=[], unclassified_lines=[], phony_targets=set())
+    mk = Makefile(rules=[], unclassified_lines=[], builtin_targets=set(), phony_targets=set())
     file_pos = 0
     for line in lines:
         loc = SourceLoc(begin=file_pos, end=file_pos + len(line))
@@ -91,8 +112,12 @@ def parse(makefile_path: Path) -> Makefile:
         else:
             mk.unclassified_lines.append(loc)
 
-    if phony_rule := _find_phony_rule(mk):
-        mk.phony_targets = {t.value for t in phony_rule.prereqs}
+    # Collect the names of all special/phony targets.
+    for rule in mk.rules:
+        mk.builtin_targets.update(t.value for t in rule.targets if t.value in _BUILTIN_TARGETS)
+        if any(t.value == Path('.PHONY') for t in rule.targets):
+            mk.phony_targets.update(t.value for t in rule.prereqs)
+
     return mk
 
 
@@ -137,7 +162,10 @@ def _split_by_spaces(text: TextWithLoc) -> List[TextWithLoc]:
         # Determine the token's position - split() doesn't return how many whitespaces were skipped.
         pos = text.value.find(tok, start_pos)
         assert pos != -1
-        tok_locs.append(text.substr(pos, pos + len(tok)))
+        tok_loc = text.substr(pos, pos + len(tok))
+        if pos > start_pos:
+            tok_loc.preceding_spaces_loc = SourceLoc(text.loc.begin + start_pos, text.loc.begin + pos)
+        tok_locs.append(tok_loc)
         start_pos = pos + len(tok)
     return tok_locs
 
@@ -150,10 +178,12 @@ def _split_shell_cmd_line(text: TextWithLoc) -> List[TextWithLoc]:
     n = len(text.value)
     while i < n:
         # Skip spaces before the next token.
+        start = i
         while i < n and chr(text.value[i]).isspace():
             i += 1
         if i == n:
             break
+        preceding_spaces_loc = SourceLoc(text.loc.begin + start, text.loc.begin + i) if start < i else None
 
         begin = i
         tok = bytearray()
@@ -184,18 +214,10 @@ def _split_shell_cmd_line(text: TextWithLoc) -> List[TextWithLoc]:
             i += 1
 
         loc = SourceLoc(begin=text.loc.begin + begin, end=text.loc.begin + i)
-        tok_locs.append(TextWithLoc(loc, tok))
+        tok_locs.append(TextWithLoc(loc, tok, preceding_spaces_loc))
 
     return tok_locs
 
 
 def _to_paths(toks: List[TextWithLoc]) -> List[PathWithLoc]:
-    return [PathWithLoc(tok.loc, Path(str(tok.value))) for tok in toks]
-
-
-def _find_phony_rule(file: Makefile) -> Optional[Rule]:
-    for rule in file.rules:
-        for target in rule.targets:
-            if target.value == '.PHONY':
-                return rule
-    return None
+    return [PathWithLoc(tok.loc, Path(tok.value.decode()), tok.preceding_spaces_loc) for tok in toks]
