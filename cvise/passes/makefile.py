@@ -93,7 +93,7 @@ def _add_target_removal_hints(mk: Makefile, file_id: int, hints: List[Hint]) -> 
     target_mentions: Dict[Path, List[SourceLoc]] = {}
     for rule in mk.rules:
         # Either delete a mention of a target from the rule, or the whole rule if it's the only target in it.
-        if len(set(t.value for t in rule.targets)) == 1:
+        if len({t.value for t in rule.targets}) == 1:
             target_mentions.setdefault(rule.targets[0].value, []).append(rule.loc)
         else:
             for target in rule.targets:
@@ -125,8 +125,8 @@ def _add_target_removal_hints(mk: Makefile, file_id: int, hints: List[Hint]) -> 
                     if prev_arg and _TWO_TOKEN_OPTIONS.fullmatch(prev_arg.value):
                         target_mentions[path].append(prev_arg.loc)
 
-    # Then generate a hint for each target with all references to it.
-    for target, locs in target_mentions.items():
+    # Then generate a hint for each target and all references to it.
+    for locs in target_mentions.values():
         hints.append(
             Hint(
                 type=_Vocab.REMOVE_TARGET.value[0],
