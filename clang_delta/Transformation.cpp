@@ -682,7 +682,12 @@ const FunctionDecl *Transformation::lookupFunctionDecl(
 const DeclContext *Transformation::getDeclContextFromSpecifier(
         const NestedNameSpecifier *NNS)
 {
-  for (; NNS; NNS = NNS->getPrefix()) {
+#if LLVM_VERSION_MAJOR < 22
+  for (; NNS; NNS = NNS->getAsNamespaceAndPrefix().Prefix) {
+#else
+  for (NestedNameSpecifier CurNNS = *NNS; CurNNS; CurNNS = CurNNS->getAsNamespaceAndPrefix().Prefix) {
+    NestedNameSpecifier *NNS = &CurNNS;
+#endif
     NestedNameSpecifier::SpecifierKind Kind = NNS->getKind();
 
     switch (Kind) {
@@ -706,7 +711,7 @@ const DeclContext *Transformation::getDeclContextFromSpecifier(
           break;
         return NS->getCanonicalDecl();
       }
-      case NestedNameSpecifier::Kind::TypeSpec:
+      case NestedNameSpecifier::Kind::Type:
 #endif
       {
         const Type *Ty = NNS->getAsType();
@@ -976,10 +981,17 @@ bool Transformation::replaceDependentNameString(const Type *Ty,
   const IdentifierInfo *IdInfo = DNT->getIdentifier();
   if (!IdInfo)
     return false;
+#if LLVM_VERSION_MAJOR < 22
   const NestedNameSpecifier *Specifier = DNT->getQualifier();
   if (!Specifier)
     return false;
   const Type *DependentTy = Specifier->getAsType();
+#else
+  const NestedNameSpecifier Specifier = DNT->getQualifier();
+  if (!Specifier)
+    return false;
+  const Type *DependentTy = Specifier.getAsType();
+#endif
   if (!DependentTy)
     return false;
 

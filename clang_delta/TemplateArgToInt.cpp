@@ -25,7 +25,7 @@
 using namespace clang;
 using namespace clang_delta_common_visitor;
 
-static const char *DescriptionMsg = 
+static const char *DescriptionMsg =
 "This pass replaces a template argument in an instantiation with \
 int if the argument: \n\
    * is type of CXXRecord; \n\
@@ -44,7 +44,7 @@ to:\n\
 static RegisterTransformation<TemplateArgToInt>
          Trans("template-arg-to-int", DescriptionMsg);
 
-class TemplateArgToIntASTVisitor : public 
+class TemplateArgToIntASTVisitor : public
   RecursiveASTVisitor<TemplateArgToIntASTVisitor> {
 
 public:
@@ -62,8 +62,8 @@ private:
 
 };
 
-class TemplateArgToIntArgCollector : public 
-  CommonTemplateArgumentVisitor<TemplateArgToIntArgCollector, 
+class TemplateArgToIntArgCollector : public
+  CommonTemplateArgumentVisitor<TemplateArgToIntArgCollector,
                                 TemplateArgToInt> {
 
 public:
@@ -84,7 +84,7 @@ typedef llvm::SmallPtrSet<const NamedDecl *, 8> TemplateParameterSet;
 //   type s2;
 //   void bar() { s1.foo(); s2.foo(); }
 // };
-class TemplateGlobalInvalidParameterVisitor : public 
+class TemplateGlobalInvalidParameterVisitor : public
   RecursiveASTVisitor<TemplateGlobalInvalidParameterVisitor> {
 
 public:
@@ -127,7 +127,7 @@ bool TemplateGlobalInvalidParameterVisitor::VisitCXXRecordDecl(CXXRecordDecl *D)
   return true;
 }
 
-class TemplateInvalidParameterVisitor : public 
+class TemplateInvalidParameterVisitor : public
   RecursiveASTVisitor<TemplateInvalidParameterVisitor> {
 
 public:
@@ -192,7 +192,7 @@ bool TemplateArgToIntASTVisitor::VisitFunctionTemplateDecl(
   return true;
 }
 
-void TemplateArgToInt::Initialize(ASTContext &context) 
+void TemplateArgToInt::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new TemplateArgToIntASTVisitor(this);
@@ -284,7 +284,7 @@ void TemplateArgToInt::handleTemplateArgumentLocs(
   TransAssert(D && "NULL TemplateDecl!");
   if (!TAL)
     return;
-  TemplateParameterIdxSet *InvalidIdx = 
+  TemplateParameterIdxSet *InvalidIdx =
     DeclToParamIdx[dyn_cast<TemplateDecl>(D->getCanonicalDecl())];
   if (!InvalidIdx)
     return;
@@ -298,12 +298,12 @@ void TemplateArgToInt::handleTemplateSpecializationTypeLoc(
        const TemplateSpecializationTypeLoc &TLoc)
 {
   const Type *Ty = TLoc.getTypePtr();
-  const TemplateSpecializationType *TST = 
+  const TemplateSpecializationType *TST =
     Ty->getAs<TemplateSpecializationType>();
   TemplateName TplName = TST->getTemplateName();
   const TemplateDecl *TplD = TplName.getAsTemplateDecl();
 
-  TemplateParameterIdxSet *InvalidIdx = 
+  TemplateParameterIdxSet *InvalidIdx =
     DeclToParamIdx[dyn_cast<TemplateDecl>(TplD->getCanonicalDecl())];
   if (!InvalidIdx)
     return;
@@ -325,11 +325,13 @@ TemplateArgToInt::getSubstTemplateTypeParmType(const Type *Ty)
 {
   Type::TypeClass TC = Ty->getTypeClass();
   switch (TC) {
+#if LLVM_VERSION_MAJOR < 22
   case Type::Elaborated: {
     const ElaboratedType *ETy = dyn_cast<ElaboratedType>(Ty);
     const Type *NamedT = ETy->getNamedType().getTypePtr();
     return getSubstTemplateTypeParmType(NamedT);
   }
+#endif
 
   case Type::Typedef: {
     const TypedefType *TdefTy = dyn_cast<TypedefType>(Ty);
@@ -371,7 +373,7 @@ void TemplateArgToInt::handleOneType(const Type *Ty)
   if (TmplD == NULL) {
     const DeclContext *Ctx = ParmDecl->getDeclContext();
     TransAssert(Ctx && "NULL Ctx!");
-    const ClassTemplateSpecializationDecl *Spec = 
+    const ClassTemplateSpecializationDecl *Spec =
       dyn_cast<ClassTemplateSpecializationDecl>(Ctx);
     TransAssert(Spec && "Not a ClassTemplateSpecializationDecl!");
     TmplD = Spec->getSpecializedTemplate();
@@ -388,7 +390,7 @@ void TemplateArgToInt::handleOneType(const Type *Ty)
   }
 
   TransAssert(TmplD && "NULL TemplateDecl!");
-  TemplateParameterIdxSet *InvalidIdx = 
+  TemplateParameterIdxSet *InvalidIdx =
     DeclToParamIdx[dyn_cast<TemplateDecl>(TmplD->getCanonicalDecl())];
   TransAssert(InvalidIdx && "NULL InvalidIdx!");
   InvalidIdx->insert(parmIndex);
