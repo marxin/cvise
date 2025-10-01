@@ -30,6 +30,11 @@ IS			(u|U|l|L)*
 
 %}
 
+/* optimize the scanner for performance */
+%option fast
+/* support all characters, including UTF-8 */
+%option 8bit
+
 %%
 
 "auto"			{ process_token(TOK_KEYWORD); }
