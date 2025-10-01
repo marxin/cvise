@@ -32,6 +32,10 @@ class PerTypeHintState:
     # State of the enumeration over hints with this particular type.
     underlying_state: Any
 
+    def __repr__(self):
+        type_s = self.type.decode() + ': ' if self.type else ''
+        return f'PerTypeHintState({type_s}{self.underlying_state.compact_repr()})'
+
     def advance(self) -> Union[PerTypeHintState, None]:
         # Move to the next step in the enumeration, or to None if this was the last step.
         next = self.underlying_state.advance()
