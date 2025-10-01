@@ -278,6 +278,7 @@ class HintBasedPass(AbstractPass):
         sub_states: List[PerTypeHintState] = []
         special_states: List[SpecialHintState] = []
         for type, sub_bundle in type_to_bundle.items():
+            sub_bundle.hints.sort()
             if is_special_hint_type(type):
                 # "Special" hints aren't attempted in transform() jobs - only store them to be consumed by other passes.
                 special_states.append(
@@ -304,6 +305,8 @@ class HintBasedPass(AbstractPass):
         if not bundle.hints:
             return None
         type_to_bundle = group_hints_by_type(bundle)
+        for sub_bundle in type_to_bundle.values():
+            sub_bundle.hints.sort()
         self.backfill_pass_names(type_to_bundle)
         store_hints_per_type(state.tmp_dir, type_to_bundle)
         return state.advance_on_success(type_to_bundle)
