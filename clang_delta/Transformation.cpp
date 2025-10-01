@@ -623,8 +623,13 @@ const FunctionDecl *Transformation::lookupFunctionDeclFromCtx(
 
     if (const UnresolvedUsingValueDecl *UUD =
         dyn_cast<UnresolvedUsingValueDecl>(*I)) {
+#if LLVM_VERSION_MAJOR < 22
       const NestedNameSpecifier *NNS = UUD->getQualifier();
       const DeclContext *DeclCtx = getDeclContextFromSpecifier(NNS);
+#else
+      const NestedNameSpecifier NNS = UUD->getQualifier();
+      const DeclContext *DeclCtx = getDeclContextFromSpecifier(&NNS);
+#endif
       if (!DeclCtx)
         continue;
       if (const FunctionDecl *FD =
@@ -684,12 +689,13 @@ const DeclContext *Transformation::getDeclContextFromSpecifier(
 {
 #if LLVM_VERSION_MAJOR < 22
   for (; NNS; NNS = NNS->getPrefix()) {
+    NestedNameSpecifier::SpecifierKind Kind = NNS->getKind();
 #else
   for (NestedNameSpecifier CurNNS = *NNS; CurNNS;
-       CurNNS = CurNNS->getAsNamespaceAndPrefix().Prefix) {
+       CurNNS = CurNNS.getAsNamespaceAndPrefix().Prefix) {
     NestedNameSpecifier *NNS = &CurNNS;
 #endif
-    NestedNameSpecifier::SpecifierKind Kind = NNS->getKind();
+    NestedNameSpecifier::Kind Kind = NNS->getKind();
 
     switch (Kind) {
 #if LLVM_VERSION_MAJOR < 22

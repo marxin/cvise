@@ -587,7 +587,12 @@ bool RemoveNamespaceRewriteVisitor::TraverseNestedNameSpecifierLoc(
 
   while (!QualifierLocs.empty()) {
     NestedNameSpecifierLoc Loc = QualifierLocs.pop_back_val();
+#if LLVM_VERSION_MAJOR < 22
     NestedNameSpecifier *NNS = Loc.getNestedNameSpecifier();
+#else
+    NestedNameSpecifier NNSVal = Loc.getNestedNameSpecifier();
+    NestedNameSpecifier *NNS = NNSVal ? &NNSVal : nullptr;
+#endif
 #if LLVM_VERSION_MAJOR < 22
     NestedNameSpecifier::SpecifierKind Kind = NNS->getKind();
 #else
@@ -616,16 +621,16 @@ bool RemoveNamespaceRewriteVisitor::TraverseNestedNameSpecifierLoc(
 #else
       case NestedNameSpecifier::Kind::Namespace: {
         if (auto* NS = dyn_cast<NamespaceDecl>(
-                NNS.getAsNamespaceAndPrefix().Namespace)) {
+                NNS->getAsNamespaceAndPrefix().Namespace)) {
           ND = NS->getCanonicalDecl();
         } else if (auto* NAD = dyn_cast<NamespaceAliasDecl>(
-                       NNS.getAsNamespaceAndPrefix().Namespace)) {
+                       NNS->getAsNamespaceAndPrefix().Namespace)) {
           if (!NAD->getQualifier())
             ND = NAD->getNamespace()->getCanonicalDecl();
         }
         break;
       }
-      case NestedNameSpecifier::Kind::TypeSpec:
+      case NestedNameSpecifier::Kind::Type:
         TraverseTypeLoc(Loc.getAsTypeLoc());
         break;
 #endif
@@ -1174,14 +1179,24 @@ bool RemoveNamespace::getNewNameByName(const std::string &Name,
 
 bool RemoveNamespace::isGlobalNamespace(NestedNameSpecifierLoc Loc)
 {
+#if LLVM_VERSION_MAJOR < 22
   NestedNameSpecifier *NNS = Loc.getNestedNameSpecifier();
   return (NNS->getKind() == NestedNameSpecifier::Global);
+#else
+  NestedNameSpecifier NNS = Loc.getNestedNameSpecifier();
+  return (NNS.getKind() == NestedNameSpecifier::Kind::Global);
+#endif
 }
 
 bool RemoveNamespace::isTheNamespaceSpecifier(const NestedNameSpecifier *NNS)
 {
+#if LLVM_VERSION_MAJOR < 22
   NestedNameSpecifier::SpecifierKind Kind = NNS->getKind();
+#else
+  NestedNameSpecifier::Kind Kind = NNS->getKind();
+#endif
   switch (Kind) {
+#if LLVM_VERSION_MAJOR < 22
   case NestedNameSpecifier::Namespace: {
     const NamespaceDecl *CanonicalND =
       NNS->getAsNamespace()->getCanonicalDecl();
@@ -1197,6 +1212,20 @@ bool RemoveNamespace::isTheNamespaceSpecifier(const NestedNameSpecifier *NNS)
       NAD->getNamespace()->getCanonicalDecl();
     return (CanonicalND == TheNamespaceDecl);
   }
+#else
+  case NestedNameSpecifier::Kind::Namespace: {
+    const NamespaceDecl* CanonicalND = nullptr;
+    if (auto* NS = dyn_cast<NamespaceDecl>(
+            NNS->getAsNamespaceAndPrefix().Namespace)) {
+      CanonicalND = NS->getCanonicalDecl();
+    } else if (auto* NAD = dyn_cast<NamespaceAliasDecl>(
+                    NNS->getAsNamespaceAndPrefix().Namespace)) {
+      if (NAD->getQualifier()) return false;
+      CanonicalND = NAD->getNamespace()->getCanonicalDecl();
+    }
+    return (CanonicalND == TheNamespaceDecl);
+  }
+#endif
 
   default:
     return false;
