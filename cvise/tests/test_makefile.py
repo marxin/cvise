@@ -298,8 +298,7 @@ prog:
 a.o:
 \tgcc -o a.o a.c
 b.o:
-\tgcc -o b.o b.c
-        """,
+\tgcc -o b.o b.c""",
     )
     p, state = init_pass(tmp_path, test_case_path)
     all_transforms = collect_all_transforms_dir(p, state, test_case_path)
@@ -312,8 +311,7 @@ b.o:
 prog:
 \tgcc -o prog  b.o
 b.o:
-\tgcc -o b.o b.c
-        """,
+\tgcc -o b.o b.c""",
         ),
     ) in all_transforms
     # "b.o" removed
@@ -322,9 +320,7 @@ b.o:
             'Makefile',
             b"""
 prog:
-\tgcc -o prog  b.o
-a.o:
-\tgcc -o a.o a.c
-        """,
+\tgcc -o prog a.o \na.o:
+\tgcc -o a.o a.c\n""",
         ),
     ) in all_transforms
