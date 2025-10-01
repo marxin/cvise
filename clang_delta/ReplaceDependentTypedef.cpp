@@ -163,6 +163,7 @@ bool ReplaceDependentTypedef::isValidType(const QualType &QT)
   case Type::DependentName: // fall-through
     return true;
 
+#if LLVM_VERSION_MAJOR < 22
   case Type::Elaborated: {
     const ElaboratedType *ETy = dyn_cast<ElaboratedType>(Ty);
     ElaboratedTypeKeyword Keyword = ETy->getKeyword();
@@ -173,6 +174,7 @@ bool ReplaceDependentTypedef::isValidType(const QualType &QT)
     return ((Keyword == ETK_Typename) || (Keyword == ETK_None));
 #endif
   }
+#endif
 
   default:
     return false;
