@@ -89,9 +89,9 @@ int main(int argc, char *argv[]) {
     std::cerr << "Unknown transformation: " << TransformationName << "\n";
     return -1;
   }
+  // Input file paths will be added to the vocabulary by the Python code (to
+  // avoid the complexity of escaping them on the C++ side).
   std::vector<std::string> Vocab = Transform->getVocabulary();
-  if (MultiFile)
-    Vocab.insert(Vocab.end(), InputPaths.begin(), InputPaths.end());
   printVocab(Vocab);
 
   // Prepare the common parsing state.
@@ -110,8 +110,7 @@ int main(int argc, char *argv[]) {
       std::cerr << "Failed to parse " << InputPath << "\n";
       continue;
     }
-    auto FileId = MultiFile ? std::make_optional<int>(
-                                  Vocab.size() - InputPaths.size() + InputIndex)
+    auto FileId = MultiFile ? std::make_optional<int>(Vocab.size() + InputIndex)
                             : std::nullopt;
     Transform->processFile(Contents, *Tree, FileId);
   }
