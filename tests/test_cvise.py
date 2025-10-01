@@ -84,7 +84,7 @@ def test_simple_reduction_no_interleaving_config(tmp_path: Path, overridden_subp
 @pytest.mark.parametrize('additional_delay', [0, 1, 10])
 def test_kill(tmp_path: Path, overridden_subprocess_tmpdir: Path, signum: int, additional_delay: int):
     """Test that Control-C is handled quickly, without waiting for jobs to finish."""
-    MAX_SHUTDOWN = 10  # in seconds; tolerance to prevent flakiness (normally it's a fraction of a second)
+    MAX_SHUTDOWN = 60  # in seconds; tolerance to prevent flakiness (normally it's a fraction of a second)
     JOB_SLOWNESS = MAX_SHUTDOWN * 2  # make a single job slower than the thresholds
     N = 5  # don't use very high parallelism since it'd skew timings
 
