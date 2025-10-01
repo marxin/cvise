@@ -351,7 +351,7 @@ a.out:
 
 def test_dont_remove_phony_target(tmp_path: Path, test_case_path: Path):
     (test_case_path / 'Makefile').write_text(
-            """
+        """
 .PHONY: all clean
 all: a.out
 a.out:
@@ -372,7 +372,7 @@ clean:
 all:
 clean:
 \trm -f
-            """
+            """,
         ),
     ) in all_transforms
     # "all" not removed
@@ -385,7 +385,7 @@ a.out:
 \tgcc main.c
 clean:
 \trm -f a.out
-            """
+            """,
         ),
     ) not in all_transforms
     # "clean" not removed
@@ -397,6 +397,6 @@ clean:
 all: a.out
 a.out:
 \tgcc main.c
-            """
+            """,
         ),
     ) not in all_transforms
