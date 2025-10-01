@@ -288,3 +288,43 @@ a.o:
         """,
         ),
     ) not in all_transforms
+
+
+def test_remove_target(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'Makefile').write_text(
+        """
+prog:
+\tgcc -o prog a.o b.o
+a.o:
+\tgcc -o a.o a.c
+b.o:
+\tgcc -o b.o b.c
+        """,
+    )
+    p, state = init_pass(tmp_path, test_case_path)
+    all_transforms = collect_all_transforms_dir(p, state, test_case_path)
+
+    # "a.o" removed
+    assert (
+        (
+            'Makefile',
+            b"""
+prog:
+\tgcc -o prog  b.o
+b.o:
+\tgcc -o b.o b.c
+        """,
+        ),
+    ) in all_transforms
+    # "b.o" removed
+    assert (
+        (
+            'Makefile',
+            b"""
+prog:
+\tgcc -o prog  b.o
+a.o:
+\tgcc -o a.o a.c
+        """,
+        ),
+    ) in all_transforms

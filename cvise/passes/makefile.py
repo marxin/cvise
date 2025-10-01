@@ -6,6 +6,7 @@ from typing import Dict, List
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import makefileparser
 from cvise.utils.hint import Hint, HintBundle, Patch
+from cvise.utils.makefileparser import Makefile, SourceLoc, TextWithLoc
 
 
 # TODO: make these configurable
@@ -16,6 +17,7 @@ _REMOVAL_BLOCKLIST = re.compile(
 _TWO_TOKEN_OPTIONS_REMOVAL_BLOCKLIST = re.compile(
     rb'-I .*|-iquote .*|-isystem .*|-o .*|-Xclang -fallow-pcm-with-compiler-errors'
 )
+_FILE_PATH_OPTIONS = re.compile(rb'=(?=(.*))')
 
 
 @unique
@@ -23,6 +25,7 @@ class _Vocab(Enum):
     # Items must be listed in the index order; indices must be contiguous and start from zero.
     FILEREF = (0, b'@fileref')
     REMOVE_ARGUMENTS_ACROSS_ALL_COMMANDS = (1, b'remove-arguments-across-all-commands')
+    REMOVE_TARGET = (2, b'remove-target')
 
 
 class MakefilePass(HintBasedPass):
@@ -47,14 +50,15 @@ class MakefilePass(HintBasedPass):
             rel_path = path.relative_to(test_case)
             vocab.append(str(rel_path).encode())
             file_id = len(vocab) - 1
-            _create_hints_for_makefile(path, file_id, hints)
+            _add_fileref_hints(file_id, hints)
+            mk = makefileparser.parse(path)
+            _add_arg_removal_hints(mk, file_id, hints)
+            _add_target_removal_hints(mk, file_id, hints)
 
         return HintBundle(hints=hints, vocabulary=vocab)
 
 
-def _create_hints_for_makefile(path: Path, file_id: int, hints: List[Hint]) -> None:
-    mk = makefileparser.parse(path)
-
+def _add_fileref_hints(file_id: int, hints: List[Hint]) -> None:
     # Assume all makefiles to be used (typically the interestingness test would do so), not trying to delete them in
     # RmUnusedFilesPass.
     hints.append(
@@ -65,13 +69,16 @@ def _create_hints_for_makefile(path: Path, file_id: int, hints: List[Hint]) -> N
         )
     )
 
-    # Removing argument(s) across all commands.
-    arg_locs: Dict[bytes, List[makefileparser.SourceLoc]] = {}
+
+def _add_arg_removal_hints(mk: Makefile, file_id: int, hints: List[Hint]) -> None:
+    arg_locs: Dict[bytes, List[SourceLoc]] = {}
+
     for rule in mk.rules:
         for recipe_line in rule.recipe:
             for arg_group in _get_removable_arg_groups(recipe_line.args):
                 key = b' '.join(a.value for a in arg_group)
                 arg_locs.setdefault(key, []).extend(a.loc for a in arg_group)
+
     for locs in arg_locs.values():
         hints.append(
             Hint(
@@ -81,7 +88,54 @@ def _create_hints_for_makefile(path: Path, file_id: int, hints: List[Hint]) -> N
         )
 
 
-def _get_removable_arg_groups(args: List[makefileparser.TextWithLoc]) -> List[List[makefileparser.TextWithLoc]]:
+def _add_target_removal_hints(mk: Makefile, file_id: int, hints: List[Hint]) -> None:
+    # First, collect target names and their locations in recipe headers.
+    target_mentions: Dict[Path, List[SourceLoc]] = {}
+    for rule in mk.rules:
+        # Either delete a mention of a target from the rule, or the whole rule if it's the only target in it.
+        if len(set(t.value for t in rule.targets)) == 1:
+            target_mentions.setdefault(rule.targets[0].value, []).append(rule.loc)
+        else:
+            for target in rule.targets:
+                target_mentions.setdefault(target.value, []).append(target.loc)
+
+        for prereq in rule.prereqs:
+            target_mentions.setdefault(prereq.value, []).append(prereq.loc)
+
+    for to_delete in mk.builtin_targets | mk.phony_targets:
+        target_mentions.pop(to_delete, None)
+
+    # Second, heuristically detect mentions of targets in command lines in all recipes.
+    for rule in mk.rules:
+        for recipe_line in rule.recipe:
+            prog = Path(recipe_line.program.value.decode())
+            if prog in target_mentions:
+                # The whole command has to be deleted if the program name is a known target itself.
+                target_mentions[prog].append(recipe_line.loc)
+                continue
+
+            for i, arg in enumerate(recipe_line.args):
+                prev_arg = recipe_line.args[i - 1] if i > 0 else None
+                possible_paths = [arg.value] + [m.group(1) for m in _FILE_PATH_OPTIONS.finditer(arg.value)]
+                for path_bytes in possible_paths:
+                    path = Path(path_bytes.decode())
+                    if path not in target_mentions:
+                        continue
+                    target_mentions[path].append(arg.loc)
+                    if prev_arg and _TWO_TOKEN_OPTIONS.fullmatch(prev_arg.value):
+                        target_mentions[path].append(prev_arg.loc)
+
+    # Then generate a hint for each target with all references to it.
+    for target, locs in target_mentions.items():
+        hints.append(
+            Hint(
+                type=_Vocab.REMOVE_TARGET.value[0],
+                patches=tuple(Patch(left=loc.begin, right=loc.end, file=file_id) for loc in locs),
+            )
+        )
+
+
+def _get_removable_arg_groups(args: List[TextWithLoc]) -> List[List[TextWithLoc]]:
     two_token_option = None
     removable = []
     for arg in args:

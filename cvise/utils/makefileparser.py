@@ -5,6 +5,24 @@ from typing import List, Optional, Set
 
 
 FILE_NAMES = ('Makefile', 'makefile', 'GNUmakefile')
+_BUILTIN_TARGETS = (
+    Path('.DEFAULT'),
+    Path('.DELETE_ON_ERROR'),
+    Path('.EXPORT_ALL_VARIABLES'),
+    Path('.IGNORE'),
+    Path('.INTERMEDIATE'),
+    Path('.LOW_RESOLUTION_TIME'),
+    Path('.NOTINTERMEDIATE'),
+    Path('.NOTPARALLEL'),
+    Path('.ONESHELL'),
+    Path('.PHONY'),
+    Path('.POSIX'),
+    Path('.PRECIOUS'),
+    Path('.SECONDARY'),
+    Path('.SECONDEXPANSION'),
+    Path('.SILENT'),
+    Path('.SUFFIXES'),
+)
 
 
 @dataclass
@@ -54,6 +72,7 @@ class Rule:
 class Makefile:
     rules: List[Rule]
     unclassified_lines: List[TextWithLoc]
+    builtin_targets: Set[Path]
     phony_targets: Set[Path]
 
 
@@ -72,7 +91,7 @@ def parse(makefile_path: Path) -> Makefile:
             else:
                 lines.append(cur)
 
-    mk = Makefile(rules=[], unclassified_lines=[], phony_targets=set())
+    mk = Makefile(rules=[], unclassified_lines=[], builtin_targets=set(), phony_targets=set())
     file_pos = 0
     for line in lines:
         loc = SourceLoc(begin=file_pos, end=file_pos + len(line))
@@ -91,8 +110,12 @@ def parse(makefile_path: Path) -> Makefile:
         else:
             mk.unclassified_lines.append(loc)
 
-    if phony_rule := _find_phony_rule(mk):
-        mk.phony_targets = {t.value for t in phony_rule.prereqs}
+    # Collect the names of all special/phony targets.
+    for rule in mk.rules:
+        mk.builtin_targets.update(t.value for t in rule.targets if t.value in _BUILTIN_TARGETS)
+        if any(t.value == Path('.PHONY') for t in rule.targets):
+            mk.phony_targets.update(t.value for t in rule.prereqs)
+
     return mk
 
 
@@ -190,12 +213,4 @@ def _split_shell_cmd_line(text: TextWithLoc) -> List[TextWithLoc]:
 
 
 def _to_paths(toks: List[TextWithLoc]) -> List[PathWithLoc]:
-    return [PathWithLoc(tok.loc, Path(str(tok.value))) for tok in toks]
-
-
-def _find_phony_rule(file: Makefile) -> Optional[Rule]:
-    for rule in file.rules:
-        for target in rule.targets:
-            if target.value == '.PHONY':
-                return rule
-    return None
+    return [PathWithLoc(tok.loc, Path(tok.value.decode())) for tok in toks]
