@@ -23,7 +23,7 @@
 
 using namespace clang;
 
-static const char *DescriptionMsg = 
+static const char *DescriptionMsg =
 "This pass an unused outer class if \n\
   * the outer class doesn't have any base class, and \n\
   * the outer class does not have any described template, and \n\
@@ -33,7 +33,7 @@ static const char *DescriptionMsg =
 static RegisterTransformation<RemoveUnusedOuterClass>
          Trans("remove-unused-outer-class", DescriptionMsg);
 
-class RemoveUnusedOuterClassVisitor : public 
+class RemoveUnusedOuterClassVisitor : public
   RecursiveASTVisitor<RemoveUnusedOuterClassVisitor> {
 
 public:
@@ -52,7 +52,11 @@ private:
 
 bool RemoveUnusedOuterClassVisitor::VisitRecordTypeLoc(RecordTypeLoc TLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(TLoc.getDecl());
+#else
+  const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(TLoc.getOriginalDecl());
+#endif
   ConsumerInstance->UsedCXXRDSet.insert(RD->getCanonicalDecl());
   return true;
 }
@@ -66,14 +70,14 @@ bool RemoveUnusedOuterClassVisitor::VisitCXXRecordDecl(
       dyn_cast<ClassTemplateSpecializationDecl>(CXXRD) ||
       CXXRD->hasUserDeclaredConstructor() ||
       CXXRD->hasUserDeclaredDestructor() ||
-      CXXRD->getDescribedClassTemplate() || 
+      CXXRD->getDescribedClassTemplate() ||
       CXXRD->getNumBases())
     return true;
   ConsumerInstance->CXXRDDefSet.insert(CXXRD->getDefinition());
   return true;
 }
 
-void RemoveUnusedOuterClass::Initialize(ASTContext &context) 
+void RemoveUnusedOuterClass::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new RemoveUnusedOuterClassVisitor(this);
@@ -108,7 +112,7 @@ void RemoveUnusedOuterClass::HandleTranslationUnit(ASTContext &Ctx)
 
 void RemoveUnusedOuterClass::analyzeCXXRDSet()
 {
-  for (CXXRecordDeclSetVector::iterator I = CXXRDDefSet.begin(), 
+  for (CXXRecordDeclSetVector::iterator I = CXXRDDefSet.begin(),
        E = CXXRDDefSet.end(); I != E; ++I) {
     const CXXRecordDecl *Def = (*I);
     if (UsedCXXRDSet.count(Def->getCanonicalDecl()))
@@ -123,7 +127,7 @@ void RemoveUnusedOuterClass::removeOuterClass()
 {
   TransAssert(TheCXXRDDef && "NULL Base CXXRD!");
   SourceLocation LocStart = TheCXXRDDef->getBeginLoc();
-  SourceLocation LocEnd = 
+  SourceLocation LocEnd =
     RewriteHelper->getEndLocationUntil(LocStart, '{');
   TransAssert(LocEnd.isValid() && "Invalid Location!");
   TheRewriter.RemoveText(SourceRange(LocStart, LocEnd));
@@ -138,7 +142,7 @@ void RemoveUnusedOuterClass::removeOuterClass()
       continue;
     TheRewriter.RemoveText(AS->getSourceRange());
   }
-  
+
   LocStart = TheCXXRDDef->getBraceRange().getEnd();
   LocEnd = RewriteHelper->getLocationUntil(LocStart, ';');
   if (LocStart.isInvalid() || LocEnd.isInvalid())

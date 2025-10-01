@@ -828,7 +828,12 @@ void RemoveUnusedFunction::handleOneUsingDecl(const FunctionDecl *CurrentFD,
     return;
 
   VisitedUsingDecls.insert(UD);
+#if LLVM_VERSION_MAJOR < 22
   const NestedNameSpecifier *NNS = UD->getQualifier();
+#else
+  const NestedNameSpecifier NNSVal = UD->getQualifier();
+  const NestedNameSpecifier *NNS = NNSVal ? &NNSVal : nullptr;
+#endif
   if (!NNS)
     return;
   DeclarationName Name = UD->getUnderlyingDecl()->getDeclName();
@@ -887,7 +892,12 @@ void RemoveUnusedFunction::handleOneUnresolvedLookupExpr(
   if ((K != DeclarationName::CXXOperatorName) &&
       (K != DeclarationName::Identifier))
     return;
+#if LLVM_VERSION_MAJOR < 22
   const NestedNameSpecifier *NNS = E->getQualifier();
+#else
+  const NestedNameSpecifier NNSVal = E->getQualifier();
+  const NestedNameSpecifier *NNS = NNSVal ? &NNSVal : nullptr;
+#endif
   // we fail only if UE is invoked with some qualifier or
   // instantiation, e.g.:
   // namespace NS { template<typename T> void foo(T&) { } }
