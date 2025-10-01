@@ -74,8 +74,8 @@ public:
     IsValidType = Valid;
   }
 
-  bool isValidType(void) { 
-    return IsValidType; 
+  bool isValidType(void) {
+    return IsValidType;
   }
 
 private:
@@ -94,7 +94,7 @@ bool DependentTypedefCollectionVisitor::VisitTypedefNameDecl(TypedefNameDecl *D)
 bool DependentTypedefTemplateTypeParmTypeVisitor::VisitTemplateTypeParmType(
        TemplateTypeParmType *Ty)
 {
-  const Type *CanonicalTy = 
+  const Type *CanonicalTy =
       Ty->getCanonicalTypeInternal().getTypePtr();
   if (TypeSet->count(CanonicalTy)) {
     IsValidType = true;
@@ -103,11 +103,11 @@ bool DependentTypedefTemplateTypeParmTypeVisitor::VisitTemplateTypeParmType(
   return true;
 }
 
-void SimplifyDependentTypedef::Initialize(ASTContext &context) 
+void SimplifyDependentTypedef::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new DependentTypedefCollectionVisitor(this);
-  TemplateTypeParmTypeVisitor = 
+  TemplateTypeParmTypeVisitor =
     new DependentTypedefTemplateTypeParmTypeVisitor(this);
 }
 
@@ -152,7 +152,7 @@ void SimplifyDependentTypedef::rewriteTypedefDecl(void)
     LocEnd = TheTypedefDecl->getTypeSourceInfo()->getTypeLoc().getEndLoc();
   }
 
-  std::string ParmName = FirstTmplTypeParmD->getNameAsString(); 
+  std::string ParmName = FirstTmplTypeParmD->getNameAsString();
   TransAssert(!ParmName.empty() && "Invalid TypeParmType Name!");
   // make an explicit blank after the type name in case we
   // have typedef XXX<T>type;
@@ -177,7 +177,7 @@ void SimplifyDependentTypedef::handleOneTypedefDecl(const TypedefNameDecl *D)
   const ClassTemplateDecl *TmplD = CXXRD->getDescribedClassTemplate();
   if (!TmplD)
     return;
-  
+
   TemplateParameterList *TmplParmList = TmplD->getTemplateParameters();
   if (TmplParmList->size() == 0)
     return;
@@ -186,11 +186,11 @@ void SimplifyDependentTypedef::handleOneTypedefDecl(const TypedefNameDecl *D)
   const TemplateTypeParmDecl *FirstParmD = NULL;
   for (TemplateParameterList::iterator I = TmplParmList->begin(),
        E = TmplParmList->end(); I != E; ++I) {
-    if (const TemplateTypeParmDecl *TmplTypeParmD = 
+    if (const TemplateTypeParmDecl *TmplTypeParmD =
         dyn_cast<TemplateTypeParmDecl>(*I)) {
       if (!FirstParmD && !TmplTypeParmD->getNameAsString().empty())
         FirstParmD = TmplTypeParmD;
-      const TemplateTypeParmType *TmplParmTy = 
+      const TemplateTypeParmType *TmplParmTy =
         dyn_cast<TemplateTypeParmType>(TmplTypeParmD->getTypeForDecl());
       TransAssert(TmplParmTy && "Bad TemplateTypeParmType!");
       TypeSet.insert(TmplParmTy->getCanonicalTypeInternal().getTypePtr());
@@ -203,11 +203,17 @@ void SimplifyDependentTypedef::handleOneTypedefDecl(const TypedefNameDecl *D)
   QualType QT = CanonicalD->getUnderlyingType();
   const Type *Ty = QT.getTypePtr();
   Type::TypeClass TC = Ty->getTypeClass();
+#if LLVM_VERSION_MAJOR < 22
   if ((TC != Type::DependentName) &&
       (TC != Type::DependentTemplateSpecialization) &&
       (TC != Type::TemplateSpecialization) &&
       (TC != Type::Elaborated))
     return;
+#else
+  if ((TC != Type::DependentName) &&
+      (TC != Type::TemplateSpecialization))
+    return;
+#endif
 
   TemplateTypeParmTypeVisitor->setTypeSet(&TypeSet);
   TemplateTypeParmTypeVisitor->setValidType(false);
@@ -219,7 +225,7 @@ void SimplifyDependentTypedef::handleOneTypedefDecl(const TypedefNameDecl *D)
   ValidInstanceNum++;
   if (ValidInstanceNum != TransformationCounter)
     return;
-    
+
   FirstTmplTypeParmD = FirstParmD;
   TheTypedefDecl = CanonicalD;
 }
