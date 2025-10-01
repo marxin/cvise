@@ -347,3 +347,56 @@ a.out:
 \tclang -fmodules main.cc\n""",
         ),
     ) in all_transforms
+
+
+def test_dont_remove_phony_target(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'Makefile').write_text(
+            """
+.PHONY: all clean
+all: a.out
+a.out:
+\tgcc main.c
+clean:
+\trm -f a.out
+            """,
+    )
+    p, state = init_pass(tmp_path, test_case_path)
+    all_transforms = collect_all_transforms_dir(p, state, test_case_path)
+
+    # "a.out" removed
+    assert (
+        (
+            'Makefile',
+            b"""
+.PHONY: all clean
+all:
+clean:
+\trm -f
+            """
+        ),
+    ) in all_transforms
+    # "all" not removed
+    assert (
+        (
+            'Makefile',
+            b"""
+.PHONY: clean
+a.out:
+\tgcc main.c
+clean:
+\trm -f a.out
+            """
+        ),
+    ) not in all_transforms
+    # "clean" not removed
+    assert (
+        (
+            'Makefile',
+            b"""
+.PHONY: all
+all: a.out
+a.out:
+\tgcc main.c
+            """
+        ),
+    ) not in all_transforms
