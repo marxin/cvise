@@ -77,7 +77,11 @@ def _add_arg_removal_hints(mk: Makefile, file_id: int, hints: List[Hint]) -> Non
         for recipe_line in rule.recipe:
             for arg_group in _get_removable_arg_groups(recipe_line.args):
                 key = b' '.join(a.value for a in arg_group)
-                arg_locs.setdefault(key, []).extend(a.loc for a in arg_group)
+                locs = arg_locs.setdefault(key, [])
+                for arg in arg_group:
+                    if arg.preceding_spaces_loc:
+                        locs.append(arg.preceding_spaces_loc)
+                    locs.append(arg.loc)
 
     for locs in arg_locs.values():
         hints.append(
@@ -97,10 +101,16 @@ def _add_target_removal_hints(mk: Makefile, file_id: int, hints: List[Hint]) -> 
             target_mentions.setdefault(rule.targets[0].value, []).append(rule.loc)
         else:
             for target in rule.targets:
-                target_mentions.setdefault(target.value, []).append(target.loc)
+                mentions = target_mentions.setdefault(target.value, [])
+                if target.preceding_spaces_loc:
+                    mentions.append(target.preceding_spaces_loc)
+                mentions.append(target.loc)
 
         for prereq in rule.prereqs:
-            target_mentions.setdefault(prereq.value, []).append(prereq.loc)
+            mentions = target_mentions.setdefault(prereq.value, [])
+            if prereq.preceding_spaces_loc:
+                mentions.append(prereq.preceding_spaces_loc)
+            mentions.append(prereq.loc)
 
     for to_delete in mk.builtin_targets | mk.phony_targets:
         target_mentions.pop(to_delete, None)
@@ -117,13 +127,20 @@ def _add_target_removal_hints(mk: Makefile, file_id: int, hints: List[Hint]) -> 
             for i, arg in enumerate(recipe_line.args):
                 prev_arg = recipe_line.args[i - 1] if i > 0 else None
                 possible_paths = [arg.value] + [m.group(1) for m in _FILE_PATH_OPTIONS.finditer(arg.value)]
+
                 for path_bytes in possible_paths:
                     path = Path(path_bytes.decode())
                     if path not in target_mentions:
                         continue
-                    target_mentions[path].append(arg.loc)
+                    mentions = target_mentions[path]
+                    if arg.preceding_spaces_loc:
+                        mentions.append(arg.preceding_spaces_loc)
+                    mentions.append(arg.loc)
+
                     if prev_arg and _TWO_TOKEN_OPTIONS.fullmatch(prev_arg.value):
-                        target_mentions[path].append(prev_arg.loc)
+                        mentions.append(prev_arg.loc)
+                        if prev_arg.preceding_spaces_loc:
+                            mentions.append(prev_arg.preceding_spaces_loc)
 
     # Then generate a hint for each target and all references to it.
     for locs in target_mentions.values():

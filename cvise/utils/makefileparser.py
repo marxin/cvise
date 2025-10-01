@@ -35,6 +35,7 @@ class SourceLoc:
 class TextWithLoc:
     loc: SourceLoc
     value: bytes
+    preceding_spaces_loc: Optional[SourceLoc] = None
 
     def substr(self, begin: int, end: Optional[int] = None) -> TextWithLoc:
         assert self.loc.begin + begin <= self.loc.end
@@ -50,6 +51,7 @@ class TextWithLoc:
 class PathWithLoc:
     loc: SourceLoc
     value: Path
+    preceding_spaces_loc: Optional[SourceLoc] = None
 
 
 @dataclass
@@ -160,7 +162,10 @@ def _split_by_spaces(text: TextWithLoc) -> List[TextWithLoc]:
         # Determine the token's position - split() doesn't return how many whitespaces were skipped.
         pos = text.value.find(tok, start_pos)
         assert pos != -1
-        tok_locs.append(text.substr(pos, pos + len(tok)))
+        tok_loc = text.substr(pos, pos + len(tok))
+        if pos > start_pos:
+            tok_loc.preceding_spaces_loc = SourceLoc(text.loc.begin + start_pos, text.loc.begin + pos)
+        tok_locs.append(tok_loc)
         start_pos = pos + len(tok)
     return tok_locs
 
@@ -173,10 +178,12 @@ def _split_shell_cmd_line(text: TextWithLoc) -> List[TextWithLoc]:
     n = len(text.value)
     while i < n:
         # Skip spaces before the next token.
+        start = i
         while i < n and chr(text.value[i]).isspace():
             i += 1
         if i == n:
             break
+        preceding_spaces_loc = SourceLoc(text.loc.begin + start, text.loc.begin + i) if start < i else None
 
         begin = i
         tok = bytearray()
@@ -207,10 +214,10 @@ def _split_shell_cmd_line(text: TextWithLoc) -> List[TextWithLoc]:
             i += 1
 
         loc = SourceLoc(begin=text.loc.begin + begin, end=text.loc.begin + i)
-        tok_locs.append(TextWithLoc(loc, tok))
+        tok_locs.append(TextWithLoc(loc, tok, preceding_spaces_loc))
 
     return tok_locs
 
 
 def _to_paths(toks: List[TextWithLoc]) -> List[PathWithLoc]:
-    return [PathWithLoc(tok.loc, Path(tok.value.decode())) for tok in toks]
+    return [PathWithLoc(tok.loc, Path(tok.value.decode()), tok.preceding_spaces_loc) for tok in toks]

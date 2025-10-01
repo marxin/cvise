@@ -39,7 +39,7 @@ a.out:
             'Makefile',
             b"""
 a.out:
-\tgcc  foo.c
+\tgcc foo.c
         """,
         ),
     ) in all_transforms
@@ -73,7 +73,7 @@ b.o:
             'Makefile',
             b"""
 a.out:
-\tgcc   foo.c
+\tgcc foo.c
 b.o:
 \tgcc -ob.o bar.c
         """,
@@ -85,7 +85,7 @@ b.o:
             'Makefile',
             b"""
 a.out:
-\tgcc  a.o foo.c
+\tgcc a.o foo.c
 b.o:
 \tgcc -ob.o bar.c
         """,
@@ -97,7 +97,7 @@ b.o:
             'Makefile',
             b"""
 a.out:
-\tgcc -o  foo.c
+\tgcc -o foo.c
 b.o:
 \tgcc -ob.o bar.c
         """,
@@ -111,7 +111,7 @@ b.o:
 a.o:
 \tgcc -o a.o foo.c
 b.o:
-\tgcc  bar.c
+\tgcc bar.c
         """,
         ),
     ) not in all_transforms
@@ -133,7 +133,7 @@ a.o:
             'Makefile',
             b"""
 a.o:
-\tgcc  foo.c
+\tgcc foo.c
         """,
         ),
     ) not in all_transforms
@@ -157,9 +157,9 @@ b.out:
             'makefile',
             b"""
 a.out:
-\tgcc  foo.c
+\tgcc foo.c
 b.out:
-\tgcc -fsigned-char  -o b.out bar.c
+\tgcc -fsigned-char -o b.out bar.c
         """,
         ),
     ) in all_transforms
@@ -170,11 +170,11 @@ def test_continuation(tmp_path: Path, test_case_path: Path):
         """
 a.out:
 \tgcc -ansi foo.c
-b.out: \
+b.out: \\
     a.out
-\tgcc \
-\t    -fsigned-char \
-\t    -ansi \
+\tgcc \\
+\t    -fsigned-char \\
+\t    -ansi \\
 \t    -o b.out bar.c
         """,
     )
@@ -187,12 +187,11 @@ b.out: \
             'makefile',
             b"""
 a.out:
-\tgcc  foo.c
-b.out: \
+\tgcc foo.c
+b.out: \\
     a.out
-\tgcc \
-\t    -fsigned-char \
-\t     \
+\tgcc \\
+\t    -fsigned-char \\
 \t    -o b.out bar.c
         """,
         ),
@@ -215,7 +214,7 @@ a.o:
             'Makefile',
             b"""
 a.o:
-\tgcc  foo.c
+\tgcc foo.c
         """,
         ),
     ) in all_transforms
@@ -256,7 +255,7 @@ a.o:
             'Makefile',
             b"""
 a.o:
-\tgcc  foo.c
+\tgcc foo.c
         """,
         ),
     ) in all_transforms
@@ -266,7 +265,7 @@ a.o:
             'Makefile',
             b"""
 a.o:
-\tgcc '-Dfoo="x  foo.c
+\tgcc '-Dfoo="x foo.c
         """,
         ),
     ) not in all_transforms
@@ -275,7 +274,7 @@ a.o:
             'Makefile',
             b"""
 a.o:
-\tgcc  y"' foo.c
+\tgcc y"' foo.c
         """,
         ),
     ) not in all_transforms
@@ -308,8 +307,8 @@ b.o:
         (
             'Makefile',
             b"""
-prog:  b.o
-\tgcc -o prog  b.o
+prog: b.o
+\tgcc -o prog b.o
 b.o:
 \tgcc -o b.o b.c""",
         ),
@@ -319,7 +318,9 @@ b.o:
         (
             'Makefile',
             b"""
-prog: a.o \n\tgcc -o prog a.o \na.o:
+prog: a.o
+\tgcc -o prog a.o
+a.o:
 \tgcc -o a.o a.c\n""",
         ),
     ) in all_transforms
@@ -342,6 +343,7 @@ mod.pcm:
         (
             'Makefile',
             b"""
-a.out: \n\tclang -fmodules  main.cc\n""",
+a.out:
+\tclang -fmodules main.cc\n""",
         ),
     ) in all_transforms
