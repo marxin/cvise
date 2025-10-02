@@ -191,7 +191,7 @@ class _PatchWithBundleRef(msgspec.Struct, gc=False):
 def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationStats:
     """Creates the destination file/dir by applying the specified hints to the contents of the source file/dir."""
     # Take patches from all hints and group them by the file which they're applied to.
-    path_to_patches = {}
+    path_to_patches: Dict[Path, List[_PatchWithBundleRef]] = {}
     for bundle_id, bundle in enumerate(bundles):
         for hint in bundle.hints:
             for patch in hint.patches:
@@ -228,7 +228,7 @@ def _apply_hint_patches_to_file(
     destination_file: Path,
     stats: HintApplicationStats,
 ) -> None:
-    merged_patches = merge_overlapping_patches(patches)
+    merged_patches = _merge_overlapping_patches(patches)
     orig_data = memoryview(source_file.read_bytes())
 
     new_data = bytearray()
@@ -327,6 +327,79 @@ def load_hints(hints_file_path: Path, begin_index: Optional[int], end_index: Opt
     return HintBundle(hints=hints, pass_name=preamble.pass_, vocabulary=[s.encode() for s in vocab])
 
 
+def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: List[HintBundle]) -> HintBundle:
+    """Transforms source_bundle as if all hints from bundles_to_subtract have been applied.
+
+    This gives recalculated hints that are applicable to the transformed input files.
+    """
+    # Group patches and positions we're interested in by the file path.
+    path_to_queries: Dict[Path, List[int]] = {}
+    for hint in source_bundle.hints:
+        for patch in hint.patches:
+            file_rel = Path(source_bundle.vocabulary[patch.file].decode()) if patch.file is not None else Path()
+            path_to_queries.setdefault(file_rel, []).extend((patch.left, patch.right))
+    path_to_subtrahends: Dict[Path, List[_PatchWithBundleRef]] = {}
+    for bundle_id, bundle in enumerate(bundles_to_subtract):
+        for hint in bundle.hints:
+            for patch in hint.patches:
+                p = _PatchWithBundleRef(patch, bundle_id)
+                file_rel = Path(bundle.vocabulary[patch.file].decode()) if patch.file is not None else Path()
+                path_to_subtrahends.setdefault(file_rel, []).append(p)
+
+    # Calculate how positions in each file shift after applying the subtrahend hints.
+    path_to_positions_mapping: Dict[Path, Dict[int, int]] = {}
+    for path, queries in path_to_queries.items():
+        path_to_positions_mapping[path] = _calc_positions_mapping_for_patches(
+            queries, path_to_subtrahends.get(path, []), bundles_to_subtract
+        )
+
+    # Build new hints with the updated positions.
+    new_hints = []
+    for hint in source_bundle.hints:
+        new_patches = []
+        for patch in hint.patches:
+            file_rel = Path(source_bundle.vocabulary[patch.file].decode()) if patch.file is not None else Path()
+            mapping = path_to_positions_mapping[file_rel]
+            new_patch = msgspec.structs.replace(patch, left=mapping[patch.left], right=mapping[patch.right])
+            if (
+                new_patch.left < new_patch.right
+                or new_patch.left == new_patch.right
+                and new_patch.operation is not None
+            ):
+                new_patches.append(new_patch)
+        if new_patches or hint.type is not None and is_special_hint_type(source_bundle.vocabulary[hint.type]):
+            new_hints.append(msgspec.structs.replace(hint, patches=tuple(new_patches)))
+    return HintBundle(hints=new_hints, pass_name=source_bundle.pass_name, vocabulary=source_bundle.vocabulary)
+
+
+def _calc_positions_mapping_for_patches(
+    queries: Sequence[int], patches: Sequence[_PatchWithBundleRef], bundles: Sequence[HintBundle]
+) -> Dict[int, int]:
+    positions_mapping: Dict[int, int] = {}
+    merged_patches = _merge_overlapping_patches(patches)
+    ptr = 0
+    position_delta = 0
+    for query in sorted(set(queries)):
+        # Apply patches up until the current position.
+        while ptr < len(merged_patches) and merged_patches[ptr].patch.right <= query:
+            patch_ref = merged_patches[ptr]
+            to_delete = patch_ref.patch.right - patch_ref.patch.left
+            to_insert = (
+                0
+                if patch_ref.patch.value is None
+                else len(bundles[patch_ref.bundle_id].vocabulary[patch_ref.patch.value])
+            )
+            position_delta += to_insert - to_delete
+            ptr += 1
+        new_pos = query + position_delta
+        if ptr < len(merged_patches) and merged_patches[ptr].patch.left < query:
+            # Adjust if we're inside another patch.
+            to_delete = query - merged_patches[ptr].patch.left
+            new_pos -= to_delete
+        positions_mapping[query] = new_pos
+    return positions_mapping
+
+
 def group_hints_by_type(bundle: HintBundle) -> Dict[bytes, HintBundle]:
     """Splits the bundle into multiple, one per each hint type."""
     grouped: Dict[bytes, HintBundle] = {}
@@ -358,7 +431,7 @@ def try_parse_json_line(text: str, decoder: msgspec.json.Decoder) -> Any:
         raise RuntimeError(f'Failed to decode line "{text}": {e}') from e
 
 
-def merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequence[_PatchWithBundleRef]:
+def _merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequence[_PatchWithBundleRef]:
     """Returns non-overlapping hint patches, merging patches where necessary."""
 
     def sorting_key(p: _PatchWithBundleRef):
