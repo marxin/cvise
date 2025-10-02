@@ -93,6 +93,7 @@ class AdvanceOnSuccessEnvironment:
     pass_advance_on_success: Callable
     test_case: Path
     pass_previous_state: Any
+    new_tmp_dir: Path
     pass_succeeded_state: Any
     job_timeout: int
     pid_queue: queue.Queue
@@ -103,6 +104,7 @@ class AdvanceOnSuccessEnvironment:
         return self.pass_advance_on_success(
             self.test_case,
             state=self.pass_previous_state,
+            new_tmp_dir=self.new_tmp_dir,
             succeeded_state=self.pass_succeeded_state,
             job_timeout=self.job_timeout,
             process_event_notifier=ProcessEventNotifier(self.pid_queue),
@@ -228,7 +230,7 @@ class PassContext:
     enabled: bool
     # Stores pass-specific files to be used during transform jobs (e.g., hints generated during initialization), and
     # temporary folders for each transform job.
-    temporary_root: Union[Path, None]
+    temporary_root: Optional[Path]
     # The pass state as returned by the pass new()/advance()/advance_on_success() methods.
     state: Any
     # The state that succeeded in the previous batch of jobs - to be passed as succeeded_state to advance_on_success().
@@ -252,14 +254,11 @@ class PassContext:
 
     @staticmethod
     def create(pass_: AbstractPass) -> PassContext:
-        pass_name = str(pass_).replace('::', '-')
-        root = tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}{pass_name}-')
-        logging.debug(f'Creating pass root folder: {root}')
         return PassContext(
             pass_=pass_,
             stage=PassStage.BEFORE_INIT,
             enabled=True,
-            temporary_root=Path(root),
+            temporary_root=None,
             state=None,
             taken_succeeded_state=None,
             current_batch_succeeded_states=[],
@@ -334,7 +333,7 @@ class Job:
 
     start_time: float
     timeout: float
-    temporary_folder: Union[Path, None]
+    temporary_folder: Path
 
 
 @dataclass
@@ -750,10 +749,18 @@ class TestManager:
         ctx.defunct = True
 
     def handle_finished_init_job(self, job: Job) -> None:
-        ctx = self.pass_contexts[job.pass_id]
+        ctx: PassContext = self.pass_contexts[job.pass_id]
         assert ctx.stage == PassStage.IN_INIT
         ctx.stage = PassStage.ENUMERATING
         ctx.state = job.future.result()
+
+        # Put the job's folder into the pass context for future transform jobs; the old folder, if any, has to be cleaned up.
+        if ctx.temporary_root is not None:
+            rmfolder(ctx.temporary_root)
+            ctx.temporary_root = None
+        ctx.temporary_root = job.temporary_folder
+        job.temporary_folder = None
+
         self.pass_statistic.add_initialized(job.pass_, job.start_time)
         if isinstance(ctx.pass_, HintBasedPass) and ctx.state is not None:
             ctx.hint_bundle_paths = ctx.state.hint_bundle_paths()
@@ -1145,12 +1152,16 @@ class TestManager:
                     path for type, path in other.hint_bundle_paths.items() if type in dependee_types
                 ]
 
+        sanitized_name = fileutil.sanitize_for_file_name(str(ctx.pass_))
+        tmp_dir = tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}{sanitized_name}-')
+        logging.debug(f'Creating pass root folder: {tmp_dir}')
+
         # Either initialize the pass from scratch, or advance from the previous state.
         if ctx.state is None:
             env = InitEnvironment(
                 pass_new=ctx.pass_.new,
                 test_case=self.current_test_case,
-                tmp_dir=ctx.temporary_root,
+                tmp_dir=tmp_dir,
                 job_timeout=self.timeout,
                 pid_queue=self.process_monitor.pid_queue,
                 dependee_bundle_paths=dependee_bundle_paths,
@@ -1160,6 +1171,7 @@ class TestManager:
                 pass_advance_on_success=ctx.pass_.advance_on_success,
                 test_case=self.current_test_case,
                 pass_previous_state=ctx.state,
+                new_tmp_dir=tmp_dir,
                 pass_succeeded_state=ctx.taken_succeeded_state,
                 job_timeout=self.timeout,
                 pid_queue=self.process_monitor.pid_queue,
@@ -1180,7 +1192,7 @@ class TestManager:
                 pass_job_counter=ctx.pass_job_counter,
                 start_time=time.monotonic(),
                 timeout=init_timeout,
-                temporary_folder=None,
+                temporary_folder=tmp_dir,
             )
         )
 
@@ -1192,6 +1204,7 @@ class TestManager:
         ctx = self.pass_contexts[pass_id]
         assert ctx.can_transform_now()
         assert ctx.state is not None
+        assert ctx.temporary_root is not None
 
         # Whether we should copy input files to the temporary work directory, or the pass does it itself. For now, we
         # simply hardcode that hint-based passes are capable of this (and they actually need the original files anyway).

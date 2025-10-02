@@ -19,6 +19,7 @@ from cvise.utils.fileutil import (
     hash_test_case,
     mkdir_up_to,
     replace_test_case_atomically,
+    sanitize_for_file_name,
 )
 
 
@@ -45,6 +46,16 @@ def test_mkdir_failure(tmp_path: Path):
     p = parent / 'path'
     with pytest.raises(FileNotFoundError):
         mkdir_up_to(p, parent)
+
+
+def test_sanitize():
+    assert sanitize_for_file_name('Foo123') == 'Foo123'
+    assert sanitize_for_file_name('foo bar') == 'foo_bar'
+    assert sanitize_for_file_name('foo bar') == 'foo_bar'
+    assert sanitize_for_file_name('example.txt') == 'example.txt'
+    assert sanitize_for_file_name('@something') == '_something'
+    assert sanitize_for_file_name('a-b') == 'a-b'
+    assert sanitize_for_file_name('a_b') == 'a_b'
 
 
 def test_get_file_size(tmp_path: Path):

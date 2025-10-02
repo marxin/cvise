@@ -206,6 +206,7 @@ class AbstractPass:
         self,
         test_case: Path,
         state,
+        new_tmp_dir: Path,
         succeeded_state,
         job_timeout,
         process_event_notifier: ProcessEventNotifier,

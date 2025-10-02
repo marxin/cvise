@@ -94,7 +94,14 @@ class ClangHintsPass(HintBasedPass):
         return ClangState.wrap(new_state, state.clang_std)
 
     def advance_on_success(
-        self, test_case: Path, state, job_timeout: int, process_event_notifier: ProcessEventNotifier, *args, **kwargs
+        self,
+        test_case: Path,
+        state,
+        new_tmp_dir: Path,
+        job_timeout: int,
+        process_event_notifier: ProcessEventNotifier,
+        *args,
+        **kwargs,
     ):
         # Keep using the same standard as the one chosen in new() - repeating the choose procedure on every successful
         # reduction would be too costly.
@@ -103,7 +110,7 @@ class ClangHintsPass(HintBasedPass):
         except ClangDeltaError as e:
             logging.warning('%s', e)
             return None
-        new_state = self.advance_on_success_from_hints(hints, state)
+        new_state = self.advance_on_success_from_hints(hints, state, new_tmp_dir)
         return ClangState.wrap(new_state, state.clang_std)
 
     def _generate_hints_for_standard(
