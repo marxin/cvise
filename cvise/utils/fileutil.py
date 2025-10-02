@@ -71,6 +71,18 @@ def get_line_count(test_case: Path) -> int:
     return lines
 
 
+def get_file_count(test_case: Path) -> int:
+    if not test_case.is_dir():
+        return 1
+    return sum(1 for p in test_case.rglob('*') if not p.is_dir())
+
+
+def get_dir_count(test_case: Path) -> int:
+    if not test_case.is_dir():
+        return 0
+    return 1 + sum(1 for p in test_case.rglob('*') if p.is_dir())
+
+
 def copy_test_case(source: Path, destination_parent: Path) -> None:
     assert not source.is_absolute()
     mkdir_up_to(destination_parent / source.parent, destination_parent)

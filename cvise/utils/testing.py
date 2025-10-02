@@ -543,6 +543,14 @@ class TestManager:
     def total_line_count(self) -> int:
         return sum(fileutil.get_line_count(p) for p in self.test_cases)
 
+    @property
+    def total_file_count(self) -> int:
+        return sum(fileutil.get_file_count(p) for p in self.test_cases)
+
+    @property
+    def total_dir_count(self) -> int:
+        return sum(fileutil.get_dir_count(p) for p in self.test_cases)
+
     def backup_test_cases(self):
         for f in self.test_cases:
             orig_file = Path(f'{f}.orig')
@@ -1046,6 +1054,10 @@ class TestManager:
             notes.append(f'{self.total_line_count} lines')
         if len(self.test_cases) > 1:
             notes.append(str(new_test_case.name))
+        if self.current_test_case.is_dir():
+            files = self.total_file_count
+            dirs = self.total_dir_count
+            notes.append(f'{files} file{"s" if files > 1 else ""} in {dirs} dir{"s" if dirs > 1 else ""}')
         if len(self.pass_contexts) > 1:
             if isinstance(self.success_candidate.pass_state, FoldingStateOut):
                 pass_name = ' + '.join(self.success_candidate.pass_state.statistics.get_passes_ordered_by_delta())
