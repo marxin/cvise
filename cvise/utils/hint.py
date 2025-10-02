@@ -37,7 +37,7 @@ class Patch(msgspec.Struct, omit_defaults=True, gc=False, frozen=True, order=Tru
     value: Optional[int] = msgspec.field(default=None, name='v')
 
 
-class Hint(msgspec.Struct, omit_defaults=True, gc=False, frozen=True, order=True):
+class Hint(msgspec.Struct, omit_defaults=True, gc=False, frozen=True, order=True, kw_only=True):
     """Describes a single hint.
 
     See HINT_SCHEMA.

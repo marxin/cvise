@@ -30,7 +30,7 @@ class TreeSitterPass(HintBasedPass):
         # limit).
         if test_case.is_dir():
             work_dir = test_case
-            paths = [p.relative_to(test_case) for p in test_case.rglob('*') if not p.is_dir()]
+            paths = sorted(p.relative_to(test_case) for p in test_case.rglob('*') if not p.is_dir())
             stdin = b'\0'.join(bytes(p) for p in paths)
             files_vocab = [str(p).encode() for p in paths]  # avoid the complexity of escaping paths in C++ code
             cmd_arg = '--'
