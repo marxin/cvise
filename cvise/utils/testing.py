@@ -22,7 +22,7 @@ import concurrent.futures
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass, PassResult
-from cvise.passes.hint_based import HintBasedPass
+from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils import cache, fileutil, mplogging, sigmonitor
 from cvise.utils.error import (
     AbsolutePathTestCaseError,
@@ -233,6 +233,8 @@ class PassContext:
     state: Any
     # The state that succeeded in the previous batch of jobs - to be passed as succeeded_state to advance_on_success().
     taken_succeeded_state: Any
+    # States that succeeded in the current batch of jobs.
+    current_batch_succeeded_states: List[Any]
     # The overall number of jobs that have been started for the pass, throughout the whole run_passes() invocation.
     pass_job_counter: int
     # The value of pass_job_counter used for scheduling the most recent successful job.
@@ -260,6 +262,7 @@ class PassContext:
             temporary_root=Path(root),
             state=None,
             taken_succeeded_state=None,
+            current_batch_succeeded_states=[],
             pass_job_counter=0,
             last_success_pass_job_counter=0,
             current_batch_start_job_counter=0,
@@ -771,6 +774,7 @@ class TestManager:
         if self.interleaving:
             self.folding_manager.on_transform_job_success(env.state)
         if ctx:
+            ctx.current_batch_succeeded_states.append(env.state)
             ctx.last_success_pass_job_counter = max(ctx.last_success_pass_job_counter, job.pass_job_counter)
 
     def check_pass_result(self, job: Job):
@@ -845,6 +849,7 @@ class TestManager:
         for pass_id, ctx in enumerate(self.pass_contexts):
             # Clean up the information about previously running jobs.
             ctx.running_transform_order_to_state = {}
+            ctx.current_batch_succeeded_states = []
             ctx.current_batch_start_job_counter = ctx.pass_job_counter
             # Unfinished initializations from the last run will need to be restarted.
             if ctx.stage == PassStage.IN_INIT:
@@ -1102,6 +1107,9 @@ class TestManager:
         for cand_id, ctx in enumerate(self.pass_contexts):
             if not ctx.can_transform_now():
                 continue
+            self.advance_while_subset_of_succeeded(ctx)
+            if not ctx.can_transform_now():
+                continue
             if (
                 pass_id is not None
                 and self.pass_contexts[pass_id].jobs_in_current_batch() <= ctx.jobs_in_current_batch()
@@ -1248,6 +1256,12 @@ class TestManager:
         )
 
         self.order += 1
+
+    def advance_while_subset_of_succeeded(self, ctx: PassContext) -> None:
+        if not isinstance(ctx.state, HintState):
+            return
+        while ctx.state is not None and any(ctx.state.subset_of(s) for s in ctx.current_batch_succeeded_states):
+            ctx.state = ctx.pass_.advance(self.current_test_case, ctx.state)
 
     def get_fully_initialized_hint_types(self) -> Set[bytes]:
         ready_types = set()

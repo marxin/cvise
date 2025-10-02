@@ -53,6 +53,20 @@ class PerTypeHintState:
             underlying_state=next,
         )
 
+    def subset_of(self, other: PerTypeHintState) -> bool:
+        if (
+            self.type != other.type
+            or self.hints_file_name != other.hints_file_name
+            or not isinstance(self.underlying_state, BinaryState)
+            or not isinstance(other.underlying_state, BinaryState)
+            or self.underlying_state.instances != other.underlying_state.instances
+        ):
+            return False
+        return (
+            other.underlying_state.index <= self.underlying_state.index
+            and self.underlying_state.end() <= other.underlying_state.end()
+        )
+
 
 @dataclass(frozen=True)
 class SpecialHintState:
@@ -103,8 +117,11 @@ class HintState:
             parts.append(f'{s.type.decode()}: {s.hint_count}')
         return f'HintState({", ".join(parts)})'
 
+    def current_substate(self) -> PerTypeHintState:
+        return self.per_type_states[self.ptr]
+
     def real_chunk(self) -> int:
-        return self.per_type_states[self.ptr].underlying_state.real_chunk()
+        return self.current_substate().underlying_state.real_chunk()
 
     def advance(self) -> Union[HintState, None]:
         if not self.per_type_states:
@@ -112,7 +129,7 @@ class HintState:
             return None
 
         # First, prepare the current type's sub-state to point to the next enumeration step.
-        new_substate = self.per_type_states[self.ptr].advance()
+        new_substate = self.current_substate().advance()
         if new_substate is None and len(self.per_type_states) == 1:
             # The last type's enumeration finished - nothing to be done more.
             return None
@@ -155,6 +172,11 @@ class HintState:
         return HintState(
             tmp_dir=self.tmp_dir, per_type_states=tuple(sub_states), ptr=0, special_hints=self.special_hints
         )
+
+    def subset_of(self, other: HintState) -> bool:
+        if not self.per_type_states or not other.per_type_states:
+            return False
+        return self.current_substate().subset_of(other.current_substate())
 
     def hint_bundle_paths(self) -> Dict[bytes, Path]:
         return {
@@ -240,7 +262,7 @@ class HintBasedPass(AbstractPass):
     ) -> HintApplicationStats:
         hint_bundles: List[HintBundle] = []
         for state in states:
-            sub_state = state.per_type_states[state.ptr]
+            sub_state = state.current_substate()
             hints_range_begin = sub_state.underlying_state.index
             hints_range_end = sub_state.underlying_state.end()
             hint_bundles.append(
