@@ -55,25 +55,20 @@ class ClangIncludeGraphPass(HintBasedPass):
 
     def generate_hints(self, test_case: Path, dependee_hints: List[HintBundle], *args, **kwargs):
         # Simply merge received hints - the actual work has been done by _ClangIncludeGraphMultiplexPass instances.
-        vocab: List[bytes] = list(_HINT_VOCAB)
-        path_to_vocab: Dict[Path, int] = {}
-        hints = set()
+        merged_vocab = []
         for bundle in dependee_hints:
-            for hint in bundle.hints:
-                new_hint = _remap_file_ids(hint, bundle, test_case, vocab, path_to_vocab)
-                hints.add(new_hint)
-        return HintBundle(hints=sorted(hints), vocabulary=vocab)
+            merged_vocab.extend(bundle.vocabulary)
+        vocab: List[bytes] = list(_HINT_VOCAB) + sorted(set(merged_vocab))
+        text_to_vocab: Dict[bytes, int] = {s: i for i, s in enumerate(vocab)}
+        hints = [_remap_file_ids(h, b, text_to_vocab) for b in dependee_hints for h in b.hints]
+        return HintBundle(hints=list(set(hints)), vocabulary=vocab)
 
 
-def _remap_file_ids(
-    hint: Hint, bundle: HintBundle, test_case: Path, vocab: List[bytes], path_to_vocab: Dict[Path, int]
-) -> Hint:
-    patches = []
-    for p in hint.patches:
-        file_id = _get_vocab_id(Path(bundle.vocabulary[p.file].decode()), test_case, vocab, path_to_vocab)
-        patches.append(Patch(left=p.left, right=p.right, file=file_id))
-    extra = _get_vocab_id(Path(bundle.vocabulary[hint.extra].decode()), test_case, vocab, path_to_vocab)
-    return Hint(type=0, patches=tuple(patches), extra=extra)
+def _remap_file_ids(hint: Hint, bundle: HintBundle, text_to_vocab: Dict[bytes, int]) -> Hint:
+    patches = tuple(
+        Patch(left=p.left, right=p.right, file=text_to_vocab[bundle.vocabulary[p.file]]) for p in hint.patches
+    )
+    return Hint(type=0, patches=patches, extra=text_to_vocab[bundle.vocabulary[hint.extra]])
 
 
 class _ClangIncludeGraphMultiplexPass(HintBasedPass):
