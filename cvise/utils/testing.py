@@ -1153,7 +1153,7 @@ class TestManager:
                 ]
 
         sanitized_name = fileutil.sanitize_for_file_name(str(ctx.pass_))
-        tmp_dir = tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}{sanitized_name}-')
+        tmp_dir = Path(tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}{sanitized_name}-'))
         logging.debug(f'Creating pass root folder: {tmp_dir}')
 
         # Either initialize the pass from scratch, or advance from the previous state.
