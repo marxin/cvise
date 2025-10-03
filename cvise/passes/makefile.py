@@ -42,7 +42,7 @@ class MakefilePass(HintBasedPass):
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         paths = list(test_case.rglob('*')) if test_case.is_dir() else [test_case]
-        makefiles = sorted(p for p in paths if p.name in makefileparser.FILE_NAMES)
+        makefiles = [p for p in paths if p.name in makefileparser.FILE_NAMES]
 
         vocab: List[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
         hints: List[Hint] = []

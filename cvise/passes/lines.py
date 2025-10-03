@@ -17,9 +17,7 @@ class LinesPass(HintBasedPass):
 
     def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
         is_dir = test_case.is_dir()
-        paths = (
-            sorted(p for p in test_case.rglob('*') if not p.is_dir() and not p.is_symlink()) if is_dir else [test_case]
-        )
+        paths = [p for p in test_case.rglob('*') if not p.is_dir() and not p.is_symlink()] if is_dir else [test_case]
         vocab = [str(p.relative_to(test_case)).encode() for p in paths] if is_dir else []
 
         hints = []
