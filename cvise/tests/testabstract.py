@@ -23,7 +23,11 @@ def iterate_pass(current_pass: AbstractPass, path: Path, **kwargs) -> None:
         )
         if result == PassResult.OK:
             state = current_pass.advance_on_success(
-                path, state, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
+                path,
+                state,
+                new_tmp_dir=kwargs.get('tmp_dir'),
+                process_event_notifier=ProcessEventNotifier(None),
+                dependee_hints=[],
             )
         else:
             state = current_pass.advance(path, state)

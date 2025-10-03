@@ -698,11 +698,15 @@ def test_advance_on_success(tmp_path: Path, input_path: Path):
     # Cut 'foo' first, pretending that all previous transforms (e.g., deletion of the whole text) didn't pass the
     # interestingness test.
     state = advance_until(p, state, input_path, lambda s: b'bar' in s and b'baz' in s)
-    p.advance_on_success(input_path, state, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[])
+    p.advance_on_success(
+        input_path, state, new_tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
+    )
     # Cut 'baz' now, pretending that all transforms in between (e.g, deletion of "bar;") didn't pass the
     # interestingness test.
     state = advance_until(p, state, input_path, lambda s: b'bar' in s)
-    p.advance_on_success(input_path, state, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[])
+    p.advance_on_success(
+        input_path, state, new_tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
+    )
 
     assert (
         input_path.read_bytes()

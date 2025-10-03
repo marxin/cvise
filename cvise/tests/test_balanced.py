@@ -149,7 +149,11 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
 
         while result == PassResult.OK:
             state = self.pass_.advance_on_success(
-                self.input_path, state, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
+                self.input_path,
+                state,
+                new_tmp_dir=self.tmp_dir,
+                process_event_notifier=ProcessEventNotifier(None),
+                dependee_hints=[],
             )
             if state is None:
                 break

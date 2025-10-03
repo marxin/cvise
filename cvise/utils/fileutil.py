@@ -4,6 +4,7 @@ import io
 import os
 from pathlib import Path
 import random
+import re
 import shutil
 import string
 import tempfile
@@ -57,6 +58,11 @@ def mkdir_up_to(dir_to_create: Path, last_parent_dir: Path) -> None:
         return
     mkdir_up_to(dir_to_create.parent, last_parent_dir)
     dir_to_create.mkdir(exist_ok=True)
+
+
+def sanitize_for_file_name(text: str) -> str:
+    """Replaces characters which might be invalid or error-prone (e.g., spaces) when used in file names."""
+    return re.sub(r'[^a-zA-Z0-9_.-]', '_', text)
 
 
 def get_file_size(test_case: Path) -> int:
