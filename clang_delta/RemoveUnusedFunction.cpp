@@ -788,21 +788,33 @@ const FunctionDecl *RemoveUnusedFunction::getFunctionDeclFromSpecifier(
   std::unordered_set<const DeclContext *> seenDeclarations;
   const FunctionDecl *FD = NULL;
   switch (NNS->getKind()) {
-  case NestedNameSpecifier::Namespace:
-    FD = lookupFunctionDeclShallow(Name,
-                                   NNS->getAsNamespace(),
-                                   seenDeclarations);
+#if LLVM_VERSION_MAJOR < 22
+  case NestedNameSpecifier::Namespace: {
+    const DeclContext *DC = NNS->getAsNamespace();
+    FD = lookupFunctionDeclShallow(Name, DC, seenDeclarations);
     break;
-  case NestedNameSpecifier::NamespaceAlias:
+  }
+  case NestedNameSpecifier::NamespaceAlias: {
     FD = lookupFunctionDeclShallow(Name,
            NNS->getAsNamespaceAlias()->getNamespace(),
            seenDeclarations);
     break;
-  case NestedNameSpecifier::Global:
+  }
+  case NestedNameSpecifier::Global: {
+#else
+  case NestedNameSpecifier::Kind::Namespace: {
+    const DeclContext *DC =
+        NNS->getAsNamespaceAndPrefix().Namespace->getDeclContext();
+    FD = lookupFunctionDeclShallow(Name, DC, seenDeclarations);
+    break;
+  }
+  case NestedNameSpecifier::Kind::Global: {
+#endif
     FD = lookupFunctionDeclShallow(Name,
                                    Context->getTranslationUnitDecl(),
                                    seenDeclarations);
     break;
+  }
   default:
     return NULL;
   }
@@ -816,7 +828,12 @@ void RemoveUnusedFunction::handleOneUsingDecl(const FunctionDecl *CurrentFD,
     return;
 
   VisitedUsingDecls.insert(UD);
+#if LLVM_VERSION_MAJOR < 22
   const NestedNameSpecifier *NNS = UD->getQualifier();
+#else
+  const NestedNameSpecifier NNSVal = UD->getQualifier();
+  const NestedNameSpecifier *NNS = NNSVal ? &NNSVal : nullptr;
+#endif
   if (!NNS)
     return;
   DeclarationName Name = UD->getUnderlyingDecl()->getDeclName();
@@ -875,7 +892,12 @@ void RemoveUnusedFunction::handleOneUnresolvedLookupExpr(
   if ((K != DeclarationName::CXXOperatorName) &&
       (K != DeclarationName::Identifier))
     return;
+#if LLVM_VERSION_MAJOR < 22
   const NestedNameSpecifier *NNS = E->getQualifier();
+#else
+  const NestedNameSpecifier NNSVal = E->getQualifier();
+  const NestedNameSpecifier *NNS = NNSVal ? &NNSVal : nullptr;
+#endif
   // we fail only if UE is invoked with some qualifier or
   // instantiation, e.g.:
   // namespace NS { template<typename T> void foo(T&) { } }

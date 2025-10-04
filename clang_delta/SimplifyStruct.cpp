@@ -40,7 +40,7 @@ all its referenced. \n";
 static RegisterTransformation<SimplifyStruct>
          Trans("simplify-struct", DescriptionMsg);
 
-class SimplifyStructCollectionVisitor : public 
+class SimplifyStructCollectionVisitor : public
   RecursiveASTVisitor<SimplifyStructCollectionVisitor> {
 
 public:
@@ -55,7 +55,7 @@ private:
   SimplifyStruct *ConsumerInstance;
 };
 
-class SimplifyStructRewriteVisitor : public 
+class SimplifyStructRewriteVisitor : public
   RecursiveASTVisitor<SimplifyStructRewriteVisitor> {
 
 public:
@@ -99,16 +99,20 @@ bool SimplifyStructCollectionVisitor::VisitRecordDecl(RecordDecl *RD)
   if (!RT)
     return true;
 
+#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *NestedRD = RT->getDecl();
+#else
+  const RecordDecl *NestedRD = RT->getOriginalDecl();
+#endif
   if (NestedRD->getNameAsString() == "")
     return true;
 
   ConsumerInstance->ValidInstanceNum++;
-  if (ConsumerInstance->TransformationCounter == 
+  if (ConsumerInstance->TransformationCounter ==
       ConsumerInstance->ValidInstanceNum) {
-    ConsumerInstance->TheRecordDecl = 
+    ConsumerInstance->TheRecordDecl =
       dyn_cast<RecordDecl>(RD->getCanonicalDecl());
-    ConsumerInstance->ReplacingRecordDecl = 
+    ConsumerInstance->ReplacingRecordDecl =
       dyn_cast<RecordDecl>(NestedRD->getCanonicalDecl());
     ConsumerInstance->setQualifierFlags(FD);
   }
@@ -126,7 +130,11 @@ bool SimplifyStructRewriteVisitor::VisitVarDecl(VarDecl *VD)
   if (!RT)
     return true;
 
+#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *RD = RT->getDecl();
+#else
+  const RecordDecl *RD = RT->getOriginalDecl();
+#endif
   if (RD != ConsumerInstance->TheRecordDecl)
     return true;
 
@@ -156,13 +164,13 @@ bool SimplifyStructRewriteVisitor::VisitRecordDecl(RecordDecl *RD)
   void *LocPtr = LocStart.getPtrEncoding();
   if (!ConsumerInstance->VisitedLocs.count(LocPtr)) {
     ConsumerInstance->VisitedLocs.insert(LocPtr);
-    std::string RPName = 
+    std::string RPName =
       ConsumerInstance->ReplacingRecordDecl->getNameAsString();
     if (RD->getNameAsString() != "") {
       ConsumerInstance->RewriteHelper->replaceRecordDeclName(RD, RPName);
     }
     else {
-      ConsumerInstance->TheRewriter.ReplaceText(LocStart, 
+      ConsumerInstance->TheRewriter.ReplaceText(LocStart,
         /*struct*/6, "struct " + RPName);
     }
   }
@@ -182,7 +190,11 @@ bool SimplifyStructRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
   if (Ty->isUnionType())
     return true;
 
+#if LLVM_VERSION_MAJOR < 22
   RecordDecl *RD = RTLoc.getDecl();
+#else
+  RecordDecl *RD = RTLoc.getOriginalDecl();
+#endif
   RecordDecl *CanonicalRD = dyn_cast<RecordDecl>(RD->getCanonicalDecl());
   if (CanonicalRD != ConsumerInstance->TheRecordDecl)
     return true;
@@ -193,7 +205,7 @@ bool SimplifyStructRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
     return true;
   ConsumerInstance->VisitedLocs.insert(LocPtr);
 
-  ConsumerInstance->RewriteHelper->replaceRecordType(RTLoc, 
+  ConsumerInstance->RewriteHelper->replaceRecordType(RTLoc,
     ConsumerInstance->ReplacingRecordDecl->getNameAsString());
   return true;
 }
@@ -211,30 +223,34 @@ bool SimplifyStructRewriteVisitor::VisitMemberExpr(MemberExpr *ME)
   }
 
   RecordDecl *RD = FD->getParent();
-  if (!RD || (dyn_cast<RecordDecl>(RD->getCanonicalDecl()) != 
+  if (!RD || (dyn_cast<RecordDecl>(RD->getCanonicalDecl()) !=
               ConsumerInstance->TheRecordDecl))
     return true;
 
   const Type *T = FD->getType().getTypePtr();
   const RecordType *RT = T->getAs<RecordType>();
   TransAssert(RT && "Invalid record type!");
-  const RecordDecl *ReplacingRD = 
-    dyn_cast<RecordDecl>(RT->getDecl()->getCanonicalDecl());
-  (void)ReplacingRD; 
-  TransAssert((ReplacingRD == ConsumerInstance->ReplacingRecordDecl) && 
+#if LLVM_VERSION_MAJOR < 22
+  RecordDecl *RTD = RT->getDecl();
+#else
+  RecordDecl *RTD = RT->getOriginalDecl();
+#endif
+  const RecordDecl *ReplacingRD = dyn_cast<RecordDecl>(RTD->getCanonicalDecl());
+  (void)ReplacingRD;
+  TransAssert((ReplacingRD == ConsumerInstance->ReplacingRecordDecl) &&
     "Unmatched Replacing RD!");
 
   SourceLocation LocEnd = ME->getEndLoc();
   if (LocEnd.isMacroID()) {
     LocEnd = ConsumerInstance->SrcManager->getSpellingLoc(LocEnd);
   }
-  SourceLocation ArrowPos = 
+  SourceLocation ArrowPos =
       Lexer::findLocationAfterToken(LocEnd,
                                     tok::arrow,
                                     *(ConsumerInstance->SrcManager),
                                     ConsumerInstance->Context->getLangOpts(),
                                     /*SkipTrailingWhitespaceAndNewLine=*/true);
-  SourceLocation PeriodPos = 
+  SourceLocation PeriodPos =
       Lexer::findLocationAfterToken(LocEnd,
                                     tok::period,
                                     *(ConsumerInstance->SrcManager),
@@ -264,7 +280,7 @@ bool SimplifyStructRewriteVisitor::VisitMemberExpr(MemberExpr *ME)
   }
 
   SourceLocation StartLoc = ME->getMemberLoc();
-  const char *StartBuf = 
+  const char *StartBuf =
     ConsumerInstance->SrcManager->getCharacterData(StartLoc);
   const char *EndBuf;
   if (ArrowPos.isValid()) {
@@ -280,7 +296,7 @@ bool SimplifyStructRewriteVisitor::VisitMemberExpr(MemberExpr *ME)
   return true;
 }
 
-void SimplifyStruct::Initialize(ASTContext &context) 
+void SimplifyStruct::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new SimplifyStructCollectionVisitor(this);

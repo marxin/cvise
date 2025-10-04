@@ -58,7 +58,9 @@ public:
 
   bool VisitTypedefTypeLoc(TypedefTypeLoc Loc);
 
+#if LLVM_VERSION_MAJOR < 22
   bool VisitElaboratedTypeLoc(ElaboratedTypeLoc Loc);
+#endif
 
 private:
   ReplaceSimpleTypedef *ConsumerInstance;
@@ -87,7 +89,7 @@ bool ReplaceSimpleTypedefRewriteVisitor::VisitTypedefTypeLoc(TypedefTypeLoc Loc)
   const TypedefNameDecl*TdefD = dyn_cast<TypedefNameDecl>(TdefTy->getDecl());
   if (!TdefD || TdefD->getBeginLoc().isInvalid())
     return true;
- 
+
   if (dyn_cast<TypedefNameDecl>(TdefD->getCanonicalDecl()) ==
       ConsumerInstance->TheTypedefDecl) {
     SourceRange Range = Loc.getSourceRange();
@@ -97,6 +99,7 @@ bool ReplaceSimpleTypedefRewriteVisitor::VisitTypedefTypeLoc(TypedefTypeLoc Loc)
   return true;
 }
 
+#if LLVM_VERSION_MAJOR < 22
 // Handle cases like:
 // struct S {
 //   typedef int Int;
@@ -110,7 +113,7 @@ bool ReplaceSimpleTypedefRewriteVisitor::VisitElaboratedTypeLoc(
   const Type *NamedTy = ETy->getNamedType().getTypePtr();
   const TypedefType *TdefTy = NamedTy->getAs<TypedefType>();
   if (!TdefTy)
-    return true; 
+    return true;
 
   const TypedefNameDecl*TdefD = dyn_cast<TypedefNameDecl>(TdefTy->getDecl());
   if (!TdefD || (dyn_cast<TypedefNameDecl>(TdefD->getCanonicalDecl()) !=
@@ -125,8 +128,9 @@ bool ReplaceSimpleTypedefRewriteVisitor::VisitElaboratedTypeLoc(
   }
   return true;
 }
+#endif
 
-void ReplaceSimpleTypedef::Initialize(ASTContext &context) 
+void ReplaceSimpleTypedef::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new ReplaceSimpleTypedefCollectionVisitor(this);
@@ -177,7 +181,11 @@ bool ReplaceSimpleTypedef::isValidType(const Type *Ty, const TypedefNameDecl *D)
     return true;
 
   if (const RecordType *RDTy = Ty->getAs<RecordType>()) {
+#if LLVM_VERSION_MAJOR < 22
     const RecordDecl *RD = RDTy->getDecl();
+#else
+    const RecordDecl *RD = RDTy->getOriginalDecl();
+#endif
     // omit some trivial cases, e.g.,
     // typedef struct S { int x; } S;
     if (RD->getNameAsString() == D->getNameAsString())
@@ -217,7 +225,7 @@ void ReplaceSimpleTypedef::handleOneTypedefDecl(const TypedefNameDecl* Canonical
   ValidInstanceNum++;
   if (ValidInstanceNum == TransformationCounter) {
     TheTypedefDecl = CanonicalD;
-    CanonicalD->getUnderlyingType().getAsStringInternal(TyName, 
+    CanonicalD->getUnderlyingType().getAsStringInternal(TyName,
                                       getPrintingPolicy());
   }
 }
