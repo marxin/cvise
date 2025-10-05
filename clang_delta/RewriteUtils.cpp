@@ -1711,7 +1711,11 @@ bool RewriteUtils::replaceRecordType(RecordTypeLoc &RTLoc,
   if (!TypeId)
     return true;
 
+#if LLVM_VERSION_MAJOR < 22
   SourceLocation LocStart = RTLoc.getBeginLoc();
+#else
+  SourceLocation LocStart = RTLoc.getNonElaboratedBeginLoc();
+#endif
 
   // Loc could be invalid, for example:
   // class AAA { };

@@ -120,6 +120,33 @@ bool EmptyStructToIntRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
 
   if (RD->getCanonicalDecl() == ConsumerInstance->TheRecordDecl) {
     SourceLocation LocStart = RTLoc.getBeginLoc();
+#if LLVM_VERSION_MAJOR >= 22
+    // Check this ElaboratedTypeLoc hasn't been removed along with the RD
+    if (!ConsumerInstance->isSourceRangeWithinRecordDecl(
+          RTLoc.getSourceRange(), RD)) {
+      if (RTLoc.getBeginLoc() != RTLoc.getNonElaboratedBeginLoc()) {
+        SourceLocation KeywordEndLoc = RTLoc.getNonElaboratedBeginLoc().getLocWithOffset(-1);
+        ConsumerInstance->TheRewriter.RemoveText(SourceRange(RTLoc.getBeginLoc(), KeywordEndLoc));
+      } else {
+        // It's possible, e.g.,
+        // struct S1 {
+        //   struct { } S;
+        // };
+        // Clang will translate struct { } S to
+        // struct {
+        // };
+        //  struct <anonymous struct ...> S;
+        // the last declaration is injected by clang.
+        // We need to omit it.
+        SourceLocation KeywordLoc = RTLoc.getElaboratedKeywordLoc();
+        const llvm::StringRef Keyword =
+          TypeWithKeyword::getKeywordName(RTLoc.getTypePtr()->getKeyword());
+        ConsumerInstance->TheRewriter.ReplaceText(KeywordLoc,
+                                                  Keyword.size(), "int");
+      }
+    }
+#endif
+
     void *LocPtr = LocStart.getPtrEncoding();
     if (ConsumerInstance->VisitedLocs.count(LocPtr))
       return true;
@@ -167,6 +194,8 @@ bool EmptyStructToIntRewriteVisitor::VisitElaboratedTypeLoc(
   if (EndLoc.isInvalid())
     return true;
   EndLoc = EndLoc.getLocWithOffset(-1);
+  if (EndLoc.isInvalid())
+    return true;
   // This ElaboratedTypeLoc has been removed along with the RD
   if (ConsumerInstance->isSourceRangeWithinRecordDecl(
         SourceRange(StartLoc, EndLoc), RD)) {
