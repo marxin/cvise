@@ -694,8 +694,8 @@ const DeclContext *Transformation::getDeclContextFromSpecifier(
   for (NestedNameSpecifier CurNNS = *NNS; CurNNS;
        CurNNS = CurNNS.getAsNamespaceAndPrefix().Prefix) {
     NestedNameSpecifier *NNS = &CurNNS;
-#endif
     NestedNameSpecifier::Kind Kind = NNS->getKind();
+#endif
 
     switch (Kind) {
 #if LLVM_VERSION_MAJOR < 22
