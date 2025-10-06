@@ -373,12 +373,12 @@ def test_subtract_hints():
     bundle_to_apply = HintBundle(hints=[hint_o, hint_oo, hint_x, hint_y])
 
     got = subtract_hints(bundle, [bundle_to_apply])
-    assert len(got.hints) == 3
     # the new text is 'f bar  y'
     hint2_f = Hint(patches=(Patch(left=0, right=1),))  # "foo" got cut to "f"
     hint2_bar = Hint(patches=(Patch(left=2, right=5),))  # "bar" moved left
-    hint2_z = Hint(patches=(Patch(left=7, right=8),))  # "x" disappeared, and "yz" got cut to "z"
-    assert got.hints == [hint2_f, hint2_bar, hint2_z]
+    hint2_empty = Hint()
+    hint2_z = Hint(patches=(Patch(left=7, right=8),))  # "yz" got cut to "z"
+    assert got.hints == [hint2_f, hint2_bar, hint2_empty, hint2_z]
 
 
 def test_subtract_hints_multifile():
@@ -396,8 +396,8 @@ def test_subtract_hints_multifile():
     bundle_to_apply_2 = HintBundle(hints=[hint_file_a_23], vocabulary=[b'unused', b'file_a'])
 
     got = subtract_hints(bundle, [bundle_to_apply_1, bundle_to_apply_2])
-    assert len(got.hints) == 3
     hint_file_a_02 = Hint(patches=(Patch(left=0, right=2, file=0),))
     hint_file_a_23 = Hint(patches=(Patch(left=2, right=3, file=0),), type=2)
-    assert got.hints == [hint_file_a_02, hint_file_a_23, hint_file_c_24]
+    hint_empty = Hint()
+    assert got.hints == [hint_file_a_02, hint_file_a_23, hint_empty, hint_file_c_24]
     assert got.vocabulary == bundle.vocabulary

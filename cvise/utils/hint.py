@@ -44,7 +44,7 @@ class Hint(msgspec.Struct, omit_defaults=True, gc=False, frozen=True, order=True
     """
 
     type: Optional[int] = msgspec.field(default=None, name='t')
-    patches: Tuple[Patch, ...] = msgspec.field(name='p')
+    patches: Tuple[Patch, ...] = msgspec.field(default=(), name='p')
     extra: Optional[int] = msgspec.field(default=None, name='e')
 
 
@@ -367,8 +367,7 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: List[HintBund
                 and new_patch.operation is not None
             ):
                 new_patches.append(new_patch)
-        if new_patches or hint.type is not None and is_special_hint_type(source_bundle.vocabulary[hint.type]):
-            new_hints.append(msgspec.structs.replace(hint, patches=tuple(new_patches)))
+        new_hints.append(msgspec.structs.replace(hint, patches=tuple(new_patches)))
     return HintBundle(hints=new_hints, pass_name=source_bundle.pass_name, vocabulary=source_bundle.vocabulary)
 
 
