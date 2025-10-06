@@ -1155,8 +1155,17 @@ bool Transformation::getTypeString(const QualType &QT,
     return getDependentNameTypeString(DNT, Str, Typename);
   }
 
-  case Type::Record:
-  case Type::Builtin: { // fall-through
+  case Type::Record: {
+#if LLVM_VERSION_MAJOR >= 22
+    const RecordType *RT = dyn_cast<RecordType>(Ty);
+    QualType DQT = RT->desugar();
+    if (DQT != QT)
+      return getTypeString(DQT, Str, Typename);
+#endif
+    [[fallthrough]];
+  }
+
+  case Type::Builtin: {
     QT.getAsStringInternal(Str, getPrintingPolicy());
     return true;
   }

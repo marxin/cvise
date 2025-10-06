@@ -70,13 +70,14 @@ static bool DependsOnTypedef(const Type &Ty) {
     const DependentNameType *DNT = dyn_cast<DependentNameType>(&Ty);
 #if LLVM_VERSION_MAJOR < 22
     const NestedNameSpecifier *Specifier = DNT->getQualifier();
-    if (!Specifier)
-      return false;
-    const Type *NestedTy = Specifier->getAsType();
 #else
     const NestedNameSpecifier Specifier = DNT->getQualifier();
+#endif
     if (!Specifier)
       return false;
+#if LLVM_VERSION_MAJOR < 22
+    const Type *NestedTy = Specifier->getAsType();
+#else
     const Type *NestedTy = Specifier.getAsType();
 #endif
     if (!NestedTy)
