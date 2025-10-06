@@ -42,7 +42,7 @@ class ClangModuleMapPass(HintBasedPass):
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         paths = list(test_case.rglob('*')) if test_case.is_dir() else [test_case]
-        interesting_paths = sorted(p for p in paths if _interesting_file(p))
+        interesting_paths = [p for p in paths if _interesting_file(p)]
 
         vocab: List[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
         path_to_vocab: Dict[Path, int] = {}
