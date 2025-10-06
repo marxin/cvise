@@ -126,7 +126,7 @@ HINT_SCHEMA = {
     'type': 'object',
     'properties': {
         'p': {
-            'description': 'Patches that this hint consists of. Must be nonempty, except for special hint types.',
+            'description': 'Patches that this hint consists of.',
             'type': 'array',
             'items': HINT_PATCH_SCHEMA,
         },
