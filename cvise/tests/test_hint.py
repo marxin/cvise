@@ -2,7 +2,7 @@ import msgspec
 from pathlib import Path
 import pytest
 
-from cvise.utils.hint import apply_hints, Hint, HintBundle, load_hints, Patch, store_hints
+from cvise.utils.hint import apply_hints, Hint, HintBundle, load_hints, Patch, store_hints, subtract_hints
 from cvise.tests.testabstract import validate_hint_bundle
 
 
@@ -358,3 +358,46 @@ def test_hints_storage_compression(tmp_hints_file: Path):
     RATIO_AT_LEAST = 10
     hints_json_size = len(msgspec.json.encode(hints))
     assert tmp_hints_file.stat().st_size * RATIO_AT_LEAST < hints_json_size
+
+
+def test_subtract_hints():
+    # Assume the text is 'foo bar x yz'.
+    hint_foo = Hint(patches=(Patch(left=0, right=3),))
+    hint_bar = Hint(patches=(Patch(left=4, right=7),))
+    hint_x = Hint(patches=(Patch(left=8, right=9),))
+    hint_yz = Hint(patches=(Patch(left=10, right=12),))
+    bundle = HintBundle(hints=[hint_foo, hint_bar, hint_x, hint_yz])
+    hint_o = Hint(patches=(Patch(left=2, right=3),))
+    hint_oo = Hint(patches=(Patch(left=1, right=3),))
+    hint_y = Hint(patches=(Patch(left=10, right=11),))
+    bundle_to_apply = HintBundle(hints=[hint_o, hint_oo, hint_x, hint_y])
+
+    got = subtract_hints(bundle, [bundle_to_apply])
+    # the new text is 'f bar  y'
+    hint2_f = Hint(patches=(Patch(left=0, right=1),))  # "foo" got cut to "f"
+    hint2_bar = Hint(patches=(Patch(left=2, right=5),))  # "bar" moved left
+    hint2_empty = Hint()
+    hint2_z = Hint(patches=(Patch(left=7, right=8),))  # "yz" got cut to "z"
+    assert got.hints == [hint2_f, hint2_bar, hint2_empty, hint2_z]
+
+
+def test_subtract_hints_multifile():
+    hint_file_a_03 = Hint(patches=(Patch(left=0, right=3, file=0),))
+    hint_file_a_24 = Hint(patches=(Patch(left=2, right=4, file=0),), type=2)
+    hint_file_b_24 = Hint(patches=(Patch(left=2, right=4, file=1),))
+    hint_file_c_24 = Hint(patches=(Patch(left=2, right=4, file=3),), extra=4)
+    bundle = HintBundle(
+        hints=[hint_file_a_03, hint_file_a_24, hint_file_b_24, hint_file_c_24],
+        vocabulary=[b'file_a', b'file_b', b'sometype', b'file_c', b'someextra'],
+    )
+    hint_file_b_05rm = Hint(patches=(Patch(left=0, right=5, file=0, operation=1),))
+    bundle_to_apply_1 = HintBundle(hints=[hint_file_b_05rm], vocabulary=[b'file_b', b'rm'])
+    hint_file_a_23 = Hint(patches=(Patch(left=2, right=3, file=1),))
+    bundle_to_apply_2 = HintBundle(hints=[hint_file_a_23], vocabulary=[b'unused', b'file_a'])
+
+    got = subtract_hints(bundle, [bundle_to_apply_1, bundle_to_apply_2])
+    hint_file_a_02 = Hint(patches=(Patch(left=0, right=2, file=0),))
+    hint_file_a_23 = Hint(patches=(Patch(left=2, right=3, file=0),), type=2)
+    hint_empty = Hint()
+    assert got.hints == [hint_file_a_02, hint_file_a_23, hint_empty, hint_file_c_24]
+    assert got.vocabulary == bundle.vocabulary
