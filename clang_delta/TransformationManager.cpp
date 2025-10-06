@@ -218,7 +218,11 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
   }
 
   ClangInstance->createFileManager();
+#if LLVM_VERSION_MAJOR < 22
   ClangInstance->createSourceManager(ClangInstance->getFileManager());
+#else
+  ClangInstance->createSourceManager();
+#endif
   ClangInstance->createPreprocessor(TU_Complete);
 
   DiagnosticConsumer &DgClient = ClangInstance->getDiagnosticClient();
