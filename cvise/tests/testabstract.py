@@ -7,7 +7,7 @@ from typing import Optional, Set, Tuple, Union
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.fileutil import CloseableTemporaryFile
-from cvise.utils.hint import HINT_SCHEMA_STRICT, HintBundle, is_special_hint_type, load_hints
+from cvise.utils.hint import HINT_SCHEMA_STRICT, HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
 
 
