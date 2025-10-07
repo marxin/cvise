@@ -155,7 +155,8 @@ class CVise:
 
             pass_group[category.name] = []
 
-            for pass_dict in pass_group_dict[category.name]:
+            pass_dict_list = pass_group_dict[category.name]
+            for pass_dict in pass_dict_list:
                 if not include_pass(pass_dict, pass_options):
                     continue
 
@@ -167,7 +168,12 @@ class CVise:
                 except KeyError:
                     raise CViseError('Unknown pass {}'.format(pass_dict['pass'])) from None
 
-                pass_instance = pass_class(pass_dict.get('arg'), external_programs)
+                pass_instance = pass_class(
+                    pass_dict.get('arg'),
+                    external_programs=external_programs,
+                    user_clang_delta_std=clang_delta_std,
+                    clang_delta_preserve_routine=clang_delta_preserve_routine,
+                )
                 if str(pass_instance) in removed_passes:
                     continue
 
@@ -181,8 +187,6 @@ class CVise:
                         raise CViseError('max-transforms not available for passes in interleaving categories')
                     pass_instance.max_transforms = int(pass_dict['max-transforms'])
 
-                pass_instance.user_clang_delta_std = clang_delta_std
-                pass_instance.clang_delta_preserve_routine = clang_delta_preserve_routine
                 pass_group[category.name].append(pass_instance)
 
         if not pass_group:

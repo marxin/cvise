@@ -4,7 +4,7 @@ from pathlib import Path
 import shlex
 import subprocess
 import time
-from typing import List, Union
+from typing import List, Optional, Union
 
 from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.hint import Hint, HintBundle
@@ -42,10 +42,9 @@ class ClangHintsPass(HintBasedPass):
     advance() calls.
     """
 
-    def __init__(self, arg=None, external_programs=None):
-        super().__init__(arg, external_programs)
-        # The actual value is set by the caller in cvise.py.
-        self.user_clang_delta_std: Union[str, None] = None
+    def __init__(self, arg: str, user_clang_delta_std: Optional[str] = None, *args, **kwargs):
+        super().__init__(arg, *args, user_clang_delta_std=user_clang_delta_std, **kwargs)
+        self._user_clang_delta_std = user_clang_delta_std
 
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
@@ -54,7 +53,7 @@ class ClangHintsPass(HintBasedPass):
         self, test_case: Path, tmp_dir: Path, job_timeout, process_event_notifier: ProcessEventNotifier, *args, **kwargs
     ):
         # Choose the best standard unless the user provided one.
-        std_choices = [self.user_clang_delta_std] if self.user_clang_delta_std else CLANG_STD_CHOICES
+        std_choices = [self._user_clang_delta_std] if self._user_clang_delta_std else CLANG_STD_CHOICES
         best_std = None
         best_bundle: Union[HintBundle, None] = None
         last_error: Union[ClangDeltaError, None] = None
