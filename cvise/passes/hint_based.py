@@ -14,6 +14,7 @@ from cvise.utils.hint import (
     HintBundle,
     HintApplicationStats,
     load_hints,
+    sort_hints,
     store_hints,
 )
 
@@ -308,6 +309,8 @@ class HintBasedPass(AbstractPass):
             return None
         type_to_bundle = group_hints_by_type(bundle)
         self.backfill_pass_names(type_to_bundle)
+        for sub_bundle in type_to_bundle.values():
+            sort_hints(sub_bundle)
         type_to_file_name = _store_hints_per_type(tmp_dir, type_to_bundle)
         sub_states: List[PerTypeHintState] = []
         special_states: List[SpecialHintState] = []
@@ -340,6 +343,8 @@ class HintBasedPass(AbstractPass):
         if not bundle.hints:
             return None
         type_to_bundle = group_hints_by_type(bundle)
+        for sub_bundle in type_to_bundle.values():
+            sort_hints(sub_bundle)
         self.backfill_pass_names(type_to_bundle)
         type_to_file_name = _store_hints_per_type(new_tmp_dir, type_to_bundle)
         return state.advance_on_success(type_to_bundle, type_to_file_name, new_tmp_dir)
