@@ -152,7 +152,7 @@ class AbstractPass:
     def __init__(
         self,
         arg: Optional[str] = None,
-        external_programs: Optional[Dict[str, str]] = None,
+        external_programs: Optional[Dict[str, Optional[str]]] = None,
         max_transforms: Optional[int] = None,
         *args,
         **kwargs,

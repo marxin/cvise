@@ -38,6 +38,9 @@ _MULTIPLEX_PASS_HINT_TEMPLATE = '@clang-include-graph-{}'
 class ClangIncludeGraphPass(HintBasedPass):
     """Extracts information on which C/C++ headers are included and from which files."""
 
+    def __init__(self, external_programs: Dict[str, Optional[str]], **kwargs):
+        super().__init__(external_programs=external_programs, **kwargs)
+
     def check_prerequisites(self):
         return self.check_external_program('clang_include_graph')
 
@@ -82,7 +85,7 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
     Processes commands with indices equal to the specified parameter modulo _INIT_PARALLELIZATION.
     """
 
-    def __init__(self, modulo: int, external_programs):
+    def __init__(self, modulo: int, external_programs: Dict[str, Optional[str]]):
         super().__init__(external_programs=external_programs)
         self._modulo = modulo
         self._hint_type = _MULTIPLEX_PASS_HINT_TEMPLATE.format(self._modulo).encode()

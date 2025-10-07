@@ -175,7 +175,7 @@ class CVise:
                     max_transforms = int(pass_dict['max-transforms'])
 
                 pass_instance = pass_class(
-                    pass_dict.get('arg'),
+                    arg=pass_dict.get('arg'),
                     external_programs=external_programs,
                     user_clang_delta_std=clang_delta_std,
                     clang_delta_preserve_routine=clang_delta_preserve_routine,

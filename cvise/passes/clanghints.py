@@ -4,7 +4,7 @@ from pathlib import Path
 import shlex
 import subprocess
 import time
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.hint import Hint, HintBundle
@@ -42,8 +42,16 @@ class ClangHintsPass(HintBasedPass):
     advance() calls.
     """
 
-    def __init__(self, arg: str, user_clang_delta_std: Optional[str] = None, *args, **kwargs):
-        super().__init__(arg, *args, user_clang_delta_std=user_clang_delta_std, **kwargs)
+    def __init__(
+        self,
+        arg: str,
+        external_programs: Dict[str, Optional[str]],
+        user_clang_delta_std: Optional[str] = None,
+        **kwargs,
+    ):
+        super().__init__(
+            arg=arg, external_programs=external_programs, user_clang_delta_std=user_clang_delta_std, **kwargs
+        )
         self._user_clang_delta_std = user_clang_delta_std
 
     def check_prerequisites(self):

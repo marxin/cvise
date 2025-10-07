@@ -1,13 +1,21 @@
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 from cvise.passes.abstract import AbstractPass, PassResult
 
 
 class ClangPass(AbstractPass):
-    def __init__(self, arg: str, user_clang_delta_std: Optional[str] = None, *args, **kwargs):
-        super().__init__(arg, *args, user_clang_delta_std=user_clang_delta_std, **kwargs)
+    def __init__(
+        self,
+        arg: str,
+        external_programs: Dict[str, Optional[str]],
+        user_clang_delta_std: Optional[str] = None,
+        **kwargs,
+    ):
+        super().__init__(
+            arg=arg, external_programs=external_programs, user_clang_delta_std=user_clang_delta_std, **kwargs
+        )
         self._user_clang_delta_std = user_clang_delta_std
 
     def check_prerequisites(self):

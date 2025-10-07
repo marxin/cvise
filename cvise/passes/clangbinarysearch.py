@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 import subprocess
 import time
-from typing import Optional
+from typing import Dict, Optional
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
@@ -12,14 +12,14 @@ class ClangBinarySearchPass(AbstractPass):
     def __init__(
         self,
         arg: str,
+        external_programs: Dict[str, Optional[str]],
         user_clang_delta_std: Optional[str] = None,
         clang_delta_preserve_routine: Optional[str] = None,
-        *args,
         **kwargs,
     ):
         super().__init__(
-            arg,
-            *args,
+            arg=arg,
+            external_programs=external_programs,
             user_clang_delta_std=user_clang_delta_std,
             clang_delta_preserve_routine=clang_delta_preserve_routine,
             **kwargs,
