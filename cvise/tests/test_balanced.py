@@ -53,7 +53,8 @@ class BalancedParensTestCase(unittest.TestCase):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
         state = self._pass_new()
-        # Transform failed
+        # Simulate that transforms failed until we get to the inner parenthesis.
+        state = self.pass_.advance(self.input_path, state)
         state = self.pass_.advance(self.input_path, state)
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
@@ -115,7 +116,8 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
         state = self._pass_new()
-        # Transform failed
+        # Simulate that transforms failed until we get to the inner parenthesis.
+        state = self.pass_.advance(self.input_path, state)
         state = self.pass_.advance(self.input_path, state)
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
@@ -224,7 +226,8 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
         state = self._pass_new()
-        # Transform failed
+        # Simulate that transforms failed until we get to the inner parenthesis.
+        state = self.pass_.advance(self.input_path, state)
         state = self.pass_.advance(self.input_path, state)
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path

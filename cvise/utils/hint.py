@@ -24,20 +24,29 @@ from cvise.utils.fileutil import mkdir_up_to
 FORMAT_NAME = 'cvise_hints_v0'
 
 
-class Patch(msgspec.Struct, omit_defaults=True, gc=False, frozen=True, order=True, kw_only=True):
+class Patch(msgspec.Struct, omit_defaults=True, gc=False, frozen=True):
     """Describes a single patch inside a hint.
 
     See HINT_PATCH_SCHEMA.
     """
 
-    file: Optional[int] = msgspec.field(default=None, name='f')
     left: int = msgspec.field(name='l')
     right: int = msgspec.field(name='r')
+    file: Optional[int] = msgspec.field(default=None, name='f')
     operation: Optional[int] = msgspec.field(default=None, name='o')
     value: Optional[int] = msgspec.field(default=None, name='v')
 
+    def comparison_key(self) -> Tuple:
+        return (
+            -1 if self.file is None else self.file,
+            self.left,
+            self.right,
+            -1 if self.operation is None else self.operation,
+            -1 if self.value is None else self.value,
+        )
 
-class Hint(msgspec.Struct, omit_defaults=True, gc=False, frozen=True, order=True, kw_only=True):
+
+class Hint(msgspec.Struct, omit_defaults=True, gc=False, frozen=True):
     """Describes a single hint.
 
     See HINT_SCHEMA.
@@ -46,6 +55,9 @@ class Hint(msgspec.Struct, omit_defaults=True, gc=False, frozen=True, order=True
     type: Optional[int] = msgspec.field(default=None, name='t')
     patches: Tuple[Patch, ...] = msgspec.field(default=(), name='p')
     extra: Optional[int] = msgspec.field(default=None, name='e')
+
+    def comparison_key(self) -> Tuple:
+        return (self.type, tuple(p.comparison_key() for p in self.patches), -1 if self.extra is None else self.extra)
 
 
 @dataclasses.dataclass
@@ -428,6 +440,28 @@ def try_parse_json_line(text: str, decoder: msgspec.json.Decoder) -> Any:
         return decoder.decode(text)
     except msgspec.MsgspecError as e:
         raise RuntimeError(f'Failed to decode line "{text}": {e}') from e
+
+
+def sort_hints(bundle: HintBundle) -> None:
+    # First, sort patches in each hint.
+    for i, hint in enumerate(bundle.hints):
+        if not hint.patches:
+            continue
+        need_sort = False
+        prev_key = hint.patches[0].comparison_key()
+        for p in hint.patches[1:]:
+            key = p.comparison_key()
+            if key > prev_key:
+                need_sort = True
+                break
+            prev_key = key
+        if not need_sort:
+            continue
+        new_patches = tuple(sorted(hint.patches, key=Patch.comparison_key))
+        bundle.hints[i] = msgspec.structs.replace(hint, patches=new_patches)
+
+    # Then sort hints in the bundle.
+    bundle.hints.sort(key=Hint.comparison_key)
 
 
 def _merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequence[_PatchWithBundleRef]:
