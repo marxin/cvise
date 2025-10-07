@@ -149,15 +149,7 @@ class AbstractPass:
         slow = 'slow'
         windows = 'windows'
 
-    def __init__(
-        self,
-        arg=None,
-        external_programs=None,
-        claim_files: Optional[List[str]] = None,
-        claimed_by_others_files: Optional[List[str]] = None,
-        *args,
-        **kwargs,
-    ):
+    def __init__(self, arg=None, external_programs=None, *args, **kwargs):
         self.external_programs = external_programs
         self.arg = arg
         self.max_transforms = None
