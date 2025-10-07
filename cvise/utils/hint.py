@@ -57,7 +57,11 @@ class Hint(msgspec.Struct, omit_defaults=True, gc=False, frozen=True):
     extra: Optional[int] = msgspec.field(default=None, name='e')
 
     def comparison_key(self) -> Tuple:
-        return (self.type, tuple(p.comparison_key() for p in self.patches), -1 if self.extra is None else self.extra)
+        return (
+            -1 if self.type is None else self.type,
+            tuple(p.comparison_key() for p in self.patches),
+            -1 if self.extra is None else self.extra,
+        )
 
 
 @dataclasses.dataclass

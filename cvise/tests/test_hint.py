@@ -2,7 +2,7 @@ import msgspec
 from pathlib import Path
 import pytest
 
-from cvise.utils.hint import apply_hints, Hint, HintBundle, load_hints, Patch, store_hints, subtract_hints
+from cvise.utils.hint import apply_hints, Hint, HintBundle, load_hints, Patch, sort_hints, store_hints, subtract_hints
 from cvise.tests.testabstract import validate_hint_bundle
 
 
@@ -401,3 +401,33 @@ def test_subtract_hints_multifile():
     hint_empty = Hint()
     assert got.hints == [hint_file_a_02, hint_file_a_23, hint_empty, hint_file_c_24]
     assert got.vocabulary == bundle.vocabulary
+
+
+def test_sort(tmp_test_case: Path):
+    tmp_test_case.write_text('abcdefgh')
+    hint0 = Hint(patches=(Patch(left=5, right=6), Patch(left=1, right=2)))
+    hint1 = Hint(patches=(Patch(left=1, right=2, value=0),))
+    hint2 = Hint(patches=(Patch(left=1, right=2, value=1), Patch(left=3, right=4)))
+    hint3 = Hint(patches=(Patch(left=0, right=3),))
+    bundle = HintBundle(vocabulary=[b'foo', b'bar', b''], hints=[hint0, hint1, hint2, hint3])
+    validate_hint_bundle(bundle, tmp_test_case)
+    sort_hints(bundle)
+
+    hint0_new = Hint(patches=(Patch(left=1, right=2), Patch(left=5, right=6)))
+    assert bundle.hints == [hint3, hint0_new, hint1, hint2]
+    validate_hint_bundle(bundle, tmp_test_case)
+
+
+def test_sort_multifile(tmp_test_case: Path):
+    tmp_test_case.mkdir()
+    (tmp_test_case / 'bar.txt').write_text('bar')
+    (tmp_test_case / 'foo.txt').write_text('foo')
+    hint0 = Hint(patches=(Patch(left=1, right=2, file=0),))
+    hint1 = Hint(patches=(Patch(left=0, right=2, file=1),))
+    hint2 = Hint(patches=(Patch(left=0, right=2, file=0, operation=2),))
+    bundle = HintBundle(vocabulary=[b'bar.txt', b'foo.txt', b'rm'], hints=[hint0, hint1, hint2])
+    validate_hint_bundle(bundle, tmp_test_case)
+    sort_hints(bundle)
+
+    assert bundle.hints == [hint2, hint0, hint1]
+    validate_hint_bundle(bundle, tmp_test_case)
