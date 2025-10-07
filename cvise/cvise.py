@@ -168,11 +168,18 @@ class CVise:
                 except KeyError:
                     raise CViseError('Unknown pass {}'.format(pass_dict['pass'])) from None
 
+                max_transforms = None
+                if 'max-transforms' in pass_dict:
+                    if category.interleaving:
+                        raise CViseError('max-transforms not available for passes in interleaving categories')
+                    max_transforms = int(pass_dict['max-transforms'])
+
                 pass_instance = pass_class(
                     pass_dict.get('arg'),
                     external_programs=external_programs,
                     user_clang_delta_std=clang_delta_std,
                     clang_delta_preserve_routine=clang_delta_preserve_routine,
+                    max_transforms=max_transforms,
                 )
                 if str(pass_instance) in removed_passes:
                     continue
@@ -181,11 +188,6 @@ class CVise:
                     continue
                 elif not renaming and 'renaming' in pass_dict and pass_dict['renaming']:
                     continue
-
-                if 'max-transforms' in pass_dict:
-                    if category.interleaving:
-                        raise CViseError('max-transforms not available for passes in interleaving categories')
-                    pass_instance.max_transforms = int(pass_dict['max-transforms'])
 
                 pass_group[category.name].append(pass_instance)
 

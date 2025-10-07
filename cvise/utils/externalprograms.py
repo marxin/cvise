@@ -1,12 +1,13 @@
 import os
 import platform
 import shutil
+from typing import Dict
 
 SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 DESTDIR = os.getenv('DESTDIR', '')
 
 
-def find_external_programs():
+def find_external_programs() -> Dict[str, str]:
     programs = {
         'clang_delta': 'clang_delta',
         'clang_include_graph': 'clang_include_graph',
