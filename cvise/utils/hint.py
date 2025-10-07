@@ -451,7 +451,7 @@ def sort_hints(bundle: HintBundle) -> None:
         prev_key = hint.patches[0].comparison_key()
         for p in hint.patches[1:]:
             key = p.comparison_key()
-            if key > prev_key:
+            if prev_key > key:
                 need_sort = True
                 break
             prev_key = key
