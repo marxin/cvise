@@ -7,6 +7,7 @@ from typing import List, Optional, Union
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import nestedmatcher
 from cvise.utils.error import UnknownArgumentError
+from cvise.utils.fileutil import filter_files_by_patterns
 from cvise.utils.hint import Hint, HintBundle, Patch
 
 
@@ -39,16 +40,17 @@ class BalancedPass(HintBasedPass):
             assert config.to_delete == Deletion.ALL
             vocabulary.append(config.replacement.encode())
 
+        is_dir = test_case.is_dir()
+        paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
         hints = []
-        if test_case.is_dir():
-            for path in test_case.rglob('*'):
-                if not path.is_dir() and not path.is_symlink():
-                    rel_path = path.relative_to(test_case)
-                    vocabulary.append(str(rel_path).encode())
-                    file_id = len(vocabulary) - 1
-                    self._generate_hints_for_file(path, config, file_id, hints)
-        else:
-            self._generate_hints_for_file(test_case, config, file_id=None, hints=hints)
+        for path in paths:
+            if is_dir:
+                rel_path = path.relative_to(test_case)
+                vocabulary.append(str(rel_path).encode())
+                file_id = len(vocabulary) - 1
+            else:
+                file_id = None
+            self._generate_hints_for_file(path, config, file_id, hints)
         return HintBundle(hints=hints, vocabulary=vocabulary)
 
     def _generate_hints_for_file(self, path: Path, config: Config, file_id: Optional[int], hints: List[Hint]) -> None:

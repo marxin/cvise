@@ -15,7 +15,7 @@ def test_case_path(tmp_path: Path) -> Path:
 
 
 def init_pass(tmp_dir: Path, test_case_path: Path) -> Tuple[MakefilePass, Any]:
-    pass_ = MakefilePass()
+    pass_ = MakefilePass(claim_files=['**/Makefile', '**/makefile'])
     state = pass_.new(
         test_case_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
     )
@@ -398,5 +398,31 @@ all: a.out
 a.out:
 \tgcc main.c
             """,
+        ),
+    ) not in all_transforms
+
+
+def test_unrelated_file(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'Makefile').touch()
+    (test_case_path / 'unrelated.txt').write_text(
+        """
+a.out:
+\tgcc -ansi foo.c
+        """,
+    )
+    p, state = init_pass(tmp_path, test_case_path)
+    all_transforms = collect_all_transforms_dir(p, state, test_case_path)
+
+    assert (
+        (
+            'Makefile',
+            b'',
+        ),
+        (
+            'unrelated.txt',
+            b"""
+a.out:
+\tgcc foo.c
+        """,
         ),
     ) not in all_transforms

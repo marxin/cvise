@@ -1,8 +1,9 @@
 from pathlib import Path
 import re
-from typing import Dict, List, Union
+from typing import List, Union
 
 from cvise.passes.hint_based import HintBasedPass
+from cvise.utils.fileutil import filter_files_by_patterns
 from cvise.utils.hint import Hint, HintBundle, Patch
 
 
@@ -24,22 +25,21 @@ class CommentsPass(HintBasedPass):
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         vocab = list(self.INITIAL_VOCAB)
+        is_dir = test_case.is_dir()
+        paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
         hints = []
-        if test_case.is_dir():
-            for path in test_case.rglob('*'):
-                if not path.is_dir():
-                    rel_path = path.relative_to(test_case)
-                    vocab.append(str(rel_path).encode())
-                    file_id = len(vocab) - 1
-                    hints += self._generate_hints_for_file(path, file_id)
-        else:
-            hints += self._generate_hints_for_file(test_case, file_id=None)
+        for path in paths:
+            if is_dir:
+                rel_path = path.relative_to(test_case)
+                vocab.append(str(rel_path).encode())
+                file_id = len(vocab) - 1
+            else:
+                file_id = None
+            self._generate_hints_for_file(path, file_id, hints)
         return HintBundle(hints=hints, vocabulary=vocab)
 
-    def _generate_hints_for_file(self, file_path: Path, file_id: Union[int, None]) -> List[Dict]:
+    def _generate_hints_for_file(self, file_path: Path, file_id: Union[int, None], hints: List[Hint]) -> None:
         prog = file_path.read_bytes()
-
-        hints = []
 
         # Remove all multiline comments - the pattern is:
         # * first - "/*",
@@ -53,5 +53,3 @@ class CommentsPass(HintBasedPass):
         for m in re.finditer(rb'//.*$', prog, flags=re.MULTILINE):
             patch = Patch(left=m.start(), right=m.end(), file=file_id)
             hints.append(Hint(type=self.SINGLE_LINE_VOCAB_ID, patches=(patch,)))
-
-        return hints

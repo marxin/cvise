@@ -5,6 +5,7 @@ from typing import Dict, List
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import makefileparser
+from cvise.utils.fileutil import filter_files_by_patterns
 from cvise.utils.hint import Hint, HintBundle, Patch
 from cvise.utils.makefileparser import Makefile, SourceLoc, TextWithLoc
 
@@ -31,6 +32,9 @@ class _Vocab(Enum):
 class MakefilePass(HintBasedPass):
     """A pass for removing items from makefiles."""
 
+    def __init__(self, claim_files: List[str], **kwargs):
+        super().__init__(claim_files=claim_files, **kwargs)
+
     def check_prerequisites(self):
         return True
 
@@ -41,9 +45,7 @@ class MakefilePass(HintBasedPass):
         return [v.value[1] for v in _Vocab]
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
-        paths = list(test_case.rglob('*')) if test_case.is_dir() else [test_case]
-        makefiles = sorted(p for p in paths if p.name in makefileparser.FILE_NAMES)
-
+        makefiles = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
         vocab: List[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
         hints: List[Hint] = []
         for path in makefiles:

@@ -3,6 +3,7 @@ import re
 from typing import List, Optional
 
 from cvise.passes.hint_based import HintBasedPass
+from cvise.utils.fileutil import filter_files_by_patterns
 from cvise.utils.hint import Hint, HintBundle, Patch
 
 
@@ -25,17 +26,17 @@ class BlankPass(HintBasedPass):
         # This relies on Python dictionaries keeping the order of keys stable (true since Python 3.7).
         vocab = list(self.PATTERNS.keys())
 
+        is_dir = test_case.is_dir()
+        paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
         hints = []
-        if test_case.is_dir():
-            for path in test_case.rglob('*'):
-                if not path.is_dir() and not path.is_symlink():
-                    rel_path = path.relative_to(test_case)
-                    vocab.append(str(rel_path).encode())
-                    file_id = len(vocab) - 1
-                    self._generate_hints_for_file(path, file_id, hints)
-        else:
-            self._generate_hints_for_file(test_case, file_id=None, hints=hints)
-
+        for path in paths:
+            if is_dir:
+                rel_path = path.relative_to(test_case)
+                vocab.append(str(rel_path).encode())
+                file_id = len(vocab) - 1
+            else:
+                file_id = None
+            self._generate_hints_for_file(path, file_id, hints)
         return HintBundle(hints=hints, vocabulary=vocab)
 
     def _generate_hints_for_file(self, path: Path, file_id: Optional[int], hints: List[Hint]) -> None:

@@ -1,4 +1,5 @@
 import contextlib
+import fnmatch
 import hashlib
 import io
 import os
@@ -8,7 +9,7 @@ import re
 import shutil
 import string
 import tempfile
-from typing import Iterable, Iterator, Optional, Union
+from typing import Iterable, Iterator, List, Optional, Set, Union
 
 
 # Singleton buffer for hash_test_case(), to avoid reallocations.
@@ -148,6 +149,16 @@ def hash_test_case(test_case: Path) -> bytes:
         return _hash_file(test_case, buf_view)
 
 
+def filter_files_by_patterns(test_case: Path, include_globs: List[str], default_exclude_globs: List[str]) -> List[Path]:
+    if include_globs:
+        paths = _find_files_matching(test_case, include_globs)
+    else:
+        all = _find_files_matching(test_case, ['**'])
+        exclude = _find_files_matching(test_case, default_exclude_globs)
+        paths = all - exclude
+    return sorted(paths)
+
+
 def _hash_file(path: Path, buf: memoryview) -> bytes:
     hash = hashlib.sha256()
     with io.FileIO(path, 'r') as f:  # use FileIO instead of open() as otherwise linters don't allow readinto()
@@ -220,3 +231,19 @@ def _robust_temp_dir(dir: Path) -> Iterator[Path]:
     with _clean_up_files_on_abnormal_exit(dir, prefix):
         with tempfile.TemporaryDirectory(prefix=prefix, dir=dir) as tmp_dir:
             yield Path(tmp_dir)
+
+
+def _find_files_matching(test_case: Path, globs: List[str]) -> Set[Path]:
+    if test_case.is_symlink():
+        return set()
+
+    if not test_case.is_dir():
+        matches = any(fnmatch.fnmatch(str(test_case), pat) for pat in globs)
+        return {test_case} if matches else set()
+
+    paths = set()
+    for pattern in globs:
+        for path in test_case.glob(pattern):
+            if not path.is_dir() and not path.is_symlink() and path.is_relative_to(test_case):
+                paths.add(path)
+    return paths
