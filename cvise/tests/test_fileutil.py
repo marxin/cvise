@@ -14,6 +14,7 @@ from typing import Callable, Dict, Union
 from cvise.utils.fileutil import (
     chdir,
     copy_test_case,
+    filter_files_by_patterns,
     get_file_size,
     get_line_count,
     hash_test_case,
@@ -411,3 +412,67 @@ def test_hash_dir_different_symlinks(tmp_path: Path):
     (dir_b / 'foo').symlink_to('barbaz')
 
     assert hash_test_case(dir_a) != hash_test_case(dir_b)
+
+
+def test_filter_files(tmp_path: Path):
+    p = tmp_path
+    (p / 'bar.c').touch()
+    (p / 'foo.cc').touch()
+    (p / 'foo.h').touch()
+    (p / 'Makefile').touch()
+    (p / 'dir').mkdir()
+    (p / 'dir' / 'a.c').touch()
+
+    assert filter_files_by_patterns(p, include_globs=[], default_exclude_globs=[]) == [
+        p / 'Makefile',
+        p / 'bar.c',
+        p / 'dir' / 'a.c',
+        p / 'foo.cc',
+        p / 'foo.h',
+    ]
+    assert filter_files_by_patterns(p, include_globs=['**'], default_exclude_globs=[]) == [
+        p / 'Makefile',
+        p / 'bar.c',
+        p / 'dir' / 'a.c',
+        p / 'foo.cc',
+        p / 'foo.h',
+    ]
+    assert filter_files_by_patterns(p, include_globs=['**/Makefile'], default_exclude_globs=[]) == [
+        p / 'Makefile',
+    ]
+    assert filter_files_by_patterns(p, include_globs=['*.c'], default_exclude_globs=[]) == [
+        p / 'bar.c',
+    ]
+    assert filter_files_by_patterns(p, include_globs=['**/*.c'], default_exclude_globs=[]) == [
+        p / 'bar.c',
+        p / 'dir' / 'a.c',
+    ]
+    assert filter_files_by_patterns(p, include_globs=['**/*.c', '**/*.h'], default_exclude_globs=[]) == [
+        p / 'bar.c',
+        p / 'dir' / 'a.c',
+        p / 'foo.h',
+    ]
+    assert filter_files_by_patterns(p, include_globs=['**/*.c', '**/foo*'], default_exclude_globs=[]) == [
+        p / 'bar.c',
+        p / 'dir' / 'a.c',
+        p / 'foo.cc',
+        p / 'foo.h',
+    ]
+    assert filter_files_by_patterns(p, include_globs=[], default_exclude_globs=['**/Makefile']) == [
+        p / 'bar.c',
+        p / 'dir' / 'a.c',
+        p / 'foo.cc',
+        p / 'foo.h',
+    ]
+    assert filter_files_by_patterns(p, include_globs=[], default_exclude_globs=['**/Makefile', '**/foo*']) == [
+        p / 'bar.c',
+        p / 'dir' / 'a.c',
+    ]
+
+
+def test_filter_files_include_over_default_exclude(tmp_path: Path):
+    (tmp_path / 'foo.c').touch()
+
+    assert filter_files_by_patterns(tmp_path, include_globs=['**/*.c'], default_exclude_globs=['**/*.c']) == [
+        tmp_path / 'foo.c',
+    ]
