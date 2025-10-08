@@ -30,7 +30,11 @@ class _Vocab(Enum):
 
 
 class MakefilePass(HintBasedPass):
-    """A pass for removing items from makefiles."""
+    """A pass for removing items from makefiles.
+
+    Note: C-Vise JSON config should specify "claim_files" for this pass, to prevent it from being attempted on unrelated
+    files and to prevent the makefiles from being corrupted by other passes.
+    """
 
     def __init__(self, claim_files: List[str], **kwargs):
         super().__init__(claim_files=claim_files, **kwargs)

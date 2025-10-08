@@ -26,6 +26,9 @@ class ClangModuleMapPass(HintBasedPass):
     """A pass for removing items from C++ header module map files.
 
     See https://clang.llvm.org/docs/Modules.html#module-map-language for the specification.
+
+    Note: C-Vise JSON config should specify "claim_files" for this pass, to prevent it from being attempted on unrelated
+    files and to prevent the module map files from being corrupted by other passes.
     """
 
     def check_prerequisites(self):
