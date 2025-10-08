@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 import random
 import shutil
-from typing import List, Self, Union
+from typing import Dict, List, Optional, Self, Union
 
 from cvise.utils.process import ProcessEventNotifier
 
@@ -149,10 +149,17 @@ class AbstractPass:
         slow = 'slow'
         windows = 'windows'
 
-    def __init__(self, arg=None, external_programs=None):
-        self.external_programs = external_programs
+    def __init__(
+        self,
+        arg: Optional[str] = None,
+        external_programs: Optional[Dict[str, Optional[str]]] = None,
+        max_transforms: Optional[int] = None,
+        *args,
+        **kwargs,
+    ):
         self.arg = arg
-        self.max_transforms = None
+        self.external_programs = external_programs
+        self.max_transforms = max_transforms
 
     def __repr__(self):
         if self.arg is not None:

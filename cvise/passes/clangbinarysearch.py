@@ -3,16 +3,29 @@ from pathlib import Path
 import re
 import subprocess
 import time
+from typing import Dict, Optional
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
 
 class ClangBinarySearchPass(AbstractPass):
-    def __init__(self, arg=None, external_programs=None):
-        super().__init__(arg, external_programs)
-        # The actual values are set by the caller in cvise.py.
-        self.user_clang_delta_std = None
-        self.clang_delta_preserve_routine = None
+    def __init__(
+        self,
+        arg: str,
+        external_programs: Dict[str, Optional[str]],
+        user_clang_delta_std: Optional[str] = None,
+        clang_delta_preserve_routine: Optional[str] = None,
+        **kwargs,
+    ):
+        super().__init__(
+            arg=arg,
+            external_programs=external_programs,
+            user_clang_delta_std=user_clang_delta_std,
+            clang_delta_preserve_routine=clang_delta_preserve_routine,
+            **kwargs,
+        )
+        self._user_clang_delta_std = user_clang_delta_std
+        self._clang_delta_preserve_routine = clang_delta_preserve_routine
 
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
@@ -35,10 +48,10 @@ class ClangBinarySearchPass(AbstractPass):
         return best
 
     def new(self, test_case: Path, job_timeout, *args, **kwargs):
-        if not self.user_clang_delta_std:
+        if not self._user_clang_delta_std:
             std = self.detect_best_standard(test_case, job_timeout)
         else:
-            std = self.user_clang_delta_std
+            std = self._user_clang_delta_std
         state = BinaryState.create(self.count_instances(test_case, std, job_timeout))
         return attach_clang_delta_std(state, std)
 
@@ -59,8 +72,8 @@ class ClangBinarySearchPass(AbstractPass):
             f'--query-instances={self.arg}',
             f'--std={std}',
         ]
-        if self.clang_delta_preserve_routine:
-            args.append(f'--preserve-routine="{self.clang_delta_preserve_routine}"')
+        if self._clang_delta_preserve_routine:
+            args.append(f'--preserve-routine="{self._clang_delta_preserve_routine}"')
         cmd = args + [str(test_case)]
 
         try:
@@ -104,8 +117,8 @@ class ClangBinarySearchPass(AbstractPass):
             '--report-instances-count',
         ]
         args.append(f'--std={state.clang_delta_std}')
-        if self.clang_delta_preserve_routine:
-            args.append(f'--preserve-routine="{self.clang_delta_preserve_routine}"')
+        if self._clang_delta_preserve_routine:
+            args.append(f'--preserve-routine="{self._clang_delta_preserve_routine}"')
         cmd = [self.external_programs['clang_delta']] + args + [str(test_case)]
         logging.debug(' '.join(cmd))
 

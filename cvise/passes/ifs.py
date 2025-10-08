@@ -1,12 +1,16 @@
 from pathlib import Path
 import re
 import tempfile
+from typing import Dict, Optional
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
 
 class IfPass(AbstractPass):
     line_regex = re.compile('^\\s*#\\s*if')
+
+    def __init__(self, external_programs: Dict[str, Optional[str]], **kwargs):
+        super().__init__(external_programs=external_programs, **kwargs)
 
     def check_prerequisites(self):
         return self.check_external_program('unifdef')

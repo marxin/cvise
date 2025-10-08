@@ -1,7 +1,7 @@
 import msgspec
 from pathlib import Path
 import subprocess
-from typing import List
+from typing import Dict, List, Optional
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.hint import Hint, HintBundle
@@ -10,6 +10,9 @@ from cvise.utils.process import ProcessEventNotifier
 
 class TreeSitterPass(HintBasedPass):
     """A pass that performs reduction using heuristics based on the Tree-sitter parser (via treesitter_delta tool)."""
+
+    def __init__(self, arg: str, external_programs: Dict[str, Optional[str]], **kwargs):
+        super().__init__(arg=arg, external_programs=external_programs, **kwargs)
 
     def check_prerequisites(self):
         return self.check_external_program('treesitter_delta')
