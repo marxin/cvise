@@ -4,6 +4,7 @@ import subprocess
 from typing import Dict, List, Optional
 
 from cvise.passes.hint_based import HintBasedPass
+from cvise.utils.fileutil import filter_files_by_patterns
 from cvise.utils.hint import Hint, HintBundle
 from cvise.utils.process import ProcessEventNotifier
 
@@ -31,11 +32,14 @@ class TreeSitterPass(HintBasedPass):
         # If the test case is a single file, simply specify its path via cmd line. If it's a directory, enumerate all
         # files (we do it on the Python side for flexibility) and send the list via stdin (to not hit the cmd line size
         # limit).
+        paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
+        if not paths:
+            return HintBundle(hints=[])
         if test_case.is_dir():
             work_dir = test_case
-            paths = sorted(p.relative_to(test_case) for p in test_case.rglob('*') if not p.is_dir())
-            stdin = b'\0'.join(bytes(p) for p in paths)
-            files_vocab = [str(p).encode() for p in paths]  # avoid the complexity of escaping paths in C++ code
+            rel_paths = [p.relative_to(test_case) for p in paths]
+            files_vocab = [str(p).encode() for p in rel_paths]  # avoid the complexity of escaping paths in C++ code
+            stdin = b'\0'.join(files_vocab)
             cmd_arg = '--'
         else:
             work_dir = None

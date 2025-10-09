@@ -4,6 +4,7 @@ import subprocess
 from typing import Dict, List, Optional
 
 from cvise.passes.hint_based import HintBasedPass
+from cvise.utils.fileutil import filter_files_by_patterns
 from cvise.utils.hint import Hint, HintBundle, Patch
 from cvise.utils.process import ProcessEventNotifier
 
@@ -20,18 +21,15 @@ class LinesPass(HintBasedPass):
 
     def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
         is_dir = test_case.is_dir()
-        paths = (
-            sorted(p for p in test_case.rglob('*') if not p.is_dir() and not p.is_symlink()) if is_dir else [test_case]
-        )
+        paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
         vocab = [str(p.relative_to(test_case)).encode() for p in paths] if is_dir else []
-
         hints = []
-        if self.arg == 'None':
-            for i, path in enumerate(paths):
-                file_id = i if is_dir else None
+        for i, path in enumerate(paths):
+            file_id = i if is_dir else None
+            if self.arg == 'None':
                 self._generate_hints_for_text_lines(path, file_id, hints)
-        else:
-            self._generate_topformflat_hints(test_case, is_dir, paths, process_event_notifier, hints)
+            else:
+                self._generate_topformflat_hints(test_case, is_dir, paths, process_event_notifier, hints)
 
         return HintBundle(hints=hints, vocabulary=vocab)
 

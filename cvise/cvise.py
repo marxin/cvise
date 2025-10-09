@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from itertools import chain
 import json
 import logging
 import os
@@ -156,7 +157,7 @@ class CVise:
             pass_group[category.name] = []
 
             pass_dict_list = pass_group_dict[category.name]
-            for pass_dict in pass_dict_list:
+            for pass_id, pass_dict in enumerate(pass_dict_list):
                 if not include_pass(pass_dict, pass_options):
                     continue
 
@@ -174,12 +175,19 @@ class CVise:
                         raise CViseError('max-transforms not available for passes in interleaving categories')
                     max_transforms = int(pass_dict['max-transforms'])
 
+                claim_files = pass_dict.get('claim_files', [])
+                claimed_by_others_files = list(
+                    chain.from_iterable(d.get('claim_files', []) for i, d in enumerate(pass_dict_list) if i != pass_id)
+                )
+
                 pass_instance = pass_class(
                     arg=pass_dict.get('arg'),
                     external_programs=external_programs,
                     user_clang_delta_std=clang_delta_std,
                     clang_delta_preserve_routine=clang_delta_preserve_routine,
                     max_transforms=max_transforms,
+                    claim_files=claim_files,
+                    claimed_by_others_files=claimed_by_others_files,
                 )
                 if str(pass_instance) in removed_passes:
                     continue

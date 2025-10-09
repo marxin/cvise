@@ -154,12 +154,16 @@ class AbstractPass:
         arg: Optional[str] = None,
         external_programs: Optional[Dict[str, Optional[str]]] = None,
         max_transforms: Optional[int] = None,
+        claim_files: Optional[List[str]] = None,
+        claimed_by_others_files: Optional[List[str]] = None,
         *args,
         **kwargs,
     ):
         self.arg = arg
         self.external_programs = external_programs
         self.max_transforms = max_transforms
+        self.claim_files = claim_files or []
+        self.claimed_by_others_files = claimed_by_others_files or []
 
     def __repr__(self):
         if self.arg is not None:

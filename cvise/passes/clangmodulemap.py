@@ -2,16 +2,13 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass
 from enum import Enum, unique
-import fnmatch
 from pathlib import Path
 import re
 from typing import Dict, List, Union
 
 from cvise.passes.hint_based import HintBasedPass
+from cvise.utils.fileutil import filter_files_by_patterns
 from cvise.utils.hint import Hint, HintBundle, Patch
-
-
-_FILE_PATTERNS = ('*.cppmap', '*.modulemap')
 
 
 @unique
@@ -29,6 +26,9 @@ class ClangModuleMapPass(HintBasedPass):
     """A pass for removing items from C++ header module map files.
 
     See https://clang.llvm.org/docs/Modules.html#module-map-language for the specification.
+
+    Note: C-Vise JSON config should specify "claim_files" for this pass, to prevent it from being attempted on unrelated
+    files and to prevent the module map files from being corrupted by other passes.
     """
 
     def check_prerequisites(self):
@@ -41,13 +41,11 @@ class ClangModuleMapPass(HintBasedPass):
         return [v.value[1] for v in _Vocab]
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
-        paths = list(test_case.rglob('*')) if test_case.is_dir() else [test_case]
-        interesting_paths = sorted(p for p in paths if _interesting_file(p))
-
+        paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
         vocab: List[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
         path_to_vocab: Dict[Path, int] = {}
         hints: List[Hint] = []
-        for path in interesting_paths:
+        for path in paths:
             file = _parse_file(path)
 
             rel_path = path.relative_to(test_case)
@@ -60,12 +58,6 @@ class ClangModuleMapPass(HintBasedPass):
             _create_hints_for_unclassified_lines(file.unclassified_lines, file_id, hints)
 
         return HintBundle(hints=hints, vocabulary=vocab)
-
-
-def _interesting_file(path: Path) -> bool:
-    if path.is_dir() or path.is_symlink():
-        return False
-    return any(fnmatch.fnmatch(path.name, p) for p in _FILE_PATTERNS)
 
 
 @dataclass
