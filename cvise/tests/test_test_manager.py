@@ -9,16 +9,17 @@ import pytest
 import re
 import sys
 import time
-from typing import Dict, List
+from typing import Dict, List, Union
 from unittest.mock import patch
 
 from cvise.passes.abstract import AbstractPass, PassResult  # noqa: E402
 from cvise.passes.hint_based import HintBasedPass  # noqa: E402
 from cvise.utils import sigmonitor, statistics, testing  # noqa: E402
+from cvise.utils.fileutil import filter_files_by_patterns
 from cvise.utils.hint import Hint, HintBundle, Patch
 
 
-INPUT_DATA = """foo
+DEFAULT_INPUT_CONTENTS = """foo
 bar
 baz
 """
@@ -114,15 +115,15 @@ class LetterRemovingPass(StubPass):
 
     In this pass, the state is interpreted as the index among all matching letters."""
 
-    def __init__(self, letters_to_remove):
+    def __init__(self, letters_to_remove: str):
         super().__init__()
-        self.letters_to_remove = letters_to_remove
+        self._letters_to_remove = letters_to_remove
 
     def transform(self, test_case: Path, state, *args, **kwargs):
         text = test_case.read_text()
         instances = 0
         for i, c in enumerate(text):
-            if c in self.letters_to_remove:
+            if c in self._letters_to_remove:
                 if instances == state:
                     # Found a matching letter with the expected index; remove it.
                     test_case.write_text(text[:i] + text[i + 1 :])
@@ -132,22 +133,32 @@ class LetterRemovingPass(StubPass):
 
 
 class LetterRemovingHintPass(HintBasedPass):
-    def __init__(self, arg=None):
-        super().__init__(arg)
+    def __init__(self, letters_to_remove: str, **kwargs):
+        super().__init__(arg=letters_to_remove, **kwargs)
+        self._letters_to_remove = letters_to_remove
+
+    def supports_dir_test_cases(self):
+        return True
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
-        sz = test_case.stat().st_size
-        hints = [Hint(patches=(Patch(left=i, right=i + 1),)) for i in range(sz)]
-        return HintBundle(hints=hints)
+        hints = []
+        paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
+        vocab = [str(p.relative_to(test_case)).encode() for p in paths]
+        for file_id, path in enumerate(paths):
+            data = path.read_text()
+            for i, c in enumerate(data):
+                if c in self._letters_to_remove:
+                    hints.append(Hint(patches=(Patch(left=i, right=i + 1, file=file_id),)))
+        return HintBundle(hints=hints, vocabulary=vocab)
 
 
 class TracingHintPass(LetterRemovingHintPass):
-    def __init__(self, queue, arg):
-        super().__init__(arg)
-        self.queue = queue
+    def __init__(self, queue, letters_to_remove: str):
+        super().__init__(letters_to_remove)
+        self._queue = queue
 
     def transform(self, test_case: Path, state, *args, **kwargs):
-        self.queue.put(self.arg)
+        self._queue.put(self.arg)
         return super().transform(test_case, state, *args, **kwargs)
 
 
@@ -217,10 +228,20 @@ def cwd_to_tmp_path(tmp_path: Path):
 
 
 @pytest.fixture
-def input_file(tmp_path: Path) -> Path:
-    RELATIVE_PATH = Path('input.txt')
+def input_contents() -> Union[str, Dict[Path, str]]:
+    return DEFAULT_INPUT_CONTENTS
+
+
+@pytest.fixture
+def input_path(tmp_path: Path, input_contents: Union[str, Dict[Path, str]]) -> Path:
+    RELATIVE_PATH = Path('test_case')
     path = tmp_path / RELATIVE_PATH
-    path.write_text(INPUT_DATA)
+    if isinstance(input_contents, str):
+        path.write_text(input_contents)
+    else:
+        for rel_path, contents in input_contents.items():
+            (path / rel_path).parent.mkdir(parents=True, exist_ok=True)
+            (path / rel_path).write_text(contents)
     return Path(RELATIVE_PATH)
 
 
@@ -267,7 +288,7 @@ def with_colordiff(fp, with_tty) -> None:
 
 
 @pytest.fixture
-def manager(tmp_path: Path, input_file: Path, interestingness_script: str, job_timeout: int, print_diff: bool):
+def manager(tmp_path: Path, input_path: Path, interestingness_script: str, job_timeout: int, print_diff: bool):
     SAVE_TEMPS = False
     NO_CACHE = False
     SKIP_KEY_OFF = True  # tests shouldn't listen to keyboard
@@ -282,7 +303,7 @@ def manager(tmp_path: Path, input_file: Path, interestingness_script: str, job_t
     pass_statistic = statistics.PassStatistic()
 
     script_path = tmp_path / 'check.sh'
-    script_path.write_text(interestingness_script.format(test_case=input_file))
+    script_path.write_text(interestingness_script.format(test_case=input_path))
     script_path.chmod(0o744)
 
     test_manager = testing.TestManager(
@@ -290,7 +311,7 @@ def manager(tmp_path: Path, input_file: Path, interestingness_script: str, job_t
         script_path,
         job_timeout,
         SAVE_TEMPS,
-        [input_file],
+        [input_path],
         PARALLEL_TESTS,
         NO_CACHE,
         SKIP_KEY_OFF,
@@ -312,75 +333,75 @@ def manager(tmp_path: Path, input_file: Path, interestingness_script: str, job_t
             test_manager.__exit__(None, None, None)
 
 
-def test_succeed_via_naive_pass(input_file: Path, manager):
+def test_succeed_via_naive_pass(input_path: Path, manager):
     """Check that we completely empty the file via the naive lines pass."""
     p = NaiveLinePass()
     manager.run_passes([p], interleaving=False)
-    assert input_file.read_text() == ''
+    assert input_path.read_text() == ''
     assert bug_dir_count() == 0
 
 
-def test_succeed_via_n_one_off_passes(input_file: Path, manager):
+def test_succeed_via_n_one_off_passes(input_path: Path, manager):
     """Check that we succeed after running one-off passes multiple times."""
-    LINES = len(INPUT_DATA.splitlines())
+    LINES = len(DEFAULT_INPUT_CONTENTS.splitlines())
     for lines in range(LINES, 0, -1):
-        assert count_lines(input_file) == lines
+        assert count_lines(input_path) == lines
         p = OneOffLinesPass()
         manager.run_passes([p], interleaving=False)
-        assert count_lines(input_file) == lines - 1
+        assert count_lines(input_path) == lines - 1
     assert bug_dir_count() == 0
 
 
-def test_succeed_after_n_invalid_results(input_file: Path, manager):
+def test_succeed_after_n_invalid_results(input_path: Path, manager):
     """Check that we still succeed even if the first few invocations were unsuccessful."""
     INVALID_N = 15
     p = InvalidAndEveryNLinesPass(INVALID_N)
     manager.run_passes([p], interleaving=False)
-    assert input_file.read_text() == ''
+    assert input_path.read_text() == ''
     assert bug_dir_count() == 0
 
 
 @patch('cvise.utils.testing.TestManager.GIVEUP_CONSTANT', 100)
-def test_give_up_on_stuck_pass(input_file: Path, manager):
+def test_give_up_on_stuck_pass(input_path: Path, manager):
     """Check that we quit if the pass doesn't improve for a long time."""
     p = AlwaysInvalidPass()
     manager.run_passes([p], interleaving=False)
-    assert input_file.read_text() == INPUT_DATA
+    assert input_path.read_text() == DEFAULT_INPUT_CONTENTS
     # The "pass got stuck" report.
     assert bug_dir_count() == 1
 
 
 @patch('cvise.utils.testing.TestManager.GIVEUP_CONSTANT', 100)
-def test_interleaving_gives_up_only_stuck_passes(input_file: Path, manager):
+def test_interleaving_gives_up_only_stuck_passes(input_path: Path, manager):
     """Check that when some passes get stuck in interleaving mode, others continue to be used."""
     stuck_pass = AlwaysInvalidPass()
     occasionally_working_pass = InvalidAndEveryNLinesPass(testing.TestManager.GIVEUP_CONSTANT // 3)
     manager.run_passes([stuck_pass, occasionally_working_pass], interleaving=True)
-    assert input_file.read_text() == ''
+    assert input_path.read_text() == ''
     # The "pass got stuck" report (for the stuck pass).
     assert bug_dir_count() == 1
 
 
-def test_halt_on_unaltered(input_file: Path, manager):
+def test_halt_on_unaltered(input_path: Path, manager):
     """Check that we quit if the pass keeps misbehaving."""
     p = AlwaysUnalteredPass()
     manager.run_passes([p], interleaving=False)
-    assert input_file.read_text() == INPUT_DATA
+    assert input_path.read_text() == DEFAULT_INPUT_CONTENTS
     # This number of "failed to modify the variant" reports were to be created.
     assert bug_dir_count() == testing.TestManager.MAX_CRASH_DIRS + 1
 
 
-def test_halt_on_unaltered_after_stop(input_file: Path, manager):
+def test_halt_on_unaltered_after_stop(input_path: Path, manager):
     """Check that we quit after the pass' stop, even if it interleaved with a misbehave."""
     p = SlowUnalteredThenStoppingPass()
     manager.run_passes([p], interleaving=False)
-    assert input_file.read_text() == INPUT_DATA
+    assert input_path.read_text() == DEFAULT_INPUT_CONTENTS
     # Whether the misbehave ("failed to modify the variant") is detected depends on timing.
     assert bug_dir_count() <= 1
 
 
 @pytest.mark.parametrize('job_timeout', [1])
-def test_give_up_on_repeating_timeouts(input_file: Path, manager):
+def test_give_up_on_repeating_timeouts(input_path: Path, manager):
     p = HungPass()
     manager.run_passes([p], interleaving=False)
     assert extra_dir_count() >= manager.MAX_TIMEOUTS
@@ -388,44 +409,44 @@ def test_give_up_on_repeating_timeouts(input_file: Path, manager):
     assert extra_dir_count() <= 2 * max(manager.MAX_TIMEOUTS, PARALLEL_TESTS)
 
 
-def test_interleaving_letter_removals(input_file: Path, manager):
+def test_interleaving_letter_removals(input_path: Path, manager):
     """Test that two different passes executed in interleaving way remove different letters."""
     p1 = LetterRemovingPass('fz')
     p2 = LetterRemovingPass('b')
     while True:
-        value_before = input_file.read_text()
+        value_before = input_path.read_text()
         manager.run_passes([p1, p2], interleaving=True)
-        if input_file.read_text() == value_before:
+        if input_path.read_text() == value_before:
             break
 
-    assert input_file.read_text() == 'oo\nar\na\n'
+    assert input_path.read_text() == 'oo\nar\na\n'
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+@pytest.mark.parametrize('input_contents', ['ababacac' * PARALLEL_TESTS])
 @pytest.mark.parametrize('interestingness_script', [r"grep a {test_case} && ! grep '\(.\)\1' {test_case}"])
-def test_interleaving_letter_removals_large(input_file: Path, manager):
+def test_interleaving_letter_removals_large(input_path: Path, manager):
     """Test that multiple passes executed in interleaving way can delete all but one character.
 
     The interestingness test here is "there's the `a` character and no character is repeated twice in a row", which for
     the given test requires alternating between removing `a`, `b` and `c` many times."""
-    input_file.write_text('ababacac' * PARALLEL_TESTS)
     p1 = LetterRemovingPass('a')
     p2 = LetterRemovingPass('b')
     p3 = LetterRemovingPass('c')
     while True:
-        value_before = input_file.read_text()
+        value_before = input_path.read_text()
         manager.run_passes([p1, p2, p3], interleaving=True)
-        if input_file.read_text() == value_before:
+        if input_path.read_text() == value_before:
             break
 
-    assert input_file.read_text() == 'a'
+    assert input_path.read_text() == 'a'
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 @pytest.mark.parametrize('interestingness_script', [r'false {test_case}'])
 def test_interleaving_round_robin_transforms(manager: testing.TestManager):
     tracing_queue = multiprocessing.Manager().Queue()
-    passes = [TracingHintPass(tracing_queue, arg=str(i)) for i in range(PARALLEL_TESTS)]
+    passes = [TracingHintPass(tracing_queue, letters_to_remove=chr(ord('a') + i)) for i in range(PARALLEL_TESTS)]
     manager.run_passes(passes, interleaving=True)
 
     transform_calls = []
@@ -440,6 +461,37 @@ def test_interleaving_round_robin_transforms(manager: testing.TestManager):
     for i in range(len(transform_calls) - PARALLEL_TESTS + 1):
         slice = transform_calls[i : i + PARALLEL_TESTS]
         assert min(slice) != max(slice)
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+@pytest.mark.parametrize('input_contents', [{Path('foo.txt'): 'abacaba', Path('bar.txt'): 'ddaabbcc'}])
+def test_interleaving_letter_removals_directory(input_path: Path, manager):
+    """Test the letter removal passes for a directory input."""
+    p1 = LetterRemovingHintPass('a')
+    p2 = LetterRemovingHintPass('b')
+    p3 = LetterRemovingHintPass('c')
+    while True:
+        files_before = _read_files_in_dir(input_path)
+        manager.run_passes([p1, p2, p3], interleaving=True)
+        if _read_files_in_dir(input_path) == files_before:
+            break
+
+    assert _read_files_in_dir(input_path) == {Path('foo.txt'): '', Path('bar.txt'): 'dd'}
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+@pytest.mark.parametrize('input_contents', [{Path('foo.txt'): 'abacaba', Path('bar.txt'): 'ddaabbcc'}])
+def test_interleaving_letter_removals_directory_claimed_files(input_path: Path, manager):
+    """Test that passes only modify files they claim."""
+    p1 = LetterRemovingHintPass('ab', claim_files=['foo*'])
+    p2 = LetterRemovingHintPass('bc', claim_files=['bar*'])
+    while True:
+        files_before = _read_files_in_dir(input_path)
+        manager.run_passes([p1, p2], interleaving=True)
+        if _read_files_in_dir(input_path) == files_before:
+            break
+
+    assert _read_files_in_dir(input_path) == {Path('foo.txt'): 'c', Path('bar.txt'): 'ddaa'}
 
 
 @pytest.mark.parametrize('print_diff', [True])
@@ -539,15 +591,19 @@ def _find_processes_by_cmd_line(needle: str) -> List[psutil.Process]:
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+@pytest.mark.parametrize('input_contents', ['a(b)c(de)'])
 @pytest.mark.parametrize('interestingness_script', [r"grep '[(][)].*[(][)]' {test_case}"])
-def test_pass_dependency(input_file: Path, manager: testing.TestManager):
+def test_pass_dependency(input_path: Path, manager: testing.TestManager):
     """Test a pass that depends on another pass' hints works correctly.
 
     Here, the first pass produces hints that point to pairs of brackets; these hints themselves don't pass the
     interestingness test. The second pass uses the first pass' hints to produce new ones that remove contents inside
     brackets - this is what we expect to succeed.
     """
-    input_file.write_text('a(b)c(de)')
     passes = [BracketRemovingPass(), InsideBracketsRemovingPass()]
     manager.run_passes(passes, interleaving=True)
-    assert input_file.read_text() == 'a()c()'
+    assert input_path.read_text() == 'a()c()'
+
+
+def _read_files_in_dir(dir: Path) -> Dict[Path, str]:
+    return {p.relative_to(dir): p.read_text() for p in dir.rglob('*') if not p.is_dir()}
