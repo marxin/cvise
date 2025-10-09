@@ -133,6 +133,10 @@ void MemberToGlobal::removeRecordQualifier(const NestedNameSpecifierLoc& NNSLoc)
 #endif
   if (isTheRecordDecl(RD)) {
     SourceRange SR = NNSLoc.getLocalSourceRange();
+#if LLVM_VERSION_MAJOR >= 22
+    if (TypeLoc TL = NNSLoc.getAsTypeLoc())
+      SR.setBegin(TL.getNonPrefixBeginLoc());
+#endif
     SR.setEnd(SR.getEnd().getLocWithOffset(1));
 
     TheRewriter.RemoveText(SR);
