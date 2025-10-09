@@ -1142,7 +1142,7 @@ void RemoveNamespace::removeNamespace(const NamespaceDecl *ND)
     const char *StartBuf = SrcManager->getCharacterData(StartLoc);
     std::string NDStr(StartBuf, RangeSize);
     size_t Pos = NDStr.find('{');
-    if (Pos != std::string::npos)
+    if (Pos != std::string::npos) 
       EndLoc = StartLoc.getLocWithOffset(Pos);
   }
 

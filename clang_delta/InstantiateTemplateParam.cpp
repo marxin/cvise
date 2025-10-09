@@ -22,7 +22,7 @@
 
 using namespace clang;
 
-static const char *DescriptionMsg =
+static const char *DescriptionMsg = 
 "This pass tries to instantiate a template parameter with  \
 its actual argument if this parameter has been instantiated \n\
 only once. \n";
@@ -34,12 +34,12 @@ namespace {
 
 typedef llvm::SmallPtrSet<const NamedDecl *, 8> TemplateParameterSet;
 
-class TemplateParameterVisitor : public
+class TemplateParameterVisitor : public 
   RecursiveASTVisitor<TemplateParameterVisitor> {
 
 public:
   explicit TemplateParameterVisitor(TemplateParameterSet &Params)
-             : UsedParameters(Params)
+             : UsedParameters(Params) 
   { }
 
   ~TemplateParameterVisitor() { };
@@ -67,7 +67,7 @@ bool TemplateParameterVisitor::VisitTemplateTypeParmTypeLoc(
 
 } // end anonymous namespace
 
-class InstantiateTemplateParamASTVisitor : public
+class InstantiateTemplateParamASTVisitor : public 
   RecursiveASTVisitor<InstantiateTemplateParamASTVisitor> {
 
 public:
@@ -110,7 +110,7 @@ bool InstantiateTemplateParamASTVisitor::VisitFunctionTemplateDecl(
   return true;
 }
 
-class InstantiateTemplateParamRewriteVisitor : public
+class InstantiateTemplateParamRewriteVisitor : public 
   RecursiveASTVisitor<InstantiateTemplateParamRewriteVisitor> {
 
 public:
@@ -137,7 +137,7 @@ private:
 
 };
 
-bool
+bool 
 InstantiateTemplateParamRewriteVisitor::VisitTemplateTypeParmTypeLoc(
        TemplateTypeParmTypeLoc Loc)
 {
@@ -155,7 +155,7 @@ InstantiateTemplateParamRewriteVisitor::VisitTemplateTypeParmTypeLoc(
   //   typedef typename T2::template C<int>::other type;
   // };
   // class B<char, A<char> >;
-  // the "typedef typename T2 ..." is treated as
+  // the "typedef typename T2 ..." is treated as 
   //   typedef typename T2::template T2::C<int>::other type;
   // where the second T2 is injected by Clang
   void *Ptr = Loc.getBeginLoc().getPtrEncoding();
@@ -164,7 +164,7 @@ InstantiateTemplateParamRewriteVisitor::VisitTemplateTypeParmTypeLoc(
   ConsumerInstance->VisitedLocs.insert(Ptr);
 
   SourceRange Range = Loc.getSourceRange();
-  ConsumerInstance->TheRewriter.ReplaceText(Range,
+  ConsumerInstance->TheRewriter.ReplaceText(Range, 
                        ConsumerInstance->TheInstantiationString);
   return true;
 }
@@ -174,7 +174,7 @@ class InstantiateTemplateParam::FindForwardDeclVisitor : public RecursiveASTVisi
   std::string& ForwardStr;
   RecordDeclSet TempAvailableRecordDecls;
 public:
-  explicit FindForwardDeclVisitor(InstantiateTemplateParam* ConsumerInstance, std::string& ForwardStr)
+  explicit FindForwardDeclVisitor(InstantiateTemplateParam* ConsumerInstance, std::string& ForwardStr) 
       : ConsumerInstance(ConsumerInstance), ForwardStr(ForwardStr)
   { }
 
@@ -184,7 +184,7 @@ public:
   }
 };
 
-void InstantiateTemplateParam::Initialize(ASTContext &context)
+void InstantiateTemplateParam::Initialize(ASTContext &context) 
 {
   Transformation::Initialize(context);
   CollectionVisitor = new InstantiateTemplateParamASTVisitor(this);
@@ -236,7 +236,7 @@ void InstantiateTemplateParam::addForwardDecl()
   TransAssert(TheTemplateDecl && "NULL TheTemplateDecl!");
   if (TheForwardDeclString == "")
     return;
-  RewriteHelper->insertStringBeforeTemplateDecl(TheTemplateDecl,
+  RewriteHelper->insertStringBeforeTemplateDecl(TheTemplateDecl, 
                                                 TheForwardDeclString);
 }
 
@@ -246,7 +246,7 @@ void InstantiateTemplateParam::addOneForwardDeclStr(
        RecordDeclSet &TempAvailableRecordDecls)
 {
   const RecordDecl *CanonicalRD = dyn_cast<RecordDecl>(RD->getCanonicalDecl());
-  if (AvailableRecordDecls.count(CanonicalRD) ||
+  if (AvailableRecordDecls.count(CanonicalRD) || 
       TempAvailableRecordDecls.count(CanonicalRD))
     return;
 
@@ -263,7 +263,7 @@ void InstantiateTemplateParam::addForwardTemplateDeclStr(
 {
   const CXXRecordDecl *RD = ClassTD->getTemplatedDecl();
   const RecordDecl *CanonicalRD = dyn_cast<RecordDecl>(RD->getCanonicalDecl());
-  if (AvailableRecordDecls.count(CanonicalRD) ||
+  if (AvailableRecordDecls.count(CanonicalRD) || 
       TempAvailableRecordDecls.count(CanonicalRD))
     return;
 
@@ -297,13 +297,13 @@ void InstantiateTemplateParam::getForwardDeclStr(
   if (!CXXRD)
     return;
 
-  const ClassTemplateSpecializationDecl *SpecD =
+  const ClassTemplateSpecializationDecl *SpecD = 
     dyn_cast<ClassTemplateSpecializationDecl>(CXXRD);
   if (!SpecD) {
     addOneForwardDeclStr(CXXRD, ForwardStr, TempAvailableRecordDecls);
     return;
   }
-
+  
   addForwardTemplateDeclStr(SpecD->getSpecializedTemplate(),
                             ForwardStr,
                             TempAvailableRecordDecls);
@@ -314,7 +314,7 @@ void InstantiateTemplateParam::getForwardDeclStr(
     const TemplateArgument Arg = ArgList[I];
     if (Arg.getKind() != TemplateArgument::Type)
       continue;
-    getForwardDeclStr(Arg.getAsType().getTypePtr(),
+    getForwardDeclStr(Arg.getAsType().getTypePtr(), 
                       ForwardStr,
                       TempAvailableRecordDecls);
   }
@@ -333,9 +333,9 @@ bool InstantiateTemplateParam::getTypeString(
   return true;
 }
 
-bool
+bool 
 InstantiateTemplateParam::getTemplateArgumentString(const TemplateArgument &Arg,
-                                                    std::string &ArgStr,
+                                                    std::string &ArgStr, 
                                                     std::string &ForwardStr)
 {
   ArgStr = "";
@@ -362,9 +362,9 @@ void InstantiateTemplateParam::handleOneTemplateSpecialization(
   TemplateParameterList *TPList = D->getTemplateParameters();
   for (NamedDecl* ND : *TPList) {
     ++Idx;
-    // make it simple, skip NonTypeTemplateParmDecl and
+    // make it simple, skip NonTypeTemplateParmDecl and 
     // TemplateTemplateParmDecl for now
-    const TemplateTypeParmDecl *TyParmDecl =
+    const TemplateTypeParmDecl *TyParmDecl = 
       dyn_cast<TemplateTypeParmDecl>(ND);
     if (!TyParmDecl || TyParmDecl->isParameterPack())
       continue;
@@ -393,7 +393,7 @@ void InstantiateTemplateParam::handleOneTemplateSpecialization(
     }
   }
 }
-
+       
 // TODO: handle partial specialization
 void InstantiateTemplateParam::handleOneClassTemplateDecl(
        const ClassTemplateDecl *D)

@@ -112,7 +112,7 @@ bool CommonRenameClassRewriteVisitor<T>::VisitUsingDecl(UsingDecl *D)
 
 template<typename T>
 bool CommonRenameClassRewriteVisitor<T>::TraverseConstructorInitializer(
-       CXXCtorInitializer *Init)
+       CXXCtorInitializer *Init) 
 {
   if (Init->isBaseInitializer() && !Init->isWritten())
     return true;
@@ -126,14 +126,14 @@ bool CommonRenameClassRewriteVisitor<T>::TraverseConstructorInitializer(
 }
 
 #if LLVM_VERSION_MAJOR < 19
-template<typename T>
+template<typename T> 
 bool CommonRenameClassRewriteVisitor<T>::
      VisitClassTemplatePartialSpecializationDecl(
        ClassTemplatePartialSpecializationDecl *D)
 {
   const Type *Ty = D->getInjectedSpecializationType().getTypePtr();
   TransAssert(Ty && "Bad TypePtr!");
-  const TemplateSpecializationType *TST =
+  const TemplateSpecializationType *TST = 
     dyn_cast<TemplateSpecializationType>(Ty);
   TransAssert(TST && "Bad TemplateSpecializationType!");
 
@@ -258,7 +258,7 @@ bool CommonRenameClassRewriteVisitor<T>::VisitCXXDestructorDecl(
   const CXXRecordDecl *CXXRD = dyn_cast<CXXRecordDecl>(Ctx);
   TransAssert(CXXRD && "Invalid CXXRecordDecl");
 
-  // Avoid duplicated VisitDtor.
+  // Avoid duplicated VisitDtor. 
   // For example, in the code below:
   // template<typename T>
   // class SomeClass {
@@ -266,12 +266,12 @@ bool CommonRenameClassRewriteVisitor<T>::VisitCXXDestructorDecl(
   //   ~SomeClass<T>() {}
   // };
   // ~SomeClass<T>'s TypeLoc is represented as TemplateSpecializationTypeLoc
-  // In this case, ~SomeClass will be renamed from
+  // In this case, ~SomeClass will be renamed from 
   // VisitTemplateSpecializationTypeLoc.
   DeclarationNameInfo NameInfo = DtorDecl->getNameInfo();
   if ( TypeSourceInfo *TSInfo = NameInfo.getNamedTypeInfo()) {
     TypeLoc DtorLoc = TSInfo->getTypeLoc();
-    if (!DtorLoc.isNull() &&
+    if (!DtorLoc.isNull() && 
         (DtorLoc.getTypeLocClass() == TypeLoc::TemplateSpecialization))
       return true;
   }
@@ -323,7 +323,7 @@ bool CommonRenameClassRewriteVisitor<T>::VisitCXXMemberCallExpr(
        CXXMemberCallExpr *CE)
 {
   const CXXRecordDecl *CXXRD = CE->getRecordDecl();
-  // getRecordDEcl could return NULL if getImplicitObjectArgument()
+  // getRecordDEcl could return NULL if getImplicitObjectArgument() 
   // returns NULL
   if (!CXXRD)
     return true;
@@ -375,7 +375,7 @@ template<typename T> bool CommonRenameClassRewriteVisitor<T>::
     DependentTemplateSpecializationTypeLoc DTSLoc)
 {
   const Type *Ty = DTSLoc.getTypePtr();
-  const DependentTemplateSpecializationType *DTST =
+  const DependentTemplateSpecializationType *DTST = 
     dyn_cast<DependentTemplateSpecializationType>(Ty);
   TransAssert(DTST && "Bad DependentTemplateSpecializationType!");
 
@@ -417,7 +417,7 @@ void CommonRenameClassRewriteVisitor<T>::renameTemplateName(
   const TemplateDecl *TmplD = TmplName.getAsTemplateDecl();
   TransAssert(TmplD && "Invalid TemplateDecl!");
   NamedDecl *ND = TmplD->getTemplatedDecl();
-  // in some cases, ND could be NULL, e.g., the
+  // in some cases, ND could be NULL, e.g., the 
   // template template parameter code below:
   // template<template<class> class BBB>
   // struct AAA {
@@ -446,7 +446,7 @@ void CommonRenameClassRewriteVisitor<T>::renameTemplateName(
 //        parameters
 template<typename T>
 bool CommonRenameClassRewriteVisitor<T>::TraverseTemplateArgumentLoc(
-       const TemplateArgumentLoc &ArgLoc)
+       const TemplateArgumentLoc &ArgLoc) 
 {
   const TemplateArgument &Arg = ArgLoc.getArgument();
 
@@ -501,7 +501,7 @@ bool CommonRenameClassRewriteVisitor<T>::VisitTemplateSpecializationTypeLoc(
        TemplateSpecializationTypeLoc TSPLoc)
 {
   const Type *Ty = TSPLoc.getTypePtr();
-  const TemplateSpecializationType *TST =
+  const TemplateSpecializationType *TST = 
     dyn_cast<TemplateSpecializationType>(Ty);
   TransAssert(TST && "Bad TemplateSpecializationType!");
 

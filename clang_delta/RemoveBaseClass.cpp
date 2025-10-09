@@ -23,7 +23,7 @@
 using namespace clang;
 using namespace clang_delta_common_visitor;
 
-static const char *DescriptionMsg =
+static const char *DescriptionMsg = 
 "This pass removes a base class from a derived class. \n";
 
 // Note that this pass doesn't do much analysis, so
@@ -33,7 +33,7 @@ static const char *DescriptionMsg =
 static RegisterTransformation<RemoveBaseClass, RemoveBaseClass::EMode>
          Trans("remove-base-class", DescriptionMsg, RemoveBaseClass::EMode::Remove);
 
-class RemoveBaseClassBaseVisitor : public
+class RemoveBaseClassBaseVisitor : public 
   RecursiveASTVisitor<RemoveBaseClassBaseVisitor> {
 
 public:
@@ -55,7 +55,7 @@ bool RemoveBaseClassBaseVisitor::VisitCXXRecordDecl(
   return true;
 }
 
-void RemoveBaseClass::Initialize(ASTContext &context)
+void RemoveBaseClass::Initialize(ASTContext &context) 
 {
   Transformation::Initialize(context);
   CollectionVisitor = new RemoveBaseClassBaseVisitor(this);
@@ -90,7 +90,7 @@ void RemoveBaseClass::HandleTranslationUnit(ASTContext &Ctx)
     TransError = TransInternalError;
 }
 
-bool RemoveBaseClass::isDirectlyDerivedFrom(const CXXRecordDecl *SubC,
+bool RemoveBaseClass::isDirectlyDerivedFrom(const CXXRecordDecl *SubC, 
                                             const CXXRecordDecl *Base)
 {
   for (CXXRecordDecl::base_class_const_iterator I = SubC->bases_begin(),
@@ -144,11 +144,11 @@ void RemoveBaseClass::doRewrite(void)
     RewriteHelper->removeClassDecls(TheBaseClass);
 
   // ISSUE: I didn't handle Base initializer in a Ctor's initlist.
-  //        * keeping it untouched is wrong, because delegating constructors
+  //        * keeping it untouched is wrong, because delegating constructors 
   //        are only valid in c++11
   //        * naively removing the base initializer doesn't work in some cases,
-  //        e.g.,
-  //        class A {
+  //        e.g., 
+  //        class A { 
   //          A(A&) {}
   //          A &a;
   //        };
@@ -156,7 +156,7 @@ void RemoveBaseClass::doRewrite(void)
   //          C(A &x) : A(x) {}
   //        };
   //        during transformation, removing A(x) will leave &a un-initialized.
-  // I chose to simply delete the base initializer. Seemingly we will
+  // I chose to simply delete the base initializer. Seemingly we will 
   // generate fewer incompilable code by doing so...
   removeBaseInitializer();
 }
@@ -212,7 +212,7 @@ bool RemoveBaseClass::isTheBaseClass(const CXXBaseSpecifier &Specifier)
                        .getCanonicalTagType(TheBaseClass)
                        ->getTypePtr();
 #endif
-  return Context->hasSameType(Specifier.getType(),
+  return Context->hasSameType(Specifier.getType(), 
                               Ty->getCanonicalTypeInternal());
 }
 

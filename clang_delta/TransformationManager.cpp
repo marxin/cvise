@@ -51,7 +51,7 @@ TransformationManager *TransformationManager::GetInstance()
   TransformationManager::Instance = new TransformationManager();
   assert(TransformationManager::Instance);
 
-  TransformationManager::Instance->TransformationsMap =
+  TransformationManager::Instance->TransformationsMap = 
     *TransformationManager::TransformationsMapPtr;
   return TransformationManager::Instance;
 }
@@ -64,7 +64,7 @@ Preprocessor &TransformationManager::getPreprocessor()
 bool TransformationManager::isCXXLangOpt()
 {
   TransAssert(TransformationManager::Instance && "Invalid Instance!");
-  TransAssert(TransformationManager::Instance->ClangInstance &&
+  TransAssert(TransformationManager::Instance->ClangInstance && 
               "Invalid ClangInstance!");
   return (TransformationManager::Instance->ClangInstance->getLangOpts()
           .CPlusPlus);
@@ -73,7 +73,7 @@ bool TransformationManager::isCXXLangOpt()
 bool TransformationManager::isCLangOpt()
 {
   TransAssert(TransformationManager::Instance && "Invalid Instance!");
-  TransAssert(TransformationManager::Instance->ClangInstance &&
+  TransAssert(TransformationManager::Instance->ClangInstance && 
               "Invalid ClangInstance!");
   return (TransformationManager::Instance->ClangInstance->getLangOpts()
           .C99);
@@ -97,7 +97,7 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
 
   ClangInstance = new CompilerInstance();
   assert(ClangInstance);
-
+  
 #if LLVM_VERSION_MAJOR < 20
   ClangInstance->createDiagnostics();
 #elif LLVM_VERSION_MAJOR < 22
@@ -192,7 +192,7 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
     return false;
   }
 
-  TargetInfo *Target =
+  TargetInfo *Target = 
     TargetInfo::CreateTargetInfo(ClangInstance->getDiagnostics(),
 #if LLVM_VERSION_MAJOR > 20
                                  ClangInstance->getInvocation().getTargetOpts()
@@ -230,7 +230,7 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
                            &ClangInstance->getPreprocessor());
   ClangInstance->createASTContext();
 
-  // It's not elegant to initialize these two here... Ideally, we
+  // It's not elegant to initialize these two here... Ideally, we 
   // would put them in doTransformation, but we need these two
   // flags being set before Transformation::Initialize, which
   // is invoked through ClangInstance->setASTConsumer.
@@ -259,9 +259,9 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
 void TransformationManager::Finalize()
 {
   assert(TransformationManager::Instance);
-
+  
   std::map<std::string, Transformation *>::iterator I, E;
-  for (I = Instance->TransformationsMap.begin(),
+  for (I = Instance->TransformationsMap.begin(), 
        E = Instance->TransformationsMap.end();
        I != E; ++I) {
     // CurrentTransformationImpl will be freed by ClangInstance
@@ -311,7 +311,7 @@ bool TransformationManager::doTransformation(std::string &ErrorMsg, int &ErrorCo
     }
     else {
       ErrorMsg = "current transformation[";
-      ErrorMsg += CurrentTransName;
+      ErrorMsg += CurrentTransName; 
       ErrorMsg += "] does not support multiple rewrites!";
       return false;
     }
@@ -372,16 +372,16 @@ bool TransformationManager::verify(std::string &ErrorMsg, int &ErrorCode)
 }
 
 void TransformationManager::registerTransformation(
-       const char *TransName,
+       const char *TransName, 
        Transformation *TransImpl)
 {
   if (!TransformationManager::TransformationsMapPtr) {
-    TransformationManager::TransformationsMapPtr =
+    TransformationManager::TransformationsMapPtr = 
       new std::map<std::string, Transformation *>();
   }
 
   assert((TransImpl != NULL) && "NULL Transformation!");
-  assert((TransformationManager::TransformationsMapPtr->find(TransName) ==
+  assert((TransformationManager::TransformationsMapPtr->find(TransName) == 
           TransformationManager::TransformationsMapPtr->end()) &&
          "Duplicated transformation!");
   (*TransformationManager::TransformationsMapPtr)[TransName] = TransImpl;
@@ -392,10 +392,10 @@ void TransformationManager::printTransformations()
   llvm::outs() << "Registered Transformations:\n";
 
   std::map<std::string, Transformation *>::iterator I, E;
-  for (I = TransformationsMap.begin(),
+  for (I = TransformationsMap.begin(), 
        E = TransformationsMap.end();
        I != E; ++I) {
-    llvm::outs() << "  [" << (*I).first << "]: ";
+    llvm::outs() << "  [" << (*I).first << "]: "; 
     llvm::outs() << (*I).second->getDescription() << "\n";
   }
 }
@@ -403,7 +403,7 @@ void TransformationManager::printTransformations()
 void TransformationManager::printTransformationNames()
 {
   std::map<std::string, Transformation *>::iterator I, E;
-  for (I = TransformationsMap.begin(),
+  for (I = TransformationsMap.begin(), 
        E = TransformationsMap.end();
        I != E; ++I) {
     llvm::outs() << (*I).first << "\n";
@@ -412,7 +412,7 @@ void TransformationManager::printTransformationNames()
 
 void TransformationManager::outputNumTransformationInstances()
 {
-  int NumInstances =
+  int NumInstances = 
     CurrentTransformationImpl->getNumTransformationInstances();
   llvm::outs() << "Available transformation instances: "
                << NumInstances << "\n";

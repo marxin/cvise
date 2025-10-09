@@ -34,7 +34,7 @@ class ReplaceDependentNameCollectionVisitor : public
   RecursiveASTVisitor<ReplaceDependentNameCollectionVisitor> {
 
 public:
-  explicit
+  explicit 
   ReplaceDependentNameCollectionVisitor(ReplaceDependentName *Instance)
     : ConsumerInstance(Instance)
   { }
@@ -64,7 +64,7 @@ bool ReplaceDependentNameCollectionVisitor::VisitElaboratedTypeLoc(
 }
 #endif
 
-void ReplaceDependentName::Initialize(ASTContext &context)
+void ReplaceDependentName::Initialize(ASTContext &context) 
 {
   Transformation::Initialize(context);
   CollectionVisitor = new ReplaceDependentNameCollectionVisitor(this);
@@ -144,7 +144,7 @@ void ReplaceDependentName::handleOneElaboratedTypeLoc(
   ET->getNamedType().getAsStringInternal(TyStr, getPrintingPolicy());
   if (TyStr == Str)
     return;
-
+  
   ValidInstanceNum++;
   if (ValidInstanceNum == TransformationCounter) {
     TheTyName = Str;
@@ -162,7 +162,7 @@ void ReplaceDependentName::handleOneDependentNameTypeLoc(
   if (Loc.isInvalid() || isInIncludedFile(Loc))
     return;
 
-  const DependentNameType *DNT =
+  const DependentNameType *DNT = 
     dyn_cast<DependentNameType>(TLoc.getTypePtr());
   TransAssert(DNT && "NULL DependentNameType!");
 

@@ -89,7 +89,7 @@ bool ReplaceSimpleTypedefRewriteVisitor::VisitTypedefTypeLoc(TypedefTypeLoc Loc)
   const TypedefNameDecl*TdefD = dyn_cast<TypedefNameDecl>(TdefTy->getDecl());
   if (!TdefD || TdefD->getBeginLoc().isInvalid())
     return true;
-
+ 
   if (dyn_cast<TypedefNameDecl>(TdefD->getCanonicalDecl()) ==
       ConsumerInstance->TheTypedefDecl) {
     SourceRange Range = Loc.getSourceRange();
@@ -113,7 +113,7 @@ bool ReplaceSimpleTypedefRewriteVisitor::VisitElaboratedTypeLoc(
   const Type *NamedTy = ETy->getNamedType().getTypePtr();
   const TypedefType *TdefTy = NamedTy->getAs<TypedefType>();
   if (!TdefTy)
-    return true;
+    return true; 
 
   const TypedefNameDecl*TdefD = dyn_cast<TypedefNameDecl>(TdefTy->getDecl());
   if (!TdefD || (dyn_cast<TypedefNameDecl>(TdefD->getCanonicalDecl()) !=
@@ -130,7 +130,7 @@ bool ReplaceSimpleTypedefRewriteVisitor::VisitElaboratedTypeLoc(
 }
 #endif
 
-void ReplaceSimpleTypedef::Initialize(ASTContext &context)
+void ReplaceSimpleTypedef::Initialize(ASTContext &context) 
 {
   Transformation::Initialize(context);
   CollectionVisitor = new ReplaceSimpleTypedefCollectionVisitor(this);
@@ -225,7 +225,7 @@ void ReplaceSimpleTypedef::handleOneTypedefDecl(const TypedefNameDecl* Canonical
   ValidInstanceNum++;
   if (ValidInstanceNum == TransformationCounter) {
     TheTypedefDecl = CanonicalD;
-    CanonicalD->getUnderlyingType().getAsStringInternal(TyName,
+    CanonicalD->getUnderlyingType().getAsStringInternal(TyName, 
                                       getPrintingPolicy());
   }
 }

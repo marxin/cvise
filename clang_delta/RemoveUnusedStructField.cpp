@@ -77,7 +77,7 @@ bool RemoveUnusedStructFieldVisitor::VisitFieldDecl(FieldDecl *FD)
     return true;
 
   ConsumerInstance->ValidInstanceNum++;
-  if (ConsumerInstance->ValidInstanceNum ==
+  if (ConsumerInstance->ValidInstanceNum == 
       ConsumerInstance->TransformationCounter) {
     ConsumerInstance->setBaseLine(RD, FD);
   }
@@ -145,7 +145,7 @@ void RemoveUnusedStructField::HandleTranslationUnit(ASTContext &Ctx)
 
   TransAssert(TheRecordDecl && "NULL TheRecordDecl!");
   TransAssert(TheFieldDecl && "NULL TheFunctionDecl!");
-
+  
   RewriteVisitor->TraverseDecl(Ctx.getTranslationUnitDecl());
   removeFieldDecl();
 
@@ -154,12 +154,12 @@ void RemoveUnusedStructField::HandleTranslationUnit(ASTContext &Ctx)
     TransError = TransInternalError;
 }
 
-void RemoveUnusedStructField::setBaseLine(const RecordDecl *RD,
+void RemoveUnusedStructField::setBaseLine(const RecordDecl *RD, 
                                           const FieldDecl *FD)
 {
   TheRecordDecl = RD;
   TheFieldDecl = FD;
-
+    
   IndexVector *IdxVec = new IndexVector();
   unsigned int Idx = FD->getFieldIndex();
   IdxVec->push_back(Idx);
@@ -175,7 +175,7 @@ void RemoveUnusedStructField::setBaseLine(const RecordDecl *RD,
     NumFields++;
   }
 }
-
+  
 void RemoveUnusedStructField::handleOneRecordDecl(const RecordDecl *RD,
                                                   const RecordDecl *BaseRD,
                                                   const FieldDecl *FD,
@@ -279,7 +279,7 @@ const Expr *RemoveUnusedStructField::getInitExprFromDesignatedInitExpr(
   return ILE->getInit(InitListIdx);
 }
 
-void RemoveUnusedStructField::getInitExprs(const Type *Ty,
+void RemoveUnusedStructField::getInitExprs(const Type *Ty, 
                                            const Expr *E,
                                            const IndexVector *IdxVec,
                                            ExprVector &InitExprs)
@@ -290,7 +290,7 @@ void RemoveUnusedStructField::getInitExprs(const Type *Ty,
       TransAssert(ILE && "Invalid array initializer!");
       unsigned int NumInits = ILE->getNumInits();
       Ty = ArrayTy->getElementType().getTypePtr();
-
+    
       for (unsigned I = 0; I < NumInits; ++I) {
         const Expr *Init = ILE->getInit(I);
         getInitExprs(Ty, Init, IdxVec, InitExprs);
@@ -298,7 +298,7 @@ void RemoveUnusedStructField::getInitExprs(const Type *Ty,
     }
     return;
   }
-
+ 
   const InitListExpr *ILE = dyn_cast<InitListExpr>(E);
   if (!ILE)
     return;
@@ -430,7 +430,7 @@ void RemoveUnusedStructField::removeFieldDecl(void)
   //   } f1;
   //   struct S2 f2;
   //  }
-  // will be transformed to
+  // will be transformed to 
   // struct S1 {
   //   struct S2 f2;
   //  }

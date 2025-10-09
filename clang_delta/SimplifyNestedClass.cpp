@@ -23,7 +23,7 @@
 
 using namespace clang;
 
-static const char *DescriptionMsg =
+static const char *DescriptionMsg = 
 "This pass tries to simplify nested classes by replacing the \
 outer class with the inner class, if \n\
   * the outer class doesn't have any base class, and \n\
@@ -36,7 +36,7 @@ the inner class \n\
 static RegisterTransformation<SimplifyNestedClass>
          Trans("simplify-nested-class", DescriptionMsg);
 
-class SimplifyNestedClassVisitor : public
+class SimplifyNestedClassVisitor : public 
   RecursiveASTVisitor<SimplifyNestedClassVisitor> {
 
 public:
@@ -82,12 +82,12 @@ bool SimplifyNestedClassRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc TLoc)
 #else
   const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(TLoc.getOriginalDecl());
 #endif
-  if (!RD || (RD->getCanonicalDecl() !=
+  if (!RD || (RD->getCanonicalDecl() != 
               ConsumerInstance->TheBaseCXXRD->getCanonicalDecl()))
     return true;
 
   if (ConsumerInstance->isBeforeColonColon(TLoc)) {
-    SourceLocation LocEnd =
+    SourceLocation LocEnd = 
       ConsumerInstance->RewriteHelper->getLocationAfter(
         TLoc.getEndLoc(), ':');
     ConsumerInstance->TheRewriter.RemoveText(
@@ -100,7 +100,7 @@ bool SimplifyNestedClassRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc TLoc)
   return true;
 }
 
-void SimplifyNestedClass::Initialize(ASTContext &context)
+void SimplifyNestedClass::Initialize(ASTContext &context) 
 {
   Transformation::Initialize(context);
   CollectionVisitor = new SimplifyNestedClassVisitor(this);
@@ -155,7 +155,7 @@ void SimplifyNestedClass::handleOneCXXRecordDecl(const CXXRecordDecl *CXXRD)
 {
   TransAssert(CXXRD && "NULL CXXRD!");
   TransAssert(CXXRD->isThisDeclarationADefinition() &&  "Not a definition!");
-  if (CXXRD->getDescribedClassTemplate() ||
+  if (CXXRD->getDescribedClassTemplate() || 
       CXXRD->getNumBases() ||
       dyn_cast<ClassTemplateSpecializationDecl>(CXXRD))
     return;
