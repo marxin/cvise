@@ -187,9 +187,12 @@ class AbstractPass:
     def check_prerequisites(self):
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'check_prerequisites'!")
 
-    def user_visible(self) -> bool:
-        """Whether to mention the pass to the user in the CLI by default (unless errors occur in it)."""
-        return True
+    def user_visible_name(self) -> str:
+        """The name under which the pass should be mentioned (in logs, stats, etc.).
+
+        Useful for overriding by subclasses that are "subordinate" to high-level passes.
+        """
+        return repr(self)
 
     def supports_dir_test_cases(self):
         """Whether the pass supports input test cases that are directories (as opposed to single files).

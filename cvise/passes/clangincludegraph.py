@@ -88,8 +88,9 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
     def check_prerequisites(self):
         return self.check_external_program('clang_include_graph')
 
-    def user_visible(self) -> bool:
-        return False
+    def user_visible_name(self) -> str:
+        # Attribute this subordinate pass' resource usage to the original pass.
+        return 'ClangIncludeGraphPass'
 
     def supports_dir_test_cases(self):
         return True

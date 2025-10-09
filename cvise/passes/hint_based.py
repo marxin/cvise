@@ -353,6 +353,8 @@ class HintBasedPass(AbstractPass):
         for bundle in type_to_bundle.values():
             if not bundle.pass_name:
                 bundle.pass_name = repr(self)
+            if not bundle.pass_user_visible_name:
+                bundle.pass_user_visible_name = self.user_visible_name()
 
 
 def _store_hints_per_type(tmp_dir: Path, type_to_bundle: Dict[bytes, HintBundle]) -> Dict[bytes, Path]:
