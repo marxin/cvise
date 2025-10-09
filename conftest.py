@@ -10,4 +10,5 @@ def mp_start_method():
 
     The "forkserver" mode is the same as the one used by the C-Vise CLI.
     """
-    multiprocessing.set_start_method('forkserver')
+    # Enforce the method selection, in case the test framework previously set a different one.
+    multiprocessing.set_start_method('forkserver', force=True)
