@@ -81,6 +81,18 @@ public:
 
     return true;
   }
+#else
+  bool VisitTypedefTypeLoc(const TypedefTypeLoc &TTL) {
+    if (ConsumerInstance->isTheDecl(TTL.getDecl()))
+      ConsumerInstance->removeRecordQualifier(TTL.getQualifierLoc());
+    return true;
+  }
+
+  bool VisitTagTypeLoc(TagTypeLoc TL) {
+    if (ConsumerInstance->isTheDecl(TL.getOriginalDecl()))
+      ConsumerInstance->removeRecordQualifier(TL.getQualifierLoc());
+    return true;
+  }
 #endif
 
   bool VisitDeclRefExpr(DeclRefExpr* DRE) {
