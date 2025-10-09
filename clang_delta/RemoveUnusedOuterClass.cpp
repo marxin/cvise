@@ -52,7 +52,11 @@ private:
 
 bool RemoveUnusedOuterClassVisitor::VisitRecordTypeLoc(RecordTypeLoc TLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(TLoc.getDecl());
+#else
+  const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(TLoc.getOriginalDecl());
+#endif
   ConsumerInstance->UsedCXXRDSet.insert(RD->getCanonicalDecl());
   return true;
 }

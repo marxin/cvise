@@ -325,11 +325,13 @@ TemplateArgToInt::getSubstTemplateTypeParmType(const Type *Ty)
 {
   Type::TypeClass TC = Ty->getTypeClass();
   switch (TC) {
+#if LLVM_VERSION_MAJOR < 22
   case Type::Elaborated: {
     const ElaboratedType *ETy = dyn_cast<ElaboratedType>(Ty);
     const Type *NamedT = ETy->getNamedType().getTypePtr();
     return getSubstTemplateTypeParmType(NamedT);
   }
+#endif
 
   case Type::Typedef: {
     const TypedefType *TdefTy = dyn_cast<TypedefType>(Ty);

@@ -64,7 +64,9 @@ public:
 
   bool VisitRecordTypeLoc(RecordTypeLoc RTLoc);
 
+#if LLVM_VERSION_MAJOR < 22
   bool VisitElaboratedTypeLoc(ElaboratedTypeLoc Loc);
+#endif
 
   bool VisitRecordDecl(RecordDecl *RD);
 
@@ -110,10 +112,41 @@ bool EmptyStructToIntASTVisitor::VisitCXXRecordDecl(CXXRecordDecl *CXXRD)
 
 bool EmptyStructToIntRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *RD = RTLoc.getDecl();
+#else
+  const RecordDecl *RD = RTLoc.getOriginalDecl();
+#endif
 
   if (RD->getCanonicalDecl() == ConsumerInstance->TheRecordDecl) {
     SourceLocation LocStart = RTLoc.getBeginLoc();
+#if LLVM_VERSION_MAJOR >= 22
+    // Check this ElaboratedTypeLoc hasn't been removed along with the RD
+    if (!ConsumerInstance->isSourceRangeWithinRecordDecl(
+          RTLoc.getSourceRange(), RD)) {
+      if (RTLoc.getBeginLoc() != RTLoc.getNonElaboratedBeginLoc()) {
+        SourceLocation KeywordEndLoc = RTLoc.getNonElaboratedBeginLoc().getLocWithOffset(-1);
+        ConsumerInstance->TheRewriter.RemoveText(SourceRange(RTLoc.getBeginLoc(), KeywordEndLoc));
+      } else {
+        // It's possible, e.g.,
+        // struct S1 {
+        //   struct { } S;
+        // };
+        // Clang will translate struct { } S to
+        // struct {
+        // };
+        //  struct <anonymous struct ...> S;
+        // the last declaration is injected by clang.
+        // We need to omit it.
+        SourceLocation KeywordLoc = RTLoc.getElaboratedKeywordLoc();
+        const llvm::StringRef Keyword =
+          TypeWithKeyword::getKeywordName(RTLoc.getTypePtr()->getKeyword());
+        ConsumerInstance->TheRewriter.ReplaceText(KeywordLoc,
+                                                  Keyword.size(), "int");
+      }
+    }
+#endif
+
     void *LocPtr = LocStart.getPtrEncoding();
     if (ConsumerInstance->VisitedLocs.count(LocPtr))
       return true;
@@ -137,6 +170,7 @@ bool EmptyStructToIntRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
   return true;
 }
 
+#if LLVM_VERSION_MAJOR < 22
 bool EmptyStructToIntRewriteVisitor::VisitElaboratedTypeLoc(
        ElaboratedTypeLoc Loc)
 {
@@ -160,6 +194,8 @@ bool EmptyStructToIntRewriteVisitor::VisitElaboratedTypeLoc(
   if (EndLoc.isInvalid())
     return true;
   EndLoc = EndLoc.getLocWithOffset(-1);
+  if (EndLoc.isInvalid())
+    return true;
   // This ElaboratedTypeLoc has been removed along with the RD
   if (ConsumerInstance->isSourceRangeWithinRecordDecl(
         SourceRange(StartLoc, EndLoc), RD)) {
@@ -193,6 +229,7 @@ bool EmptyStructToIntRewriteVisitor::VisitElaboratedTypeLoc(
   ConsumerInstance->TheRewriter.RemoveText(SourceRange(StartLoc, EndLoc));
   return true;
 }
+#endif
 
 bool EmptyStructToIntRewriteVisitor::VisitRecordDecl(RecordDecl *RD)
 {
@@ -395,7 +432,11 @@ bool EmptyStructToInt::pointToSelf(const FieldDecl *FD)
   const RecordType *RT = PointeeTy->getAs<RecordType>();
   if (!RT)
     return false;
+#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *RD = RT->getDecl();
+#else
+  const RecordDecl *RD = RT->getOriginalDecl();
+#endif
   const RecordDecl *Parent = FD->getParent();
   return (Parent->getCanonicalDecl() == RD->getCanonicalDecl());
 }
@@ -486,7 +527,11 @@ const RecordDecl *EmptyStructToInt::getBaseRecordDef(const Type *Ty)
     return NULL;
 
   const RecordType *RT = Ty->getAsStructureType();
+#if LLVM_VERSION_MAJOR < 22
   return RT->getDecl()->getDefinition();
+#else
+  return RT->getOriginalDecl()->getDefinition();
+#endif
 }
 
 void EmptyStructToInt::getInitExprs(const Type *Ty, 
@@ -525,7 +570,11 @@ void EmptyStructToInt::getInitExprs(const Type *Ty,
     TransAssert(0 && "Bad RecordType!");
   }
 
+#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *RD = RT->getDecl();
+#else
+  const RecordDecl *RD = RT->getOriginalDecl();
+#endif
 
   if (RD->getCanonicalDecl() == TheRecordDecl) {
     InitExprs.push_back(E);

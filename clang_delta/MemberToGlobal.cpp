@@ -66,6 +66,7 @@ public:
     return true;
   }
 
+#if LLVM_VERSION_MAJOR < 22
   bool VisitElaboratedTypeLoc(ElaboratedTypeLoc TL) {
     // Replace CLASS::TYPE by TYPE
     if (auto* TT = TL.getInnerType()->getAs<TypedefType>()) {
@@ -80,6 +81,19 @@ public:
 
     return true;
   }
+#else
+  bool VisitTypedefTypeLoc(const TypedefTypeLoc &TTL) {
+    if (ConsumerInstance->isTheDecl(TTL.getDecl()))
+      ConsumerInstance->removeRecordQualifier(TTL.getQualifierLoc());
+    return true;
+  }
+
+  bool VisitTagTypeLoc(TagTypeLoc TL) {
+    if (ConsumerInstance->isTheDecl(TL.getOriginalDecl()))
+      ConsumerInstance->removeRecordQualifier(TL.getQualifierLoc());
+    return true;
+  }
+#endif
 
   bool VisitDeclRefExpr(DeclRefExpr* DRE) {
     if (ConsumerInstance->isTheDecl(DRE->getDecl())) {
@@ -112,8 +126,17 @@ void MemberToGlobal::removeRecordQualifier(const NestedNameSpecifierLoc& NNSLoc)
   if (!NNSLoc)
     return;
 
-  if (isTheRecordDecl(NNSLoc.getNestedNameSpecifier()->getAsRecordDecl())) {
+#if LLVM_VERSION_MAJOR < 22
+  CXXRecordDecl *RD = NNSLoc.getNestedNameSpecifier()->getAsRecordDecl();
+#else
+  CXXRecordDecl *RD = NNSLoc.getNestedNameSpecifier().getAsRecordDecl();
+#endif
+  if (isTheRecordDecl(RD)) {
     SourceRange SR = NNSLoc.getLocalSourceRange();
+#if LLVM_VERSION_MAJOR >= 22
+    if (TypeLoc TL = NNSLoc.getAsTypeLoc())
+      SR.setBegin(TL.getNonPrefixBeginLoc());
+#endif
     SR.setEnd(SR.getEnd().getLocWithOffset(1));
 
     TheRewriter.RemoveText(SR);

@@ -408,7 +408,11 @@ void UnionToStruct::addOneDeclarator(const DeclaratorDecl *DD, const Type *T)
   if (RDTy->isIncompleteType())
     return;
 
+#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *RD = RDTy->getDecl(); 
+#else
+  const RecordDecl *RD = RDTy->getOriginalDecl();
+#endif
   const RecordDecl *CanonicalRD = 
     dyn_cast<RecordDecl>(RD->getCanonicalDecl());
   TransAssert(CanonicalRD && "NULL CanonicalRD!");

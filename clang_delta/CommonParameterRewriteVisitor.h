@@ -112,9 +112,15 @@ bool CommonParameterRewriteVisitor<T, Trans>::VisitCallExpr(
                  (DName.getNameKind() == 
                     clang::DeclarationName::CXXOperatorName)) &&
                 "Not an indentifier!");
+#if LLVM_VERSION_MAJOR < 22
     if (const clang::NestedNameSpecifier *NNS = UE->getQualifier()) {
       if (const clang::DeclContext *Ctx = 
           ConsumerInstance->getDeclContextFromSpecifier(NNS)) {
+#else
+    if (const clang::NestedNameSpecifier NNS = UE->getQualifier()) {
+      if (const clang::DeclContext *Ctx =
+          ConsumerInstance->getDeclContextFromSpecifier(&NNS)) {
+#endif
         DeclContextSet VisitedCtxs; 
         CalleeDecl = 
           ConsumerInstance->lookupFunctionDecl(DName, Ctx, VisitedCtxs);

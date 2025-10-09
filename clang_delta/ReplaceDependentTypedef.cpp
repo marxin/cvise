@@ -54,11 +54,13 @@ static bool DependsOnTypedef(const Type &Ty) {
     return DependsOnTypedef(*ReplTy);
   }
 
+#if LLVM_VERSION_MAJOR < 22
   case Type::Elaborated: {
     const ElaboratedType *ETy = dyn_cast<ElaboratedType>(&Ty);
     const Type *NamedTy = ETy->getNamedType().getTypePtr();
     return DependsOnTypedef(*NamedTy);
   }
+#endif
 
   case Type::Typedef: {
     return true;
@@ -66,10 +68,18 @@ static bool DependsOnTypedef(const Type &Ty) {
 
   case Type::DependentName: {
     const DependentNameType *DNT = dyn_cast<DependentNameType>(&Ty);
+#if LLVM_VERSION_MAJOR < 22
     const NestedNameSpecifier *Specifier = DNT->getQualifier();
+#else
+    const NestedNameSpecifier Specifier = DNT->getQualifier();
+#endif
     if (!Specifier)
       return false;
+#if LLVM_VERSION_MAJOR < 22
     const Type *NestedTy = Specifier->getAsType();
+#else
+    const Type *NestedTy = Specifier.getAsType();
+#endif
     if (!NestedTy)
       return false;
     return DependsOnTypedef(*NestedTy);
@@ -154,6 +164,7 @@ bool ReplaceDependentTypedef::isValidType(const QualType &QT)
   case Type::DependentName: // fall-through
     return true;
 
+#if LLVM_VERSION_MAJOR < 22
   case Type::Elaborated: {
     const ElaboratedType *ETy = dyn_cast<ElaboratedType>(Ty);
     ElaboratedTypeKeyword Keyword = ETy->getKeyword();
@@ -164,6 +175,7 @@ bool ReplaceDependentTypedef::isValidType(const QualType &QT)
     return ((Keyword == ETK_Typename) || (Keyword == ETK_None));
 #endif
   }
+#endif
 
   default:
     return false;

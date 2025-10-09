@@ -58,7 +58,9 @@ public:
 
   bool VisitTypedefTypeLoc(TypedefTypeLoc Loc);
 
+#if LLVM_VERSION_MAJOR < 22
   bool VisitElaboratedTypeLoc(ElaboratedTypeLoc Loc);
+#endif
 
 private:
   ReplaceSimpleTypedef *ConsumerInstance;
@@ -97,6 +99,7 @@ bool ReplaceSimpleTypedefRewriteVisitor::VisitTypedefTypeLoc(TypedefTypeLoc Loc)
   return true;
 }
 
+#if LLVM_VERSION_MAJOR < 22
 // Handle cases like:
 // struct S {
 //   typedef int Int;
@@ -125,6 +128,7 @@ bool ReplaceSimpleTypedefRewriteVisitor::VisitElaboratedTypeLoc(
   }
   return true;
 }
+#endif
 
 void ReplaceSimpleTypedef::Initialize(ASTContext &context) 
 {
@@ -177,7 +181,11 @@ bool ReplaceSimpleTypedef::isValidType(const Type *Ty, const TypedefNameDecl *D)
     return true;
 
   if (const RecordType *RDTy = Ty->getAs<RecordType>()) {
+#if LLVM_VERSION_MAJOR < 22
     const RecordDecl *RD = RDTy->getDecl();
+#else
+    const RecordDecl *RD = RDTy->getOriginalDecl();
+#endif
     // omit some trivial cases, e.g.,
     // typedef struct S { int x; } S;
     if (RD->getNameAsString() == D->getNameAsString())

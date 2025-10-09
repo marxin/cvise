@@ -99,7 +99,11 @@ bool SimplifyStructCollectionVisitor::VisitRecordDecl(RecordDecl *RD)
   if (!RT)
     return true;
 
+#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *NestedRD = RT->getDecl();
+#else
+  const RecordDecl *NestedRD = RT->getOriginalDecl();
+#endif
   if (NestedRD->getNameAsString() == "")
     return true;
 
@@ -126,7 +130,11 @@ bool SimplifyStructRewriteVisitor::VisitVarDecl(VarDecl *VD)
   if (!RT)
     return true;
 
+#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *RD = RT->getDecl();
+#else
+  const RecordDecl *RD = RT->getOriginalDecl();
+#endif
   if (RD != ConsumerInstance->TheRecordDecl)
     return true;
 
@@ -182,7 +190,11 @@ bool SimplifyStructRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
   if (Ty->isUnionType())
     return true;
 
+#if LLVM_VERSION_MAJOR < 22
   RecordDecl *RD = RTLoc.getDecl();
+#else
+  RecordDecl *RD = RTLoc.getOriginalDecl();
+#endif
   RecordDecl *CanonicalRD = dyn_cast<RecordDecl>(RD->getCanonicalDecl());
   if (CanonicalRD != ConsumerInstance->TheRecordDecl)
     return true;
@@ -218,8 +230,12 @@ bool SimplifyStructRewriteVisitor::VisitMemberExpr(MemberExpr *ME)
   const Type *T = FD->getType().getTypePtr();
   const RecordType *RT = T->getAs<RecordType>();
   TransAssert(RT && "Invalid record type!");
-  const RecordDecl *ReplacingRD = 
-    dyn_cast<RecordDecl>(RT->getDecl()->getCanonicalDecl());
+#if LLVM_VERSION_MAJOR < 22
+  RecordDecl *RTD = RT->getDecl();
+#else
+  RecordDecl *RTD = RT->getOriginalDecl();
+#endif
+  const RecordDecl *ReplacingRD = dyn_cast<RecordDecl>(RTD->getCanonicalDecl());
   (void)ReplacingRD; 
   TransAssert((ReplacingRD == ConsumerInstance->ReplacingRecordDecl) && 
     "Unmatched Replacing RD!");

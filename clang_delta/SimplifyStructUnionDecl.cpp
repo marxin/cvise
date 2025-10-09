@@ -220,7 +220,11 @@ const RecordDecl *SimplifyStructUnionDecl::getBaseRecordDecl(const Type *T)
   else
     return NULL;
 
+#if LLVM_VERSION_MAJOR < 22
   return RT->getDecl();
+#else
+  return RT->getOriginalDecl();
+#endif
 }
 
 bool SimplifyStructUnionDecl::handleOneDeclarator(const Type *Ty)

@@ -55,12 +55,14 @@ bool ReplaceDependentNameCollectionVisitor::VisitDependentNameTypeLoc(
   return true;
 }
 
+#if LLVM_VERSION_MAJOR < 22
 bool ReplaceDependentNameCollectionVisitor::VisitElaboratedTypeLoc(
        ElaboratedTypeLoc TLoc)
 {
   ConsumerInstance->handleOneElaboratedTypeLoc(TLoc);
   return true;
 }
+#endif
 
 void ReplaceDependentName::Initialize(ASTContext &context) 
 {
@@ -94,6 +96,7 @@ void ReplaceDependentName::HandleTranslationUnit(ASTContext &Ctx)
     TransError = TransInternalError;
 }
 
+#if LLVM_VERSION_MAJOR < 22
 SourceLocation ReplaceDependentName::getElaboratedTypeLocBegin(
                  const ElaboratedTypeLoc &TLoc)
 {
@@ -150,6 +153,7 @@ void ReplaceDependentName::handleOneElaboratedTypeLoc(
     TheNameLocEnd = TLoc.getEndLoc();
   }
 }
+#endif
 
 void ReplaceDependentName::handleOneDependentNameTypeLoc(
        const DependentNameTypeLoc &TLoc)

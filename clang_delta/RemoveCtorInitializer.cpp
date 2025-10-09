@@ -135,7 +135,12 @@ bool RemoveCtorInitializer::isValidType(const Type *Ty)
     return false;
 
   if (const RecordType *RTy = Ty->getAs<RecordType>()) {
+#if LLVM_VERSION_MAJOR < 22
     const CXXRecordDecl *CXXRD = dyn_cast<CXXRecordDecl>(RTy->getDecl());
+#else
+    const CXXRecordDecl *CXXRD =
+        dyn_cast<CXXRecordDecl>(RTy->getOriginalDecl());
+#endif
     if (!CXXRD)
       return true;
     return !CXXRD->needsImplicitDefaultConstructor();

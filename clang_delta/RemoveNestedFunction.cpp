@@ -283,8 +283,13 @@ void RemoveNestedFunction::getNewTmpVariableStr(ASTContext &ASTCtx,
                  (DName.getNameKind() == DeclarationName::CXXOperatorName)) &&
                 "Not an indentifier!");
     const FunctionDecl *FD = NULL;
+#if LLVM_VERSION_MAJOR < 22
     if (const NestedNameSpecifier *NNS = UE->getQualifier()) {
       if (const DeclContext *Ctx = getDeclContextFromSpecifier(NNS)) {
+#else
+    if (const NestedNameSpecifier NNS = UE->getQualifier()) {
+      if (const DeclContext *Ctx = getDeclContextFromSpecifier(&NNS)) {
+#endif
         DeclContextSet VisitedCtxs;
         FD = lookupFunctionDecl(DName, Ctx, VisitedCtxs);
       }

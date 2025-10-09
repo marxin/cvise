@@ -53,8 +53,11 @@ public:
 
   bool TraverseTemplateArgumentLoc(const TemplateArgumentLoc &ArgLoc);
 
+#if LLVM_VERSION_MAJOR < 22
   bool VisitDependentTemplateSpecializationTypeLoc(
          DependentTemplateSpecializationTypeLoc DTSLoc);
+#endif
+
 #if LLVM_VERSION_MAJOR < 19
   bool VisitClassTemplatePartialSpecializationDecl(
          ClassTemplatePartialSpecializationDecl *D);
@@ -294,7 +297,11 @@ template<typename T>
 bool CommonRenameClassRewriteVisitor<T>::VisitInjectedClassNameTypeLoc(
        InjectedClassNameTypeLoc TyLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *CXXRD = TyLoc.getDecl();
+#else
+  const CXXRecordDecl *CXXRD = TyLoc.getOriginalDecl();
+#endif
   TransAssert(CXXRD && "Invalid CXXRecordDecl!");
 
   std::string Name;
@@ -335,7 +342,11 @@ bool CommonRenameClassRewriteVisitor<T>::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
   if (Ty->isUnionType())
     return true;
 
+#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(RTLoc.getDecl());
+#else
+  const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(RTLoc.getOriginalDecl());
+#endif
   if (!RD)
     return true;
 
@@ -358,6 +369,7 @@ bool CommonRenameClassRewriteVisitor<T>::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
   return true;
 }
 
+#if LLVM_VERSION_MAJOR < 22
 template<typename T> bool CommonRenameClassRewriteVisitor<T>::
   VisitDependentTemplateSpecializationTypeLoc(
     DependentTemplateSpecializationTypeLoc DTSLoc)
@@ -382,13 +394,26 @@ template<typename T> bool CommonRenameClassRewriteVisitor<T>::
 
   return true;
 }
+#endif
 
 template<typename T>
 void CommonRenameClassRewriteVisitor<T>::renameTemplateName(
        TemplateName TmplName, SourceLocation LocStart)
 {
+#if LLVM_VERSION_MAJOR < 22
   if (TmplName.getKind() == TemplateName::DependentTemplate)
     return;
+#else
+  if (TmplName.getKind() == TemplateName::DependentTemplate) {
+    DependentTemplateName* DTN = TmplName.getAsDependentTemplateName();
+    const IdentifierInfo *IdInfo = DTN->getName().getIdentifier();
+    std::string IdName = IdInfo->getName().str();
+    std::string Name;
+    if (getNewNameByName(IdName, Name))
+      TheRewriter->ReplaceText(LocStart, IdName.size(), Name);
+    return;
+  }
+#endif
   const TemplateDecl *TmplD = TmplName.getAsTemplateDecl();
   TransAssert(TmplD && "Invalid TemplateDecl!");
   NamedDecl *ND = TmplD->getTemplatedDecl();

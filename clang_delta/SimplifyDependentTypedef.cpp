@@ -203,11 +203,17 @@ void SimplifyDependentTypedef::handleOneTypedefDecl(const TypedefNameDecl *D)
   QualType QT = CanonicalD->getUnderlyingType();
   const Type *Ty = QT.getTypePtr();
   Type::TypeClass TC = Ty->getTypeClass();
+#if LLVM_VERSION_MAJOR < 22
   if ((TC != Type::DependentName) &&
       (TC != Type::DependentTemplateSpecialization) &&
       (TC != Type::TemplateSpecialization) &&
       (TC != Type::Elaborated))
     return;
+#else
+  if ((TC != Type::DependentName) &&
+      (TC != Type::TemplateSpecialization))
+    return;
+#endif
 
   TemplateTypeParmTypeVisitor->setTypeSet(&TypeSet);
   TemplateTypeParmTypeVisitor->setValidType(false);

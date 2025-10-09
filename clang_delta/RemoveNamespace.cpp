@@ -91,8 +91,10 @@ public:
   bool VisitTemplateSpecializationTypeLoc(
          TemplateSpecializationTypeLoc TSPLoc);
 
+#if LLVM_VERSION_MAJOR < 22
   bool VisitDependentTemplateSpecializationTypeLoc(
          DependentTemplateSpecializationTypeLoc DTSLoc);
+#endif
 
   bool VisitInjectedClassNameTypeLoc(InjectedClassNameTypeLoc TyLoc);
 
@@ -226,9 +228,19 @@ bool RemoveNamespaceRewriteVisitor::VisitUsingDecl(UsingDecl *D)
   // check if this UsingDecl refers to the namespaced being removed
   NestedNameSpecifierLoc QualifierLoc = D->getQualifierLoc();
   TransAssert(QualifierLoc && "Bad QualifierLoc!");
+#if LLVM_VERSION_MAJOR < 22
   NestedNameSpecifierLoc PrefixLoc = QualifierLoc.getPrefix();
+#else
+  NestedNameSpecifierLoc PrefixLoc =
+      QualifierLoc.getAsNamespaceAndPrefix().Prefix;
+#endif
 
+#if LLVM_VERSION_MAJOR < 22
   const NestedNameSpecifier *NNS = D->getQualifier();
+#else
+  const NestedNameSpecifier NNSVal = QualifierLoc.getNestedNameSpecifier();
+  const NestedNameSpecifier *NNS = NNSVal ? &NNSVal : nullptr;
+#endif
   TransAssert(NNS && "Bad NameSpecifier!");
   if (ConsumerInstance->isTheNamespaceSpecifier(NNS) &&
       (!PrefixLoc || ConsumerInstance->isGlobalNamespace(PrefixLoc))) {
@@ -377,7 +389,11 @@ bool RemoveNamespaceRewriteVisitor::VisitDeclRefExpr(DeclRefExpr *DRE)
 
 bool RemoveNamespaceRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(RTLoc.getDecl());
+#else
+  const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(RTLoc.getOriginalDecl());
+#endif
   if (!RD)
     return true;
 
@@ -397,6 +413,39 @@ bool RemoveNamespaceRewriteVisitor::VisitTemplateSpecializationTypeLoc(
   TransAssert(TST && "Bad TemplateSpecializationType!");
 
   TemplateName TplName = TST->getTemplateName();
+
+#if LLVM_VERSION_MAJOR >= 22
+  if (TplName.getKind() == TemplateName::DependentTemplate) {
+    DependentTemplateName* DTN = TplName.getAsDependentTemplateName();
+    const IdentifierInfo *IdInfo = DTN->getName().getIdentifier();
+    std::string IdName = IdInfo->getName().str();
+    std::string Name;
+
+    // FIXME:
+    // This isn't quite right, we will generate bad code for some cases, e.g.,
+    // namespace NS1 {
+    //   template <class T> struct Base {};
+    //   template <class T> struct Derived: public Base<T> {
+    //     typename Derived::template Base<double>* p1;
+    //   };
+    // }
+    // template <class T> struct Base {};
+    // template <class T> struct Derived: public Base<T> {
+    //   typename Derived::template Base<double>* p1;
+    // };
+    // For the global Derived template class, we will end up with
+    // typename Derived::template Tran_NS_NS1_Base ...,
+    // which is obviously wrong.
+    // Any way to avoid this bad transformation?
+    if (ConsumerInstance->getNewNameByName(IdName, Name)) {
+      SourceLocation LocStart = TSPLoc.getTemplateNameLoc();
+      ConsumerInstance->TheRewriter.ReplaceText(
+        LocStart, IdName.size(), Name);
+    }
+    return true;
+  }
+#endif
+
   const TemplateDecl *TplD = TplName.getAsTemplateDecl();
   TransAssert(TplD && "Invalid TemplateDecl!");
   NamedDecl *ND = TplD->getTemplatedDecl();
@@ -427,6 +476,7 @@ bool RemoveNamespaceRewriteVisitor::VisitTemplateSpecializationTypeLoc(
   return true;
 }
 
+#if LLVM_VERSION_MAJOR < 22
 // handle the case where a template specialization type cannot be resolved, e.g.
 // template <class T> struct Base {};
 // template <class T> struct Derived: public Base<T> {
@@ -473,11 +523,16 @@ bool RemoveNamespaceRewriteVisitor::VisitDependentTemplateSpecializationTypeLoc(
 
   return true;
 }
+#endif
 
 bool RemoveNamespaceRewriteVisitor::VisitInjectedClassNameTypeLoc(
        InjectedClassNameTypeLoc TyLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *CXXRD = TyLoc.getDecl();
+#else
+  const CXXRecordDecl *CXXRD = TyLoc.getOriginalDecl();
+#endif
   TransAssert(CXXRD && "Invalid CXXRecordDecl!");
 
   std::string Name;
@@ -493,7 +548,11 @@ bool RemoveNamespaceRewriteVisitor::VisitInjectedClassNameTypeLoc(
 
 bool RemoveNamespaceRewriteVisitor::VisitTypedefTypeLoc(TypedefTypeLoc TyLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const TypedefNameDecl *D = TyLoc.getTypedefNameDecl();
+#else
+  const TypedefNameDecl *D = TyLoc.getDecl();
+#endif
 
   std::string Name;
   if (ConsumerInstance->getNewName(D, Name)) {
@@ -506,7 +565,11 @@ bool RemoveNamespaceRewriteVisitor::VisitTypedefTypeLoc(TypedefTypeLoc TyLoc)
 
 bool RemoveNamespaceRewriteVisitor::VisitEnumTypeLoc(EnumTypeLoc TyLoc)
 {
+#if LLVM_VERSION_MAJOR < 22
   const EnumDecl *D = TyLoc.getDecl();
+#else
+  const EnumDecl *D = TyLoc.getOriginalDecl();
+#endif
 
   std::string Name;
   if (ConsumerInstance->getNewName(D, Name)) {
@@ -547,16 +610,31 @@ bool RemoveNamespaceRewriteVisitor::TraverseNestedNameSpecifierLoc(
     return true;
 
   SmallVector<NestedNameSpecifierLoc, 8> QualifierLocs;
+#if LLVM_VERSION_MAJOR < 22
   for (; QualifierLoc; QualifierLoc = QualifierLoc.getPrefix())
+#else
+  for (; QualifierLoc;
+       QualifierLoc = QualifierLoc.getAsNamespaceAndPrefix().Prefix)
+#endif
     QualifierLocs.push_back(QualifierLoc);
 
   while (!QualifierLocs.empty()) {
     NestedNameSpecifierLoc Loc = QualifierLocs.pop_back_val();
+#if LLVM_VERSION_MAJOR < 22
     NestedNameSpecifier *NNS = Loc.getNestedNameSpecifier();
+#else
+    NestedNameSpecifier NNSVal = Loc.getNestedNameSpecifier();
+    NestedNameSpecifier *NNS = NNSVal ? &NNSVal : nullptr;
+#endif
+#if LLVM_VERSION_MAJOR < 22
     NestedNameSpecifier::SpecifierKind Kind = NNS->getKind();
+#else
+    NestedNameSpecifier::Kind Kind = NNS->getKind();
+#endif
     const NamespaceDecl *ND = NULL;
 
     switch (Kind) {
+#if LLVM_VERSION_MAJOR < 22
       case NestedNameSpecifier::Namespace: {
         ND = NNS->getAsNamespace()->getCanonicalDecl();
         break;
@@ -573,6 +651,22 @@ bool RemoveNamespaceRewriteVisitor::TraverseNestedNameSpecifierLoc(
 #endif
         TraverseTypeLoc(Loc.getTypeLoc());
         break;
+#else
+      case NestedNameSpecifier::Kind::Namespace: {
+        if (auto* NS = dyn_cast<NamespaceDecl>(
+                NNS->getAsNamespaceAndPrefix().Namespace)) {
+          ND = NS->getCanonicalDecl();
+        } else if (auto* NAD = dyn_cast<NamespaceAliasDecl>(
+                       NNS->getAsNamespaceAndPrefix().Namespace)) {
+          if (!NAD->getQualifier())
+            ND = NAD->getNamespace()->getCanonicalDecl();
+        }
+        break;
+      }
+      case NestedNameSpecifier::Kind::Type:
+        TraverseTypeLoc(Loc.getAsTypeLoc());
+        break;
+#endif
       default:
         break;
     }
@@ -780,7 +874,11 @@ void RemoveNamespace::handleOneUsingShadowDecl(const UsingShadowDecl *UD,
   UsingDecl *D = dyn_cast<UsingDecl>(UD->getIntroducer());
 
   NestedNameSpecifierLoc QualifierLoc = D->getQualifierLoc();
+#if LLVM_VERSION_MAJOR < 22
   NestedNameSpecifier *NNS = QualifierLoc.getNestedNameSpecifier();
+#else
+  NestedNameSpecifier NNS = QualifierLoc.getNestedNameSpecifier();
+#endif
 
   // QualifierLoc could be ::foo, whose PrefixLoc is invalid, e.g.,
   // void foo();
@@ -788,7 +886,11 @@ void RemoveNamespace::handleOneUsingShadowDecl(const UsingShadowDecl *UD,
   //   using ::foo;
   //   void bar () { foo(); }
   // }
+#if LLVM_VERSION_MAJOR < 22
   if (NNS->getKind() != NestedNameSpecifier::Global) {
+#else
+  if (NNS.getKind() != NestedNameSpecifier::Kind::Global) {
+#endif
     // NestedNameSpecifierLoc PrefixLoc = QualifierLoc.getPrefix();
     RewriteHelper->getQualifierAsString(QualifierLoc, NewName);
   }
@@ -1110,14 +1212,24 @@ bool RemoveNamespace::getNewNameByName(const std::string &Name,
 
 bool RemoveNamespace::isGlobalNamespace(NestedNameSpecifierLoc Loc)
 {
+#if LLVM_VERSION_MAJOR < 22
   NestedNameSpecifier *NNS = Loc.getNestedNameSpecifier();
   return (NNS->getKind() == NestedNameSpecifier::Global);
+#else
+  NestedNameSpecifier NNS = Loc.getNestedNameSpecifier();
+  return (NNS.getKind() == NestedNameSpecifier::Kind::Global);
+#endif
 }
 
 bool RemoveNamespace::isTheNamespaceSpecifier(const NestedNameSpecifier *NNS)
 {
+#if LLVM_VERSION_MAJOR < 22
   NestedNameSpecifier::SpecifierKind Kind = NNS->getKind();
+#else
+  NestedNameSpecifier::Kind Kind = NNS->getKind();
+#endif
   switch (Kind) {
+#if LLVM_VERSION_MAJOR < 22
   case NestedNameSpecifier::Namespace: {
     const NamespaceDecl *CanonicalND =
       NNS->getAsNamespace()->getCanonicalDecl();
@@ -1133,6 +1245,20 @@ bool RemoveNamespace::isTheNamespaceSpecifier(const NestedNameSpecifier *NNS)
       NAD->getNamespace()->getCanonicalDecl();
     return (CanonicalND == TheNamespaceDecl);
   }
+#else
+  case NestedNameSpecifier::Kind::Namespace: {
+    const NamespaceDecl* CanonicalND = nullptr;
+    if (auto* NS = dyn_cast<NamespaceDecl>(
+            NNS->getAsNamespaceAndPrefix().Namespace)) {
+      CanonicalND = NS->getCanonicalDecl();
+    } else if (auto* NAD = dyn_cast<NamespaceAliasDecl>(
+                    NNS->getAsNamespaceAndPrefix().Namespace)) {
+      if (NAD->getQualifier()) return false;
+      CanonicalND = NAD->getNamespace()->getCanonicalDecl();
+    }
+    return (CanonicalND == TheNamespaceDecl);
+  }
+#endif
 
   default:
     return false;
