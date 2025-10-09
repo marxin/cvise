@@ -413,6 +413,39 @@ bool RemoveNamespaceRewriteVisitor::VisitTemplateSpecializationTypeLoc(
   TransAssert(TST && "Bad TemplateSpecializationType!");
 
   TemplateName TplName = TST->getTemplateName();
+
+#if LLVM_VERSION_MAJOR >= 22
+  if (TplName.getKind() == TemplateName::DependentTemplate) {
+    DependentTemplateName* DTN = TplName.getAsDependentTemplateName();
+    const IdentifierInfo *IdInfo = DTN->getName().getIdentifier();
+    std::string IdName = IdInfo->getName().str();
+    std::string Name;
+
+    // FIXME:
+    // This isn't quite right, we will generate bad code for some cases, e.g.,
+    // namespace NS1 {
+    //   template <class T> struct Base {};
+    //   template <class T> struct Derived: public Base<T> {
+    //     typename Derived::template Base<double>* p1;
+    //   };
+    // }
+    // template <class T> struct Base {};
+    // template <class T> struct Derived: public Base<T> {
+    //   typename Derived::template Base<double>* p1;
+    // };
+    // For the global Derived template class, we will end up with
+    // typename Derived::template Tran_NS_NS1_Base ...,
+    // which is obviously wrong.
+    // Any way to avoid this bad transformation?
+    if (ConsumerInstance->getNewNameByName(IdName, Name)) {
+      SourceLocation LocStart = TSPLoc.getTemplateNameLoc();
+      ConsumerInstance->TheRewriter.ReplaceText(
+        LocStart, IdName.size(), Name);
+    }
+    return true;
+  }
+#endif
+
   const TemplateDecl *TplD = TplName.getAsTemplateDecl();
   TransAssert(TplD && "Invalid TemplateDecl!");
   NamedDecl *ND = TplD->getTemplatedDecl();
