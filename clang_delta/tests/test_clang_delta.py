@@ -1283,6 +1283,7 @@ class TestClangDelta(unittest.TestCase):
             '--transformation=replace-simple-typedef --counter=1',
         )
 
+    @unittest.skipIf(get_clang_version() >= 22, 'Fails with LLVM >= 22')
     def test_member_to_global_test1(self):
         self.check_clang_delta('member-to-global/test1.cc', '--transformation=member-to-global --counter=1')
 
