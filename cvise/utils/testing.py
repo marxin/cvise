@@ -762,8 +762,8 @@ class TestManager:
         job.temporary_folder = None
 
         self.pass_statistic.add_initialized(job.pass_, job.start_time)
-        if isinstance(ctx.pass_, HintBasedPass) and ctx.state is not None:
-            ctx.hint_bundle_paths = ctx.state.hint_bundle_paths()
+        if isinstance(ctx.pass_, HintBasedPass):
+            ctx.hint_bundle_paths = {} if ctx.state is None else ctx.state.hint_bundle_paths()
 
     def handle_finished_transform_job(self, job: Job) -> None:
         env: TestEnvironment = job.future.result()
@@ -1144,7 +1144,7 @@ class TestManager:
         ctx = self.pass_contexts[pass_id]
         assert ctx.can_init_now(ready_hint_types)
 
-        dependee_types = ctx.pass_.input_hint_types() if isinstance(ctx.pass_, HintBasedPass) else set()
+        dependee_types = set(ctx.pass_.input_hint_types()) if isinstance(ctx.pass_, HintBasedPass) else set()
         dependee_bundle_paths = []
         for other in self.pass_contexts:
             if isinstance(other.pass_, HintBasedPass) and other.stage == PassStage.ENUMERATING:

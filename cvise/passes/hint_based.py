@@ -167,9 +167,9 @@ class HintState:
     def advance_on_success(
         self, type_to_bundle: Dict[bytes, HintBundle], type_to_file_name: Dict[bytes, Path], new_tmp_dir: Path
     ) -> Optional[HintState]:
-        sub_states = []
         # Advance all previously present hint types' substates. We ignore any newly appearing hint types because it's
         # nontrivial to distinguish geniunely new hints from those that we (unsuccessfully) checked.
+        sub_states = []
         for old_substate in self.per_type_states:
             type = old_substate.type
             if type not in type_to_bundle:
@@ -179,10 +179,16 @@ class HintState:
             new_substate = old_substate.advance_on_success(new_hint_count, type_to_file_name[type])
             if new_substate:
                 sub_states.append(new_substate)
-        if not sub_states:
-            return None
+
+        new_special_hints = [
+            SpecialHintState(type=type, hints_file_name=file_name, hint_count=len(type_to_bundle[type].hints))
+            for type, file_name in type_to_file_name.items()
+            if is_special_hint_type(type)
+        ]
+        new_special_hints.sort(key=lambda s: s.type)
+
         return HintState(
-            tmp_dir=new_tmp_dir, per_type_states=tuple(sub_states), ptr=0, special_hints=self.special_hints
+            tmp_dir=new_tmp_dir, per_type_states=tuple(sub_states), ptr=0, special_hints=tuple(new_special_hints)
         )
 
     def subset_of(self, other: HintState) -> bool:
@@ -263,8 +269,8 @@ class HintBasedPass(AbstractPass):
         return self.new_from_hints(hints, tmp_dir)
 
     def transform(self, test_case: Path, state: HintState, original_test_case: Path, *args, **kwargs):
-        if not state.per_type_states:  # possible if all hints produced by new() were "special"
-            return PassResult.STOP, state
+        if not state.per_type_states:  # possible if all hints produced by new()/advance_on_success() were "special"
+            return PassResult.STOP, None
         self.load_and_apply_hints(original_test_case, test_case, [state])
         return PassResult.OK, state
 
