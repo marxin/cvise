@@ -321,3 +321,18 @@ def test_non_ascii_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: P
     assert a_path.read_text() in ('int foo;', 'int foo;\n')
     assert not b_path.exists() or b_path.read_text() == ''
     assert 'Streichholz' in stderr
+
+
+def test_failing_interestingness_test(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    testcase_path = tmp_path / 'test.c'
+    testcase_path.write_text('foo')
+
+    proc = start_cvise(
+        ['test.c', '-c', 'gcc test.c'],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    stdout, stderr = proc.communicate()
+
+    assert proc.returncode != 0, f'Process succeeded unexpectedly; stderr:\n{stderr}\nstdout:\n{stdout}'
+    assert 'interestingness test does not return' in stdout
