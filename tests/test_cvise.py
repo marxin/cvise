@@ -276,6 +276,7 @@ def test_script_inside_test_case_error(tmp_path: Path, overridden_subprocess_tmp
     assert 'is inside test case directory' in stderr
 
 
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 def test_non_ascii_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     test_case = tmp_path / 'repro'
     test_case.mkdir()
