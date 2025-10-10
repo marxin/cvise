@@ -36,7 +36,12 @@ _MULTIPLEX_PASS_HINT_TEMPLATE = '@clang-include-graph-{}'
 
 
 class ClangIncludeGraphPass(HintBasedPass):
-    """Extracts information on which C/C++ headers are included and from which files."""
+    """Extracts information on which C/C++ headers are included and from which files.
+
+    This pass analyzes compilation commands and runs the "clang_include_graph" tool for each of the commands
+    (with slightly modified input arguments). The compilation commands are obtained by parsing all makefiles that the
+    MakefilePass reported (via the "@makefile" hints).
+    """
 
     def __init__(self, external_programs: Dict[str, Optional[str]], **kwargs):
         super().__init__(external_programs=external_programs, **kwargs)
@@ -95,11 +100,23 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
+    def input_hint_types(self) -> List[bytes]:
+        # We obtain the list of parsable makefiles from the MakefilePass heuristic.
+        return [b'@makefile']
+
     def output_hint_types(self) -> List[bytes]:
         return [self._hint_type]
 
-    def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
-        all_commands = _get_all_makefile_commands(test_case)
+    def generate_hints(
+        self,
+        test_case: Path,
+        process_event_notifier: ProcessEventNotifier,
+        dependee_hints: List[HintBundle],
+        *args,
+        **kwargs,
+    ):
+        makefiles = _get_makefiles_from_hints(test_case, dependee_hints)
+        all_commands = _get_all_makefile_commands(makefiles)
         commands = _get_kth_modulo_n(all_commands, self._modulo, _INIT_PARALLELIZATION)
 
         vocab: List[bytes] = [self._hint_type]
@@ -130,10 +147,18 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
         return HintBundle(hints=list(hints), vocabulary=vocab)
 
 
-def _get_all_makefile_commands(test_case: Path) -> List[List[str]]:
-    paths = list(test_case.rglob('*')) if test_case.is_dir() else [test_case]
-    makefiles = [p for p in paths if p.name in makefileparser.FILE_NAMES]
+def _get_makefiles_from_hints(test_case: Path, dependee_hints: List[HintBundle]) -> List[Path]:
+    paths = set()
+    for bundle in dependee_hints:
+        for hint in bundle.hints:
+            assert hint.type is not None
+            assert bundle.vocabulary[hint.type] == b'@makefile'
+            assert hint.extra is not None
+            paths.add(test_case / bundle.vocabulary[hint.extra].decode())
+    return list(paths)
 
+
+def _get_all_makefile_commands(makefiles: List[Path]) -> List[List[str]]:
     commands: List[List[str]] = []
     for mk_path in sorted(makefiles):
         mk = makefileparser.parse(mk_path)
