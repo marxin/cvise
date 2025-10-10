@@ -172,14 +172,14 @@ def _get_removable_arg_groups(args: List[TextWithLoc]) -> List[List[TextWithLoc]
     removable = []
     for arg in args:
         if two_token_option:
-            if not _TWO_TOKEN_OPTIONS_REMOVAL_BLOCKLIST.match(two_token_option.value + b' ' + arg.value):
+            if not _TWO_TOKEN_OPTIONS_REMOVAL_BLOCKLIST.fullmatch(two_token_option.value + b' ' + arg.value):
                 removable.append([two_token_option, arg])
             two_token_option = None
             continue
-        if _TWO_TOKEN_OPTIONS.match(arg.value):
+        if _TWO_TOKEN_OPTIONS.fullmatch(arg.value):
             two_token_option = arg
             continue
-        if _REMOVAL_BLOCKLIST.match(arg.value):
+        if _REMOVAL_BLOCKLIST.fullmatch(arg.value):
             continue
         removable.append([arg])
     return removable
