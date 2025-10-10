@@ -153,7 +153,7 @@ def _get_makefiles_from_hints(test_case: Path, dependee_hints: List[HintBundle])
             assert bundle.vocabulary[hint.type] == b'@makefile'
             assert hint.extra is not None
             paths.add(test_case / bundle.vocabulary[hint.extra].decode())
-    return sorted(paths)
+    return list(paths)
 
 
 def _get_all_makefile_commands(makefiles: List[Path]) -> List[List[str]]:
