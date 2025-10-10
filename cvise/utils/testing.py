@@ -2,7 +2,6 @@ from __future__ import annotations
 from concurrent.futures import FIRST_COMPLETED, Future, wait
 import contextlib
 from dataclasses import dataclass
-import difflib
 from enum import auto, Enum, unique
 import filecmp
 import logging
@@ -618,17 +617,8 @@ class TestManager:
         else:
             return True
 
-    def diff_files(self, orig_file: Path, changed_file: Path) -> str:
-        with open(orig_file, 'rb') as f:
-            orig_file_lines = f.readlines()
-
-        with open(changed_file, 'rb') as f:
-            changed_file_lines = f.readlines()
-
-        diffed_lines = difflib.diff_bytes(
-            difflib.unified_diff, orig_file_lines, changed_file_lines, bytes(orig_file), bytes(changed_file)
-        )
-        diff_bytes = b''.join(diffed_lines)
+    def diff_files(self, orig_test_case: Path, changed_test_case: Path) -> str:
+        diff_bytes = fileutil.diff_test_cases(orig_test_case, changed_test_case)
 
         if self.use_colordiff:
             try:

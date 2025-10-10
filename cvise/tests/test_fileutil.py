@@ -14,6 +14,7 @@ from typing import Callable, Dict, Union
 from cvise.utils.fileutil import (
     chdir,
     copy_test_case,
+    diff_test_cases,
     filter_files_by_patterns,
     get_file_size,
     get_line_count,
@@ -476,3 +477,56 @@ def test_filter_files_include_over_default_exclude(tmp_path: Path):
     assert filter_files_by_patterns(tmp_path, include_globs=['**/*.c'], default_exclude_globs=['**/*.c']) == [
         tmp_path / 'foo.c',
     ]
+
+
+def test_diff_files(tmp_path: Path):
+    name = Path('foo.txt')
+    orig_path = tmp_path / name
+    orig_path.write_text('hello\nworld\n')
+
+    changed_path = tmp_path / 'changed' / name
+    changed_path.parent.mkdir()
+    changed_path.write_text('just\nhello\n')
+
+    with chdir(tmp_path):
+        assert (
+            diff_test_cases(name, changed_path)
+            == b"""--- foo.txt
++++ foo.txt
+@@ -1,2 +1,2 @@
++just
+ hello
+-world
+"""
+        )
+
+
+def test_diff_dir(tmp_path: Path):
+    name = Path('repro')
+    orig_path = tmp_path / name
+    orig_path.mkdir()
+    (orig_path / 'foo.txt').write_text('foo')
+    (orig_path / 'bar.txt').write_text('bar')
+    (orig_path / 'dir').mkdir()
+
+    changed_path = tmp_path / 'changed' / name
+    changed_path.mkdir(parents=True)
+    (changed_path / 'bar.txt').write_text('bar')
+    (changed_path / 'x.txt').write_text('foo')
+    (changed_path / 'other_dir').mkdir()
+
+    with chdir(tmp_path):
+        assert (
+            diff_test_cases(name, changed_path)
+            == b"""--- repro/dir
+--- repro/foo.txt
++++ repro/foo.txt
+@@ -1 +0,0 @@
+-foo
++++ repro/other_dir
+--- repro/x.txt
++++ repro/x.txt
+@@ -0,0 +1 @@
++foo
+"""
+        )

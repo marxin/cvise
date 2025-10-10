@@ -41,8 +41,10 @@ def check_cvise(
     work_path.chmod(0o644)
 
     proc = start_cvise([testcase] + arguments, tmp_path, overridden_subprocess_tmpdir)
-    _stdout, stderr = proc.communicate()
-    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n' + stderr
+    stdout, stderr = proc.communicate()
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
 
     content = work_path.read_text()
     assert content in expected
@@ -147,8 +149,10 @@ def test_interleaving_lines_passes(tmp_path: Path, overridden_subprocess_tmpdir:
         tmp_path,
         overridden_subprocess_tmpdir,
     )
-    _stdout, stderr = proc.communicate()
-    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n' + stderr
+    stdout, stderr = proc.communicate()
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
     assert (
         testcase_path.read_text()
         == """
@@ -187,7 +191,9 @@ def test_apply_hints(tmp_path: Path, overridden_subprocess_tmpdir: Path):
         overridden_subprocess_tmpdir,
     )
     stdout, stderr = proc.communicate()
-    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n' + stderr
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
     assert stdout == 'ad'
     assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
 
@@ -206,12 +212,15 @@ def test_non_ascii(tmp_path: Path, overridden_subprocess_tmpdir: Path):
         tmp_path,
         overridden_subprocess_tmpdir,
     )
-    _stdout, stderr = proc.communicate()
+    stdout, stderr = proc.communicate()
 
-    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n' + stderr
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
     # The reduced result may or may not include the trailing line break - this depends on random ordering factors.
     assert testcase_path.read_text() in ('int foo;', 'int foo;\n')
     assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
+    assert 'Streichholz' in stderr
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
@@ -243,9 +252,11 @@ def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
         tmp_path,
         overridden_subprocess_tmpdir,
     )
-    _stdout, stderr = proc.communicate()
+    stdout, stderr = proc.communicate()
 
-    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n' + stderr
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
     assert (test_case / 'a.h').read_text() == 'int x ;\n'
     assert (test_case / 'a.cc').read_text() == '#include "a.h"\nint nextHi = x;\n'
 
@@ -269,7 +280,44 @@ def test_script_inside_test_case_error(tmp_path: Path, overridden_subprocess_tmp
         tmp_path,
         overridden_subprocess_tmpdir,
     )
-    _stdout, stderr = proc.communicate()
+    stdout, stderr = proc.communicate()
 
-    assert proc.returncode != 0, 'Process succeeded unexpectedly; stderr:\n' + stderr
+    assert proc.returncode != 0, f'Process succeeded unexpectedly; stderr:\n{stderr}\nstdout:\n{stdout}'
     assert 'is inside test case directory' in stderr
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_non_ascii_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    test_case = tmp_path / 'repro'
+    test_case.mkdir()
+    a_path = test_case / 'a.c'
+    b_path = test_case / 'b.c'
+    a_path.write_bytes(b"""
+        // nonutf\xff
+        int foo;
+        char *s = "Streichholzsch\xc3\xa4chtelchen";
+        """)
+    b_path.write_bytes(b"""
+        int main() {}
+        """)
+
+    # Also enable diff logging to check it doesn't break on non-unicode.
+    proc = start_cvise(
+        [
+            '-c',
+            'gcc -c repro/*.c && grep foo repro/*.c',
+            'repro',
+            '--tidy',
+            '--print-diff',
+        ],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    stdout, stderr = proc.communicate()
+
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
+    assert a_path.read_text() in ('int foo;', 'int foo;\n')
+    assert not b_path.exists() or b_path.read_text() == ''
+    assert 'Streichholz' in stderr
