@@ -80,6 +80,7 @@ class HintBundle:
     # Hint objects - each item matches the `HINT_SCHEMA`.
     hints: List[Hint]
     pass_name: str = ''
+    pass_user_visible_name: str = ''
     # Strings that hints can refer to.
     # Note: a simple "= []" wouldn't be suitable because mutable default values are error-prone in Python.
     vocabulary: List[bytes] = dataclasses.field(default_factory=list)
@@ -184,7 +185,8 @@ class HintApplicationStats:
 
 class _BundlePreamble(msgspec.Struct, omit_defaults=True):
     format: str  # the FORMAT_NAME default is not set here, to avoid being omitted by msgspec serialization
-    pass_: str = msgspec.field(default='', name='pass')
+    pass_name: str = ''
+    pass_user_visible_name: str = ''
 
 
 # Singleton encoder/decoder objects, to save time on recreating them.
@@ -261,13 +263,13 @@ def _apply_hint_patches_to_file(
         new_data.extend(orig_data[start_pos : p.left])
         # Skip the original chunk inside the current patch.
         start_pos = p.right
-        stats.size_delta_per_pass.setdefault(bundle.pass_name, 0)
-        stats.size_delta_per_pass[bundle.pass_name] -= p.right - p.left
+        stats.size_delta_per_pass.setdefault(bundle.pass_user_visible_name, 0)
+        stats.size_delta_per_pass[bundle.pass_user_visible_name] -= p.right - p.left
         # Insert the replacement value, if provided.
         if p.value is not None:
             to_insert = bundle.vocabulary[p.value]
             new_data += to_insert
-            stats.size_delta_per_pass[bundle.pass_name] += len(to_insert)
+            stats.size_delta_per_pass[bundle.pass_user_visible_name] += len(to_insert)
     # Add the unmodified chunk after the last patch end.
     new_data.extend(orig_data[start_pos:])
 
@@ -340,7 +342,12 @@ def load_hints(hints_file_path: Path, begin_index: Optional[int], end_index: Opt
             )
         vocab = try_parse_json_line(next(f), vocab_decoder)
         hints = [try_parse_json_line(s, hint_decoder) for s in _lines_range(f, begin_index, end_index)]
-    return HintBundle(hints=hints, pass_name=preamble.pass_, vocabulary=[s.encode() for s in vocab])
+    return HintBundle(
+        hints=hints,
+        pass_name=preamble.pass_name,
+        pass_user_visible_name=preamble.pass_user_visible_name,
+        vocabulary=[s.encode() for s in vocab],
+    )
 
 
 def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: List[HintBundle]) -> HintBundle:
@@ -384,7 +391,12 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: List[HintBund
             ):
                 new_patches.append(new_patch)
         new_hints.append(msgspec.structs.replace(hint, patches=tuple(new_patches)))
-    return HintBundle(hints=new_hints, pass_name=source_bundle.pass_name, vocabulary=source_bundle.vocabulary)
+    return HintBundle(
+        hints=new_hints,
+        pass_name=source_bundle.pass_name,
+        pass_user_visible_name=source_bundle.pass_user_visible_name,
+        vocabulary=source_bundle.vocabulary,
+    )
 
 
 def _calc_positions_mapping_for_patches(
@@ -421,14 +433,21 @@ def group_hints_by_type(bundle: HintBundle) -> Dict[bytes, HintBundle]:
     for h in bundle.hints:
         type = bundle.vocabulary[h.type] if h.type is not None else b''
         if type not in grouped:
-            grouped[type] = HintBundle(vocabulary=bundle.vocabulary, hints=[], pass_name=bundle.pass_name)
+            grouped[type] = HintBundle(
+                vocabulary=bundle.vocabulary,
+                hints=[],
+                pass_name=bundle.pass_name,
+                pass_user_visible_name=bundle.pass_user_visible_name,
+            )
         # FIXME: drop the 't' property in favor of storing it once, in the bundle's preamble
         grouped[type].hints.append(h)
     return grouped
 
 
 def make_preamble(bundle: HintBundle) -> _BundlePreamble:
-    return _BundlePreamble(format=FORMAT_NAME, pass_=bundle.pass_name)
+    return _BundlePreamble(
+        format=FORMAT_NAME, pass_name=bundle.pass_name, pass_user_visible_name=bundle.pass_user_visible_name
+    )
 
 
 def write_compact_json(value: Any, file: TextIO) -> None:

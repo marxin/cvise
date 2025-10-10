@@ -328,7 +328,7 @@ class Job:
     # If this job executes a method of a pass, these store pointers to it; None otherwise.
     pass_: Optional[AbstractPass]
     pass_id: Optional[int]
-    pass_name: str
+    pass_user_visible_name: str
     pass_job_counter: Optional[int]
 
     start_time: float
@@ -733,7 +733,7 @@ class TestManager:
             self.release_job(job)
 
     def handle_timed_out_job(self, job: Job) -> None:
-        logging.warning('Test timed out for %s.', job.pass_name)
+        logging.warning('Test timed out for %s.', job.pass_user_visible_name)
         if job.temporary_folder:
             self.save_extra_dir(job.temporary_folder)
         if job.pass_id is None:
@@ -745,7 +745,9 @@ class TestManager:
             ctx.running_transform_order_to_state.pop(job.order)
         if ctx.timeout_count < self.MAX_TIMEOUTS or ctx.defunct:
             return
-        logging.warning('Maximum number of timeout were reached for %s: %s', job.pass_name, self.MAX_TIMEOUTS)
+        logging.warning(
+            'Maximum number of timeout were reached for %s: %s', job.pass_user_visible_name, self.MAX_TIMEOUTS
+        )
         ctx.defunct = True
 
     def handle_finished_init_job(self, job: Job) -> None:
@@ -923,7 +925,7 @@ class TestManager:
         self.interleaving = interleaving
         self.jobs = []
 
-        pass_titles = ', '.join(repr(c.pass_) for c in self.pass_contexts if c.pass_.user_visible())
+        pass_titles = ', '.join(c.pass_.user_visible_name() for c in self.pass_contexts)
         logging.info(f'===< {pass_titles} >===')
 
         if self.total_file_size == 0:
@@ -1022,11 +1024,14 @@ class TestManager:
         # Update global stats.
         if isinstance(self.success_candidate.pass_state, FoldingStateOut):
             self.pass_statistic.add_committed_success(None, self.success_candidate.size_delta)
-            for pass_name, size_delta in self.success_candidate.pass_state.statistics.size_delta_per_pass.items():
-                self.pass_statistic.add_committed_success(pass_name, size_delta)
+            for (
+                pass_user_visible_name,
+                size_delta,
+            ) in self.success_candidate.pass_state.statistics.size_delta_per_pass.items():
+                self.pass_statistic.add_committed_success(pass_user_visible_name, size_delta)
         else:
             self.pass_statistic.add_committed_success(
-                repr(self.success_candidate.pass_), self.success_candidate.size_delta
+                self.success_candidate.pass_.user_visible_name(), self.success_candidate.size_delta
             )
 
         for pass_id, ctx in enumerate(self.pass_contexts):
@@ -1069,7 +1074,7 @@ class TestManager:
             if isinstance(self.success_candidate.pass_state, FoldingStateOut):
                 pass_name = ' + '.join(self.success_candidate.pass_state.statistics.get_passes_ordered_by_delta())
             else:
-                pass_name = repr(self.success_candidate.pass_)
+                pass_name = self.success_candidate.pass_.user_visible_name()
             notes.append(f'via {pass_name}')
 
         self.success_candidate.release()
@@ -1188,7 +1193,7 @@ class TestManager:
                 order=self.order,
                 pass_=ctx.pass_,
                 pass_id=pass_id,
-                pass_name=repr(ctx.pass_),
+                pass_user_visible_name=ctx.pass_.user_visible_name(),
                 pass_job_counter=ctx.pass_job_counter,
                 start_time=time.monotonic(),
                 timeout=init_timeout,
@@ -1232,7 +1237,7 @@ class TestManager:
                 order=self.order,
                 pass_=ctx.pass_,
                 pass_id=pass_id,
-                pass_name=repr(ctx.pass_),
+                pass_user_visible_name=ctx.pass_.user_visible_name(),
                 pass_job_counter=ctx.pass_job_counter,
                 start_time=time.monotonic(),
                 timeout=self.timeout,
@@ -1272,7 +1277,7 @@ class TestManager:
                 order=self.order,
                 pass_=None,
                 pass_id=None,
-                pass_name='Folding',
+                pass_user_visible_name='Folding',
                 pass_job_counter=None,
                 start_time=time.monotonic(),
                 timeout=self.timeout,

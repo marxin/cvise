@@ -5,8 +5,8 @@ from cvise.passes.abstract import AbstractPass
 
 
 class SinglePassStatistic:
-    def __init__(self, pass_name):
-        self.pass_name = pass_name
+    def __init__(self, pass_user_visible_name):
+        self.pass_user_visible_name = pass_user_visible_name
         self.total_seconds = 0
         self.worked = 0
         self.failed = 0
@@ -21,10 +21,8 @@ class PassStatistic:
 
     def add_initialized(self, pass_: AbstractPass, start_time: float) -> None:
         """Record a completion of a new() method for a pass."""
-        pass_name = repr(pass_)
-        if pass_name not in self._stats:
-            self._stats[pass_name] = SinglePassStatistic(pass_name)
-        self._stats[pass_name].total_seconds += time.monotonic() - start_time
+        stat = self._get_stats(pass_)
+        stat.total_seconds += time.monotonic() - start_time
 
     def add_executed(self, pass_: Optional[AbstractPass], start_time: float, parallel_workers: int) -> None:
         """Record a completion of a transformation and checking task for a pass.
@@ -71,5 +69,7 @@ class PassStatistic:
     def _get_stats(self, pass_: Optional[AbstractPass]) -> SinglePassStatistic:
         if pass_ is None:
             return self._folding_stats
-        pass_name = repr(pass_)
-        return self._stats[pass_name]
+        name = pass_.user_visible_name()
+        if name not in self._stats:
+            self._stats[name] = SinglePassStatistic(name)
+        return self._stats[name]
