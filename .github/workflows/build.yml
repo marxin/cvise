@@ -71,13 +71,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - run: apt-get update
+    - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex vim unifdef unzip sudo
     - name: Install python version
       uses: gabrielfalcao/pyenv-action@v18
       with:
         default: "${{ matrix.python }}"
         command: pip install -U pip
-    - run: apt-get update
-    - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex vim unifdef sudo
     - name: prepare venv
       run: pip install --user chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess pytype zstandard
     - run: wget https://apt.llvm.org/llvm.sh
