@@ -1,4 +1,5 @@
 import contextlib
+import difflib
 import fnmatch
 import hashlib
 import io
@@ -157,6 +158,46 @@ def filter_files_by_patterns(test_case: Path, include_globs: List[str], default_
         exclude = _find_files_matching(test_case, default_exclude_globs)
         paths = all - exclude
     return sorted(paths)
+
+
+def diff_test_cases(orig_test_case: Path, changed_test_case: Path) -> bytes:
+    rel_paths = []
+    if orig_test_case.is_dir():
+        orig_paths = set(p.relative_to(orig_test_case) for p in orig_test_case.rglob('*'))
+        dest_paths = set(p.relative_to(changed_test_case) for p in changed_test_case.rglob('*'))
+        rel_paths = sorted(orig_paths | dest_paths)
+    else:
+        rel_paths = [Path()]
+
+    diff_lines: List[bytes] = []
+    for rel_path in rel_paths:
+        orig_path = orig_test_case / rel_path
+        dest_path = changed_test_case / rel_path
+
+        if orig_path.is_dir() or orig_path.is_symlink() or dest_path.is_dir() or dest_path.is_symlink():
+            if not dest_path.exists():
+                diff_lines.append(f'--- {orig_path}\n'.encode())
+            elif not orig_path.exists():
+                diff_lines.append(f'+++ {orig_path}\n'.encode())
+            continue
+
+        orig_data = _try_read_file_lines(orig_path)
+        changed_data = _try_read_file_lines(dest_path)
+        path_for_log = str(orig_path).encode()
+        diff = list(difflib.diff_bytes(difflib.unified_diff, orig_data, changed_data, path_for_log, path_for_log))
+        if not diff:
+            continue
+        if not diff[-1].endswith(b'\n'):
+            diff[-1] += b'\n'
+        diff_lines += diff
+    return b''.join(diff_lines)
+
+
+def _try_read_file_lines(path: Path) -> List[bytes]:
+    if not path.is_file():
+        return []
+    with open(path, 'rb') as f:
+        return f.readlines()
 
 
 def _hash_file(path: Path, buf: memoryview) -> bytes:
