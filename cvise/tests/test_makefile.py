@@ -121,19 +121,79 @@ def test_dont_remove_blocklisted_argument(tmp_path: Path, test_case_path: Path):
     (test_case_path / 'Makefile').write_text(
         """
 a.o:
-\tgcc -Wall foo.c
+\tgcc -Wall a.c
+b.o:
+\tgcc -ob.o -Wall b.c
+c.o:
+\tgcc -o c.o -Wall c.c
         """,
     )
     p, state = init_pass(tmp_path, test_case_path)
     all_transforms = collect_all_transforms_dir(p, state, test_case_path)
 
-    # "-Wall" not removed
+    # "-Wall" not removed from any of the commands
     assert (
         (
             'Makefile',
             b"""
 a.o:
-\tgcc foo.c
+\tgcc a.c
+b.o:
+\tgcc -ob.o -Wall b.c
+c.o:
+\tgcc -o c.o -Wall c.c
+        """,
+        ),
+    ) not in all_transforms
+    assert (
+        (
+            'Makefile',
+            b"""
+a.o:
+\tgcc -Wall a.c
+b.o:
+\tgcc -ob.o b.c
+c.o:
+\tgcc -o c.o -Wall c.c
+        """,
+        ),
+    ) not in all_transforms
+    assert (
+        (
+            'Makefile',
+            b"""
+a.o:
+\tgcc -Wall a.c
+b.o:
+\tgcc b.c
+c.o:
+\tgcc -o c.o -Wall c.c
+        """,
+        ),
+    ) not in all_transforms
+    assert (
+        (
+            'Makefile',
+            b"""
+a.o:
+\tgcc -Wall a.c
+b.o:
+\tgcc -ob.o -Wall b.c
+c.o:
+\tgcc -o c.o c.c
+        """,
+        ),
+    ) not in all_transforms
+    assert (
+        (
+            'Makefile',
+            b"""
+a.o:
+\tgcc -Wall a.c
+b.o:
+\tgcc -ob.o -Wall b.c
+c.o:
+\tgcc c.c
         """,
         ),
     ) not in all_transforms
