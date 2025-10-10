@@ -163,8 +163,8 @@ def filter_files_by_patterns(test_case: Path, include_globs: List[str], default_
 def diff_test_cases(orig_test_case: Path, changed_test_case: Path) -> bytes:
     rel_paths = []
     if orig_test_case.is_dir():
-        orig_paths = set(p.relative_to(orig_test_case) for p in orig_test_case.rglob('*'))
-        dest_paths = set(p.relative_to(changed_test_case) for p in changed_test_case.rglob('*'))
+        orig_paths = {p.relative_to(orig_test_case) for p in orig_test_case.rglob('*')}
+        dest_paths = {p.relative_to(changed_test_case) for p in changed_test_case.rglob('*')}
         rel_paths = sorted(orig_paths | dest_paths)
     else:
         rel_paths = [Path()]
