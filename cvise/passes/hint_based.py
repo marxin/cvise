@@ -110,6 +110,7 @@ class HintState:
 
     @staticmethod
     def create(tmp_dir: Path, per_type_states: List[PerTypeHintState], special_hints: List[SpecialHintState]):
+        assert sorted_states or sorted_special_hints
         sorted_states = sorted(per_type_states, key=lambda s: s.type)
         sorted_special_hints = sorted(special_hints, key=lambda s: s.type)
         return HintState(
@@ -187,6 +188,8 @@ class HintState:
         ]
         new_special_hints.sort(key=lambda s: s.type)
 
+        if not sub_states and not new_special_hints:
+            return None
         return HintState(
             tmp_dir=new_tmp_dir, per_type_states=tuple(sub_states), ptr=0, special_hints=tuple(new_special_hints)
         )
