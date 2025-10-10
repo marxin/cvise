@@ -400,7 +400,7 @@ a.out:
             """,
         ),
     ) not in all_transforms
-    # "-f" not removed
+    # "-f" not removed from rm
     assert (
         (
             'Makefile',
