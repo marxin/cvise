@@ -58,6 +58,39 @@ jobs:
       run: pytest -n $(($(nproc) + 1))
       working-directory: objdir
 
+  CI-python:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:latest
+
+    strategy:
+      matrix:
+        python:
+          - 3.13
+          - 3.14
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install python version
+      uses: gabrielfalcao/pyenv-action@v18
+      with:
+        default: "${{ matrix.python }}"
+        command: pip install -U pip
+    - run: apt-get update
+    - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex vim unifdef sudo
+    - name: prepare venv
+      run: pip install --user chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess pytype zstandard
+    - run: wget https://apt.llvm.org/llvm.sh
+    - run: chmod +x llvm.sh
+    - run: ./llvm.sh
+    - run: mkdir objdir
+    - run: cmake ..
+      working-directory: objdir
+    - run: make -j`nproc` VERBOSE=1
+      working-directory: objdir
+    - run: pytest -n $(($(nproc) + 1))
+      working-directory: objdir
+
   ruff:
     runs-on: ubuntu-latest
     container:
