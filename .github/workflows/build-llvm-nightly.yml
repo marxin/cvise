@@ -19,7 +19,7 @@ jobs:
   CI-LLVM-nightly:
     runs-on: ubuntu-22.04
     container:
-      image: ubuntu:rolling
+      image: ubuntu:25.04
 
     steps:
       - run: apt-get update
