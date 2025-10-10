@@ -400,6 +400,20 @@ a.out:
             """,
         ),
     ) not in all_transforms
+    # "-f" not removed
+    assert (
+        (
+            'Makefile',
+            b"""
+.PHONY: all clean
+all: a.out
+a.out:
+\tgcc main.c
+clean:
+\trm a.out
+            """,
+        ),
+    ) not in all_transforms
 
 
 def test_unrelated_file(tmp_path: Path, test_case_path: Path):
