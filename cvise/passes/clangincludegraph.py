@@ -38,8 +38,9 @@ _MULTIPLEX_PASS_HINT_TEMPLATE = '@clang-include-graph-{}'
 class ClangIncludeGraphPass(HintBasedPass):
     """Extracts information on which C/C++ headers are included and from which files.
 
-    This pass analyzes compilation commands. For this, it parses all makefiles that the MakefilePass reported (via the
-    "@makefile" hint).
+    This pass analyzes compilation commands and runs the "clang_include_graph" tool for each of the commands
+    (with slightly modified input arguments). The compilation commands are obtained by parsing all makefiles that the
+    MakefilePass reported (via the "@makefile" hints).
     """
 
     def __init__(self, external_programs: Dict[str, Optional[str]], **kwargs):
