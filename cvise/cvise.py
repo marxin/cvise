@@ -177,7 +177,12 @@ class CVise:
 
                 claim_files = pass_dict.get('claim_files', [])
                 claimed_by_others_files = list(
-                    chain.from_iterable(d.get('claim_files', []) for i, d in enumerate(pass_dict_list) if i != pass_id)
+                    chain.from_iterable(
+                        d.get('claim_files', [])
+                        for cat in cls.PASS_CATEGORIES
+                        for i, d in enumerate(pass_group_dict.get(cat.name, []))
+                        if cat.name != category.name or i != pass_id
+                    )
                 )
 
                 pass_instance = pass_class(
