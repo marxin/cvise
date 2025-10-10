@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import List, Optional, Set
 
 
-FILE_NAMES = ('Makefile', 'makefile', 'GNUmakefile')
 _BUILTIN_TARGETS = (
     Path('.DEFAULT'),
     Path('.DELETE_ON_ERROR'),

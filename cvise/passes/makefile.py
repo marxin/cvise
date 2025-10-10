@@ -24,9 +24,10 @@ _FILE_PATH_OPTIONS = re.compile(rb'=(?=(.*))')
 @unique
 class _Vocab(Enum):
     # Items must be listed in the index order; indices must be contiguous and start from zero.
-    FILEREF = (0, b'@fileref')
-    REMOVE_ARGUMENTS_ACROSS_ALL_COMMANDS = (1, b'remove-arguments-across-all-commands')
-    REMOVE_TARGET = (2, b'remove-target')
+    MAKEFILE = (0, b'@makefile')
+    FILEREF = (1, b'@fileref')
+    REMOVE_ARGUMENTS_ACROSS_ALL_COMMANDS = (2, b'remove-arguments-across-all-commands')
+    REMOVE_TARGET = (3, b'remove-target')
 
 
 class MakefilePass(HintBasedPass):
@@ -65,6 +66,14 @@ class MakefilePass(HintBasedPass):
 
 
 def _add_fileref_hints(file_id: int, hints: List[Hint]) -> None:
+    hints.append(
+        Hint(
+            type=_Vocab.MAKEFILE.value[0],
+            patches=(),
+            extra=file_id,
+        )
+    )
+
     # Assume all makefiles to be used (typically the interestingness test would do so), not trying to delete them in
     # RmUnusedFilesPass.
     hints.append(
