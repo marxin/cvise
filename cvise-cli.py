@@ -482,7 +482,7 @@ def do_reduce(args):
                 reducer.reduce(pass_group, skip_initial=args.skip_initial_passes)
             except CViseError as err:
                 print(err)
-                return
+                sys.exit(1)
 
         time_stop = time.monotonic()
         with open(args.log_file, 'ab') if args.log_file else nullcontext(sys.stderr.buffer) as fs:
