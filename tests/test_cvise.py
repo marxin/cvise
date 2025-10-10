@@ -323,7 +323,6 @@ def test_non_ascii_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: P
     assert 'Streichholz' in stderr
 
 
-@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 def test_failing_interestingness_test(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     testcase_path = tmp_path / 'test.c'
     testcase_path.write_text('foo')
