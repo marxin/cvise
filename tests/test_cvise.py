@@ -42,7 +42,9 @@ def check_cvise(
 
     proc = start_cvise([testcase] + arguments, tmp_path, overridden_subprocess_tmpdir)
     stdout, stderr = proc.communicate()
-    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
 
     content = work_path.read_text()
     assert content in expected
@@ -148,7 +150,9 @@ def test_interleaving_lines_passes(tmp_path: Path, overridden_subprocess_tmpdir:
         overridden_subprocess_tmpdir,
     )
     stdout, stderr = proc.communicate()
-    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
     assert (
         testcase_path.read_text()
         == """
@@ -187,7 +191,9 @@ def test_apply_hints(tmp_path: Path, overridden_subprocess_tmpdir: Path):
         overridden_subprocess_tmpdir,
     )
     stdout, stderr = proc.communicate()
-    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
     assert stdout == 'ad'
     assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
 
@@ -208,7 +214,9 @@ def test_non_ascii(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     )
     stdout, stderr = proc.communicate()
 
-    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
     # The reduced result may or may not include the trailing line break - this depends on random ordering factors.
     assert testcase_path.read_text() in ('int foo;', 'int foo;\n')
     assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
@@ -246,7 +254,9 @@ def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     )
     stdout, stderr = proc.communicate()
 
-    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
     assert (test_case / 'a.h').read_text() == 'int x ;\n'
     assert (test_case / 'a.cc').read_text() == '#include "a.h"\nint nextHi = x;\n'
 
@@ -305,7 +315,9 @@ def test_non_ascii_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: P
     )
     stdout, stderr = proc.communicate()
 
-    assert proc.returncode == 0, f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
     assert a_path.read_text() in ('int foo;', 'int foo;\n')
     assert not b_path.exists() or b_path.read_text() == ''
     assert 'Streichholz' in stderr
