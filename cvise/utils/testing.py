@@ -915,7 +915,7 @@ class TestManager:
         self.interleaving = interleaving
         self.jobs = []
 
-        pass_titles = ', '.join(c.pass_.user_visible_name() for c in self.pass_contexts)
+        pass_titles = ', '.join(sorted(set(c.pass_.user_visible_name() for c in self.pass_contexts)))
         logging.info(f'===< {pass_titles} >===')
 
         if self.total_file_size == 0:
