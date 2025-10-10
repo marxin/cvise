@@ -68,6 +68,7 @@ jobs:
         python:
           - 3.13
           - 3.14
+      fail-fast: false
 
     steps:
     - uses: actions/checkout@v4
