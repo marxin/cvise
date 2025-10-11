@@ -132,3 +132,21 @@ jobs:
       run: |
             source ~/venv/bin/activate
             pytype --keep-going --jobs=auto objdir
+
+  pyright:
+    runs-on: ubuntu-latest
+    container:
+      image: opensuse/tumbleweed
+
+    steps:
+    - run: zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python3
+    - uses: actions/checkout@v4
+    - name: prepare venv
+      run: pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess pytype zstandard
+    - name: build
+      run: |
+            mkdir objdir
+            cd objdir
+            ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
+            make -j`nproc` VERBOSE=1
+    - run: pyright objdir
