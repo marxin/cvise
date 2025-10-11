@@ -64,11 +64,10 @@ class TestClangDelta(unittest.TestCase):
     @classmethod
     def check_clang_delta_hints(cls, testcase, arguments, begin_index, end_index, output_file=None):
         hints = run_clang_delta(testcase, arguments + ' --generate-hints')
-        with tempfile.NamedTemporaryFile(delete_on_close=False, mode='wt', suffix='.jsonl') as hints_file:
-            hints_file.write('{"format": "cvise_hints_v0"}\n')
-            hints_file.write(hints)
-            hints_file.close()
-            output = run_apply_hints(Path(hints_file.name), begin_index, end_index, testcase)
+        with tempfile.TemporaryDirectory() as dir:
+            hints_path = Path(dir) / 'hints.jsonl'
+            hints_path.write_text('{"format": "cvise_hints_v0"}\n' + hints)
+            output = run_apply_hints(hints_path, begin_index, end_index, testcase)
 
         expected = get_expected_output_path(testcase, output_file).read_text()
         assert output == expected

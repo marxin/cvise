@@ -8,9 +8,14 @@ from cvise.tests.testabstract import iterate_pass
 
 class SpecialATestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = SpecialPass('a')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def test_a(self):
         self.input_path.write_text(
@@ -44,9 +49,14 @@ class SpecialATestCase(unittest.TestCase):
 
 class SpecialBTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = SpecialPass('b')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def test_b(self):
         self.input_path.write_text("void foo(){} extern 'C' {int a;}; a = 9;\n")
@@ -60,9 +70,14 @@ class SpecialBTestCase(unittest.TestCase):
 
 class SpecialCTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = SpecialPass('c')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def test_c(self):
         self.input_path.write_text("void foo(){} extern 'C++' {int a;}; a = 9;\n")

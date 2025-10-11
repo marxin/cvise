@@ -1,3 +1,4 @@
+from __future__ import annotations
 import copy
 from dataclasses import dataclass
 from enum import auto, Enum, unique
@@ -5,7 +6,7 @@ import logging
 from pathlib import Path
 import random
 import shutil
-from typing import Dict, List, Optional, Self, Union
+from typing import Dict, List, Optional, Union
 
 from cvise.utils.process import ProcessEventNotifier
 
@@ -53,7 +54,7 @@ class SubsegmentState:
     def real_chunk(self) -> int:
         return self.chunk
 
-    def advance(self) -> Union[Self, None]:
+    def advance(self) -> Union[SubsegmentState, None]:
         to_start = self.index + 1 == self.start
         to_wrapover = self.index + 1 + self.chunk > self.instances
         if to_start or (to_wrapover and self.start == 0):
@@ -66,7 +67,7 @@ class SubsegmentState:
             start=self.start,
         )
 
-    def advance_on_success(self, instances) -> Union[Self, None]:
+    def advance_on_success(self, instances) -> Union[SubsegmentState, None]:
         if self.chunk > instances:
             return None
         if wrapover := self.index + self.chunk > instances:
@@ -201,7 +202,7 @@ class AbstractPass:
         """
         return False
 
-    def create_subordinate_passes(self) -> List[Self]:
+    def create_subordinate_passes(self) -> List[AbstractPass]:
         """Additional passes that perform the work needed for this pass.
 
         By default empty; useful for implementing parallelization of pass initialization.

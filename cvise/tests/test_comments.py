@@ -12,9 +12,14 @@ from cvise.utils.process import ProcessEventNotifier
 
 class CommentsTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = CommentsPass()
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def _pass_new(self) -> Union[HintState, None]:
         return self.pass_.new(

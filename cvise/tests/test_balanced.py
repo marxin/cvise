@@ -12,9 +12,14 @@ from cvise.utils.process import ProcessEventNotifier
 
 class BalancedParensTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = BalancedPass('parens')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def _pass_new(self) -> Union[HintState, None]:
         return self.pass_.new(
@@ -76,9 +81,14 @@ class BalancedParensTestCase(unittest.TestCase):
 
 class BalancedParensOnlyTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = BalancedPass('parens-only')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def _pass_new(self) -> Union[HintState, None]:
         return self.pass_.new(
@@ -185,9 +195,14 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
 
 class BalancedParensInsideTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = BalancedPass('parens-inside')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def _pass_new(self) -> Union[HintState, None]:
         return self.pass_.new(
@@ -274,9 +289,14 @@ class BalancedParensInsideTestCase(unittest.TestCase):
 
 class BalancedParensToZeroTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = BalancedPass('parens-to-zero')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def _pass_new(self) -> Union[HintState, None]:
         return self.pass_.new(
@@ -303,9 +323,14 @@ class BalancedParensToZeroTestCase(unittest.TestCase):
 
 class BalancedCurly3TestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = BalancedPass('curly3')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def _pass_new(self) -> Union[HintState, None]:
         return self.pass_.new(

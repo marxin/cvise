@@ -8,9 +8,14 @@ from cvise.tests.testabstract import iterate_pass
 
 class PeepATestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = PeepPass('a')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def test_a_1(self):
         self.input_path.write_text("<That's a small test> whether the transformation works!\n")
@@ -66,9 +71,14 @@ class PeepATestCase(unittest.TestCase):
 
 class PeepBTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = PeepPass('b')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def test_b_1(self):
         self.input_path.write_text('struct test_t {} test;\n')
@@ -103,9 +113,14 @@ class PeepBTestCase(unittest.TestCase):
 
 class PeepCTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = PeepPass('c')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def test_c_1(self):
         self.input_path.write_text(
