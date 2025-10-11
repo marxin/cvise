@@ -280,9 +280,9 @@ def _find_files_matching(test_case: Path, globs: list[str]) -> set[Path]:
         return set()
 
     if not test_case.is_dir():
+        # TODO: use full_match() once Python 3.13 is the oldest supported release
         for pattern in globs:
-            if pattern.startswith('**/'):
-                pattern = pattern[3:]  # use removeprefix() once Python 3.9 is the lowest supported version
+            pattern = pattern.removeprefix('**/')
             if fnmatch.fnmatch(str(test_case), pattern):
                 return {test_case}
         return set()
