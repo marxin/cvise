@@ -11,6 +11,7 @@ from cvise.utils.makefileparser import Makefile, SourceLoc, TextWithLoc
 
 
 # TODO: make these configurable
+_ARG_REMOVAL_PROG_ALLOWLIST = re.compile(r'\bCC\b|clang|CLANG|\bCXX\b|g\+\+|G\+\+|gcc|GCC')
 _TWO_TOKEN_OPTIONS = re.compile(rb'-I|-iquote|-isystem|-o|-Xclang')
 _REMOVAL_BLOCKLIST = re.compile(
     rb'-fallow-pcm-with-compiler-errors|-ferror-limit=.*|-fmax-errors=.*|-fmodule-map-file-home-is-cwd|-fno-crash-diagnostics|-fno-cxx-modules|-fno-implicit-module-maps|-fno-implicit-modules|-fpermissive|-fsyntax-only|-I.*|-no-pedantic|--no-pedantic|-nostdinc++|-nostdlib++|--no-warnings|-o.*|-pedantic|--pedantic|-pedantic-errors|--pedantic-errors|-w|-W.*|-Xclang=-emit-module|-Xclang=-fno-cxx-modules|-Xclang=-fmodule-map-file-home-is-cwd'
@@ -90,6 +91,8 @@ def _add_arg_removal_hints(mk: Makefile, file_id: int, hints: List[Hint]) -> Non
 
     for rule in mk.rules:
         for recipe_line in rule.recipe:
+            if not _ARG_REMOVAL_PROG_ALLOWLIST.search(recipe_line.program.value.decode()):
+                continue
             for arg_group in _get_removable_arg_groups(recipe_line.args):
                 key = b' '.join(a.value for a in arg_group)
                 locs = arg_locs.setdefault(key, [])
