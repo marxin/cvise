@@ -25,10 +25,10 @@ jobs:
             build-type: ASAN
           - llvm: 21
             build-type: UBSAN
-          - llmv: 21
+          - llvm: 21
             build-type: RelWithDebInfo
             extra-flags: -flto=auto
-          - llmv: 21
+          - llvm: 21
             build-type: RelWithDebInfo
             env: CC=clang CXX=clang++
       fail-fast: false
