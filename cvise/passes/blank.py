@@ -1,6 +1,6 @@
 from pathlib import Path
 import re
-from typing import List, Optional
+from typing import Optional
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.fileutil import filter_files_by_patterns
@@ -19,7 +19,7 @@ class BlankPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
-    def output_hint_types(self) -> List[bytes]:
+    def output_hint_types(self) -> list[bytes]:
         return list(self.PATTERNS.keys())
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
@@ -39,7 +39,7 @@ class BlankPass(HintBasedPass):
             self._generate_hints_for_file(path, file_id, hints)
         return HintBundle(hints=hints, vocabulary=vocab)
 
-    def _generate_hints_for_file(self, path: Path, file_id: Optional[int], hints: List[Hint]) -> None:
+    def _generate_hints_for_file(self, path: Path, file_id: Optional[int], hints: list[Hint]) -> None:
         with open(path, 'rb') as in_file:
             file_pos = 0
             for line in in_file:

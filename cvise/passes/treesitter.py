@@ -1,7 +1,7 @@
 import msgspec
 from pathlib import Path
 import subprocess
-from typing import Dict, List, Optional
+from typing import Optional
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.fileutil import filter_files_by_patterns
@@ -12,7 +12,7 @@ from cvise.utils.process import ProcessEventNotifier
 class TreeSitterPass(HintBasedPass):
     """A pass that performs reduction using heuristics based on the Tree-sitter parser (via treesitter_delta tool)."""
 
-    def __init__(self, arg: str, external_programs: Dict[str, Optional[str]], **kwargs):
+    def __init__(self, arg: str, external_programs: dict[str, Optional[str]], **kwargs):
         super().__init__(arg=arg, external_programs=external_programs, **kwargs)
 
     def check_prerequisites(self):
@@ -21,7 +21,7 @@ class TreeSitterPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
-    def output_hint_types(self) -> List[bytes]:
+    def output_hint_types(self) -> list[bytes]:
         # Must stay in sync with the heuristic implementations in //treesitter_delta/.
         if self.arg == 'replace-function-def-with-decl':
             return [b'regular', b'template-function']
@@ -53,7 +53,7 @@ class TreeSitterPass(HintBasedPass):
         # When reading, gracefully handle EOF because the tool might've failed with no output.
         stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
-        vocab_decoder = msgspec.json.Decoder(type=List[str])
+        vocab_decoder = msgspec.json.Decoder(type=list[str])
         orig_vocab = [s.encode() for s in vocab_decoder.decode(vocab_line)] if vocab_line else []
 
         hints = []

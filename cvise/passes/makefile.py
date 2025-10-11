@@ -1,7 +1,6 @@
 from enum import Enum, unique
 from pathlib import Path
 import re
-from typing import Dict, List
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import makefileparser
@@ -42,7 +41,7 @@ class MakefilePass(HintBasedPass):
     files and to prevent the makefiles from being corrupted by other passes.
     """
 
-    def __init__(self, claim_files: List[str], **kwargs):
+    def __init__(self, claim_files: list[str], **kwargs):
         super().__init__(claim_files=claim_files, **kwargs)
 
     def check_prerequisites(self):
@@ -51,13 +50,13 @@ class MakefilePass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
-    def output_hint_types(self) -> List[bytes]:
+    def output_hint_types(self) -> list[bytes]:
         return [v.value[1] for v in _Vocab]
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         makefiles = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
-        vocab: List[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
-        hints: List[Hint] = []
+        vocab: list[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
+        hints: list[Hint] = []
         for path in makefiles:
             rel_path = path.relative_to(test_case)
             vocab.append(str(rel_path).encode())
@@ -70,7 +69,7 @@ class MakefilePass(HintBasedPass):
         return HintBundle(hints=hints, vocabulary=vocab)
 
 
-def _add_fileref_hints(file_id: int, hints: List[Hint]) -> None:
+def _add_fileref_hints(file_id: int, hints: list[Hint]) -> None:
     hints.append(
         Hint(
             type=_Vocab.MAKEFILE.value[0],
@@ -90,8 +89,8 @@ def _add_fileref_hints(file_id: int, hints: List[Hint]) -> None:
     )
 
 
-def _add_arg_removal_hints(mk: Makefile, file_id: int, hints: List[Hint]) -> None:
-    arg_locs: Dict[bytes, List[SourceLoc]] = {}
+def _add_arg_removal_hints(mk: Makefile, file_id: int, hints: list[Hint]) -> None:
+    arg_locs: dict[bytes, list[SourceLoc]] = {}
 
     for rule in mk.rules:
         for recipe_line in rule.recipe:
@@ -114,9 +113,9 @@ def _add_arg_removal_hints(mk: Makefile, file_id: int, hints: List[Hint]) -> Non
         )
 
 
-def _add_target_removal_hints(mk: Makefile, file_id: int, hints: List[Hint]) -> None:
+def _add_target_removal_hints(mk: Makefile, file_id: int, hints: list[Hint]) -> None:
     # First, collect target names and their locations in recipe headers.
-    target_mentions: Dict[Path, List[SourceLoc]] = {}
+    target_mentions: dict[Path, list[SourceLoc]] = {}
     for rule in mk.rules:
         # Either delete a mention of a target from the rule, or the whole rule if it's the only target in it.
         if len({t.value for t in rule.targets}) == 1:
@@ -174,7 +173,7 @@ def _add_target_removal_hints(mk: Makefile, file_id: int, hints: List[Hint]) -> 
         )
 
 
-def _get_removable_arg_groups(args: List[TextWithLoc]) -> List[List[TextWithLoc]]:
+def _get_removable_arg_groups(args: list[TextWithLoc]) -> list[list[TextWithLoc]]:
     two_token_option = None
     removable = []
     for arg in args:

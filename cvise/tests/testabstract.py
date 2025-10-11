@@ -2,7 +2,7 @@ import jsonschema
 import msgspec
 from pathlib import Path
 import tempfile
-from typing import Optional, Set, Tuple, Union
+from typing import Optional, Union
 
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintBasedPass, HintState
@@ -33,7 +33,7 @@ def iterate_pass(current_pass: AbstractPass, path: Path, **kwargs) -> None:
             state = current_pass.advance(path, state)
 
 
-def collect_all_transforms(pass_: AbstractPass, state, input_path: Path) -> Set[bytes]:
+def collect_all_transforms(pass_: AbstractPass, state, input_path: Path) -> set[bytes]:
     all_outputs = set()
     with CloseableTemporaryFile() as tmp_file:
         tmp_path = Path(tmp_file.name)
@@ -50,7 +50,7 @@ def collect_all_transforms(pass_: AbstractPass, state, input_path: Path) -> Set[
     return all_outputs
 
 
-def collect_all_transforms_dir(pass_: AbstractPass, state, input_path: Path) -> Set[Tuple[Tuple[str, bytes]]]:
+def collect_all_transforms_dir(pass_: AbstractPass, state, input_path: Path) -> set[tuple[tuple[str, bytes]]]:
     all_outputs = set()
     while state is not None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -83,7 +83,7 @@ def validate_stored_hints(state: Union[HintState, None], pass_: HintBasedPass, t
         validate_hint_bundle(bundle, test_case, output_types)
 
 
-def validate_hint_bundle(bundle: HintBundle, test_case: Path, allowed_hint_types: Optional[Set[bytes]] = None) -> None:
+def validate_hint_bundle(bundle: HintBundle, test_case: Path, allowed_hint_types: Optional[set[bytes]] = None) -> None:
     for hint in bundle.hints:
         # Check against JSON Schema.
         json_dump = msgspec.json.encode(hint)

@@ -3,7 +3,8 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 import tempfile
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
+from collections.abc import Sequence
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult, ProcessEventNotifier
 from cvise.utils.fileutil import sanitize_for_file_name
@@ -41,7 +42,7 @@ class PerTypeHintState:
         type_s = self.type.decode() + ': ' if self.type else ''
         return f'PerTypeHintState({type_s}{self.underlying_state.compact_repr()})'
 
-    def advance(self) -> Optional[PerTypeHintState]:
+    def advance(self) -> PerTypeHintState | None:
         # Move to the next step in the enumeration, or to None if this was the last step.
         next = self.underlying_state.advance()
         if next is None:
@@ -52,7 +53,7 @@ class PerTypeHintState:
             underlying_state=next,
         )
 
-    def advance_on_success(self, new_hint_count: int, new_file_name: Path) -> Optional[PerTypeHintState]:
+    def advance_on_success(self, new_hint_count: int, new_file_name: Path) -> PerTypeHintState | None:
         next = self.underlying_state.advance_on_success(new_hint_count)
         if next is None:
             return None
@@ -101,15 +102,15 @@ class HintState:
     tmp_dir: Path
     # The enumeration state for each hint type. Sorted by type (in order to have deterministic and repeatable
     # enumeration order).
-    per_type_states: Tuple[PerTypeHintState, ...]
+    per_type_states: tuple[PerTypeHintState, ...]
     # Pointer to the current per-type state in the round-robin enumeration.
     ptr: int
     # Information for "special" hint types (those that start with "@"). They're stored separately because we don't
     # attempt applying them during enumeration - they're only intended as inputs for other passes that depend on them.
-    special_hints: Tuple[SpecialHintState, ...]
+    special_hints: tuple[SpecialHintState, ...]
 
     @staticmethod
-    def create(tmp_dir: Path, per_type_states: List[PerTypeHintState], special_hints: List[SpecialHintState]):
+    def create(tmp_dir: Path, per_type_states: list[PerTypeHintState], special_hints: list[SpecialHintState]):
         assert per_type_states or special_hints
         sorted_states = sorted(per_type_states, key=lambda s: s.type)
         sorted_special_hints = sorted(special_hints, key=lambda s: s.type)
@@ -133,7 +134,7 @@ class HintState:
     def real_chunk(self) -> int:
         return self.current_substate().underlying_state.real_chunk()
 
-    def advance(self) -> Optional[HintState]:
+    def advance(self) -> HintState | None:
         if not self.per_type_states:
             # This is reachable if only special hint types are present.
             return None
@@ -166,8 +167,8 @@ class HintState:
         )
 
     def advance_on_success(
-        self, type_to_bundle: Dict[bytes, HintBundle], type_to_file_name: Dict[bytes, Path], new_tmp_dir: Path
-    ) -> Optional[HintState]:
+        self, type_to_bundle: dict[bytes, HintBundle], type_to_file_name: dict[bytes, Path], new_tmp_dir: Path
+    ) -> HintState | None:
         # Advance all previously present hint types' substates. We ignore any newly appearing hint types because it's
         # nontrivial to distinguish geniunely new hints from those that we (unsuccessfully) checked.
         sub_states = []
@@ -199,7 +200,7 @@ class HintState:
             return False
         return self.current_substate().subset_of(other.current_substate())
 
-    def hint_bundle_paths(self) -> Dict[bytes, Path]:
+    def hint_bundle_paths(self) -> dict[bytes, Path]:
         return {
             substate.type: self.tmp_dir / substate.hints_file_name
             for substate in self.per_type_states + self.special_hints
@@ -227,13 +228,13 @@ class HintBasedPass(AbstractPass):
         self,
         test_case: Path,
         process_event_notifier: ProcessEventNotifier,
-        dependee_hints: List[HintBundle],
+        dependee_hints: list[HintBundle],
         *args,
         **kwargs,
     ) -> HintBundle:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'generate_hints'!")
 
-    def input_hint_types(self) -> List[bytes]:
+    def input_hint_types(self) -> list[bytes]:
         """Declares hint types that are consumed by this pass as inputs.
 
         Intended to be overridden by subclasses, in cases where dependencies between passes need to be implemented:
@@ -243,7 +244,7 @@ class HintBasedPass(AbstractPass):
         """
         return []
 
-    def output_hint_types(self) -> List[bytes]:
+    def output_hint_types(self) -> list[bytes]:
         """Declares hint types that are produced by this pass.
 
         A pass must override this method if it produces hints with a nonempty type (the "t" field).
@@ -262,7 +263,7 @@ class HintBasedPass(AbstractPass):
         test_case: Path,
         tmp_dir: Path,
         process_event_notifier: ProcessEventNotifier,
-        dependee_hints: List[HintBundle],
+        dependee_hints: list[HintBundle],
         *args,
         **kwargs,
     ):
@@ -281,7 +282,7 @@ class HintBasedPass(AbstractPass):
     def load_and_apply_hints(
         original_test_case: Path, test_case: Path, states: Sequence[HintState]
     ) -> HintApplicationStats:
-        hint_bundles: List[HintBundle] = []
+        hint_bundles: list[HintBundle] = []
         for state in states:
             sub_state = state.current_substate()
             hints_range_begin = sub_state.underlying_state.index
@@ -301,7 +302,7 @@ class HintBasedPass(AbstractPass):
         state,
         new_tmp_dir: Path,
         process_event_notifier: ProcessEventNotifier,
-        dependee_hints: List[HintBundle],
+        dependee_hints: list[HintBundle],
         *args,
         **kwargs,
     ):
@@ -310,7 +311,7 @@ class HintBasedPass(AbstractPass):
         )
         return self.advance_on_success_from_hints(hints, state, new_tmp_dir)
 
-    def new_from_hints(self, bundle: HintBundle, tmp_dir: Path) -> Optional[HintState]:
+    def new_from_hints(self, bundle: HintBundle, tmp_dir: Path) -> HintState | None:
         """Creates a state for pre-generated hints.
 
         Can be used by subclasses which don't follow the typical approach with implementing generate_hints()."""
@@ -321,8 +322,8 @@ class HintBasedPass(AbstractPass):
         for sub_bundle in type_to_bundle.values():
             sort_hints(sub_bundle)
         type_to_file_name = _store_hints_per_type(tmp_dir, type_to_bundle)
-        sub_states: List[PerTypeHintState] = []
-        special_states: List[SpecialHintState] = []
+        sub_states: list[PerTypeHintState] = []
+        special_states: list[SpecialHintState] = []
         for type, sub_bundle in type_to_bundle.items():
             if is_special_hint_type(type):
                 # "Special" hints aren't attempted in transform() jobs - only store them to be consumed by other passes.
@@ -345,7 +346,7 @@ class HintBasedPass(AbstractPass):
 
     def advance_on_success_from_hints(
         self, bundle: HintBundle, state: HintState, new_tmp_dir: Path
-    ) -> Optional[HintState]:
+    ) -> HintState | None:
         """Advances the state after a successful reduction, given pre-generated hints.
 
         Can be used by subclasses which don't follow the typical approach with implementing generate_hints()."""
@@ -358,7 +359,7 @@ class HintBasedPass(AbstractPass):
         type_to_file_name = _store_hints_per_type(new_tmp_dir, type_to_bundle)
         return state.advance_on_success(type_to_bundle, type_to_file_name, new_tmp_dir)
 
-    def backfill_pass_names(self, type_to_bundle: Dict[bytes, HintBundle]) -> None:
+    def backfill_pass_names(self, type_to_bundle: dict[bytes, HintBundle]) -> None:
         for bundle in type_to_bundle.values():
             if not bundle.pass_name:
                 bundle.pass_name = repr(self)
@@ -366,7 +367,7 @@ class HintBasedPass(AbstractPass):
                 bundle.pass_user_visible_name = self.user_visible_name()
 
 
-def _store_hints_per_type(tmp_dir: Path, type_to_bundle: Dict[bytes, HintBundle]) -> Dict[bytes, Path]:
+def _store_hints_per_type(tmp_dir: Path, type_to_bundle: dict[bytes, HintBundle]) -> dict[bytes, Path]:
     type_to_file_name = {}
     for type, sub_bundle in type_to_bundle.items():
         path = _create_file_with_unique_name(tmp_dir, type)

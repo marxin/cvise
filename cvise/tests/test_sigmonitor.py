@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 import contextlib
 import gc
 import multiprocessing
@@ -8,7 +9,6 @@ import queue
 import signal
 import threading
 import time
-from typing import Iterator, Type
 import weakref
 
 from cvise.utils import sigmonitor
@@ -131,7 +131,7 @@ def test_raise_exception_in_del(
     process_ready_event: threading.Event,
     process_result_queue: queue.Queue,
     signum: int,
-    expected_exception: Type[BaseException],
+    expected_exception: type[BaseException],
 ):
     proc = multiprocessing.Process(
         target=_process_main_sleeping_in_del,
@@ -212,7 +212,7 @@ def _process_main_sleeping_in_del(
     mode: sigmonitor.Mode,
     process_ready_event: threading.Event,
     process_result_queue: queue.Queue,
-    expected_exception: Type[BaseException],
+    expected_exception: type[BaseException],
 ):
     sigmonitor.init(mode)
     assert not sigmonitor.get_future().done()
@@ -245,7 +245,7 @@ def _process_main_sleeping_in_finalize(
     mode: sigmonitor.Mode,
     process_ready_event: threading.Event,
     process_result_queue: queue.Queue,
-    expected_exception: Type[BaseException],
+    expected_exception: type[BaseException],
 ):
     sigmonitor.init(mode)
     assert not sigmonitor.get_future().done()

@@ -1,7 +1,7 @@
+from collections.abc import Iterator
 from pathlib import Path
 import pytest
 import tempfile
-from typing import Iterator, List
 import uuid
 
 from cvise.passes.abstract import AbstractPass
@@ -93,6 +93,6 @@ def test_cache_eviction(cache: Cache, cache_tmp_prefix: str):
     assert len(_get_cache_storage_dirs(cache_tmp_prefix)) <= Cache.MAX_ITEMS_PER_PASS_GROUP
 
 
-def _get_cache_storage_dirs(cache_tmp_prefix: str) -> List[Path]:
+def _get_cache_storage_dirs(cache_tmp_prefix: str) -> list[Path]:
     tmp_dir = Path(tempfile.gettempdir())
     return list(tmp_dir.glob(f'{cache_tmp_prefix}*'))

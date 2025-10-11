@@ -1,7 +1,7 @@
 import msgspec
 from pathlib import Path
 import subprocess
-from typing import Dict, List, Optional
+from typing import Optional
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.fileutil import filter_files_by_patterns
@@ -10,7 +10,7 @@ from cvise.utils.process import ProcessEventNotifier
 
 
 class LinesPass(HintBasedPass):
-    def __init__(self, arg: str, external_programs: Dict[str, Optional[str]], **kwargs):
+    def __init__(self, arg: str, external_programs: dict[str, Optional[str]], **kwargs):
         super().__init__(arg=arg, external_programs=external_programs, **kwargs)
 
     def check_prerequisites(self):
@@ -33,7 +33,7 @@ class LinesPass(HintBasedPass):
 
         return HintBundle(hints=hints, vocabulary=vocab)
 
-    def _generate_hints_for_text_lines(self, input_path: Path, file_id: Optional[int], hints: List[Hint]) -> None:
+    def _generate_hints_for_text_lines(self, input_path: Path, file_id: Optional[int], hints: list[Hint]) -> None:
         """Generate a hint per each line in the input as written."""
         with open(input_path, 'rb') as in_file:
             file_pos = 0
@@ -46,9 +46,9 @@ class LinesPass(HintBasedPass):
         self,
         test_case: Path,
         is_dir: bool,
-        paths: List[Path],
+        paths: list[Path],
         process_event_notifier: ProcessEventNotifier,
-        hints: List[Hint],
+        hints: list[Hint],
     ) -> None:
         """Generate hints via the modified topformflat tool.
 

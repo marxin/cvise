@@ -10,7 +10,8 @@ import re
 import shutil
 import string
 import tempfile
-from typing import Iterable, Iterator, List, Optional, Set, Union
+from typing import Optional, Union
+from collections.abc import Iterable, Iterator
 
 
 # Singleton buffer for hash_test_case(), to avoid reallocations.
@@ -150,7 +151,7 @@ def hash_test_case(test_case: Path) -> bytes:
         return _hash_file(test_case, buf_view)
 
 
-def filter_files_by_patterns(test_case: Path, include_globs: List[str], default_exclude_globs: List[str]) -> List[Path]:
+def filter_files_by_patterns(test_case: Path, include_globs: list[str], default_exclude_globs: list[str]) -> list[Path]:
     if include_globs:
         paths = _find_files_matching(test_case, include_globs)
     else:
@@ -169,7 +170,7 @@ def diff_test_cases(orig_test_case: Path, changed_test_case: Path) -> bytes:
     else:
         rel_paths = [Path()]
 
-    diff_lines: List[bytes] = []
+    diff_lines: list[bytes] = []
     for rel_path in rel_paths:
         orig_path = orig_test_case / rel_path
         dest_path = changed_test_case / rel_path
@@ -193,7 +194,7 @@ def diff_test_cases(orig_test_case: Path, changed_test_case: Path) -> bytes:
     return b''.join(diff_lines)
 
 
-def _try_read_file_lines(path: Path) -> List[bytes]:
+def _try_read_file_lines(path: Path) -> list[bytes]:
     if not path.is_file():
         return []
     with open(path, 'rb') as f:
@@ -274,7 +275,7 @@ def _robust_temp_dir(dir: Path) -> Iterator[Path]:
             yield Path(tmp_dir)
 
 
-def _find_files_matching(test_case: Path, globs: List[str]) -> Set[Path]:
+def _find_files_matching(test_case: Path, globs: list[str]) -> set[Path]:
     if test_case.is_symlink():
         return set()
 

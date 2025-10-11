@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from typing import Set
 
 
 class CViseError(Exception):
@@ -74,7 +73,7 @@ class ScriptInsideTestCaseError(CViseError):
 
 
 class ZeroSizeError(CViseError):
-    def __init__(self, test_cases: Set[Path]):
+    def __init__(self, test_cases: set[Path]):
         super().__init__()
         self.test_cases = test_cases
 
@@ -126,7 +125,7 @@ and creating an issue at https://github.com/marxin/cvise/issues and we will try 
 
 
 class InsaneTestCaseError(CViseError):
-    def __init__(self, test_cases: Set[Path], test: Path):
+    def __init__(self, test_cases: set[Path], test: Path):
         super().__init__()
         self.test_cases = test_cases
         self.test = test

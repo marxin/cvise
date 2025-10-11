@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from enum import Enum, unique
 from pathlib import Path
 import re
-from typing import Dict, List, Union
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.fileutil import filter_files_by_patterns
@@ -37,14 +36,14 @@ class ClangModuleMapPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
-    def output_hint_types(self) -> List[bytes]:
+    def output_hint_types(self) -> list[bytes]:
         return [v.value[1] for v in _Vocab]
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
-        vocab: List[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
-        path_to_vocab: Dict[Path, int] = {}
-        hints: List[Hint] = []
+        vocab: list[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
+        path_to_vocab: dict[Path, int] = {}
+        hints: list[Hint] = []
         for path in paths:
             file = _parse_file(path)
 
@@ -84,18 +83,18 @@ class _ModuleDecl:
     title_loc: _SourceLoc  # location of " ... module ... {"
     close_brace_loc: _SourceLoc
     id: str
-    headers: List[_HeaderDecl]
-    uses: List[_UseDecl]
-    submodules: List[_ModuleDecl]
+    headers: list[_HeaderDecl]
+    uses: list[_UseDecl]
+    submodules: list[_ModuleDecl]
 
 
 @dataclass
 class _ModuleMapFile:
-    modules: List[_ModuleDecl]
-    unclassified_lines: List[_SourceLoc]
+    modules: list[_ModuleDecl]
+    unclassified_lines: list[_SourceLoc]
 
 
-def _get_vocab_id(path: Path, vocab: List[bytes], path_to_vocab: Dict[Path, int]) -> int:
+def _get_vocab_id(path: Path, vocab: list[bytes], path_to_vocab: dict[Path, int]) -> int:
     if path in path_to_vocab:
         return path_to_vocab[path]
     vocab.append(str(path).encode())
@@ -109,9 +108,9 @@ def _create_hints_for_module(
     test_case: Path,
     file_id: int,
     toplevel: bool,
-    hints: List[Hint],
-    vocab: List[bytes],
-    path_to_vocab: Dict[Path, int],
+    hints: list[Hint],
+    vocab: list[bytes],
+    path_to_vocab: dict[Path, int],
 ) -> None:
     empty = not mod.headers and not mod.uses and not mod.submodules
     if not toplevel and empty:
@@ -194,7 +193,7 @@ def _create_hints_for_module(
         )
 
 
-def _create_hints_for_unclassified_lines(unclassified_lines: List[_SourceLoc], file_id: int, hints: List[Hint]) -> None:
+def _create_hints_for_unclassified_lines(unclassified_lines: list[_SourceLoc], file_id: int, hints: list[Hint]) -> None:
     for loc in unclassified_lines:
         hints.append(
             Hint(
@@ -213,7 +212,7 @@ def _create_hints_for_unclassified_lines(unclassified_lines: List[_SourceLoc], f
 def _parse_file(path: Path) -> _ModuleMapFile:
     file = _ModuleMapFile(modules=[], unclassified_lines=[])
     with open(path, 'rb') as f:
-        stack: List[_ModuleDecl] = []
+        stack: list[_ModuleDecl] = []
         file_pos = 0
         for line in f:
             loc = _SourceLoc(begin=file_pos, end=file_pos + len(line))
@@ -239,7 +238,7 @@ def _parse_file(path: Path) -> _ModuleMapFile:
     return file
 
 
-def _try_parse_module_decl(line: bytes, loc: _SourceLoc) -> Union[_ModuleDecl, None]:
+def _try_parse_module_decl(line: bytes, loc: _SourceLoc) -> _ModuleDecl | None:
     m = re.match(rb'.*\bmodule\s+(\S+).*{\s*', line)
     if not m:
         return None
@@ -258,7 +257,7 @@ def _try_parse_module_decl(line: bytes, loc: _SourceLoc) -> Union[_ModuleDecl, N
     )
 
 
-def _try_parse_header_decl(line: bytes, loc: _SourceLoc) -> Union[_HeaderDecl, None]:
+def _try_parse_header_decl(line: bytes, loc: _SourceLoc) -> _HeaderDecl | None:
     m = re.match(rb'.*\bheader\s+"([^\s"]+)".*', line)
     if not m:
         return None
@@ -266,7 +265,7 @@ def _try_parse_header_decl(line: bytes, loc: _SourceLoc) -> Union[_HeaderDecl, N
     return _HeaderDecl(loc=loc, file_path=file_path)
 
 
-def _try_parse_use_decl(line: bytes, loc: _SourceLoc) -> Union[_UseDecl, None]:
+def _try_parse_use_decl(line: bytes, loc: _SourceLoc) -> _UseDecl | None:
     m = re.match(rb'.*\buse\s+(\S+).*', line)
     if not m:
         return None
