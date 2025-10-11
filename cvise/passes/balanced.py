@@ -2,7 +2,7 @@ from enum import Enum, auto, unique
 from dataclasses import dataclass
 from pathlib import Path
 import re
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import nestedmatcher
@@ -53,7 +53,7 @@ class BalancedPass(HintBasedPass):
             self._generate_hints_for_file(path, config, file_id, hints)
         return HintBundle(hints=hints, vocabulary=vocabulary)
 
-    def _generate_hints_for_file(self, path: Path, config: Config, file_id: Optional[int], hints: List[Hint]) -> None:
+    def _generate_hints_for_file(self, path: Path, config: Config, file_id: Optional[int], hints: list[Hint]) -> None:
         open_ch = ord(config.search.value[0])
         close_ch = ord(config.search.value[1])
 
@@ -95,7 +95,7 @@ class BalancedPass(HintBasedPass):
 
         # Scan the text left-to-right and maintain active (not yet matched) open brackets in a stack; None denotes a
         # "bad" open bracket - without the expected prefix.
-        active_stack: List[Union[int, None]] = []
+        active_stack: list[Union[int, None]] = []
         for file_pos, ch in enumerate(contents):
             if ch == open_ch:
                 start = get_touching_prefix(file_pos) if config.search_prefix else file_pos

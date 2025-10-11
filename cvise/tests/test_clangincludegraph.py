@@ -1,6 +1,6 @@
 from pathlib import Path
 import pytest
-from typing import Any, Tuple
+from typing import Any
 
 from cvise.passes.clangincludegraph import ClangIncludeGraphPass
 from cvise.passes.hint_based import HintBasedPass
@@ -10,7 +10,7 @@ from cvise.utils.hint import Hint, HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
 
 
-def init_pass(tmp_dir: Path, input_path: Path) -> Tuple[ClangIncludeGraphPass, Any]:
+def init_pass(tmp_dir: Path, input_path: Path) -> tuple[ClangIncludeGraphPass, Any]:
     pass_ = ClangIncludeGraphPass(external_programs=find_external_programs())
 
     # 1. Simulate the MakefilePass outputs.

@@ -4,7 +4,7 @@ from pathlib import Path
 import shlex
 import subprocess
 import time
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.hint import Hint, HintBundle
@@ -45,7 +45,7 @@ class ClangHintsPass(HintBasedPass):
     def __init__(
         self,
         arg: str,
-        external_programs: Dict[str, Optional[str]],
+        external_programs: dict[str, Optional[str]],
         user_clang_delta_std: Optional[str] = None,
         **kwargs,
     ):
@@ -152,7 +152,7 @@ class ClangHintsPass(HintBasedPass):
         # When reading, gracefully handle EOF because the tool might've failed with no output.
         stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
-        vocab_decoder = msgspec.json.Decoder(type=List[str])
+        vocab_decoder = msgspec.json.Decoder(type=list[str])
         vocab = [s.encode() for s in vocab_decoder.decode(vocab_line)] if vocab_line else []
 
         hints = []

@@ -6,7 +6,6 @@ import logging
 from pathlib import Path
 import random
 import shutil
-from typing import Dict, List, Optional, Union
 
 from cvise.utils.process import ProcessEventNotifier
 
@@ -54,7 +53,7 @@ class SubsegmentState:
     def real_chunk(self) -> int:
         return self.chunk
 
-    def advance(self) -> Union[SubsegmentState, None]:
+    def advance(self) -> SubsegmentState | None:
         to_start = self.index + 1 == self.start
         to_wrapover = self.index + 1 + self.chunk > self.instances
         if to_start or (to_wrapover and self.start == 0):
@@ -67,7 +66,7 @@ class SubsegmentState:
             start=self.start,
         )
 
-    def advance_on_success(self, instances) -> Union[SubsegmentState, None]:
+    def advance_on_success(self, instances) -> SubsegmentState | None:
         if self.chunk > instances:
             return None
         if wrapover := self.index + self.chunk > instances:
@@ -152,11 +151,11 @@ class AbstractPass:
 
     def __init__(
         self,
-        arg: Optional[str] = None,
-        external_programs: Optional[Dict[str, Optional[str]]] = None,
-        max_transforms: Optional[int] = None,
-        claim_files: Optional[List[str]] = None,
-        claimed_by_others_files: Optional[List[str]] = None,
+        arg: str | None = None,
+        external_programs: dict[str, str | None] | None = None,
+        max_transforms: int | None = None,
+        claim_files: list[str] | None = None,
+        claimed_by_others_files: list[str] | None = None,
         *args,
         **kwargs,
     ):
@@ -202,7 +201,7 @@ class AbstractPass:
         """
         return False
 
-    def create_subordinate_passes(self) -> List[AbstractPass]:
+    def create_subordinate_passes(self) -> list[AbstractPass]:
         """Additional passes that perform the work needed for this pass.
 
         By default empty; useful for implementing parallelization of pass initialization.

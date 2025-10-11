@@ -1,6 +1,6 @@
 from pathlib import Path
 import pytest
-from typing import Tuple, Union
+from typing import Union
 
 from cvise.passes.hint_based import HintState
 from cvise.passes.blank import BlankPass
@@ -13,7 +13,7 @@ def input_path(tmp_path: Path) -> Path:
     return tmp_path / 'input.txt'
 
 
-def init_pass(tmp_dir: Path, input_path: Path) -> Tuple[BlankPass, Union[HintState, None]]:
+def init_pass(tmp_dir: Path, input_path: Path) -> tuple[BlankPass, Union[HintState, None]]:
     pass_ = BlankPass()
     state = pass_.new(input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[])
     validate_stored_hints(state, pass_, input_path)

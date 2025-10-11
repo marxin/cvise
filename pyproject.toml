@@ -9,16 +9,13 @@ requires-python = ">=3.9"
 
 [tool.ruff]
 exclude = ["objdir", "tree-sitter", "tree-sitter-cpp"]
-
+target-version = "py39"
 line-length = 120
 
 [tool.ruff.lint]
 ignore = [
     "E501",
     "UP031",
-    "UP006",  # incorrectly suggests "Use `list` instead of `List` for type annotation" which is incompatible with Python 3.8
-    "UP007",  # incorrectly suggests "Use `X | Y` for type annotations" which is incompatible with Python 3.8
-    "UP045",  # incorrectly suggests "Use `X | None` for type annotations" which is incompatible with Python 3.8
 ]
 select = ["B", "E", "F", "W", "UP", "C4"] # consider: ["I", "RUF"]
 preview = true

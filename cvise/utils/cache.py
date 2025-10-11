@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 import tempfile
-from typing import Dict, Optional, Sequence
+from typing import Optional
+from collections.abc import Sequence
 
 from cvise.passes.abstract import AbstractPass
 from cvise.utils import fileutil
@@ -18,7 +19,7 @@ class Cache:
 
     def __init__(self, tmp_prefix: str):
         self._tmp_prefix: str = tmp_prefix
-        self._items: Dict[str, Dict[bytes, _Item]] = {}
+        self._items: dict[str, dict[bytes, _Item]] = {}
 
     def __enter__(self):
         return self

@@ -1,6 +1,6 @@
 from pathlib import Path
 import pytest
-from typing import Any, Tuple
+from typing import Any
 
 from cvise.passes.clangmodulemap import ClangModuleMapPass
 from cvise.tests.testabstract import collect_all_transforms_dir, validate_stored_hints
@@ -15,7 +15,7 @@ def test_case_path(tmp_path: Path) -> Path:
     return path
 
 
-def init_pass(tmp_dir: Path, test_case_path: Path) -> Tuple[ClangModuleMapPass, Any]:
+def init_pass(tmp_dir: Path, test_case_path: Path) -> tuple[ClangModuleMapPass, Any]:
     pass_ = ClangModuleMapPass()
     state = pass_.new(
         test_case_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]

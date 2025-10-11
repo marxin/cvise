@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List, Set
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.hint import Hint, HintBundle, Patch
@@ -26,14 +25,14 @@ class RmUnusedFilesPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
-    def input_hint_types(self) -> List[bytes]:
+    def input_hint_types(self) -> list[bytes]:
         return [_FILEREF]
 
-    def generate_hints(self, test_case: Path, dependee_hints: List[HintBundle], *args, **kwargs):
+    def generate_hints(self, test_case: Path, dependee_hints: list[HintBundle], *args, **kwargs):
         if not test_case.is_dir():
             return HintBundle(hints=[])
 
-        referenced_files: Set[Path] = set()
+        referenced_files: set[Path] = set()
         for bundle in dependee_hints:
             for hint in bundle.hints:
                 assert hint.type is not None

@@ -1,6 +1,7 @@
+from collections.abc import Iterator
 from pathlib import Path
 import re
-from typing import Dict, Iterator, List, Optional, Set
+from typing import Optional
 
 from cvise.passes.abstract import AbstractPass
 from cvise.passes.hint_based import HintBasedPass
@@ -43,7 +44,7 @@ class ClangIncludeGraphPass(HintBasedPass):
     MakefilePass reported (via the "@makefile" hints).
     """
 
-    def __init__(self, external_programs: Dict[str, Optional[str]], **kwargs):
+    def __init__(self, external_programs: dict[str, Optional[str]], **kwargs):
         super().__init__(external_programs=external_programs, **kwargs)
 
     def check_prerequisites(self):
@@ -52,27 +53,27 @@ class ClangIncludeGraphPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
-    def create_subordinate_passes(self) -> List[AbstractPass]:
+    def create_subordinate_passes(self) -> list[AbstractPass]:
         return [_ClangIncludeGraphMultiplexPass(i, self.external_programs) for i in range(_INIT_PARALLELIZATION)]
 
-    def input_hint_types(self) -> List[bytes]:
+    def input_hint_types(self) -> list[bytes]:
         return [_MULTIPLEX_PASS_HINT_TEMPLATE.format(i).encode() for i in range(_INIT_PARALLELIZATION)]
 
-    def output_hint_types(self) -> List[bytes]:
+    def output_hint_types(self) -> list[bytes]:
         return list(_HINT_VOCAB)
 
-    def generate_hints(self, test_case: Path, dependee_hints: List[HintBundle], *args, **kwargs):
+    def generate_hints(self, test_case: Path, dependee_hints: list[HintBundle], *args, **kwargs):
         # Simply merge received hints - the actual work has been done by _ClangIncludeGraphMultiplexPass instances.
         merged_vocab = []
         for bundle in dependee_hints:
             merged_vocab.extend(bundle.vocabulary)
-        vocab: List[bytes] = list(_HINT_VOCAB) + sorted(set(merged_vocab))
-        text_to_vocab: Dict[bytes, int] = {s: i for i, s in enumerate(vocab)}
+        vocab: list[bytes] = list(_HINT_VOCAB) + sorted(set(merged_vocab))
+        text_to_vocab: dict[bytes, int] = {s: i for i, s in enumerate(vocab)}
         hints = [_remap_file_ids(h, b, text_to_vocab) for b in dependee_hints for h in b.hints]
         return HintBundle(hints=list(set(hints)), vocabulary=vocab)
 
 
-def _remap_file_ids(hint: Hint, bundle: HintBundle, text_to_vocab: Dict[bytes, int]) -> Hint:
+def _remap_file_ids(hint: Hint, bundle: HintBundle, text_to_vocab: dict[bytes, int]) -> Hint:
     patches = tuple(
         Patch(left=p.left, right=p.right, file=text_to_vocab[bundle.vocabulary[p.file]]) for p in hint.patches
     )
@@ -85,7 +86,7 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
     Processes commands with indices equal to the specified parameter modulo _INIT_PARALLELIZATION.
     """
 
-    def __init__(self, modulo: int, external_programs: Dict[str, Optional[str]]):
+    def __init__(self, modulo: int, external_programs: dict[str, Optional[str]]):
         super().__init__(external_programs=external_programs)
         self._modulo = modulo
         self._hint_type = _MULTIPLEX_PASS_HINT_TEMPLATE.format(self._modulo).encode()
@@ -100,18 +101,18 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
     def supports_dir_test_cases(self):
         return True
 
-    def input_hint_types(self) -> List[bytes]:
+    def input_hint_types(self) -> list[bytes]:
         # We obtain the list of parsable makefiles from the MakefilePass heuristic.
         return [b'@makefile']
 
-    def output_hint_types(self) -> List[bytes]:
+    def output_hint_types(self) -> list[bytes]:
         return [self._hint_type]
 
     def generate_hints(
         self,
         test_case: Path,
         process_event_notifier: ProcessEventNotifier,
-        dependee_hints: List[HintBundle],
+        dependee_hints: list[HintBundle],
         *args,
         **kwargs,
     ):
@@ -119,9 +120,9 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
         all_commands = _get_all_makefile_commands(makefiles)
         commands = _get_kth_modulo_n(all_commands, self._modulo, _INIT_PARALLELIZATION)
 
-        vocab: List[bytes] = [self._hint_type]
-        path_to_vocab: Dict[Path, int] = {}
-        hints: Set[Hint] = set()
+        vocab: list[bytes] = [self._hint_type]
+        path_to_vocab: dict[Path, int] = {}
+        hints: set[Hint] = set()
         for cmd in commands:
             proc = [self.external_programs['clang_include_graph']] + cmd
             stdout = process_event_notifier.check_output(proc, cwd=test_case)
@@ -147,7 +148,7 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
         return HintBundle(hints=list(hints), vocabulary=vocab)
 
 
-def _get_makefiles_from_hints(test_case: Path, dependee_hints: List[HintBundle]) -> List[Path]:
+def _get_makefiles_from_hints(test_case: Path, dependee_hints: list[HintBundle]) -> list[Path]:
     paths = set()
     for bundle in dependee_hints:
         for hint in bundle.hints:
@@ -158,8 +159,8 @@ def _get_makefiles_from_hints(test_case: Path, dependee_hints: List[HintBundle])
     return list(paths)
 
 
-def _get_all_makefile_commands(makefiles: List[Path]) -> List[List[str]]:
-    commands: List[List[str]] = []
+def _get_all_makefile_commands(makefiles: list[Path]) -> list[list[str]]:
+    commands: list[list[str]] = []
     for mk_path in sorted(makefiles):
         mk = makefileparser.parse(mk_path)
         for rule in mk.rules:
@@ -170,11 +171,11 @@ def _get_all_makefile_commands(makefiles: List[Path]) -> List[List[str]]:
     return commands
 
 
-def _get_kth_modulo_n(commands: List[List[str]], k: int, n: int) -> List[List[str]]:
+def _get_kth_modulo_n(commands: list[list[str]], k: int, n: int) -> list[list[str]]:
     return [c for i, c in enumerate(commands) if i % n == k]
 
 
-def _filter_args(args: List[makefileparser.TextWithLoc]) -> List[str]:
+def _filter_args(args: list[makefileparser.TextWithLoc]) -> list[str]:
     filtered = []
     for arg in args:
         cur = arg.value.decode()
@@ -195,7 +196,7 @@ def _split_by_null_char(data: bytes) -> Iterator[str]:
         start = sep + 1
 
 
-def _get_vocab_id(path: Path, test_case: Path, vocab: List[bytes], path_to_vocab: Dict[Path, int]) -> Optional[int]:
+def _get_vocab_id(path: Path, test_case: Path, vocab: list[bytes], path_to_vocab: dict[Path, int]) -> Optional[int]:
     test_case = test_case.resolve()
     if not path.is_absolute():
         path = test_case / path
