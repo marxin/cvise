@@ -208,7 +208,7 @@ def test_non_ascii(tmp_path: Path, overridden_subprocess_tmpdir: Path):
 
     # Also enable diff logging to check it doesn't break on non-unicode.
     proc = start_cvise(
-        ['-c', 'gcc -c test.c && grep foo test.c', testcase_path.name, '--print-diff'],
+        ['-c', 'gcc -c -Wall -Werror test.c && grep foo test.c', testcase_path.name, '--print-diff'],
         tmp_path,
         overridden_subprocess_tmpdir,
     )
@@ -305,7 +305,7 @@ def test_non_ascii_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: P
     proc = start_cvise(
         [
             '-c',
-            'gcc -c repro/*.c && grep foo repro/*.c',
+            'gcc -c -Wall -Werror repro/*.c && grep foo repro/*.c',
             'repro',
             '--tidy',
             '--print-diff',
