@@ -23,6 +23,7 @@ def init_pass(tmp_path: Path, input_path: Path):
 def test_all(tmp_path: Path, input_path: Path):
     input_path.write_text("# 1 'foo.h'\n# 2 'bar.h'\n#4   'x.h'")
     pass_, state = init_pass(tmp_path, input_path)
+    assert state is not None
 
     (_, state) = pass_.transform(
         input_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
@@ -34,6 +35,7 @@ def test_all(tmp_path: Path, input_path: Path):
 def test_only_last(tmp_path: Path, input_path: Path):
     input_path.write_text("# 1 'foo.h'\n# 2 'bar.h'\n#4   'x.h\nint x = 2;")
     pass_, state = init_pass(tmp_path, input_path)
+    assert state is not None
 
     (_, state) = pass_.transform(
         input_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
@@ -61,6 +63,7 @@ def test_non_ascii(tmp_path: Path, input_path: Path):
         """,
     )
     pass_, state = init_pass(tmp_path, input_path)
+    assert state is not None
     (_, state) = pass_.transform(
         input_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
     )

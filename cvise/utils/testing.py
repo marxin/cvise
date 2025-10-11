@@ -16,7 +16,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Sequence
 from collections.abc import Mapping
 import concurrent.futures
 
@@ -896,11 +896,11 @@ class TestManager:
             self.mp_task_loss_workaround.execute(self.worker_pool)  # only do it if at least one job canceled
             self.release_all_jobs()
 
-    def run_passes(self, passes: list[AbstractPass], interleaving: bool):
+    def run_passes(self, passes: Sequence[AbstractPass], interleaving: bool):
         extra_passes = []
         for p in passes:
             extra_passes += p.create_subordinate_passes()
-        passes += extra_passes
+        passes = list(passes) + extra_passes
 
         assert len(passes) == 1 or interleaving
 

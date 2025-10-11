@@ -19,7 +19,7 @@ def get_data_path(testcase: str) -> Path:
 
 def init_pass(transformation: str, tmp_dir: Path, input_path: Path) -> tuple[ClangHintsPass, Any]:
     pass_ = ClangHintsPass(transformation, external_programs=find_external_programs())
-    pass_.user_clang_delta_std = None
+    pass_.user_clang_delta_std = None  # type: ignore
     state = pass_.new(
         input_path,
         tmp_dir=tmp_dir,

@@ -41,7 +41,7 @@ class StubPass(AbstractPass):
 class NaiveLinePass(StubPass):
     """Simple real-world-like pass that removes a line at a time."""
 
-    def transform(self, test_case: Path, state, *args, **kwargs):
+    def transform(self, test_case: Path, state: int, *args, **kwargs) -> tuple[PassResult, int]:
         with open(test_case) as f:
             lines = f.readlines()
         if not lines:
@@ -78,7 +78,7 @@ class InvalidAndEveryNLinesPass(NaiveLinePass):
         super().__init__()
         self.invalid_n = invalid_n
 
-    def transform(self, test_case: Path, state, *args, **kwargs):
+    def transform(self, test_case: Path, state, *args, **kwargs) -> tuple[PassResult, int]:
         if (state + 1) % self.invalid_n != 0:
             return (PassResult.INVALID, state)
         return super().transform(test_case, state // self.invalid_n, *args, **kwargs)
@@ -189,6 +189,7 @@ class InsideBracketsRemovingPass(HintBasedPass):
         hints = []
         for input_bundle in dependee_hints:
             for input_hint in input_bundle.hints:
+                assert input_hint.type is not None
                 assert input_bundle.vocabulary[input_hint.type] == b'remove-brackets'
                 assert len(input_hint.patches) == 1
                 input_patch = input_hint.patches[0]

@@ -185,7 +185,7 @@ def test_process_ignoring_sigterm(process_event_notifier: ProcessEventNotifier):
     start_time = time.monotonic()
     with pytest.raises(subprocess.TimeoutExpired):
         process_event_notifier.run_process(f'trap "" TERM && sleep {INFINITY}', shell=True, timeout=TIMEOUT)
-    assert time.monotonic() - start_time - TIMEOUT < pebble.CONSTS.term_timeout
+    assert time.monotonic() - start_time - TIMEOUT < pebble.CONSTS.term_timeout  # type: ignore
 
 
 @pytest.mark.skipif(sys.platform not in ('darwin', 'linux'), reason='requires /dev/urandom')
@@ -199,7 +199,7 @@ def test_process_ignoring_sigterm_infinite_stdout(process_event_notifier: Proces
     start_time = time.monotonic()
     with pytest.raises(subprocess.TimeoutExpired):
         process_event_notifier.run_process('trap "" TERM && cat /dev/urandom', shell=True, timeout=TIMEOUT)
-    assert time.monotonic() - start_time - TIMEOUT < pebble.CONSTS.term_timeout
+    assert time.monotonic() - start_time - TIMEOUT < pebble.CONSTS.term_timeout  # type: ignore
 
 
 def test_process_monitor_worker_start_stop(process_monitor: ProcessMonitor, mp_context_hook: MPContextHook):

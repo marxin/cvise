@@ -61,7 +61,7 @@ a.out:
 
     assert b'@fileref' in bundle_paths
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
     assert refs == {b'bar.h', b'foo.h'}
 
 
@@ -89,7 +89,7 @@ program:
 
     assert b'@fileref' in bundle_paths
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
     assert refs == {b'bar.h', b'common.h', b'foo.h'}
 
 
@@ -108,7 +108,7 @@ def test_include_search_path(tmp_path: Path, cmd_flag: str):
 
     assert b'@fileref' in bundle_paths
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
     assert refs == {b'sub/foo.h'}
 
 
@@ -133,7 +133,7 @@ foo.txt:
 
     assert b'@fileref' in bundle_paths
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
     assert refs == {b'header.hpp'}
 
 
@@ -155,7 +155,7 @@ a.out:
 
     assert b'@fileref' in bundle_paths
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
     assert refs == {b'header.h'}
 
 
@@ -184,7 +184,7 @@ good2.o:
 
     assert b'@fileref' in bundle_paths
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
     assert refs == {b'good1.h', b'good2.h'}
 
 
@@ -208,7 +208,7 @@ a.out:
 
     assert b'@fileref' in bundle_paths
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
     assert refs == {b'inside.h'}
 
 
@@ -242,7 +242,7 @@ a.out: mod.pcm
 
     assert b'@fileref' in bundle_paths
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
     assert refs == {b'modular1.h', b'modular2.h', b'text.h'}
 
 
@@ -273,5 +273,5 @@ mod.pcm:
 
     assert b'@fileref' in bundle_paths
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
     assert refs == {b'sub/modular.h', b'sub/text.h'}
