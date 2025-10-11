@@ -5,7 +5,7 @@ maintainers = [{ name = "Martin Liška", email = "marxin.liska@gmail.com" }]
 description = "C-Vise is a super-parallel Python port of the C-Reduce."
 readme = "README.md"
 license = { file = "COPYING" }
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 [tool.ruff]
 exclude = ["objdir", "tree-sitter", "tree-sitter-cpp"]

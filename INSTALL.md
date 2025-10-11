@@ -82,7 +82,7 @@ manager:
 
   Tested LLVM versions: ``9.0.0`` - ``15.0.0``
 
-* [Python 3.8+](https://www.python.org/downloads/)
+* [Python 3.9+](https://www.python.org/downloads/)
 
 * [Pebble](https://pypi.org/project/Pebble/)
 
