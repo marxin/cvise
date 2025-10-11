@@ -295,7 +295,7 @@ def test_apply_hints_dir(tmp_path: Path):
     output_dir = tmp_path / 'output'
     apply_hints([bundle], input_dir, output_dir)
 
-    assert list(output_dir.glob('*')) == [output_dir / 'foo.h', output_dir / 'bar.cc']
+    assert set(output_dir.glob('*')) == {output_dir / 'foo.h', output_dir / 'bar.cc'}
     assert (output_dir / 'foo.h').read_text() == 'signed f;'
     assert (output_dir / 'bar.cc').read_text() == 'void b();'
 
