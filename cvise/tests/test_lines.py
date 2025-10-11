@@ -1,6 +1,6 @@
 from pathlib import Path
 import pytest
-from typing import Any, Tuple
+from typing import Any
 
 from cvise.passes.lines import LinesPass
 from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir, validate_stored_hints
@@ -13,7 +13,7 @@ def input_path(tmp_path: Path) -> Path:
     return tmp_path / 'input.cc'
 
 
-def init_pass(depth, tmp_dir: Path, input_path: Path) -> Tuple[LinesPass, Any]:
+def init_pass(depth, tmp_dir: Path, input_path: Path) -> tuple[LinesPass, Any]:
     pass_ = LinesPass(depth, find_external_programs())
     state = pass_.new(input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[])
     validate_stored_hints(state, pass_, input_path)

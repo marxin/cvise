@@ -3,7 +3,6 @@ from itertools import chain
 import json
 import logging
 import os
-from typing import List
 
 from cvise.passes.abstract import AbstractPass
 from cvise.passes.balanced import BalancedPass
@@ -244,7 +243,7 @@ class CVise:
                 if not p.check_prerequisites():
                     logging.error(f'Prereqs not found for pass {p}')
 
-    def _run_pass_category(self, passes: List[AbstractPass], category: PassCategory) -> None:
+    def _run_pass_category(self, passes: list[AbstractPass], category: PassCategory) -> None:
         if category.once:
             self._run_passes(passes, category.interleaving, check_threshold=False)
         else:
@@ -255,7 +254,7 @@ class CVise:
                 if (self.test_manager.total_file_size >= size_before) or met_stopping_threshold:
                     break
 
-    def _run_passes(self, passes: List[AbstractPass], interleaving: bool, check_threshold: bool) -> bool:
+    def _run_passes(self, passes: list[AbstractPass], interleaving: bool, check_threshold: bool) -> bool:
         """Runs the given passes once; returns whether the stopping threshold was met."""
         available_passes = []
         for p in passes:

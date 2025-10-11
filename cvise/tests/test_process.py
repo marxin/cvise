@@ -9,7 +9,7 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Callable, List
+from typing import Callable
 
 from cvise.utils.process import (
     MPContextHook,
@@ -50,7 +50,7 @@ def process_event_notifier(pid_queue: queue.Queue) -> ProcessEventNotifier:
     return ProcessEventNotifier(pid_queue)
 
 
-def read_pid_queue(pid_queue: queue.Queue, expected_size: int) -> List[ProcessEvent]:
+def read_pid_queue(pid_queue: queue.Queue, expected_size: int) -> list[ProcessEvent]:
     result = []
     while len(result) < expected_size:
         result.append(pid_queue.get())

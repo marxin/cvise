@@ -1,5 +1,5 @@
 import time
-from typing import Dict, Optional, Tuple
+from typing import Optional
 
 from cvise.passes.abstract import AbstractPass
 
@@ -16,7 +16,7 @@ class SinglePassStatistic:
 
 class PassStatistic:
     def __init__(self):
-        self._stats: Dict[str, SinglePassStatistic] = {}
+        self._stats: dict[str, SinglePassStatistic] = {}
         self._folding_stats = SinglePassStatistic('Folding')
 
     def add_initialized(self, pass_: AbstractPass, start_time: float) -> None:
@@ -56,7 +56,7 @@ class PassStatistic:
 
     @property
     def sorted_results(self):
-        def sort_statistics(item: Tuple[str, SinglePassStatistic]) -> Tuple:
+        def sort_statistics(item: tuple[str, SinglePassStatistic]) -> tuple:
             pass_name, pass_data = item
             return (pass_data.total_size_delta, pass_data.total_seconds, pass_name)
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Set
 
 
 _BUILTIN_TARGETS = (
@@ -34,9 +33,9 @@ class SourceLoc:
 class TextWithLoc:
     loc: SourceLoc
     value: bytes
-    preceding_spaces_loc: Optional[SourceLoc] = None
+    preceding_spaces_loc: SourceLoc | None = None
 
-    def substr(self, begin: int, end: Optional[int] = None) -> TextWithLoc:
+    def substr(self, begin: int, end: int | None = None) -> TextWithLoc:
         assert self.loc.begin + begin <= self.loc.end
         if end is not None:
             assert self.loc.begin + begin <= self.loc.begin + end <= self.loc.end
@@ -50,35 +49,35 @@ class TextWithLoc:
 class PathWithLoc:
     loc: SourceLoc
     value: Path
-    preceding_spaces_loc: Optional[SourceLoc] = None
+    preceding_spaces_loc: SourceLoc | None = None
 
 
 @dataclass
 class RecipeLine:
     loc: SourceLoc
     program: TextWithLoc
-    args: List[TextWithLoc]
+    args: list[TextWithLoc]
 
 
 @dataclass
 class Rule:
     loc: SourceLoc
-    targets: List[PathWithLoc]
-    prereqs: List[PathWithLoc]
-    recipe: List[RecipeLine]
-    unclassified_lines: List[TextWithLoc]
+    targets: list[PathWithLoc]
+    prereqs: list[PathWithLoc]
+    recipe: list[RecipeLine]
+    unclassified_lines: list[TextWithLoc]
 
 
 @dataclass
 class Makefile:
-    rules: List[Rule]
-    unclassified_lines: List[TextWithLoc]
-    builtin_targets: Set[Path]
-    phony_targets: Set[Path]
+    rules: list[Rule]
+    unclassified_lines: list[TextWithLoc]
+    builtin_targets: set[Path]
+    phony_targets: set[Path]
 
 
 def parse(makefile_path: Path) -> Makefile:
-    lines: List[bytearray] = []
+    lines: list[bytearray] = []
     with open(makefile_path, 'rb') as f:
         for cur_s in f:
             cur = bytearray(cur_s)
@@ -120,7 +119,7 @@ def parse(makefile_path: Path) -> Makefile:
     return mk
 
 
-def _parse_rule_line(line: TextWithLoc) -> Optional[Rule]:
+def _parse_rule_line(line: TextWithLoc) -> Rule | None:
     if line.value.startswith(b'\t'):
         return None
     semicolon_pos = line.value.find(b':')
@@ -142,7 +141,7 @@ def _parse_rule_line(line: TextWithLoc) -> Optional[Rule]:
     return Rule(loc=line.loc, targets=targets, prereqs=prereqs, recipe=[], unclassified_lines=[])
 
 
-def _parse_recipe_line(line: TextWithLoc) -> Optional[RecipeLine]:
+def _parse_recipe_line(line: TextWithLoc) -> RecipeLine | None:
     if not line.value.startswith(b'\t'):
         return None
     line = line.substr(1)
@@ -154,7 +153,7 @@ def _parse_recipe_line(line: TextWithLoc) -> Optional[RecipeLine]:
     return RecipeLine(loc=line.loc, program=cmd_tok_locs[0], args=cmd_tok_locs[1:])
 
 
-def _split_by_spaces(text: TextWithLoc) -> List[TextWithLoc]:
+def _split_by_spaces(text: TextWithLoc) -> list[TextWithLoc]:
     start_pos = 0
     tok_locs = []
     for tok in text.value.split():
@@ -169,7 +168,7 @@ def _split_by_spaces(text: TextWithLoc) -> List[TextWithLoc]:
     return tok_locs
 
 
-def _split_shell_cmd_line(text: TextWithLoc) -> List[TextWithLoc]:
+def _split_shell_cmd_line(text: TextWithLoc) -> list[TextWithLoc]:
     # Note: not using shlex because it doesn't report token locations.
 
     tok_locs = []
@@ -218,5 +217,5 @@ def _split_shell_cmd_line(text: TextWithLoc) -> List[TextWithLoc]:
     return tok_locs
 
 
-def _to_paths(toks: List[TextWithLoc]) -> List[PathWithLoc]:
+def _to_paths(toks: list[TextWithLoc]) -> list[PathWithLoc]:
     return [PathWithLoc(tok.loc, Path(tok.value.decode()), tok.preceding_spaces_loc) for tok in toks]

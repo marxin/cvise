@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 import os
 from pathlib import Path
 import pytest
@@ -7,7 +8,6 @@ import stat
 import subprocess
 import tempfile
 import time
-from typing import Iterator, List
 
 
 def get_source_path(testcase: str) -> Path:
@@ -21,7 +21,7 @@ def overridden_subprocess_tmpdir() -> Iterator[Path]:
         yield Path(tmp_dir)
 
 
-def start_cvise(arguments: List[str], tmp_path: Path, overridden_subprocess_tmpdir: Path) -> subprocess.Popen:
+def start_cvise(arguments: list[str], tmp_path: Path, overridden_subprocess_tmpdir: Path) -> subprocess.Popen:
     binary = Path(__file__).parent.parent / 'cvise-cli.py'
     cmd = [str(binary)] + arguments
 
@@ -34,7 +34,7 @@ def start_cvise(arguments: List[str], tmp_path: Path, overridden_subprocess_tmpd
 
 
 def check_cvise(
-    testcase: str, arguments: List[str], expected: List[str], tmp_path: Path, overridden_subprocess_tmpdir: Path
+    testcase: str, arguments: list[str], expected: list[str], tmp_path: Path, overridden_subprocess_tmpdir: Path
 ) -> None:
     work_path = tmp_path / testcase
     shutil.copy(get_source_path(testcase), work_path)

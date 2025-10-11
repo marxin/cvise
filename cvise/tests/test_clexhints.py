@@ -1,7 +1,7 @@
 from pathlib import Path
 import pytest
 import stat
-from typing import Any, List, Tuple
+from typing import Any
 
 from cvise.passes.abstract import SubsegmentState
 from cvise.passes.clexhints import ClexHintsPass
@@ -112,7 +112,7 @@ def input_path(tmp_path: Path) -> Path:
     return tmp_path / 'input.cc'
 
 
-def init_pass(arg, tmp_dir: Path, input_path: Path) -> Tuple[ClexHintsPass, Any]:
+def init_pass(arg, tmp_dir: Path, input_path: Path) -> tuple[ClexHintsPass, Any]:
     pass_ = ClexHintsPass(arg, find_external_programs())
     state = pass_.new(input_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[])
     validate_stored_hints(state, pass_, input_path)
@@ -157,7 +157,7 @@ def test_rm_toks_16_shorter(tmp_path: Path, input_path: Path):
     assert set(TOKENS_REMOVED_1) <= all_transforms
 
 
-def collect_all_advances(s: Any) -> List[Any]:
+def collect_all_advances(s: Any) -> list[Any]:
     observed = []
     while s is not None:
         observed.append((s.index, s.end()))

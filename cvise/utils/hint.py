@@ -14,7 +14,8 @@ import dataclasses
 import json
 import msgspec
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, TextIO, Tuple
+from typing import Any, Optional, TextIO
+from collections.abc import Sequence
 import zstandard
 
 from cvise.utils.fileutil import mkdir_up_to
@@ -36,7 +37,7 @@ class Patch(msgspec.Struct, omit_defaults=True, gc=False, frozen=True):
     operation: Optional[int] = msgspec.field(default=None, name='o')
     value: Optional[int] = msgspec.field(default=None, name='v')
 
-    def comparison_key(self) -> Tuple:
+    def comparison_key(self) -> tuple:
         return (
             -1 if self.file is None else self.file,
             self.left,
@@ -53,10 +54,10 @@ class Hint(msgspec.Struct, omit_defaults=True, gc=False, frozen=True):
     """
 
     type: Optional[int] = msgspec.field(default=None, name='t')
-    patches: Tuple[Patch, ...] = msgspec.field(default=(), name='p')
+    patches: tuple[Patch, ...] = msgspec.field(default=(), name='p')
     extra: Optional[int] = msgspec.field(default=None, name='e')
 
-    def comparison_key(self) -> Tuple:
+    def comparison_key(self) -> tuple:
         return (
             -1 if self.type is None else self.type,
             tuple(p.comparison_key() for p in self.patches),
@@ -78,12 +79,12 @@ class HintBundle:
     """
 
     # Hint objects - each item matches the `HINT_SCHEMA`.
-    hints: List[Hint]
+    hints: list[Hint]
     pass_name: str = ''
     pass_user_visible_name: str = ''
     # Strings that hints can refer to.
     # Note: a simple "= []" wouldn't be suitable because mutable default values are error-prone in Python.
-    vocabulary: List[bytes] = dataclasses.field(default_factory=list)
+    vocabulary: list[bytes] = dataclasses.field(default_factory=list)
 
 
 # JSON Schemas:
@@ -176,9 +177,9 @@ HINT_SCHEMA_STRICT['properties']['p']['items'] = HINT_PATCH_SCHEMA_STRICT
 
 @dataclasses.dataclass
 class HintApplicationStats:
-    size_delta_per_pass: Dict[str, int]
+    size_delta_per_pass: dict[str, int]
 
-    def get_passes_ordered_by_delta(self) -> List[str]:
+    def get_passes_ordered_by_delta(self) -> list[str]:
         ordered = sorted(self.size_delta_per_pass.items(), key=lambda kv: kv[1])
         return [kv[0] for kv in ordered]
 
@@ -206,10 +207,10 @@ class _PatchWithBundleRef(msgspec.Struct, gc=False):
     bundle_id: int
 
 
-def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationStats:
+def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationStats:
     """Creates the destination file/dir by applying the specified hints to the contents of the source file/dir."""
     # Take patches from all hints and group them by the file which they're applied to.
-    path_to_patches: Dict[Path, List[_PatchWithBundleRef]] = {}
+    path_to_patches: dict[Path, list[_PatchWithBundleRef]] = {}
     for bundle_id, bundle in enumerate(bundles):
         for hint in bundle.hints:
             for patch in hint.patches:
@@ -240,8 +241,8 @@ def apply_hints(bundles: List[HintBundle], source_path: Path, destination_path: 
 
 
 def _apply_hint_patches_to_file(
-    patches: List[_PatchWithBundleRef],
-    bundles: List[HintBundle],
+    patches: list[_PatchWithBundleRef],
+    bundles: list[HintBundle],
     source_file: Path,
     destination_file: Path,
     stats: HintApplicationStats,
@@ -327,7 +328,7 @@ def load_hints(hints_file_path: Path, begin_index: Optional[int], end_index: Opt
     global _preamble_decoder, _vocab_decoder, _hint_decoder
     if _preamble_decoder is None:  # lazily initialize singletons
         _preamble_decoder = msgspec.json.Decoder(type=_BundlePreamble)
-        _vocab_decoder = msgspec.json.Decoder(type=List[str])
+        _vocab_decoder = msgspec.json.Decoder(type=list[str])
         _hint_decoder = msgspec.json.Decoder(type=Hint)
     preamble_decoder = _preamble_decoder  # cache in local variables, which are presumably faster
     vocab_decoder = _vocab_decoder
@@ -350,18 +351,18 @@ def load_hints(hints_file_path: Path, begin_index: Optional[int], end_index: Opt
     )
 
 
-def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: List[HintBundle]) -> HintBundle:
+def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: list[HintBundle]) -> HintBundle:
     """Transforms source_bundle as if all hints from bundles_to_subtract have been applied.
 
     This gives recalculated hints that are applicable to the transformed input files.
     """
     # Group patches and positions we're interested in by the file path.
-    path_to_queries: Dict[Path, List[int]] = {}
+    path_to_queries: dict[Path, list[int]] = {}
     for hint in source_bundle.hints:
         for patch in hint.patches:
             file_rel = Path(source_bundle.vocabulary[patch.file].decode()) if patch.file is not None else Path()
             path_to_queries.setdefault(file_rel, []).extend((patch.left, patch.right))
-    path_to_subtrahends: Dict[Path, List[_PatchWithBundleRef]] = {}
+    path_to_subtrahends: dict[Path, list[_PatchWithBundleRef]] = {}
     for bundle_id, bundle in enumerate(bundles_to_subtract):
         for hint in bundle.hints:
             for patch in hint.patches:
@@ -370,7 +371,7 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: List[HintBund
                 path_to_subtrahends.setdefault(file_rel, []).append(p)
 
     # Calculate how positions in each file shift after applying the subtrahend hints.
-    path_to_positions_mapping: Dict[Path, Dict[int, int]] = {}
+    path_to_positions_mapping: dict[Path, dict[int, int]] = {}
     for path, queries in path_to_queries.items():
         path_to_positions_mapping[path] = _calc_positions_mapping_for_patches(
             queries, path_to_subtrahends.get(path, []), bundles_to_subtract
@@ -401,8 +402,8 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: List[HintBund
 
 def _calc_positions_mapping_for_patches(
     queries: Sequence[int], patches: Sequence[_PatchWithBundleRef], bundles: Sequence[HintBundle]
-) -> Dict[int, int]:
-    positions_mapping: Dict[int, int] = {}
+) -> dict[int, int]:
+    positions_mapping: dict[int, int] = {}
     merged_patches = _merge_overlapping_patches(patches)
     ptr = 0
     position_delta = 0
@@ -427,9 +428,9 @@ def _calc_positions_mapping_for_patches(
     return positions_mapping
 
 
-def group_hints_by_type(bundle: HintBundle) -> Dict[bytes, HintBundle]:
+def group_hints_by_type(bundle: HintBundle) -> dict[bytes, HintBundle]:
     """Splits the bundle into multiple, one per each hint type."""
-    grouped: Dict[bytes, HintBundle] = {}
+    grouped: dict[bytes, HintBundle] = {}
     for h in bundle.hints:
         type = bundle.vocabulary[h.type] if h.type is not None else b''
         if type not in grouped:
@@ -497,7 +498,7 @@ def _merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequen
         # * (if still a tie) prefer deletion over text replacement.
         return p.patch.left, -p.patch.right, is_replacement
 
-    merged: List[_PatchWithBundleRef] = []
+    merged: list[_PatchWithBundleRef] = []
     for cur in sorted(patches, key=sorting_key):
         if merged:
             prev = merged[-1]
@@ -512,7 +513,7 @@ def _merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequen
     return merged
 
 
-def _lines_range(f: TextIO, begin_index: Optional[int], end_index: Optional[int]) -> List[str]:
+def _lines_range(f: TextIO, begin_index: Optional[int], end_index: Optional[int]) -> list[str]:
     for _ in range(begin_index or 0):
         next(f)  # simply discard
     if end_index is None:

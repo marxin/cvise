@@ -9,7 +9,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Callable, Dict, Union
+from typing import Callable, Union
 
 from cvise.utils.fileutil import (
     chdir,
@@ -201,7 +201,7 @@ def test_replace_file_atomicity(tmp_path: Path, input_in_source_dir: Path):
         (input_in_source_dir / test_case).write_text(INITIAL_DATA)
         (new_dir / test_case).write_text(NEW_DATA)
 
-    def check_result(contents: Dict[Path, str]) -> _AtomicityResult:
+    def check_result(contents: dict[Path, str]) -> _AtomicityResult:
         if contents == {test_case: INITIAL_DATA}:
             return _AtomicityResult.CONTENTS_INITIAL
         elif contents == {test_case: NEW_DATA}:
@@ -244,7 +244,7 @@ def test_replace_dir_atomicity(tmp_path: Path, input_in_source_dir: Path):
         (new_dir / test_case / 'newb').mkdir()
         (new_dir / test_case / 'newb' / 'newc.txt').write_text('')
 
-    def check_result(contents: Dict[Path, str]) -> _AtomicityResult:
+    def check_result(contents: dict[Path, str]) -> _AtomicityResult:
         if contents == {test_case / 'a.txt': INITIAL_DATA, test_case / 'b/c.txt': ''}:
             return _AtomicityResult.CONTENTS_INITIAL
         elif contents == {test_case / 'newa.txt': NEW_DATA, test_case / 'newb/newc.txt': ''}:
