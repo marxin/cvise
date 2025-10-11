@@ -58,6 +58,43 @@ jobs:
       run: pytest -n $(($(nproc) + 1))
       working-directory: objdir
 
+  CI-python:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:latest
+
+    strategy:
+      matrix:
+        python:
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v4
+    - run: apt-get update
+    - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex vim unifdef sudo
+    - run: chown -R $(whoami) /github/home  # workaround for "directory ... pip ... is not owned or is not writable by the current user"
+    - run: rm -rf /__t/Python  # workaround for "error when attempting to execute the process ... pip"
+    - uses: actions/setup-python@v6
+      with:
+        python-version: "${{ matrix.python }}"
+        cache: 'pip'
+    - run: pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess pytest-xdist pytype zstandard
+    - run: wget https://apt.llvm.org/llvm.sh
+    - run: chmod +x llvm.sh
+    - run: ./llvm.sh all
+    - run: mkdir objdir
+    - run: cmake ..
+      working-directory: objdir
+    - run: make -j`nproc` VERBOSE=1
+      working-directory: objdir
+    - run: python -m pytest -n $(($(nproc) + 1))
+      working-directory: objdir
+
   ruff:
     runs-on: ubuntu-latest
     container:
