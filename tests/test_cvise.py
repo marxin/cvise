@@ -145,7 +145,7 @@ def test_interleaving_lines_passes(tmp_path: Path, overridden_subprocess_tmpdir:
         """)
 
     proc = start_cvise(
-        ['-c', 'gcc -c test.c && grep foo test.c', '--pass-group-file', config_path, testcase_path.name],
+        ['-c', 'gcc -c test.c && grep foo test.c', '--pass-group-file', str(config_path), testcase_path.name],
         tmp_path,
         overridden_subprocess_tmpdir,
     )
