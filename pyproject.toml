@@ -22,3 +22,11 @@ preview = true
 
 [tool.ruff.format]
 quote-style="single"
+
+[tool.pyright]
+exclude = ["objdir", "tree-sitter", "tree-sitter-cpp"]
+pythonVersion = "3.9"
+reportOptionalCall = false
+reportOptionalMemberAccess = false
+reportOptionalOperand = false
+reportOptionalSubscript = false
