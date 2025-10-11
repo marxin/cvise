@@ -9,10 +9,15 @@ from cvise.passes.ifs import IfPass
 
 class LineMarkersTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = IfPass(external_programs={'unifdef': 'unifdef'})
         self.process_event_notifier = ProcessEventNotifier(None)
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def test_all(self):
         self.input_path.write_text('#if FOO\nint a = 2;\n#endif')

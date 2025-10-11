@@ -8,9 +8,14 @@ from cvise.passes.ternary import TernaryPass
 
 class TernaryBTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = TernaryPass('b')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def test_b(self):
         self.input_path.write_text('int res = a ? b : c;\n')
@@ -79,9 +84,14 @@ class TernaryBTestCase(unittest.TestCase):
 
 class TernaryCTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp_dir: Path = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        # TODO: use enterContext() once Python 3.11 is the oldest supported release
+        self.tmp_dir_obj = tempfile.TemporaryDirectory()
+        self.tmp_dir: Path = Path(self.tmp_dir_obj.name)
         self.input_path: Path = self.tmp_dir / 'test_case'
         self.pass_ = TernaryPass('c')
+
+    def tearDown(self):
+        self.tmp_dir_obj.cleanup()
 
     def test_c(self):
         self.input_path.write_text('int res = a ? b : c;\n')

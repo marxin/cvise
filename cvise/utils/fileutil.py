@@ -154,7 +154,7 @@ def filter_files_by_patterns(test_case: Path, include_globs: List[str], default_
     if include_globs:
         paths = _find_files_matching(test_case, include_globs)
     else:
-        all = _find_files_matching(test_case, ['**'])
+        all = _find_files_matching(test_case, ['**/*'])
         exclude = _find_files_matching(test_case, default_exclude_globs)
         paths = all - exclude
     return sorted(paths)
@@ -279,8 +279,12 @@ def _find_files_matching(test_case: Path, globs: List[str]) -> Set[Path]:
         return set()
 
     if not test_case.is_dir():
-        matches = any(fnmatch.fnmatch(str(test_case), pat) for pat in globs)
-        return {test_case} if matches else set()
+        for pattern in globs:
+            if pattern.startswith('**/'):
+                pattern = pattern[3:]  # use removeprefix() once Python 3.9 is the lowest supported version
+            if fnmatch.fnmatch(str(test_case), pattern):
+                return {test_case}
+        return set()
 
     paths = set()
     for pattern in globs:

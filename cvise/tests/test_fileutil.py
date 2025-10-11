@@ -431,7 +431,7 @@ def test_filter_files(tmp_path: Path):
         p / 'foo.cc',
         p / 'foo.h',
     ]
-    assert filter_files_by_patterns(p, include_globs=['**'], default_exclude_globs=[]) == [
+    assert filter_files_by_patterns(p, include_globs=['**/*'], default_exclude_globs=[]) == [
         p / 'Makefile',
         p / 'bar.c',
         p / 'dir' / 'a.c',
