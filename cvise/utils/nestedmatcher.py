@@ -159,6 +159,7 @@ def search(parts, string, pos=0, search=True):
     start_pos = pos
     found_complete_match = False
 
+    matches = {}
     while not found_complete_match and start_pos < len(string):
         (pattern, _) = __unify_part(parts[0])
 

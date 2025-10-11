@@ -19,6 +19,8 @@ class ClangState(HintState):
 
     See the comment in ClangHintsPass for the background."""
 
+    clang_std: str
+
     @staticmethod
     def wrap(parent: Union[HintState, None], clang_std: str) -> Union[HintState, None]:
         if parent is None:
@@ -84,6 +86,7 @@ class ClangHintsPass(HintBasedPass):
         if best_bundle is None:
             logging.warning('%s', last_error)
             return None
+        assert best_std is not None
 
         logging.info(
             'clang_delta %s using C++ standard: %s with %d transformation opportunities',

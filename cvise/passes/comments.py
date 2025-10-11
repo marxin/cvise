@@ -24,7 +24,7 @@ class CommentsPass(HintBasedPass):
         return list(self.INITIAL_VOCAB)
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
-        vocab = list(self.INITIAL_VOCAB)
+        vocab: list[bytes] = list(self.INITIAL_VOCAB)
         is_dir = test_case.is_dir()
         paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
         hints = []

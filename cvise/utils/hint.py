@@ -9,7 +9,7 @@ heuristics and to perform reduction more efficiently (as algorithms can now be
 applied to all heuristics in a uniform way).
 """
 
-from copy import deepcopy
+from copy import copy, deepcopy
 import dataclasses
 import json
 import msgspec
@@ -215,7 +215,7 @@ def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: 
         for hint in bundle.hints:
             for patch in hint.patches:
                 # Copying sub-structs improves data locality, helping performance in practice.
-                p = _PatchWithBundleRef(patch.__copy__(), bundle_id)
+                p = _PatchWithBundleRef(copy(patch), bundle_id)
                 file_rel = Path(bundle.vocabulary[patch.file].decode()) if patch.file is not None else Path()
                 path_to_patches.setdefault(file_rel, []).append(p)
 
@@ -294,6 +294,8 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
         _encoding_buf = bytearray()
     encoder = _json_encoder  # cache in local variables, which are presumably faster
     buf = _encoding_buf
+    assert encoder is not None
+    assert buf is not None
 
     with zstandard.open(hints_file_path, 'wb') as f:
         # leave "offset" at default, to make sure the buffer is cleared
@@ -333,6 +335,9 @@ def load_hints(hints_file_path: Path, begin_index: Optional[int], end_index: Opt
     preamble_decoder = _preamble_decoder  # cache in local variables, which are presumably faster
     vocab_decoder = _vocab_decoder
     hint_decoder = _hint_decoder
+    assert preamble_decoder
+    assert vocab_decoder
+    assert hint_decoder
 
     with zstandard.open(hints_file_path, 'rt') if hints_file_path.suffix == '.zst' else open(hints_file_path) as f:
         preamble = try_parse_json_line(next(f), preamble_decoder)

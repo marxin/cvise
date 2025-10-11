@@ -571,6 +571,7 @@ class TestManager:
 
     @staticmethod
     def get_extra_dir(prefix, max_number) -> Path | None:
+        extra_dir = None
         for i in range(0, max_number + 1):
             digits = int(round(math.log10(max_number), 0))
             extra_dir = Path(('{0}{1:0' + str(digits) + 'd}').format(prefix, i))
@@ -580,7 +581,7 @@ class TestManager:
 
         # just bail if we've already created enough of these dirs, no need to
         # clutter things up even more...
-        if extra_dir.exists():
+        if not extra_dir or extra_dir.exists():
             return None
 
         return extra_dir
@@ -707,12 +708,12 @@ class TestManager:
                 # Within the task loop, we only cancel jobs in workaround_missing_timeouts().
                 self.handle_timed_out_job(job)
                 continue
-            if job.future.exception():
+            if exc := job.future.exception():
                 # starting with Python 3.11: concurrent.futures.TimeoutError == TimeoutError
-                if type(job.future.exception()) in (TimeoutError, concurrent.futures.TimeoutError):
+                if type(exc) in (TimeoutError, concurrent.futures.TimeoutError):
                     self.handle_timed_out_job(job)
                     continue
-                raise job.future.exception()
+                raise exc
             if job.type == JobType.INIT:
                 self.handle_finished_init_job(job)
             elif job.type == JobType.TRANSFORM:
@@ -742,6 +743,7 @@ class TestManager:
         ctx.defunct = True
 
     def handle_finished_init_job(self, job: Job) -> None:
+        assert job.pass_id is not None
         ctx: PassContext = self.pass_contexts[job.pass_id]
         assert ctx.stage == PassStage.IN_INIT
         ctx.stage = PassStage.ENUMERATING
@@ -783,6 +785,7 @@ class TestManager:
             self.folding_manager.on_transform_job_success(env.state)
         if ctx:
             ctx.current_batch_succeeded_states.append(env.state)
+            assert job.pass_job_counter is not None
             ctx.last_success_pass_job_counter = max(ctx.last_success_pass_job_counter, job.pass_job_counter)
 
     def check_pass_result(self, job: Job):
@@ -848,6 +851,7 @@ class TestManager:
         job.future.cancel()
 
     def run_parallel_tests(self) -> None:
+        assert self.worker_pool
         assert not self.jobs
         self.current_batch_start_order = self.order
         assert self.success_candidate is None
@@ -938,6 +942,8 @@ class TestManager:
                         fileutil.replace_test_case_atomically(cached_path, test_case, move=False)
                         logging.info(f'cache hit for {test_case}')
                         continue
+                else:
+                    hash_before_pass = None
 
                 is_dir = test_case.is_dir()
                 for ctx in self.pass_contexts:
@@ -989,6 +995,7 @@ class TestManager:
                         break
 
                 if not self.no_cache:
+                    assert hash_before_pass is not None
                     self.cache.add(passes, hash_before_pass, test_case)
 
             self.restore_mode()
@@ -1003,6 +1010,7 @@ class TestManager:
     def process_result(self) -> None:
         assert self.success_candidate
         new_test_case = self.success_candidate.test_case_path
+        assert new_test_case
         if self.print_diff:
             logging.info('%s', self.diff_files(self.current_test_case, new_test_case))
 

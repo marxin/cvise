@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+from typing import Callable, Union
 
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils.error import UnknownArgumentError
@@ -10,7 +11,7 @@ class SpecialPass(AbstractPass):
         return True
 
     def __get_config(self):
-        config = {
+        config: dict[str, Union[str, Callable, None]] = {
             'search': None,
             'replace_fn': None,
         }
@@ -39,16 +40,24 @@ class SpecialPass(AbstractPass):
         prog = test_case.read_text()
 
         config = self.__get_config()
-        regex = re.compile(config['search'], flags=re.DOTALL)
+        pattern = config['search']
+        assert isinstance(pattern, str)
+
+        regex = re.compile(pattern, flags=re.DOTALL)
         m = regex.search(prog, pos=pos)
 
         return m
 
     def new(self, test_case: Path, *args, **kwargs):
         config = self.__get_config()
+        pattern = config['search']
+        assert isinstance(pattern, str)
+        replace_fn = config['replace_fn']
+        assert isinstance(replace_fn, Callable)
+
         prog = test_case.read_text()
-        regex = re.compile(config['search'], flags=re.DOTALL)
-        modifications = list(reversed([(m.span(), config['replace_fn'](m)) for m in regex.finditer(prog)]))
+        regex = re.compile(pattern, flags=re.DOTALL)
+        modifications = list(reversed([(m.span(), replace_fn(m)) for m in regex.finditer(prog)]))
         if not modifications:
             return None
         return {'modifications': modifications, 'index': 0}

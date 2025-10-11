@@ -36,10 +36,11 @@ import psutil  # noqa: E402
 
 class DeltaTimeFormatter(logging.Formatter):
     def format(self, record):  # noqa: A003
-        record.delta = str(datetime.timedelta(seconds=int(record.relativeCreated / 1000)))
+        delta = str(datetime.timedelta(seconds=int(record.relativeCreated / 1000)))
         # pad with one more zero
-        if record.delta[1] == ':':
-            record.delta = '0' + record.delta
+        if delta[1] == ':':
+            delta = '0' + delta
+        record.delta = delta
         return super().format(record)
 
 
@@ -100,10 +101,12 @@ def get_available_cores():
             core_count = psutil.cpu_count(logical=True)
         # respect affinity
         try:
-            affinity = len(psutil.Process().cpu_affinity())
-            assert affinity >= 1
+            psutil_ret = psutil.Process().cpu_affinity()
+            assert isinstance(psutil_ret, list)
         except AttributeError:
             return core_count
+        affinity = len(psutil_ret)
+        assert affinity >= 1
 
         if core_count:
             core_count = min(core_count, affinity)
@@ -445,6 +448,7 @@ def do_reduce(args):
         os.chmod(script.name, 0o744)
         logging.info(f'Using temporary interestingness test: {script.name}')
         args.interestingness_test = script.name
+    assert args.interestingness_test
 
     # Use forkserver to avoid potential problems due to multi-threading, and to reduce the memory usage in workers.
     # Preloading is used as a speedup, so that every worker doesn't need to execute all import statements on startup.

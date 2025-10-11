@@ -14,9 +14,11 @@ class GCDABinaryPass(AbstractPass):
         return self.check_external_program('gcov-dump')
 
     def __create_state(self, test_case: Path):
+        tool = self.external_programs['gcov-dump']
+        assert tool
         try:
             proc = subprocess.run(
-                [self.external_programs['gcov-dump'], '-p', str(test_case)],
+                [tool, '-p', str(test_case)],
                 encoding='utf8',
                 timeout=1,
                 capture_output=True,
@@ -32,7 +34,7 @@ class GCDABinaryPass(AbstractPass):
 
             state = BinaryState.create(len(functions))
             if state:
-                state.functions = functions
+                state.functions = functions  # type: ignore
             return state
         except subprocess.SubprocessError as e:
             logging.warning(f'gcov-dump -p failed: {e}')

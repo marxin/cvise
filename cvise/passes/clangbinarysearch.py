@@ -119,7 +119,9 @@ class ClangBinarySearchPass(AbstractPass):
         args.append(f'--std={state.clang_delta_std}')
         if self._clang_delta_preserve_routine:
             args.append(f'--preserve-routine="{self._clang_delta_preserve_routine}"')
-        cmd = [self.external_programs['clang_delta']] + args + [str(test_case)]
+        prog = self.external_programs['clang_delta']
+        assert prog
+        cmd = [prog] + args + [str(test_case)]
         logging.debug(' '.join(cmd))
 
         stdout, stderr, returncode = process_event_notifier.run_process(cmd)

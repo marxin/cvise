@@ -95,7 +95,7 @@ def parse(makefile_path: Path) -> Makefile:
     file_pos = 0
     for line in lines:
         loc = SourceLoc(begin=file_pos, end=file_pos + len(line))
-        line_with_loc = TextWithLoc(loc, line)
+        line_with_loc = TextWithLoc(loc, bytes(line))
         file_pos = loc.end
         if mk.rules and (recipe := _parse_recipe_line(line_with_loc)):
             rule = mk.rules[-1]
@@ -212,7 +212,7 @@ def _split_shell_cmd_line(text: TextWithLoc) -> list[TextWithLoc]:
             i += 1
 
         loc = SourceLoc(begin=text.loc.begin + begin, end=text.loc.begin + i)
-        tok_locs.append(TextWithLoc(loc, tok, preceding_spaces_loc))
+        tok_locs.append(TextWithLoc(loc, bytes(tok), preceding_spaces_loc))
 
     return tok_locs
 

@@ -7,7 +7,7 @@ from cvise.passes.abstract import AbstractPass
 class SinglePassStatistic:
     def __init__(self, pass_user_visible_name):
         self.pass_user_visible_name = pass_user_visible_name
-        self.total_seconds = 0
+        self.total_seconds: float = 0
         self.worked = 0
         self.failed = 0
         self.totally_executed = 0

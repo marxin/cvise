@@ -194,7 +194,7 @@ class AbstractPass:
         """
         return repr(self)
 
-    def supports_dir_test_cases(self):
+    def supports_dir_test_cases(self) -> bool:
         """Whether the pass supports input test cases that are directories (as opposed to single files).
 
         By default false; intended to be overridden by subclasses which do implement directory support.
