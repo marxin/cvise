@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import collections
+from collections.abc import Iterator, Mapping
 from concurrent.futures import ALL_COMPLETED, Future, wait
 import contextlib
 from dataclasses import dataclass, field
@@ -17,12 +18,11 @@ import shlex
 import subprocess
 import threading
 import time
-from typing import Dict, Iterator, List, Mapping, Set, Tuple, Union
 
 from cvise.utils import sigmonitor
 
 
-_mp_task_loss_workaround_obj: Union[MPTaskLossWorkaround, None] = None
+_mp_task_loss_workaround_obj: MPTaskLossWorkaround | None = None
 
 
 @unique
@@ -45,7 +45,7 @@ class ProcessMonitor:
     def __init__(self, mpmanager: multiprocessing.managers.SyncManager, parallel_tests: int):
         self.pid_queue: queue.Queue = mpmanager.Queue()
         self._lock = threading.Lock()
-        self._worker_to_child_pids: Dict[int, Set[int]] = {}
+        self._worker_to_child_pids: dict[int, set[int]] = {}
         # Remember dead worker PIDs, so that we can distinguish an early-reported child PID (arriving before
         # on_worker_started()) from a posthumously received child PID - the latter needs to be killed. The constant is
         # chosen to be big enough to make it practically unlikely to receive a new pid_queue event from a
@@ -82,7 +82,7 @@ class ProcessMonitor:
         for pid in pids_to_kill:
             self._killer.kill_process_tree(pid)
 
-    def get_worker_to_child_pids(self) -> Dict[int, Set[int]]:
+    def get_worker_to_child_pids(self) -> dict[int, set[int]]:
         with self._lock:
             return self._worker_to_child_pids.copy()
 
@@ -129,7 +129,7 @@ class ProcessKiller:
         # Essentially we implement a set of timers, one for each PID; since creating many threading.Timer would be too
         # costly, we use a single thread with an event queue instead.
         self._condition = threading.Condition()
-        self._task_queue: List[ProcessKillerTask] = []
+        self._task_queue: list[ProcessKillerTask] = []
         self._shut_down: bool = False
         self._thread = threading.Thread(target=self._thread_main)
 
@@ -264,21 +264,21 @@ class ProcessEventNotifier:
     that should be killed.
     """
 
-    def __init__(self, pid_queue: Union[queue.Queue, None]):
+    def __init__(self, pid_queue: queue.Queue | None):
         self._my_pid = os.getpid()
         self._pid_queue = pid_queue
 
     def run_process(
         self,
-        cmd: Union[List[str], str],
+        cmd: list[str] | str,
         shell: bool = False,
-        input: Union[bytes, None] = None,
+        input: bytes | None = None,
         stdout: int = subprocess.PIPE,
         stderr: int = subprocess.PIPE,
-        env: Union[Mapping[str, str], None] = None,
-        timeout: Union[float, None] = None,
+        env: Mapping[str, str] | None = None,
+        timeout: float | None = None,
         **kwargs,
-    ) -> Tuple[bytes, bytes, int]:
+    ) -> tuple[bytes, bytes, int]:
         if shell:
             assert isinstance(cmd, str)
 
@@ -307,13 +307,13 @@ class ProcessEventNotifier:
 
     def check_output(
         self,
-        cmd: Union[List[str], str],
+        cmd: list[str] | str,
         shell: bool = False,
-        input: Union[bytes, None] = None,
+        input: bytes | None = None,
         stdout: int = subprocess.PIPE,
         stderr: int = subprocess.PIPE,
-        env: Union[Mapping[str, str], None] = None,
-        timeout: Union[float, None] = None,
+        env: Mapping[str, str] | None = None,
+        timeout: float | None = None,
         **kwargs,
     ) -> bytes:
         stdout, stderr, returncode = self.run_process(cmd, shell, input, stdout, stderr, env, timeout, **kwargs)
@@ -372,8 +372,8 @@ class MPTaskLossWorkaround:
 
     def execute(self, pool: pebble.ProcessPool) -> None:
         # 1. Send out the barrier tasks.
-        futures: List[Future] = [pool.schedule(self._job, args=[task_id]) for task_id in range(self._worker_count)]
-        task_procs: Dict[int, Union[psutil.Process, None]] = {}
+        futures: list[Future] = [pool.schedule(self._job, args=[task_id]) for task_id in range(self._worker_count)]
+        task_procs: dict[int, psutil.Process | None] = {}
 
         def pump_task_queue():
             while not self._task_status_queue.empty():

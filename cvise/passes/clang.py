@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
 from cvise.passes.abstract import AbstractPass, PassResult
 
@@ -9,7 +9,7 @@ class ClangPass(AbstractPass):
     def __init__(
         self,
         arg: str,
-        external_programs: Dict[str, Optional[str]],
+        external_programs: dict[str, Optional[str]],
         user_clang_delta_std: Optional[str] = None,
         **kwargs,
     ):

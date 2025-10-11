@@ -5,7 +5,7 @@ tests in clang_delta/tests/test_clang_delta.py."""
 
 from pathlib import Path
 import subprocess
-from typing import Any, Tuple
+from typing import Any
 
 from cvise.passes.clanghints import ClangHintsPass
 from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
@@ -17,7 +17,7 @@ def get_data_path(testcase: str) -> Path:
     return Path(__file__).parent.parent.parent / 'clang_delta' / 'tests' / testcase
 
 
-def init_pass(transformation: str, tmp_dir: Path, input_path: Path) -> Tuple[ClangHintsPass, Any]:
+def init_pass(transformation: str, tmp_dir: Path, input_path: Path) -> tuple[ClangHintsPass, Any]:
     pass_ = ClangHintsPass(transformation, external_programs=find_external_programs())
     pass_.user_clang_delta_std = None
     state = pass_.new(

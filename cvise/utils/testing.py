@@ -16,7 +16,8 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Union
+from typing import Any, Callable
+from collections.abc import Mapping
 import concurrent.futures
 
 from cvise.cvise import CVise
@@ -67,7 +68,7 @@ class InitEnvironment:
     tmp_dir: Path
     job_timeout: int
     pid_queue: queue.Queue
-    dependee_bundle_paths: List[Path]
+    dependee_bundle_paths: list[Path]
 
     def run(self) -> Any:
         dependee_hints = [load_hints(p, begin_index=None, end_index=None) for p in self.dependee_bundle_paths]
@@ -96,7 +97,7 @@ class AdvanceOnSuccessEnvironment:
     pass_succeeded_state: Any
     job_timeout: int
     pid_queue: queue.Queue
-    dependee_bundle_paths: List[Path]
+    dependee_bundle_paths: list[Path]
 
     def run(self) -> Any:
         dependee_hints = [load_hints(p, begin_index=None, end_index=None) for p in self.dependee_bundle_paths]
@@ -125,10 +126,10 @@ class TestEnvironment:
         test_script,
         folder: Path,
         test_case: Path,
-        all_test_cases: Set[Path],
+        all_test_cases: set[Path],
         should_copy_test_cases: bool,
         transform,
-        pid_queue: Union[queue.Queue, None] = None,
+        pid_queue: queue.Queue | None = None,
     ):
         self.state = state
         self.folder: Path = folder
@@ -142,7 +143,7 @@ class TestEnvironment:
         self.test_case: Path = test_case
         self.should_copy_test_cases = should_copy_test_cases
         self.base_size = fileutil.get_file_size(test_case)
-        self.all_test_cases: Set[Path] = all_test_cases
+        self.all_test_cases: set[Path] = all_test_cases
 
     @property
     def size_improvement(self):
@@ -229,13 +230,13 @@ class PassContext:
     enabled: bool
     # Stores pass-specific files to be used during transform jobs (e.g., hints generated during initialization), and
     # temporary folders for each transform job.
-    temporary_root: Optional[Path]
+    temporary_root: Path | None
     # The pass state as returned by the pass new()/advance()/advance_on_success() methods.
     state: Any
     # The state that succeeded in the previous batch of jobs - to be passed as succeeded_state to advance_on_success().
     taken_succeeded_state: Any
     # States that succeeded in the current batch of jobs.
-    current_batch_succeeded_states: List[Any]
+    current_batch_succeeded_states: list[Any]
     # The overall number of jobs that have been started for the pass, throughout the whole run_passes() invocation.
     pass_job_counter: int
     # The value of pass_job_counter used for scheduling the most recent successful job.
@@ -243,13 +244,13 @@ class PassContext:
     # The value of pass_job_counter when the current batch (run_parallel_tests()) started.
     current_batch_start_job_counter: int
     # Currently running transform jobs, as the (order, state) mapping.
-    running_transform_order_to_state: Dict[int, Any]
+    running_transform_order_to_state: dict[int, Any]
     # When True, the pass is considered dysfunctional (due to an issue) and shouldn't be used anymore.
     defunct: bool
     # How many times a job for this pass timed out.
     timeout_count: int
     # Mapping from a hint type to a bundle path that the pass generated, for a hint-based pass.
-    hint_bundle_paths: Dict[bytes, Path]
+    hint_bundle_paths: dict[bytes, Path]
 
     @staticmethod
     def create(pass_: AbstractPass) -> PassContext:
@@ -278,7 +279,7 @@ class PassContext:
         assert self.pass_job_counter >= self.last_success_pass_job_counter
         return self.pass_job_counter - self.last_success_pass_job_counter
 
-    def can_init_now(self, ready_hint_types: Set[bytes]) -> bool:
+    def can_init_now(self, ready_hint_types: set[bytes]) -> bool:
         """Whether the pass new() method can be scheduled."""
         if not self.enabled or self.defunct or self.stage != PassStage.BEFORE_INIT:
             return False
@@ -291,7 +292,7 @@ class PassContext:
         """Whether the pass transform() method can be scheduled."""
         return self.enabled and not self.defunct and self.stage == PassStage.ENUMERATING and self.state is not None
 
-    def can_start_job_now(self, ready_hint_types: Set[bytes]) -> bool:
+    def can_start_job_now(self, ready_hint_types: set[bytes]) -> bool:
         """Whether any of the pass methods can be scheduled."""
         return self.can_init_now(ready_hint_types) or self.can_transform_now()
 
@@ -325,10 +326,10 @@ class Job:
     order: int
 
     # If this job executes a method of a pass, these store pointers to it; None otherwise.
-    pass_: Optional[AbstractPass]
-    pass_id: Optional[int]
+    pass_: AbstractPass | None
+    pass_id: int | None
     pass_user_visible_name: str
-    pass_job_counter: Optional[int]
+    pass_job_counter: int | None
 
     start_time: float
     timeout: float
@@ -342,8 +343,8 @@ class SuccessCandidate:
     pass_id: int
     pass_state: Any
     size_delta: int
-    tmp_dir: Union[Path, None] = None
-    test_case_path: Union[Path, None] = None
+    tmp_dir: Path | None = None
+    test_case_path: Path | None = None
 
     def take_file_ownership(self, test_case_path: Path) -> None:
         assert self.tmp_dir is None
@@ -361,7 +362,7 @@ class SuccessCandidate:
     def better_than(self, other: SuccessCandidate) -> bool:
         return self._comparison_key() < other._comparison_key()
 
-    def _comparison_key(self) -> Tuple:
+    def _comparison_key(self) -> tuple:
         # We prefer folds over a reduction via a single pass, since folds perform a more diverse transformation of the
         # test case and since all single-pass successes will eventually end up as part of a fold.
         is_fold = isinstance(self.pass_state, FoldingStateOut)
@@ -398,7 +399,7 @@ class TestManager:
         test_script: Path,
         timeout,
         save_temps,
-        test_cases: List[Path],
+        test_cases: list[Path],
         parallel_tests,
         no_cache,
         skip_key_off,
@@ -416,8 +417,8 @@ class TestManager:
         self.timeout = timeout
         self.save_temps = save_temps
         self.pass_statistic = pass_statistic
-        self.test_cases: Set[Path] = set()
-        self.test_cases_modes: Dict[Path, int] = {}
+        self.test_cases: set[Path] = set()
+        self.test_cases_modes: dict[Path, int] = {}
         self.parallel_tests = parallel_tests
         self.no_cache = no_cache
         self.skip_key_off = skip_key_off
@@ -444,21 +445,21 @@ class TestManager:
 
         self.orig_total_file_size = self.total_file_size
         self.cache = None if self.no_cache else cache.Cache(f'{self.TEMP_PREFIX}cache-')
-        self.pass_contexts: List[PassContext] = []
+        self.pass_contexts: list[PassContext] = []
         self.interleaving: bool = False
         if not self.is_valid_test(self.test_script):
             raise InvalidInterestingnessTestError(self.test_script)
-        self.jobs: List[Job] = []
+        self.jobs: list[Job] = []
         # The "order" is an incremental counter for numbering jobs.
         self.order: int = 0
         # Remembers the "order" that the first job in the current batch (run_parallel_tests()) got.
         self.current_batch_start_order: int = 0
         # Identifies the most recent pass restart job (whether in the current batch or not).
-        self.last_restart_job_order: Union[int, None] = None
-        self.success_candidate: Union[SuccessCandidate, None] = None
-        self.folding_manager: Union[FoldingManager, None] = None
+        self.last_restart_job_order: int | None = None
+        self.success_candidate: SuccessCandidate | None = None
+        self.folding_manager: FoldingManager | None = None
         # Ids of passes that are eligible for the restart, in FIFO order.
-        self.pass_restart_queue: List[int] = []
+        self.pass_restart_queue: list[int] = []
 
         self.use_colordiff = (
             sys.stdout.isatty()
@@ -475,7 +476,7 @@ class TestManager:
         self.mpmanager = multiprocessing.Manager()
         self.process_monitor = ProcessMonitor(self.mpmanager, self.parallel_tests)
         self.mplogger = mplogging.MPLogger(self.parallel_tests)
-        self.worker_pool: Union[pebble.ProcessPool, None] = None
+        self.worker_pool: pebble.ProcessPool | None = None
         self.mp_task_loss_workaround = MPTaskLossWorkaround(self.parallel_tests)
 
     def __enter__(self):
@@ -569,7 +570,7 @@ class TestManager:
         return True
 
     @staticmethod
-    def get_extra_dir(prefix, max_number) -> Union[Path, None]:
+    def get_extra_dir(prefix, max_number) -> Path | None:
         for i in range(0, max_number + 1):
             digits = int(round(math.log10(max_number), 0))
             extra_dir = Path(('{0}{1:0' + str(digits) + 'd}').format(prefix, i))
@@ -818,7 +819,7 @@ class TestManager:
         return PassCheckingOutcome.IGNORE
 
     def maybe_update_success_candidate(
-        self, order: int, pass_: Union[AbstractPass, None], pass_id: Union[int, None], env: TestEnvironment
+        self, order: int, pass_: AbstractPass | None, pass_id: int | None, env: TestEnvironment
     ) -> None:
         assert env.success
         new = SuccessCandidate(
@@ -891,7 +892,7 @@ class TestManager:
             self.mp_task_loss_workaround.execute(self.worker_pool)  # only do it if at least one job canceled
             self.release_all_jobs()
 
-    def run_passes(self, passes: List[AbstractPass], interleaving: bool):
+    def run_passes(self, passes: list[AbstractPass], interleaving: bool):
         extra_passes = []
         for p in passes:
             extra_passes += p.create_subordinate_passes()
@@ -1136,7 +1137,7 @@ class TestManager:
             return True
         return False
 
-    def schedule_init(self, pass_id: int, ready_hint_types: Set[bytes]) -> None:
+    def schedule_init(self, pass_id: int, ready_hint_types: set[bytes]) -> None:
         ctx = self.pass_contexts[pass_id]
         assert ctx.can_init_now(ready_hint_types)
 
@@ -1284,7 +1285,7 @@ class TestManager:
         while ctx.state is not None and any(ctx.state.subset_of(s) for s in ctx.current_batch_succeeded_states):
             ctx.state = ctx.pass_.advance(self.current_test_case, ctx.state)
 
-    def get_fully_initialized_hint_types(self) -> Set[bytes]:
+    def get_fully_initialized_hint_types(self) -> set[bytes]:
         ready_types = set()
         missing_types = set()
         for ctx in self.pass_contexts:
@@ -1303,7 +1304,7 @@ def override_tmpdir_env(old_env: Mapping[str, str], tmp_override: Path) -> Mappi
     return new_env
 
 
-def _init_worker_process(initializers: List[Callable]) -> None:
+def _init_worker_process(initializers: list[Callable]) -> None:
     # By default (when not executing a job), terminate a worker immediately on relevant signals. Raising an exception at
     # unexpected times, especially inside multiprocessing internals, can put the worker into a bad state.
     sigmonitor.init(sigmonitor.Mode.QUICK_EXIT)

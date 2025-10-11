@@ -9,7 +9,7 @@ import pytest
 import re
 import sys
 import time
-from typing import Dict, List, Union
+from typing import Union
 from unittest.mock import patch
 
 from cvise.passes.abstract import AbstractPass, PassResult  # noqa: E402
@@ -185,7 +185,7 @@ class InsideBracketsRemovingPass(HintBasedPass):
     def input_hint_types(self):
         return [b'remove-brackets']
 
-    def generate_hints(self, test_case: Path, dependee_hints: List[HintBundle], *args, **kwargs):
+    def generate_hints(self, test_case: Path, dependee_hints: list[HintBundle], *args, **kwargs):
         hints = []
         for input_bundle in dependee_hints:
             for input_hint in input_bundle.hints:
@@ -228,12 +228,12 @@ def cwd_to_tmp_path(tmp_path: Path):
 
 
 @pytest.fixture
-def input_contents() -> Union[str, Dict[Path, str]]:
+def input_contents() -> Union[str, dict[Path, str]]:
     return DEFAULT_INPUT_CONTENTS
 
 
 @pytest.fixture
-def input_path(tmp_path: Path, input_contents: Union[str, Dict[Path, str]]) -> Path:
+def input_path(tmp_path: Path, input_contents: Union[str, dict[Path, str]]) -> Path:
     RELATIVE_PATH = Path('test_case')
     path = tmp_path / RELATIVE_PATH
     if isinstance(input_contents, str):
@@ -520,7 +520,7 @@ def test_print_diff_colordiff(
     caplog: pytest.LogCaptureFixture,
     fp,
 ):
-    def colordiff_callback(stdin: bytes) -> Dict[str, bytes]:
+    def colordiff_callback(stdin: bytes) -> dict[str, bytes]:
         lines = [b'\x1b[1;37m' + s + b'\x1b[0;0m' for s in stdin.splitlines()]
         return {'stdout': b'\n'.join(lines)}
 
@@ -581,7 +581,7 @@ def test_subprocess_termination(manager: testing.TestManager):
     assert _find_processes_by_cmd_line(_unique_sleep_infinity()) == []
 
 
-def _find_processes_by_cmd_line(needle: str) -> List[psutil.Process]:
+def _find_processes_by_cmd_line(needle: str) -> list[psutil.Process]:
     processes = []
     for proc in psutil.process_iter():
         with contextlib.suppress(psutil.NoSuchProcess, psutil.ZombieProcess):
@@ -605,5 +605,5 @@ def test_pass_dependency(input_path: Path, manager: testing.TestManager):
     assert input_path.read_text() == 'a()c()'
 
 
-def _read_files_in_dir(dir: Path) -> Dict[Path, str]:
+def _read_files_in_dir(dir: Path) -> dict[Path, str]:
     return {p.relative_to(dir): p.read_text() for p in dir.rglob('*') if not p.is_dir()}

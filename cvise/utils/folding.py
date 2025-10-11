@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 import random
-from typing import Any, List, Set, Tuple, Union
+from typing import Any, Union
 
 from cvise.passes.abstract import PassResult
 from cvise.passes.hint_based import HintBasedPass, HintState
@@ -14,7 +14,7 @@ from cvise.utils.hint import HintApplicationStats
 class FoldingStateIn:
     """Input parameters for a folding job's transform."""
 
-    sub_states: Tuple[HintState]
+    sub_states: tuple[HintState]
 
     def real_chunk(self) -> int:
         return sum(s.real_chunk() for s in self.sub_states)
@@ -49,10 +49,10 @@ class FoldingManager:
     JOB_COUNT_FACTOR = 10
 
     def __init__(self):
-        self.folding_candidates: List[HintState] = []
+        self.folding_candidates: list[HintState] = []
         self.best_successful_fold: Union[FoldingStateOut, None] = None
-        self.failed_folds: List[FoldingStateOut] = []
-        self.attempted_folds: Set[FoldingStateIn] = set()
+        self.failed_folds: list[FoldingStateOut] = []
+        self.attempted_folds: set[FoldingStateIn] = set()
 
     def on_transform_job_success(self, state: Any) -> None:
         if isinstance(state, HintState):
@@ -76,7 +76,7 @@ class FoldingManager:
 
         # We'll always take the hints from the best discovery so far. This gives us a good starting point - whatever we
         # add below should likely result in something that becomes the-new-best (if it passes the interestingness test).
-        forcelist_states: Set[HintState] = set()
+        forcelist_states: set[HintState] = set()
         if isinstance(best_success_state, HintState):
             forcelist_states = {best_success_state}
         elif isinstance(best_success_state, FoldingStateOut):
@@ -84,7 +84,7 @@ class FoldingManager:
 
         # Heuristically avoid "bad" items (those that cause unsuccessful folds). For this, we look at previously failed
         # folds and "ban" randomly selected halves of them.
-        banned_states: Set[HintState] = set()
+        banned_states: set[HintState] = set()
         for failed_fold in self.failed_folds:
             potential_ban = set(failed_fold.sub_states) - forcelist_states
             half = (len(potential_ban) + 1) // 2
@@ -109,7 +109,7 @@ class FoldingManager:
     @staticmethod
     def transform(
         test_case: Path, state: FoldingStateIn, process_event_notifier, original_test_case: Path, *args, **kwargs
-    ) -> Tuple[PassResult, Union[FoldingStateOut, None]]:
+    ) -> tuple[PassResult, Union[FoldingStateOut, None]]:
         statistics = HintBasedPass.load_and_apply_hints(original_test_case, test_case, state.sub_states)
         return PassResult.OK, FoldingStateOut(
             sub_states=state.sub_states,

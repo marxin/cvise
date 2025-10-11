@@ -2,7 +2,7 @@ import msgspec
 from pathlib import Path
 import re
 import subprocess
-from typing import Dict, List, Optional
+from typing import Optional
 
 from cvise.passes.abstract import SubsegmentState
 from cvise.passes.hint_based import HintBasedPass
@@ -14,7 +14,7 @@ from cvise.utils.process import ProcessEventNotifier
 class ClexHintsPass(HintBasedPass):
     """A pass for removing tokens based on the hints from the "clex" tool."""
 
-    def __init__(self, arg: str, external_programs: Dict[str, Optional[str]], **kwargs):
+    def __init__(self, arg: str, external_programs: dict[str, Optional[str]], **kwargs):
         super().__init__(arg=arg, external_programs=external_programs, **kwargs)
 
     def check_prerequisites(self):
@@ -58,7 +58,7 @@ class ClexHintsPass(HintBasedPass):
         # When reading, gracefully handle EOF because the tool might've failed with no output.
         stdout = iter(stdout.splitlines())
         vocab_line = next(stdout, None)
-        vocab_decoder = msgspec.json.Decoder(type=List[str])
+        vocab_decoder = msgspec.json.Decoder(type=list[str])
         orig_vocab = [s.encode() for s in vocab_decoder.decode(vocab_line)] if vocab_line else []
 
         hints = []

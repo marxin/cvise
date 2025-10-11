@@ -1,6 +1,6 @@
 from pathlib import Path
 import pytest
-from typing import Any, Tuple
+from typing import Any
 
 from cvise.passes.makefile import MakefilePass
 from cvise.tests.testabstract import collect_all_transforms_dir, validate_stored_hints
@@ -14,7 +14,7 @@ def test_case_path(tmp_path: Path) -> Path:
     return path
 
 
-def init_pass(tmp_dir: Path, test_case_path: Path) -> Tuple[MakefilePass, Any]:
+def init_pass(tmp_dir: Path, test_case_path: Path) -> tuple[MakefilePass, Any]:
     pass_ = MakefilePass(claim_files=['**/Makefile', '**/makefile'])
     state = pass_.new(
         test_case_path, tmp_dir=tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
