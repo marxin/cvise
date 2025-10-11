@@ -14,7 +14,11 @@ from cvise.utils.makefileparser import Makefile, SourceLoc, TextWithLoc
 _ARG_REMOVAL_PROG_ALLOWLIST = re.compile(r'\bCC\b|clang|CLANG|\bCXX\b|g\+\+|G\+\+|gcc|GCC')
 _TWO_TOKEN_OPTIONS = re.compile(rb'-I|-iquote|-isystem|-o|-Xclang')
 _REMOVAL_BLOCKLIST = re.compile(
-    rb'-fallow-pcm-with-compiler-errors|-ferror-limit=.*|-fmax-errors=.*|-fmodule-map-file-home-is-cwd|-fno-crash-diagnostics|-fno-cxx-modules|-fno-implicit-module-maps|-fno-implicit-modules|-fpermissive|-fsyntax-only|-I.*|-no-pedantic|--no-pedantic|-nostdinc++|-nostdlib++|--no-warnings|-o.*|-pedantic|--pedantic|-pedantic-errors|--pedantic-errors|-w|-W.*|-Xclang=-emit-module|-Xclang=-fno-cxx-modules|-Xclang=-fmodule-map-file-home-is-cwd'
+    rb'-fallow-pcm-with-compiler-errors|-ferror-limit=.*|-fmax-errors=.*|-fmodule-map-file-home-is-cwd|'
+    + rb'-fno-crash-diagnostics|-fno-cxx-modules|-fno-implicit-module-maps|-fno-implicit-modules|-fpermissive|'
+    + rb'-fsyntax-only|-I.*|-no-pedantic|--no-pedantic|-nostdinc\+\+|-nostdlib\+\+|--no-warnings|-o.*|-pedantic|'
+    + rb'--pedantic|-pedantic-errors|--pedantic-errors|-w|-W.*|-Xclang=-emit-module|-Xclang=-fno-cxx-modules|'
+    + rb'-Xclang=-fmodule-map-file-home-is-cwd'
 )
 _TWO_TOKEN_OPTIONS_REMOVAL_BLOCKLIST = re.compile(
     rb'-I .*|-iquote .*|-isystem .*|-o .*|-Xclang -fallow-pcm-with-compiler-errors'
