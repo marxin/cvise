@@ -91,7 +91,7 @@ jobs:
       working-directory: objdir
     - run: make -j`nproc` VERBOSE=1
       working-directory: objdir
-    - run: python -m pytest -n $(($(nproc) + 1))
+    - run: python -m pytest -sx
       working-directory: objdir
 
   ruff:
