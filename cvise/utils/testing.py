@@ -333,14 +333,14 @@ class Job:
 
     start_time: float
     timeout: float
-    temporary_folder: Path
+    temporary_folder: Path | None
 
 
 @dataclass
 class SuccessCandidate:
     order: int
-    pass_: AbstractPass
-    pass_id: int
+    pass_: AbstractPass | None
+    pass_id: int | None
     pass_state: Any
     size_delta: int
     tmp_dir: Path | None = None
