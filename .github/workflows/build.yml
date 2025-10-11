@@ -77,8 +77,8 @@ jobs:
     - uses: actions/checkout@v4
     - run: apt-get update
     - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex vim unifdef sudo
-    - name: Clear Python cache # workaround for "error when attempting to execute the process ... pip"
-      run: rm -rf /__t/Python
+    - run: rm -rf /__t/Python  # workaround for "error when attempting to execute the process ... pip"
+    - run: sudo chown -R $(whoami) /github/home  # workaround for "directory ... pip ... is not owned or is not writable by the current user"
     - uses: actions/setup-python@v6
       with:
         python-version: "${{ matrix.python }}"
