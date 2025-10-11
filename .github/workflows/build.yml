@@ -80,6 +80,7 @@ jobs:
     - uses: actions/setup-python@v6
       with:
         python-version: "${{ matrix.python }}"
+        cache: 'pip'
     - run: python -m pip install --user chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess pytest-xdist pytype zstandard
     - run: wget https://apt.llvm.org/llvm.sh
     - run: chmod +x llvm.sh
