@@ -181,6 +181,18 @@ class TestClangDelta(unittest.TestCase):
             end_index=1,
         )
 
+    def test_callexpr_to_value_test3(self):
+        self.check_clang_delta(
+            'callexpr-to-value/test3.c',
+            '--transformation=callexpr-to-value --counter=1',
+        )
+        self.check_clang_delta_hints(
+            'callexpr-to-value/test3.c',
+            '--transformation=callexpr-to-value',
+            begin_index=0,
+            end_index=1,
+        )
+
     def test_copy_propagation_copy1(self):
         self.check_clang_delta(
             'copy-propagation/copy1.cpp',
