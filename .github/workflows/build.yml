@@ -139,10 +139,12 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python3
+    - run: zypper -n install
+        binutils clang-devel cmake flex gcc-c++ llvm-devel python3 python3-pyright
+        python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess python3-pytest-xdist
+        unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-jsonschema
+        python3-msgspec python3-zstandard
     - uses: actions/checkout@v4
-    - name: prepare venv
-      run: pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess pytype zstandard
     - name: build
       run: |
             mkdir objdir
