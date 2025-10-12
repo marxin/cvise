@@ -145,10 +145,10 @@ jobs:
         unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-jsonschema
         python3-msgspec python3-zstandard
     - uses: actions/checkout@v4
-    - name: build
-      run: |
-            mkdir objdir
-            cd objdir
-            ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
-            make -j`nproc` VERBOSE=1
-    - run: pyright objdir
+    - run: mkdir objdir
+    - run: cmake ..
+      working-directory: objdir
+    - run: make -j`nproc` VERBOSE=1
+      working-directory: objdir
+    - run: pyright
+      working-directory: objdir
