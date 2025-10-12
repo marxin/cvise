@@ -31,7 +31,7 @@ def init_pass(transformation: str, tmp_dir: Path, input_path: Path) -> tuple[Cla
     return pass_, state
 
 
-def test_class(tmp_path: Path):
+def test_rmunusedfn_class(tmp_path: Path):
     input_path = get_data_path('remove-unused-function/class.cc')
     p, state = init_pass('remove-unused-function', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
@@ -40,7 +40,7 @@ def test_class(tmp_path: Path):
     assert expected_path.read_bytes() in all_transforms
 
 
-def test_const(tmp_path: Path):
+def test_rmunusedfn_const(tmp_path: Path):
     input_path = get_data_path('remove-unused-function/const.cc')
     p, state = init_pass('remove-unused-function', tmp_path, input_path)
     all_transforms = collect_all_transforms(p, state, input_path)
@@ -49,14 +49,14 @@ def test_const(tmp_path: Path):
     assert get_data_path('remove-unused-function/const.output2').read_bytes() in all_transforms
 
 
-def test_inline_ns(tmp_path: Path):
+def test_rmunusedfn_inline_ns(tmp_path: Path):
     input_path = get_data_path('remove-unused-function/inline_ns.cc')
     p, state = init_pass('remove-unused-function', tmp_path, input_path)
 
     assert state is None
 
 
-def test_malformed_code(tmp_path: Path):
+def test_rmunusedfn_malformed_code(tmp_path: Path):
     input_path = tmp_path / 'input.cc'
     input_path.write_text('!?badbadbad@#')
     p, state = init_pass('remove-unused-function', tmp_path, input_path)

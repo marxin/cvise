@@ -48,6 +48,18 @@ void HintsBuilder::AddPatch(clang::SourceLocation L, int64_t Len,
   CurrentHint.Patches.push_back(P);
 }
 
+void HintsBuilder::AddPatch(clang::SourceLocation L, const std::string &Insertion) {
+  if (Insertion.empty()) {
+    // Empty insertion is a no-op.
+    return;
+  }
+  Patch P;
+  P.L = SourceMgr.getFileOffset(L);
+  P.R = P.L;
+  P.V = LookupOrCreateVocabId(Insertion);
+  CurrentHint.Patches.push_back(P);
+}
+
 HintsBuilder::HintScope HintsBuilder::MakeHintScope() {
   return HintScope(*this);
 }

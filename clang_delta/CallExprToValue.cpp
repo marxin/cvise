@@ -14,6 +14,8 @@
 
 #include "CallExprToValue.h"
 
+#include <vector>
+
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/SourceManager.h"
@@ -32,7 +34,7 @@ global variable with a correct type. \n";
 static RegisterTransformation<CallExprToValue>
          Trans("callexpr-to-value", DescriptionMsg);
 
-class CallExprToValueVisitor : public 
+class CallExprToValueVisitor : public
   RecursiveASTVisitor<CallExprToValueVisitor> {
 
 public:
@@ -58,13 +60,7 @@ bool CallExprToValueVisitor::VisitCallExpr(CallExpr *CE)
   if (ConsumerInstance->isInIncludedFile(CE))
     return true;
 
-  ConsumerInstance->ValidInstanceNum++;
-  if (ConsumerInstance->TransformationCounter != 
-      ConsumerInstance->ValidInstanceNum)
-    return true;
-  
-  ConsumerInstance->TheCallExpr = CE;
-  ConsumerInstance->CurrentFD = CurrentFD;
+  ConsumerInstance->Instances.push_back({CE, CurrentFD});
   return true;
 }
 
@@ -72,53 +68,59 @@ bool CallExprToValueVisitor::VisitFunctionDecl(FunctionDecl *FD)
 {
   // Note that CurrentFD could not be the function decl where TheCallExpr
   // shows up, e.g., we could have:
-  // struct A { 
-  //   void foo(); 
+  // struct A {
+  //   void foo();
   //   static int value = bar();
   // };
   CurrentFD = FD;
   return true;
 }
 
-void CallExprToValue::Initialize(ASTContext &context) 
+void CallExprToValue::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new CallExprToValueVisitor(this);
-  NameQueryWrap = 
+  NameQueryWrap =
     new TransNameQueryWrap(RewriteHelper->getTmpVarNamePrefix());
 }
 
 void CallExprToValue::HandleTranslationUnit(ASTContext &Ctx)
 {
   CollectionVisitor->TraverseDecl(Ctx.getTranslationUnitDecl());
+  ValidInstanceNum = static_cast<int>(Instances.size());
 
   if (QueryInstanceOnly)
     return;
 
-  if (TransformationCounter > ValidInstanceNum) {
+  if (ToCounter != std::numeric_limits<int>::max() &&
+      TransformationCounter > ValidInstanceNum) {
     TransError = TransMaxInstanceError;
     return;
   }
-
-  TransAssert(TheCallExpr && "NULL TheCallExpr!");
 
   Ctx.getDiagnostics().setSuppressAllDiagnostics(false);
 
   NameQueryWrap->TraverseDecl(Ctx.getTranslationUnitDecl());
   NamePostfix = NameQueryWrap->getMaxNamePostfix() + 1;
 
-  replaceCallExpr();
+  if (ToCounter == std::numeric_limits<int>::max()) {
+    for (const auto &Inst : Instances)
+      replaceCallExpr(Inst);
+  } else {
+    replaceCallExpr(Instances[TransformationCounter - 1]);
+  }
 
   if (Ctx.getDiagnostics().hasErrorOccurred() ||
       Ctx.getDiagnostics().hasFatalErrorOccurred())
     TransError = TransInternalError;
 }
 
-void CallExprToValue::replaceCallExpr(void)
+void CallExprToValue::replaceCallExpr(const Instance &Inst)
 {
+  auto HintScope = Hints->MakeHintScope();
   std::string CommaStr = "";
 
-  QualType RVQualType = TheCallExpr->getType();
+  QualType RVQualType = Inst.TheCallExpr->getType();
   const Type *RVType = RVQualType.getTypePtr();
   if (RVType->isVoidType()) {
     // Nothing to do
@@ -131,18 +133,20 @@ void CallExprToValue::replaceCallExpr(void)
     CommaStr = RVStr;
     RVQualType.getAsStringInternal(RVStr, getPrintingPolicy());
     RVStr += ";\n";
-    if (CurrentFD) {
-      RewriteHelper->insertStringBeforeFunc(CurrentFD, RVStr);
+    if (Inst.FD) {
+      RewriteHelper->insertStringBeforeFunc(Inst.FD, RVStr);
     }
     else {
-      TheRewriter.InsertTextBefore(TheCallExpr->getBeginLoc(), RVStr);
+      SourceLocation InsLoc = Inst.TheCallExpr->getBeginLoc();
+      Hints->AddPatch(InsLoc, RVStr);
+      TheRewriter.InsertTextBefore(InsLoc, RVStr);
     }
   }
   else {
     CommaStr = "0";
   }
 
-  RewriteHelper->replaceExpr(TheCallExpr, CommaStr);
+  RewriteHelper->replaceExpr(Inst.TheCallExpr, CommaStr);
 }
 
 CallExprToValue::~CallExprToValue(void)

@@ -62,6 +62,7 @@ public:
   void AddPatch(clang::CharSourceRange R, const std::string &Replacement = "");
   void AddPatch(clang::SourceLocation L, int64_t Len,
                 const std::string &Replacement = "");
+  void AddPatch(clang::SourceLocation L, const std::string &Insertion = "");
 
   void ReverseOrder();
 

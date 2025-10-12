@@ -90,9 +90,9 @@ unsigned RewriteUtils::getOffsetBetweenLocations(SourceLocation StartLoc,
                                             SourceManager *SrcManager)
 {
   FileID FID;
-  unsigned StartOffset = 
+  unsigned StartOffset =
     getLocationOffsetAndFileID(StartLoc, FID, SrcManager);
-  unsigned EndOffset = 
+  unsigned EndOffset =
     getLocationOffsetAndFileID(EndLoc, FID, SrcManager);
   TransAssert((EndOffset >= StartOffset) && "Bad locations!");
   return (EndOffset - StartOffset);
@@ -144,19 +144,19 @@ int RewriteUtils::getSkippingOffset(const char *Buf, char Symbol)
   return Offset;
 }
 
-SourceLocation RewriteUtils::getEndLocationUntil(SourceRange Range, 
+SourceLocation RewriteUtils::getEndLocationUntil(SourceRange Range,
                                                  char Symbol)
 {
   SourceLocation EndLoc = getEndLocationFromBegin(Range);
   if (EndLoc.isInvalid())
     return EndLoc;
-    
+
   const char *EndBuf = SrcManager->getCharacterData(EndLoc);
   int Offset = getOffsetUntil(EndBuf, Symbol);
   return EndLoc.getLocWithOffset(Offset);
 }
 
-SourceLocation RewriteUtils::getLocationUntil(SourceLocation Loc, 
+SourceLocation RewriteUtils::getLocationUntil(SourceLocation Loc,
                                               char Symbol)
 {
   const char *Buf = SrcManager->getCharacterData(Loc);
@@ -164,13 +164,13 @@ SourceLocation RewriteUtils::getLocationUntil(SourceLocation Loc,
   return Loc.getLocWithOffset(Offset);
 }
 
-SourceLocation RewriteUtils::getEndLocationAfter(SourceRange Range, 
+SourceLocation RewriteUtils::getEndLocationAfter(SourceRange Range,
                                                 char Symbol)
 {
   SourceLocation EndLoc = getEndLocationFromBegin(Range);
   if (EndLoc.isInvalid())
     return EndLoc;
-    
+
   const char *EndBuf = SrcManager->getCharacterData(EndLoc);
   int Offset = getOffsetUntil(EndBuf, Symbol);
   Offset++;
@@ -201,7 +201,7 @@ clang::SourceRange RewriteUtils::getDeclFullSourceRange(const clang::Decl* D)
   }
 
 
-  // Include the semicolon into the declaration. 
+  // Include the semicolon into the declaration.
   // See DeclPrinter::VisitDeclContext in clang source code for all cases.
   bool HasSemicolon = true;
   if (auto* FD = dyn_cast<FunctionDecl>(D)) {
@@ -216,7 +216,7 @@ clang::SourceRange RewriteUtils::getDeclFullSourceRange(const clang::Decl* D)
   return Range;
 }
 
-SourceLocation RewriteUtils::getLocationAfter(SourceLocation Loc, 
+SourceLocation RewriteUtils::getLocationAfter(SourceLocation Loc,
                                                 char Symbol)
 {
   const char *Buf = SrcManager->getCharacterData(Loc);
@@ -225,7 +225,7 @@ SourceLocation RewriteUtils::getLocationAfter(SourceLocation Loc,
   return Loc.getLocWithOffset(Offset);
 }
 
-SourceLocation RewriteUtils::getLocationAfterSkiping(SourceLocation StartLoc, 
+SourceLocation RewriteUtils::getLocationAfterSkiping(SourceLocation StartLoc,
                                               char Symbol)
 {
   const char *StartBuf = SrcManager->getCharacterData(StartLoc);
@@ -245,7 +245,7 @@ SourceLocation RewriteUtils::getParamSubstringLocation(SourceLocation StartLoc,
 
   if (Pos == 0)
     return StartLoc;
-  else 
+  else
     return StartLoc.getLocWithOffset(Pos);
 }
 
@@ -255,7 +255,7 @@ bool RewriteUtils::removeParamFromFuncDecl(const ParmVarDecl *PV,
 {
   SourceRange ParamLocRange = PV->getSourceRange();
   int RangeSize;
- 
+
   SourceLocation StartLoc = ParamLocRange.getBegin();
   if (StartLoc.isMacroID())
     StartLoc = SrcManager->getExpansionLoc(StartLoc);
@@ -294,7 +294,7 @@ bool RewriteUtils::removeParamFromFuncDecl(const ParmVarDecl *PV,
   // The param is the last parameter
   if (ParamPos == static_cast<int>(NumParams - 1)) {
     int Offset = 0;
-    const char *StartBuf = 
+    const char *StartBuf =
       SrcManager->getCharacterData(StartLoc);
 
     TransAssert(StartBuf && "Invalid start buffer!");
@@ -307,7 +307,7 @@ bool RewriteUtils::removeParamFromFuncDecl(const ParmVarDecl *PV,
 
     return !(TheRewriter->RemoveText(NewStartLoc, RangeSize - Offset));
   }
- 
+
   // We cannot use the code below:
   //   SourceLocation EndLoc = ParamLocRange.getEnd();
   //   const char *EndBuf =
@@ -336,9 +336,9 @@ bool RewriteUtils::removeParamFromFuncDecl(const ParmVarDecl *PV,
 }
 
 // Handle CXXConstructExpr and CallExpr.
-// These two do not inherit each other, and we need a couple of 
-// `common` member functions from them. 
-// Is this too ugly? Any better way to do this? 
+// These two do not inherit each other, and we need a couple of
+// `common` member functions from them.
+// Is this too ugly? Any better way to do this?
 const Expr *RewriteUtils::getArgWrapper(const Expr *E,
                                         int ParamPos)
 {
@@ -371,7 +371,7 @@ unsigned RewriteUtils::getNumArgsWrapper(const Expr *E)
 bool RewriteUtils::removeArgFromExpr(const Expr *E,
                                      int ParamPos)
 {
-  
+
   if (ParamPos >= static_cast<int>(getNumArgsWrapper(E)))
     return true;
 
@@ -390,7 +390,7 @@ bool RewriteUtils::removeArgFromExpr(const Expr *E,
   unsigned int NumArgs = getNumArgsWrapper(E);
 
   if ((ParamPos == 0) && ((NumArgs == 1) ||
-                          ((NumArgs > 1) && 
+                          ((NumArgs > 1) &&
                            dyn_cast<CXXDefaultArgExpr>(
                            getArgWrapper(E, 1)->IgnoreParenCasts())))) {
     // Note that ')' is included in ParamLocRange
@@ -418,8 +418,8 @@ bool RewriteUtils::removeArgFromExpr(const Expr *E,
   }
 
   // We cannot use SrcManager->getCharacterData(StartLoc) to get the buffer,
-  // because it returns the unmodified string. I've tried to use 
-  // getEndlocationUntil(ArgRange, ",", ...) call, but still failed. 
+  // because it returns the unmodified string. I've tried to use
+  // getEndlocationUntil(ArgRange, ",", ...) call, but still failed.
   // Seems in some cases, it returns bad results for a complex case like:
   //  foo(...foo(...), ...)
   // So I ended up with this ugly way - get the end loc from the next arg.
@@ -449,7 +449,7 @@ bool RewriteUtils::removeArgFromCallExpr(const CallExpr *CallE,
   return removeArgFromExpr(CallE, ParamPos);
 }
 
-void RewriteUtils::skipRangeByType(const std::string &BufStr, 
+void RewriteUtils::skipRangeByType(const std::string &BufStr,
                                    const Type *Ty,
                                    int &Offset)
 {
@@ -565,9 +565,9 @@ SourceLocation RewriteUtils::getVarDeclTypeLocEnd(const VarDecl *VD)
   //   unsigned int a; (or long long a;)
   // TypeLoc.getBeginLoc() returns the position of 'u'
   // TypeLoc.getEndLoc() also returns the position of 'u'
-  // The size of TypeLoc.getSourceRange() is 8, which is the 
+  // The size of TypeLoc.getSourceRange() is 8, which is the
   // length of "unsigned"
-  // Then we are getting trouble, because now EndLoc is right 
+  // Then we are getting trouble, because now EndLoc is right
   // after 'd', but we need it points to the location after "int".
   // skipPossibleTypeRange corrects the above deviation
   // Or am I doing something horrible here?
@@ -589,7 +589,7 @@ bool RewriteUtils::removeVarFromDeclStmt(DeclStmt *DS,
   }
 
   // handle the case where we could have implicit declaration of RecordDecl
-  // e.g., 
+  // e.g.,
   // foo (void) {
   //   struct S0 *s;
   //   ...;
@@ -630,8 +630,8 @@ bool RewriteUtils::removeVarFromDeclStmt(DeclStmt *DS,
     SourceLocation NewEndLoc = getEndLocationUntil(VarRange, ',');
     if (NewEndLoc.isMacroID())
       NewEndLoc = SrcManager->getSpellingLoc(NewEndLoc);
-    
-    return 
+
+    return
       !(TheRewriter->RemoveText(SourceRange(NewStartLoc, NewEndLoc)));
   }
 
@@ -648,7 +648,7 @@ bool RewriteUtils::removeVarFromDeclStmt(DeclStmt *DS,
   return !(TheRewriter->RemoveText(SourceRange(PrevDeclEndLoc, VarEndLoc)));
 }
 
-bool RewriteUtils::getExprString(const Expr *E, 
+bool RewriteUtils::getExprString(const Expr *E,
                                  std::string &ES)
 {
   SourceRange ExprRange = E->getSourceRange();
@@ -684,11 +684,11 @@ bool RewriteUtils::getExprString(const Expr *E,
   return true;
 }
 
-bool RewriteUtils::getStmtString(const Stmt *S, 
+bool RewriteUtils::getStmtString(const Stmt *S,
                                  std::string &Str)
 {
   SourceRange StmtRange = S->getSourceRange();
-   
+
   int RangeSize = TheRewriter->getRangeSize(StmtRange);
   if (RangeSize == -1)
     return false;
@@ -715,11 +715,11 @@ SourceLocation RewriteUtils::getExpansionEndLoc(SourceLocation EndLoc)
     return Entry->getExpansion().getExpansionLocEnd();
 }
 
-bool RewriteUtils::replaceExpr(const Expr *E, 
+bool RewriteUtils::replaceExpr(const Expr *E,
                                const std::string &ES)
 {
   SourceRange ExprRange = E->getSourceRange();
-   
+
   int RangeSize = TheRewriter->getRangeSize(ExprRange);
   if (RangeSize == -1) {
     SourceLocation StartLoc = ExprRange.getBegin();
@@ -735,13 +735,15 @@ bool RewriteUtils::replaceExpr(const Expr *E,
       // void foo(void) { int x = macro }
       EndLoc = getExpansionEndLoc(EndLoc);
     }
+    Hints->AddPatch(SourceRange(StartLoc, EndLoc), ES);
     return !(TheRewriter->ReplaceText(SourceRange(StartLoc, EndLoc), ES));
   }
 
+  Hints->AddPatch(ExprRange, ES);
   return !(TheRewriter->ReplaceText(ExprRange, ES));
 }
 
-bool RewriteUtils::replaceExprNotInclude(const Expr *E, 
+bool RewriteUtils::replaceExprNotInclude(const Expr *E,
                                const std::string &ES)
 {
   SourceRange ExprRange = E->getSourceRange();
@@ -752,7 +754,7 @@ bool RewriteUtils::replaceExprNotInclude(const Expr *E,
     TransAssert(EndLoc.isMacroID() && "EndLoc is not from a macro!");
     ExprRange = SourceRange(StartLoc, SrcManager->getFileLoc(EndLoc));
   }
-  TransAssert((TheRewriter->getRangeSize(ExprRange) != -1) && 
+  TransAssert((TheRewriter->getRangeSize(ExprRange) != -1) &&
               "Bad expr range!");
 
   Rewriter::RewriteOptions Opts;
@@ -773,16 +775,16 @@ std::string RewriteUtils::getStmtIndentString(Stmt *S,
   }
 
   FileID FID;
-  unsigned StartOffset = 
+  unsigned StartOffset =
     getLocationOffsetAndFileID(StmtStartLoc, FID, SrcManager);
 
   StringRef MB = SrcManager->getBufferData(FID);
- 
+
   unsigned lineNo = SrcManager->getLineNumber(FID, StartOffset) - 1;
   const SrcMgr::ContentCache&
       Content = SrcManager->getSLocEntry(FID).getFile().getContentCache();
   unsigned lineOffs = Content.SourceLineCache[lineNo];
- 
+
   // Find the whitespace at the start of the line.
   StringRef indentSpace;
 
@@ -823,12 +825,12 @@ bool RewriteUtils::addNewAssignStmtBefore(Stmt *BeforeStmt,
                                           Expr *RHS,
                                           bool NeedParen)
 {
-  std::string IndentStr = 
+  std::string IndentStr =
     RewriteUtils::getStmtIndentString(BeforeStmt, SrcManager);
 
   if (NeedParen) {
     SourceRange StmtRange = BeforeStmt->getSourceRange();
-    SourceLocation LocEnd = 
+    SourceLocation LocEnd =
       RewriteUtils::getEndLocationFromBegin(StmtRange);
     TransAssert(LocEnd.isValid() && "Invalid LocEnd!");
 
@@ -846,7 +848,7 @@ bool RewriteUtils::addNewAssignStmtBefore(Stmt *BeforeStmt,
   RewriteUtils::getExprString(RHS, ExprStr);
 
   std::string AssignStmtStr;
-  
+
   if (NeedParen) {
     AssignStmtStr = "{\n";
     AssignStmtStr += IndentStr + "  " + VarName + " = ";
@@ -858,8 +860,8 @@ bool RewriteUtils::addNewAssignStmtBefore(Stmt *BeforeStmt,
     AssignStmtStr += ExprStr;
     AssignStmtStr += ";\n" + IndentStr;
   }
-  
-  return !(TheRewriter->InsertText(StmtLocStart, 
+
+  return !(TheRewriter->InsertText(StmtLocStart,
              AssignStmtStr, /*InsertAfter=*/false));
 }
 
@@ -868,9 +870,9 @@ void RewriteUtils::indentAfterNewLine(StringRef Str,
                                       const std::string &IndentStr)
 {
   SmallVector<StringRef, 20> StrVec;
-  Str.split(StrVec, "\n"); 
+  Str.split(StrVec, "\n");
   NewStr = "";
-  for(SmallVector<StringRef, 20>::iterator I = StrVec.begin(), 
+  for(SmallVector<StringRef, 20>::iterator I = StrVec.begin(),
       E = StrVec.end(); I != E; ++I) {
     NewStr += ((*I).str() + "\n" + IndentStr);
   }
@@ -899,11 +901,11 @@ bool RewriteUtils::addStringBeforeStmtInternal(Stmt *S,
   }
   NewStr += Str;
   NewStr += "\n";
-  
+
   std::string IndentedStr;
   indentAfterNewLine(NewStr, IndentedStr, IndentStr);
 
-  return !(TheRewriter->InsertText(S->getBeginLoc(), 
+  return !(TheRewriter->InsertText(S->getBeginLoc(),
            IndentedStr, /*InsertAfter=*/false));
 }
 
@@ -940,18 +942,18 @@ bool RewriteUtils::addStringBeforeStmtAndReplaceExpr(Stmt *BeforeStmt,
                                      IndentStr, NeedParen);
 }
 
-bool RewriteUtils::addStringAfterStmt(Stmt *AfterStmt, 
+bool RewriteUtils::addStringAfterStmt(Stmt *AfterStmt,
                                       const std::string &Str)
 {
-  std::string IndentStr = 
+  std::string IndentStr =
     RewriteUtils::getStmtIndentString(AfterStmt, SrcManager);
 
   std::string NewStr = "\n" + IndentStr + Str;
   SourceRange StmtRange = AfterStmt->getSourceRange();
-  SourceLocation LocEnd = 
+  SourceLocation LocEnd =
     RewriteUtils::getEndLocationFromBegin(StmtRange);
   TransAssert(LocEnd.isValid() && "Invalid LocEnd!");
-  
+
   return !(TheRewriter->InsertText(LocEnd, NewStr));
 }
 
@@ -960,14 +962,14 @@ bool RewriteUtils::addStringAfterVarDecl(const VarDecl *VD,
 {
   SourceRange VarRange = VD->getSourceRange();
   SourceLocation LocEnd = getEndLocationAfter(VarRange, ';');
-  
+
   return !(TheRewriter->InsertText(LocEnd, "\n" + Str));
 }
 
 bool RewriteUtils::addStringAfterDecl(const Decl *D, const std::string &Str)
 {
   SourceRange Range = getDeclFullSourceRange(D);
-  
+
   return !(TheRewriter->InsertText(Range.getEnd(), "\n" + Str));
 }
 
@@ -977,12 +979,12 @@ bool RewriteUtils::addStringAfterDecl(const Decl *D, const std::string &Str)
 bool RewriteUtils::replaceNamedDeclName(const NamedDecl *ND,
                                         const std::string &NameStr)
 {
-  TransAssert(!isa<FunctionDecl>(ND) && 
+  TransAssert(!isa<FunctionDecl>(ND) &&
     "Please use replaceFunctionDeclName for renaming a FunctionDecl!");
-  TransAssert(!isa<UsingDirectiveDecl>(ND) && 
+  TransAssert(!isa<UsingDirectiveDecl>(ND) &&
     "Cannot use this function for renaming UsingDirectiveDecl");
   SourceLocation NameLocStart = ND->getLocation();
-  return !(TheRewriter->ReplaceText(NameLocStart, 
+  return !(TheRewriter->ReplaceText(NameLocStart,
              ND->getNameAsString().size(), NameStr));
 }
 
@@ -997,14 +999,14 @@ bool RewriteUtils::replaceVarDeclName(VarDecl *VD,
                                       const std::string &NameStr)
 {
   SourceLocation NameLocStart = VD->getLocation();
-  return !(TheRewriter->ReplaceText(NameLocStart, 
+  return !(TheRewriter->ReplaceText(NameLocStart,
              VD->getNameAsString().size(), NameStr));
 }
 
 bool RewriteUtils::replaceFunctionDeclName(const FunctionDecl *FD,
                                       const std::string &NameStr)
 {
-  // We cannot naively use FD->getNameAsString() here. 
+  // We cannot naively use FD->getNameAsString() here.
   // For example, for a template class
   // template<typename T>
   // class SomeClass {
@@ -1046,7 +1048,7 @@ bool RewriteUtils::replaceFunctionDeclName(const FunctionDecl *FD,
       const CXXRecordDecl *CXXRD = Ty->getAsCXXRecordDecl();
       std::string RDName = CXXRD->getNameAsString();
       FDNameLen = FDName.find(RDName);
-      TransAssert((FDNameLen != std::string::npos) && 
+      TransAssert((FDNameLen != std::string::npos) &&
                   "Cannot find RecordDecl Name!");
       FDNameLen += RDName.length();
     }
@@ -1081,7 +1083,7 @@ bool RewriteUtils::replaceCXXDestructorDeclName(
     const CXXRecordDecl *CXXRD = Ty->getAsCXXRecordDecl();
     std::string RDName = CXXRD->getNameAsString();
     NameLen = DName.find(RDName);
-    TransAssert((NameLen != std::string::npos) && 
+    TransAssert((NameLen != std::string::npos) &&
                 "Cannot find RecordDecl Name!");
     NameLen += RDName.length();
   }
@@ -1089,7 +1091,7 @@ bool RewriteUtils::replaceCXXDestructorDeclName(
     NameLen = DName.length();
   }
   NameLen += Off;
- 
+
   return !TheRewriter->ReplaceText(StartLoc,
                                    NameLen,
                                    "~" + Name);
@@ -1131,7 +1133,7 @@ bool RewriteUtils::replaceVarTypeName(const VarDecl *VD,
                                    NameStr);
 }
 
-void RewriteUtils::getStringBetweenLocs(std::string &Str, 
+void RewriteUtils::getStringBetweenLocs(std::string &Str,
                                         SourceLocation LocStart,
                                         SourceLocation LocEnd)
 {
@@ -1142,7 +1144,7 @@ void RewriteUtils::getStringBetweenLocs(std::string &Str,
   Str.assign(StartBuf, Off);
 }
 
-void RewriteUtils::getStringBetweenLocsAfterStart(std::string &Str, 
+void RewriteUtils::getStringBetweenLocsAfterStart(std::string &Str,
                                                   SourceLocation LocStart,
                                                   SourceLocation LocEnd)
 {
@@ -1176,7 +1178,7 @@ bool RewriteUtils::getEntireDeclGroupStrAndRemove(DeclGroupRef DGR,
   SourceRange LastRange = LastD->getSourceRange();
   SourceLocation EndLoc = getEndLocationUntil(LastRange, ';');
 
-  // This isn't really good, but if EndLoc is invalid, what can we do? 
+  // This isn't really good, but if EndLoc is invalid, what can we do?
   if (EndLoc.isInvalid()) {
     unsigned Off = 0;
     const char *StartBuf = SrcManager->getCharacterData(StartLoc);
@@ -1192,7 +1194,7 @@ bool RewriteUtils::getEntireDeclGroupStrAndRemove(DeclGroupRef DGR,
 }
 
 // This function skips type specifiers
-bool RewriteUtils::getDeclGroupStrAndRemove(DeclGroupRef DGR, 
+bool RewriteUtils::getDeclGroupStrAndRemove(DeclGroupRef DGR,
                                    std::string &Str)
 {
   if (DGR.isSingleDecl()) {
@@ -1280,7 +1282,7 @@ SourceLocation RewriteUtils::getDeclStmtEndLoc(DeclStmt *DS)
   return getDeclGroupRefEndLoc(DGR);
 }
 
-bool RewriteUtils::getDeclStmtStrAndRemove(DeclStmt *DS, 
+bool RewriteUtils::getDeclStmtStrAndRemove(DeclStmt *DS,
                                    std::string &Str)
 {
   DeclGroupRef DGR = DS->getDeclGroup();
@@ -1389,7 +1391,7 @@ bool RewriteUtils::removeVarDecl(const VarDecl *VD,
   // struct S1 {int f1;}. We need to skip it
   if (!FirstVD) {
     // handle the case where we could have implicit declaration of RecordDecl
-    // e.g., 
+    // e.g.,
     //   struct S0 *s;
     //   ...;
     // in this case, struct S0 is implicitly declared
@@ -1421,7 +1423,7 @@ bool RewriteUtils::removeVarDecl(const VarDecl *VD,
   else if (VD == FirstVD) {
     SourceLocation StartLoc = getVarDeclTypeLocEnd(VD);
 
-    SourceLocation EndLoc = 
+    SourceLocation EndLoc =
       getEndLocationUntil(VarRange, ',');
 
     return !(TheRewriter->RemoveText(SourceRange(StartLoc, EndLoc)));
@@ -1443,7 +1445,7 @@ bool RewriteUtils::removeVarDecl(const VarDecl *VD,
   SourceLocation VarEndLoc = VarRange.getEnd();
   SourceRange PrevDeclRange = PrevDecl->getSourceRange();
 
-  SourceLocation PrevDeclEndLoc = 
+  SourceLocation PrevDeclEndLoc =
     getEndLocationUntil(PrevDeclRange, ',');
 
   return !(TheRewriter->RemoveText(SourceRange(PrevDeclEndLoc, VarEndLoc)));
@@ -1467,6 +1469,7 @@ bool RewriteUtils::insertStringBeforeFunc(const FunctionDecl *FD,
     FuncRange = FD->getSourceRange();
   }
   SourceLocation StartLoc = FuncRange.getBegin();
+  Hints->AddPatch(StartLoc, Str);
   return !TheRewriter->InsertTextBefore(StartLoc, Str);
 }
 
@@ -1556,7 +1559,7 @@ bool RewriteUtils::getFunctionDefStrAndRemove(const FunctionDecl *FD,
 bool RewriteUtils::getFunctionDeclStrAndRemove(const FunctionDecl *FD,
                                                std::string &Str)
 {
-  TransAssert(!FD->isThisDeclarationADefinition() && 
+  TransAssert(!FD->isThisDeclarationADefinition() &&
               "FD cannot be a definition!");
 
   SourceRange FDRange = FD->getSourceRange();
@@ -1584,7 +1587,7 @@ bool RewriteUtils::replaceFunctionDefWithStr(const FunctionDecl *FD,
   return !TheRewriter->ReplaceText(R, Str);
 }
 
-// FIXME: probably we don't need this function, because we could use 
+// FIXME: probably we don't need this function, because we could use
 //        removeDecl insteadly
 bool RewriteUtils::removeFieldDecl(const FieldDecl *FD)
 {
@@ -1613,7 +1616,7 @@ bool RewriteUtils::removeFieldDecl(const FieldDecl *FD)
 bool RewriteUtils::removeDecl(const Decl *D)
 {
   SourceRange Range = D->getSourceRange();
-  TransAssert((TheRewriter->getRangeSize(Range) != -1) && 
+  TransAssert((TheRewriter->getRangeSize(Range) != -1) &&
               "Bad UsingDecl SourceRange!");
   SourceLocation StartLoc = Range.getBegin();
   SourceLocation EndLoc = getEndLocationUntil(Range, ';');
@@ -1663,7 +1666,7 @@ SourceRange RewriteUtils::getFileLocSourceRange(SourceRange LocRange)
 bool RewriteUtils::removeSpecifier(NestedNameSpecifierLoc Loc)
 {
   SourceRange LocRange = getFileLocSourceRange(Loc.getLocalSourceRange());
-  TransAssert((TheRewriter->getRangeSize(LocRange) != -1) && 
+  TransAssert((TheRewriter->getRangeSize(LocRange) != -1) &&
               "Bad NestedNameSpecifierLoc Range!");
   return !(TheRewriter->RemoveText(LocRange));
 }
@@ -1672,7 +1675,7 @@ bool RewriteUtils::replaceSpecifier(NestedNameSpecifierLoc Loc,
                                     const std::string &Name)
 {
   SourceRange LocRange = getFileLocSourceRange(Loc.getLocalSourceRange());
-  TransAssert((TheRewriter->getRangeSize(LocRange) != -1) && 
+  TransAssert((TheRewriter->getRangeSize(LocRange) != -1) &&
               "Bad NestedNameSpecifierLoc Range!");
   return !(TheRewriter->ReplaceText(LocRange, Name + "::"));
 }
@@ -1700,7 +1703,7 @@ void RewriteUtils::getSpecifierAsString(NestedNameSpecifierLoc Loc,
     StartBuf++;
     Len++;
   }
-  
+
   Str.assign(OrigBuf, Len);
 }
 
@@ -1724,9 +1727,9 @@ bool RewriteUtils::replaceRecordType(RecordTypeLoc &RTLoc,
   //   BBB () { }
   // };
   // In Clang's internal representation, BBB's Ctor is BBB() : AAA() {}
-  // The implicit AAA() will be visited here 
+  // The implicit AAA() will be visited here
   // This is the only case where RTLoc is invalid, so the question is -
-  // Is the guard below too strong? It is possible it could mask other 
+  // Is the guard below too strong? It is possible it could mask other
   // potential bugs?
   if (LocStart.isInvalid())
     return true;
@@ -1739,10 +1742,10 @@ bool RewriteUtils::isTheFirstDecl(const VarDecl *VD)
   SourceRange Range = VD->getSourceRange();
   SourceLocation StartLoc = Range.getBegin();
   SourceLocation NameStartLoc = VD->getLocation();
-  
+
   const char *StartBuf = SrcManager->getCharacterData(StartLoc);
   const char *NameStartBuf = SrcManager->getCharacterData(NameStartLoc);
-  
+
   while (StartBuf != NameStartBuf) {
     if (*StartBuf == ',')
       return false;
@@ -1769,7 +1772,7 @@ bool RewriteUtils::isSingleDecl(const VarDecl *VD)
 
 // In case we don't know if VD is in a single decl group,
 // also we don't know if VD is the first decl or not.
-// once this version is well-tested, probably we should remove 
+// once this version is well-tested, probably we should remove
 // bool RewriteUtils::removeVarDecl(const VarDecl *VD,
 //                                  DeclGroupRef DGR)
 bool RewriteUtils::removeVarDecl(const VarDecl *VD)
@@ -1792,8 +1795,8 @@ bool RewriteUtils::removeVarDecl(const VarDecl *VD)
     SourceLocation NewStartLoc = getVarDeclTypeLocEnd(VD);
 
     SourceLocation NewEndLoc = getEndLocationUntil(VarRange, ',');
-    
-    return 
+
+    return
       !(TheRewriter->RemoveText(SourceRange(NewStartLoc, NewEndLoc)));
   }
 
@@ -1816,7 +1819,7 @@ bool RewriteUtils::removeVarDecl(const VarDecl *VD)
   return !(TheRewriter->RemoveText(SourceRange(PrevDeclEndLoc, VarEndLoc)));
 }
 
-bool RewriteUtils::removeTextFromLeftAt(SourceRange Range, char C, 
+bool RewriteUtils::removeTextFromLeftAt(SourceRange Range, char C,
                                         SourceLocation EndLoc)
 {
   SourceLocation StartLoc = Range.getBegin();
@@ -1923,7 +1926,7 @@ bool RewriteUtils::removeClassTemplateDecls(const ClassTemplateDecl *TmplD)
 {
   for (ClassTemplateDecl::redecl_iterator I = TmplD->redecls_begin(),
       E = TmplD->redecls_end(); I != E; ++I) {
-    const CXXRecordDecl *CXXRD = 
+    const CXXRecordDecl *CXXRD =
       dyn_cast<CXXRecordDecl>((*I)->getTemplatedDecl());
     TransAssert(CXXRD && "Invalid class template!");
 
