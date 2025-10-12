@@ -41,7 +41,7 @@ public:
   ~ReplaceFunctionDefWithDecl();
 
 private:
-  
+
   typedef llvm::SmallVector<const clang::FunctionDecl *, 500>
             FunctionDeclVector;
 
@@ -57,18 +57,18 @@ private:
 
   unsigned getNumWrittenInitializers(const clang::CXXConstructorDecl *Ctor);
 
-  bool hasValidOuterLocStart(const clang::FunctionTemplateDecl *FTD, 
+  bool hasValidOuterLocStart(const clang::FunctionTemplateDecl *FTD,
                              const clang::FunctionDecl *FD);
 
   void removeStringBeforeTypeIdentifier(const clang::SourceLocation &StartLoc,
                                         const clang::SourceLocation &EndLoc);
- 
+
   bool removeOneInlineKeyword(const std::string &LeadingInlineStr,
-                              const std::string &InlineStr, 
+                              const std::string &InlineStr,
                               const std::string &Str,
                               const clang::SourceLocation &StartLoc);
 
-  bool removeInlineKeyword(const std::string &InlineStr, 
+  bool removeInlineKeyword(const std::string &InlineStr,
                            const std::string &Str,
                            const clang::SourceLocation &StartLoc);
 
@@ -81,7 +81,7 @@ private:
   FunctionDeclVector AllValidFunctionDefs;
 
   ReplaceFunctionDefWithDeclCollectionVisitor *CollectionVisitor;
-  
+
   const clang::FunctionDecl *TheFunctionDef;
 
   // Unimplemented

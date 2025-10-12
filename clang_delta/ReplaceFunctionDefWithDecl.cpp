@@ -29,7 +29,7 @@ static const char *DescriptionMsg =
 static RegisterTransformation<ReplaceFunctionDefWithDecl>
          Trans("replace-function-def-with-decl", DescriptionMsg);
 
-class ReplaceFunctionDefWithDeclCollectionVisitor : public 
+class ReplaceFunctionDefWithDeclCollectionVisitor : public
         RecursiveASTVisitor<ReplaceFunctionDefWithDeclCollectionVisitor> {
 public:
 
@@ -51,7 +51,7 @@ bool ReplaceFunctionDefWithDeclCollectionVisitor::VisitFunctionDecl(
   if (ConsumerInstance->isInIncludedFile(FD))
     return true;
 
-  if (FD->isThisDeclarationADefinition() && 
+  if (FD->isThisDeclarationADefinition() &&
       FD->hasBody() &&
       !FD->isDeleted() &&
       !FD->isDefaulted()) {
@@ -60,7 +60,7 @@ bool ReplaceFunctionDefWithDeclCollectionVisitor::VisitFunctionDecl(
   return true;
 }
 
-void ReplaceFunctionDefWithDecl::Initialize(ASTContext &context) 
+void ReplaceFunctionDefWithDecl::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new ReplaceFunctionDefWithDeclCollectionVisitor(this);
@@ -109,7 +109,7 @@ void ReplaceFunctionDefWithDecl::removeCtorInitializers(
   const CXXCtorInitializer *FirstInit = (*I);
   SourceRange Range = FirstInit->getSourceRange();
   SourceLocation LocStart = Range.getBegin();
-  // RewriteHelper->removeTextFromLeftAt(Range, ':', 
+  // RewriteHelper->removeTextFromLeftAt(Range, ':',
   //                                     LocStart.getLocWithOffset(-1));
   // make sure we handle cases like:
   // namespace NS { struct A {}; }
@@ -138,12 +138,12 @@ bool ReplaceFunctionDefWithDecl::hasValidOuterLocStart(
   SourceLocation FDLocStart = FD->getSourceRange().getBegin();
   const char *FTDStartPos = SrcManager->getCharacterData(FTDLocStart);
   const char *FDStartPos = SrcManager->getCharacterData(FDLocStart);
-  return (FDStartPos < FTDStartPos); 
+  return (FDStartPos < FTDStartPos);
 }
 
 bool ReplaceFunctionDefWithDecl::removeOneInlineKeyword(
-       const std::string &LeadingInlineStr, 
-       const std::string &InlineStr, 
+       const std::string &LeadingInlineStr,
+       const std::string &InlineStr,
        const std::string &Str,
        const SourceLocation &StartLoc)
 {
@@ -167,7 +167,7 @@ bool ReplaceFunctionDefWithDecl::removeOneInlineKeyword(
 }
 
 bool ReplaceFunctionDefWithDecl::removeInlineKeyword(
-       const std::string &InlineStr, 
+       const std::string &InlineStr,
        const std::string &Str,
        const SourceLocation &StartLoc)
 {
@@ -178,7 +178,7 @@ bool ReplaceFunctionDefWithDecl::removeInlineKeyword(
     for (unsigned J = 0; J < Len; ++J) {
       for (unsigned K = 0; K < Len; ++K) {
         std::string InlineStrVariant = Spaces[J] + InlineStr + Spaces[K];
-        if (removeOneInlineKeyword(LeadingInlineStr, InlineStrVariant, 
+        if (removeOneInlineKeyword(LeadingInlineStr, InlineStrVariant,
                                    Str, StartLoc))
           return true;
       }
@@ -228,7 +228,7 @@ void ReplaceFunctionDefWithDecl::removeInlineKeywordFromOneFunctionDecl(
   if (removeInlineKeyword("__inline__", Str, StartLoc))
     return;
   // OK, just remove whatever appears before the type identifier...
-  // It's mainly for dealing with non-preprocessed code 
+  // It's mainly for dealing with non-preprocessed code
   removeStringBeforeTypeIdentifier(StartLoc, EndLoc);
 }
 
@@ -253,19 +253,19 @@ void ReplaceFunctionDefWithDecl::rewriteOneFunctionDef(
   const CXXMethodDecl *CXXMD = dyn_cast<CXXMethodDecl>(FD);
   if (!CXXMD) {
     RewriteHelper->replaceFunctionDefWithStr(FD, ";");
-    // compiler warns about used-but-not-defined inlined specified function, 
+    // compiler warns about used-but-not-defined inlined specified function,
     // so get rid of the inline keyword from FD's decls
     removeInlineKeywordFromFunctionDecls(FD);
     return;
   }
 
   if (CXXMD->isOutOfLine()) {
-    // Not sure why, but FD->getOuterLocStart() doesn't work well for 
+    // Not sure why, but FD->getOuterLocStart() doesn't work well for
     // function template decl, e.g. for the code below:
     //   struct A { template<typename T> A(); };
     //   template <typename T> A::A() {}
-    // FD->getOuterLocStart() returns the same LocStart as 
-    // FD->getSourceRange().getBegin(), so we have to check if FD has 
+    // FD->getOuterLocStart() returns the same LocStart as
+    // FD->getSourceRange().getBegin(), so we have to check if FD has
     // described function template
     if (FunctionTemplateDecl *FTD = FD->getDescribedFunctionTemplate()) {
       // here is another ugly part, without this check, we couldn't remove
@@ -290,7 +290,7 @@ void ReplaceFunctionDefWithDecl::rewriteOneFunctionDef(
     return;
   }
 
-  if (const CXXConstructorDecl *Ctor = 
+  if (const CXXConstructorDecl *Ctor =
       dyn_cast<const CXXConstructorDecl>(FD)) {
     removeCtorInitializers(Ctor);
   }
@@ -317,7 +317,7 @@ void ReplaceFunctionDefWithDecl::doRewriting()
               "TransformationCounter is larger than the number of defs!");
   TransAssert((ToCounter <= static_cast<int>(AllValidFunctionDefs.size())) &&
               "ToCounter is larger than the number of defs!");
-  // To cope with local struct definition defined inside a function 
+  // To cope with local struct definition defined inside a function
   // to be replaced, e.g.:
   // void foo(void) { { struct A { A() {} }; } }
   // If we replace foo() {...} first, we will mess up when we try to

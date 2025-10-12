@@ -12,6 +12,7 @@
 #define REPLACE_DEPENDENT_TYPEDEF_H
 
 #include <string>
+#include <vector>
 #include "Transformation.h"
 
 namespace clang {
@@ -34,16 +35,18 @@ friend class ReplaceDependentTypedefCollectionVisitor;
 
 public:
   ReplaceDependentTypedef(const char *TransName, const char *Desc)
-    : Transformation(TransName, Desc),
-      CollectionVisitor(NULL),
-      TheTyName(""),
-      TheTypedefDecl(NULL),
-      NeedTypenameKeyword(false)
+    : Transformation(TransName, Desc, /*MultipleRewrites=*/true),
+      CollectionVisitor(NULL)
   {}
 
   ~ReplaceDependentTypedef();
 
 private:
+  struct Instance {
+    std::string TheTyName;
+    const clang::TypedefNameDecl *TheTypedefDecl = NULL;
+    bool NeedTypenameKeyword = false;
+  };
 
   virtual void Initialize(clang::ASTContext &context);
 
@@ -53,15 +56,9 @@ private:
 
   bool isValidType(const clang::QualType &QT);
 
-  void rewriteTypedefDecl();
+  void rewriteTypedefDecl(const Instance &Inst);
 
   ReplaceDependentTypedefCollectionVisitor *CollectionVisitor;
-
-  std::string TheTyName;
-
-  const clang::TypedefNameDecl *TheTypedefDecl;
-
-  bool NeedTypenameKeyword;
 
   // Unimplemented
   ReplaceDependentTypedef();
@@ -69,6 +66,8 @@ private:
   ReplaceDependentTypedef(const ReplaceDependentTypedef &);
 
   void operator=(const ReplaceDependentTypedef &);
+
+  std::vector<Instance> Instances;
 };
 
 #endif

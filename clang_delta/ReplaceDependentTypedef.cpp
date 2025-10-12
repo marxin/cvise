@@ -14,6 +14,10 @@
 
 #include "ReplaceDependentTypedef.h"
 
+#include <limits>
+#include <string>
+#include <vector>
+
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/SourceManager.h"
@@ -135,18 +139,25 @@ void ReplaceDependentTypedef::HandleTranslationUnit(ASTContext &Ctx)
   }
   else {
     CollectionVisitor->TraverseDecl(Ctx.getTranslationUnitDecl());
+    ValidInstanceNum = static_cast<int>(Instances.size());
   }
 
   if (QueryInstanceOnly)
     return;
 
-  if (TransformationCounter > ValidInstanceNum) {
+  if (ToCounter != std::numeric_limits<int>::max() &&
+      TransformationCounter > ValidInstanceNum) {
     TransError = TransMaxInstanceError;
     return;
   }
 
   Ctx.getDiagnostics().setSuppressAllDiagnostics(false);
-  rewriteTypedefDecl();
+  if (ToCounter == std::numeric_limits<int>::max()) {
+    for (const auto &Inst : Instances)
+      rewriteTypedefDecl(Inst);
+  } else {
+    rewriteTypedefDecl(Instances[TransformationCounter - 1]);
+  }
 
   if (Ctx.getDiagnostics().hasErrorOccurred() ||
       Ctx.getDiagnostics().hasFatalErrorOccurred())
@@ -205,22 +216,19 @@ void ReplaceDependentTypedef::handleOneTypedefDecl(const TypedefNameDecl *D)
   if (Str == TdefTyStr)
     return;
 
-  ValidInstanceNum++;
-  if (ValidInstanceNum == TransformationCounter) {
-    TheTypedefDecl = D;
-    TheTyName = Str;
-    NeedTypenameKeyword = Typename;
-  }
+  Instances.push_back({Str, D, Typename});
 }
 
-void ReplaceDependentTypedef::rewriteTypedefDecl()
+void ReplaceDependentTypedef::rewriteTypedefDecl(const Instance &Inst)
 {
+  auto HintScope = Hints->MakeHintScope();
   std::string NewStr = "typedef ";
-  if (NeedTypenameKeyword)
+  if (Inst.NeedTypenameKeyword)
     NewStr += "typename ";
-  NewStr = NewStr + TheTyName + " " + TheTypedefDecl->getNameAsString();
-  SourceRange Range = TheTypedefDecl->getSourceRange();
+  NewStr = NewStr + Inst.TheTyName + " " + Inst.TheTypedefDecl->getNameAsString();
+  SourceRange Range = Inst.TheTypedefDecl->getSourceRange();
   TheRewriter.ReplaceText(Range, NewStr);
+  Hints->AddPatch(Range, NewStr);
 }
 
 ReplaceDependentTypedef::~ReplaceDependentTypedef()

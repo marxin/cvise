@@ -1053,6 +1053,12 @@ class TestClangDelta(unittest.TestCase):
             'replace-dependent-typedef/test1.cc',
             '--transformation=replace-dependent-typedef --counter=1',
         )
+        self.check_clang_delta_hints(
+            'replace-dependent-typedef/test1.cc',
+            '--transformation=replace-dependent-typedef',
+            begin_index=0,
+            end_index=1,
+        )
 
     def test_replace_derived_class_replace_dependent_typedef_1_2(self):
         self.check_clang_delta(
@@ -1060,12 +1066,26 @@ class TestClangDelta(unittest.TestCase):
             '--transformation=replace-dependent-typedef --counter=2',
             'replace-dependent-typedef/test1.output2',
         )
+        self.check_clang_delta_hints(
+            'replace-dependent-typedef/test1.cc',
+            '--transformation=replace-dependent-typedef',
+            begin_index=1,
+            end_index=2,
+            output_file='replace-dependent-typedef/test1.output2',
+        )
 
     def test_replace_derived_class_replace_dependent_typedef_1_3(self):
         self.check_clang_delta(
             'replace-dependent-typedef/test1.cc',
             '--transformation=replace-dependent-typedef --counter=3',
             'replace-dependent-typedef/test1.output3',
+        )
+        self.check_clang_delta_hints(
+            'replace-dependent-typedef/test1.cc',
+            '--transformation=replace-dependent-typedef',
+            begin_index=2,
+            end_index=3,
+            output_file='replace-dependent-typedef/test1.output3',
         )
 
     def test_replace_derived_class_replace_dependent_typedef_2(self):
@@ -1077,6 +1097,12 @@ class TestClangDelta(unittest.TestCase):
         self.check_clang_delta(
             'replace-dependent-typedef/test2.cc',
             '--transformation=replace-dependent-typedef --counter=1',
+        )
+        self.check_clang_delta_hints(
+            'replace-dependent-typedef/test2.cc',
+            '--transformation=replace-dependent-typedef',
+            begin_index=0,
+            end_index=1,
         )
 
     def test_replace_derived_class_replace_dependent_typedef_3(self):
