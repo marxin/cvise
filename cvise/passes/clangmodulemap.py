@@ -41,7 +41,7 @@ class ClangModuleMapPass(HintBasedPass):
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
-        vocab: list[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
+        vocab: list[bytes] = [v.value[1] for v in _Vocab]  # initial set of strings used in hints
         path_to_vocab: dict[Path, int] = {}
         hints: list[Hint] = []
         for path in paths:
