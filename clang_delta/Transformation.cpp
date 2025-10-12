@@ -133,10 +133,7 @@ void Transformation::outputOriginalSource(llvm::raw_ostream &OutStream)
 
 void Transformation::outputHints(llvm::raw_ostream &OutStream)
 {
-  OutStream << Hints->GetVocabularyJson() << "\n";
-  for (const auto& Json : Hints->GetHintJsons()) {
-    OutStream << Json << "\n";
-  }
+  Hints->Output(OutStream);
   OutStream.flush();
 }
 

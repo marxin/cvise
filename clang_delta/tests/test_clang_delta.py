@@ -1,10 +1,20 @@
+from __future__ import annotations
+import importlib.util
 import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
-from typing import Optional, Union
 import unittest
+
+destdir = os.getenv('DESTDIR', '')
+if importlib.util.find_spec('cvise') is None:
+    sys.path.append('@CMAKE_INSTALL_FULL_DATADIR@')
+    sys.path.append(destdir + '@CMAKE_INSTALL_FULL_DATADIR@')
+
+from cvise.passes.clanghints import parse_clang_delta_hints  # noqa: E402
+from cvise.utils.hint import apply_hints  # noqa: E402
 
 
 def get_clang_version():
@@ -27,47 +37,39 @@ def get_testcase_path(testcase: str) -> Path:
     return Path(__file__).parent / testcase
 
 
-def get_expected_output_path(testcase: str, output_file: Union[str, None] = None) -> Path:
+def get_expected_output_path(testcase: str, output_file: str | None = None) -> Path:
     if not output_file:
         output_file = os.path.splitext(testcase)[0] + '.output'
     return Path(__file__).parent / output_file
 
 
-def run_clang_delta(testcase: str, arguments: str) -> str:
-    cmd = f'{get_clang_delta_path()} {get_testcase_path(testcase)} {arguments}'
-    return subprocess.check_output(cmd, shell=True, encoding='utf8')
-
-
-def run_apply_hints(hints_file: Path, begin_index: Optional[int], end_index: Optional[int], testcase: str) -> str:
-    hints_tool = Path(__file__).parent.parent.parent / 'cvise-cli.py'
-    cmd = [
-        hints_tool,
-        '--action=apply-hints',
-        '--hints-file',
-        hints_file,
-        get_testcase_path(testcase),
-    ]
-    if begin_index is not None:
-        cmd += ['--hint-begin-index', str(begin_index)]
-    if end_index is not None:
-        cmd += ['--hint-end-index', str(end_index)]
-    return subprocess.check_output(cmd, encoding='utf-8')
-
-
 class TestClangDelta(unittest.TestCase):
     @classmethod
-    def check_clang_delta(cls, testcase, arguments, output_file=None):
-        output = run_clang_delta(testcase, arguments)
+    def check_clang_delta(cls, testcase: str, arguments: str, output_file: str | None = None):
+        cmd = [get_clang_delta_path(), str(get_testcase_path(testcase))] + arguments.split()
+        output = subprocess.check_output(cmd, encoding='utf8')
         expected = get_expected_output_path(testcase, output_file).read_text()
         assert output == expected
 
     @classmethod
-    def check_clang_delta_hints(cls, testcase, arguments, begin_index, end_index, output_file=None):
-        hints = run_clang_delta(testcase, arguments + ' --generate-hints')
+    def check_clang_delta_hints(
+        cls,
+        testcase: str,
+        arguments: str,
+        begin_index: int | None,
+        end_index: int | None,
+        output_file: str | None = None,
+    ):
+        testcase_path = get_testcase_path(testcase)
+        cmd = [get_clang_delta_path(), str(testcase_path)] + arguments.split() + ['--generate-hints']
+        hints = subprocess.check_output(cmd)
+        bundle = parse_clang_delta_hints(hints)
+        if begin_index is not None and end_index is not None:
+            bundle.hints = bundle.hints[begin_index:end_index]
         with tempfile.TemporaryDirectory() as dir:
-            hints_path = Path(dir) / 'hints.jsonl'
-            hints_path.write_text('{"format": "cvise_hints_v0"}\n' + hints)
-            output = run_apply_hints(hints_path, begin_index, end_index, testcase)
+            dest_path = Path(dir) / testcase_path.name
+            apply_hints([bundle], testcase_path, dest_path)
+            output = dest_path.read_text()
 
         expected = get_expected_output_path(testcase, output_file).read_text()
         assert output == expected

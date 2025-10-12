@@ -22,6 +22,7 @@
 #include "clang/Basic/SourceManager.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/raw_ostream.h"
 
 // Helper for generating reduction hints - for the background and data format,
 // see //cvise/utils/hint.py.
@@ -64,8 +65,7 @@ public:
 
   void ReverseOrder();
 
-  std::string GetVocabularyJson() const;
-  std::vector<std::string> GetHintJsons() const;
+  void Output(llvm::raw_ostream &OutStream) const;
 
 private:
   struct Patch {
