@@ -138,7 +138,7 @@ void CallExprToValue::replaceCallExpr(const Instance &Inst)
     }
     else {
       SourceLocation InsLoc = Inst.TheCallExpr->getBeginLoc();
-      Hints->AddPatch(SourceRange(InsLoc, InsLoc), RVStr);
+      Hints->AddPatch(InsLoc, RVStr);
       TheRewriter.InsertTextBefore(InsLoc, RVStr);
     }
   }

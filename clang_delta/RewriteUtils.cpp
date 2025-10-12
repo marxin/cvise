@@ -1469,7 +1469,7 @@ bool RewriteUtils::insertStringBeforeFunc(const FunctionDecl *FD,
     FuncRange = FD->getSourceRange();
   }
   SourceLocation StartLoc = FuncRange.getBegin();
-  Hints->AddPatch(SourceRange(StartLoc, StartLoc), Str);
+  Hints->AddPatch(StartLoc, Str);
   return !TheRewriter->InsertTextBefore(StartLoc, Str);
 }
 
