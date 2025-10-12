@@ -138,11 +138,23 @@ class TestClangDelta(unittest.TestCase):
             'callexpr-to-value/macro1.c',
             '--transformation=callexpr-to-value --counter=1',
         )
+        self.check_clang_delta_hints(
+            'callexpr-to-value/macro1.c',
+            '--transformation=callexpr-to-value',
+            begin_index=0,
+            end_index=1,
+        )
 
     def test_callexpr_to_value_macro2(self):
         self.check_clang_delta(
             'callexpr-to-value/macro2.c',
             '--transformation=callexpr-to-value --counter=1',
+        )
+        self.check_clang_delta_hints(
+            'callexpr-to-value/macro2.c',
+            '--transformation=callexpr-to-value',
+            begin_index=0,
+            end_index=1,
         )
 
     def test_callexpr_to_value_test1(self):
@@ -150,11 +162,23 @@ class TestClangDelta(unittest.TestCase):
             'callexpr-to-value/test1.c',
             '--transformation=callexpr-to-value --counter=1',
         )
+        self.check_clang_delta_hints(
+            'callexpr-to-value/test1.c',
+            '--transformation=callexpr-to-value',
+            begin_index=0,
+            end_index=1,
+        )
 
     def test_callexpr_to_value_test2(self):
         self.check_clang_delta(
             'callexpr-to-value/test2.c',
             '--transformation=callexpr-to-value --counter=1',
+        )
+        self.check_clang_delta_hints(
+            'callexpr-to-value/test2.c',
+            '--transformation=callexpr-to-value',
+            begin_index=0,
+            end_index=1,
         )
 
     def test_copy_propagation_copy1(self):

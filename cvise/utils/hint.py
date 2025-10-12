@@ -104,7 +104,7 @@ HINT_PATCH_SCHEMA = {
         'r': {
             'description': (
                 "Right position of the chunk (index of the next character in the text after the chunk's last '"
-                "'character). Must be greater than 'l'."
+                "'character). Must be greater than or equal to 'l'."
             ),
             'type': 'integer',
         },

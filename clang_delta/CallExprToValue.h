@@ -12,6 +12,7 @@
 #define CALL_EXPR_TO_VALUE_H
 
 #include <string>
+#include <vector>
 #include "Transformation.h"
 
 namespace clang {
@@ -30,10 +31,9 @@ friend class CallExprToValueVisitor;
 public:
 
   CallExprToValue(const char *TransName, const char *Desc)
-    : Transformation(TransName, Desc),
+    : Transformation(TransName, Desc, /*MultipleRewrites=*/true),
       CollectionVisitor(NULL),
       NameQueryWrap(NULL),
-      TheCallExpr(NULL),
       CurrentFD(NULL),
       NamePostfix(0)
   { }
@@ -41,22 +41,26 @@ public:
   ~CallExprToValue(void);
 
 private:
-  
+  struct Instance {
+    const clang::CallExpr *TheCallExpr;
+    const clang::FunctionDecl *FD;
+  };
+
   virtual void Initialize(clang::ASTContext &context);
 
   virtual void HandleTranslationUnit(clang::ASTContext &Ctx);
 
   void handleOneArgStr(const clang::Expr *Arg, std::string &Str);
 
-  void replaceCallExpr(void);
+  void replaceCallExpr(const Instance &Inst);
 
   CallExprToValueVisitor *CollectionVisitor;
 
   TransNameQueryWrap *NameQueryWrap;
 
-  const clang::CallExpr *TheCallExpr;
-
   const clang::FunctionDecl *CurrentFD;
+
+  std::vector<Instance> Instances;
 
   unsigned int NamePostfix;
 
