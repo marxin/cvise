@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 import random
 import shutil
+from typing import Any
 
 from cvise.utils.process import ProcessEventNotifier
 
@@ -175,7 +176,7 @@ class AbstractPass:
             name += f' ({self.max_transforms} T)'
         return name
 
-    def check_external_program(self, name):
+    def check_external_program(self, name) -> bool:
         program = self.external_programs[name]
         if not program:
             return False
@@ -194,7 +195,7 @@ class AbstractPass:
         """
         return repr(self)
 
-    def supports_dir_test_cases(self):
+    def supports_dir_test_cases(self) -> bool:
         """Whether the pass supports input test cases that are directories (as opposed to single files).
 
         By default false; intended to be overridden by subclasses which do implement directory support.
@@ -210,10 +211,10 @@ class AbstractPass:
 
     def new(
         self, test_case: Path, tmp_dir: Path, job_timeout: int, process_event_notifier: ProcessEventNotifier, **kwargs
-    ):
+    ) -> Any:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'new'!")
 
-    def advance(self, test_case: Path, state):
+    def advance(self, test_case: Path, state) -> Any:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance'!")
 
     def advance_on_success(
@@ -225,10 +226,10 @@ class AbstractPass:
         job_timeout,
         process_event_notifier: ProcessEventNotifier,
         **kwargs,
-    ):
+    ) -> Any:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance_on_success'!")
 
     def transform(
         self, test_case: Path, state, process_event_notifier: ProcessEventNotifier, original_test_case: Path, **kwargs
-    ):
+    ) -> tuple[PassResult, Any]:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'transform'!")

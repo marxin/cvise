@@ -39,7 +39,7 @@ class IfPass(AbstractPass):
     def new(self, test_case: Path, *args, **kwargs):
         bs = BinaryState.create(self.__count_instances(test_case))
         if bs:
-            bs.value = 0
+            bs.value = 0  # type: ignore
         return bs
 
     def advance(self, test_case: Path, state):

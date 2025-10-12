@@ -76,6 +76,7 @@ class ClexHintsPass(HintBasedPass):
         return HintBundle(vocabulary=orig_vocab + files_vocab, hints=hints)
 
     def create_elementary_state(self, hint_count: int):
+        assert self.arg is not None
         m = re.fullmatch(r'rm-toks-(\d+)-to-(\d+)', self.arg)
         if m:
             min_chunk = int(m.group(1))

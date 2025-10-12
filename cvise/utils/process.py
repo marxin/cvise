@@ -301,9 +301,9 @@ class ProcessEventNotifier:
                 # have not enough time to properly kill children, and zombies aren't a concern.
                 with _auto_kill_on_timeout(proc):
                     with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION):
-                        stdout, stderr = proc.communicate(input=input, timeout=timeout)
+                        stdout_data, stderr_data = proc.communicate(input=input, timeout=timeout)  # type: ignore[arg-type]
 
-        return stdout, stderr, proc.returncode
+        return stdout_data, stderr_data, proc.returncode  # type: ignore
 
     def check_output(
         self,
@@ -316,13 +316,15 @@ class ProcessEventNotifier:
         timeout: float | None = None,
         **kwargs,
     ) -> bytes:
-        stdout, stderr, returncode = self.run_process(cmd, shell, input, stdout, stderr, env, timeout, **kwargs)
+        stdout_data, stderr_data, returncode = self.run_process(
+            cmd, shell, input, stdout, stderr, env, timeout, **kwargs
+        )
         if returncode != 0:
-            stderr = stderr.decode('utf-8', 'ignore').strip()
-            delim = ': ' if stderr else ''
+            stderr_data = stderr_data.decode('utf-8', 'ignore').strip()
+            delim = ': ' if stderr_data else ''
             name = cmd[0] if isinstance(cmd, list) else shlex.split(cmd)[0]
-            raise RuntimeError(f'{name} failed with exit code {returncode}{delim}{stderr}')
-        return stdout
+            raise RuntimeError(f'{name} failed with exit code {returncode}{delim}{stderr_data}')
+        return stdout_data
 
     def _notify_start(self, proc: subprocess.Popen) -> None:
         if not self._pid_queue:
@@ -444,7 +446,7 @@ def _kill(proc: subprocess.Popen) -> None:
     # Second, attempt graceful termination (SIGTERM on *nix). We wait for some timeout that's less than Pebble's
     # term_timeout, so that we (hopefully) have time to try hard termination before C-Vise main process kills us.
     # Repeatedly request termination several times a second, because some programs "miss" incoming signals.
-    TERMINATE_TIMEOUT = pebble.CONSTS.term_timeout / 2
+    TERMINATE_TIMEOUT = pebble.CONSTS.term_timeout / 2  # type: ignore
     SLEEP_UNIT = 0.1  # semi-arbitrary
     stop_time = time.monotonic() + TERMINATE_TIMEOUT
     while True:

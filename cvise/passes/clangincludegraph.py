@@ -32,7 +32,7 @@ _PRECEDING_ARG_TO_REMOVE = re.compile(r'-Xclang')
 # simplest way to parallelize initialization, reusing the standard C-Vise worker pool and respecting the --n parameter.
 _INIT_PARALLELIZATION = 10
 
-_HINT_VOCAB = (b'@fileref',)
+_HINT_VOCAB: tuple[bytes] = (b'@fileref',)
 _MULTIPLEX_PASS_HINT_TEMPLATE = '@clang-include-graph-{}'
 
 
@@ -54,6 +54,7 @@ class ClangIncludeGraphPass(HintBasedPass):
         return True
 
     def create_subordinate_passes(self) -> list[AbstractPass]:
+        assert self.external_programs is not None
         return [_ClangIncludeGraphMultiplexPass(i, self.external_programs) for i in range(_INIT_PARALLELIZATION)]
 
     def input_hint_types(self) -> list[bytes]:
@@ -74,8 +75,10 @@ class ClangIncludeGraphPass(HintBasedPass):
 
 
 def _remap_file_ids(hint: Hint, bundle: HintBundle, text_to_vocab: dict[bytes, int]) -> Hint:
+    assert hint.extra is not None
     patches = tuple(
-        Patch(left=p.left, right=p.right, file=text_to_vocab[bundle.vocabulary[p.file]]) for p in hint.patches
+        Patch(left=p.left, right=p.right, file=None if p.file is None else text_to_vocab[bundle.vocabulary[p.file]])
+        for p in hint.patches
     )
     return Hint(type=0, patches=patches, extra=text_to_vocab[bundle.vocabulary[hint.extra]])
 
@@ -119,12 +122,14 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
         makefiles = _get_makefiles_from_hints(test_case, dependee_hints)
         all_commands = _get_all_makefile_commands(makefiles)
         commands = _get_kth_modulo_n(all_commands, self._modulo, _INIT_PARALLELIZATION)
+        tool_path = self.external_programs['clang_include_graph']
+        assert tool_path
 
         vocab: list[bytes] = [self._hint_type]
         path_to_vocab: dict[Path, int] = {}
         hints: set[Hint] = set()
         for cmd in commands:
-            proc = [self.external_programs['clang_include_graph']] + cmd
+            proc: list[str] = [tool_path] + cmd
             stdout = process_event_notifier.check_output(proc, cwd=test_case)
             toks = _split_by_null_char(stdout)
             while True:

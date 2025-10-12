@@ -49,6 +49,7 @@ def test_raise_exception(
     proc.start()
     process_ready_event.wait()
 
+    assert proc.pid is not None
     os.kill(proc.pid, signum)
 
     with _assert_duration_less_than(_SLEEP_INFINITY / 2):
@@ -69,6 +70,7 @@ def test_quick_exit(
     proc.start()
     process_ready_event.wait()
 
+    assert proc.pid is not None
     os.kill(proc.pid, signum)
 
     with _assert_duration_less_than(_SLEEP_INFINITY / 2):
@@ -91,6 +93,7 @@ def test_raise_exception_on_demand(
     proc.start()
     process_ready_event.wait()
 
+    assert proc.pid is not None
     os.kill(proc.pid, signum)
 
     with _assert_duration_less_than(_SLEEP_INFINITY / 2):
@@ -115,6 +118,7 @@ def test_raise_exception_on_demand_signal_twice(
     proc.start()
     process_ready_event.wait()
 
+    assert proc.pid is not None
     for _ in range(2):
         os.kill(proc.pid, signum)
 
@@ -140,6 +144,7 @@ def test_raise_exception_in_del(
     proc.start()
     process_ready_event.wait()
 
+    assert proc.pid is not None
     os.kill(proc.pid, signum)
 
     with _assert_duration_less_than(_SLEEP_INFINITY / 2):
@@ -166,6 +171,7 @@ def test_raise_exception_in_finalize(
     proc.start()
     process_ready_event.wait()
 
+    assert proc.pid is not None
     os.kill(proc.pid, signum)
 
     with _assert_duration_less_than(_SLEEP_INFINITY / 2):

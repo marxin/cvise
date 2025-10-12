@@ -36,6 +36,7 @@ class BalancedParensTestCase(unittest.TestCase):
         self.input_path.write_text('This is a (simple) test!\n')
 
         state = self._pass_new()
+        assert state is not None
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -47,6 +48,7 @@ class BalancedParensTestCase(unittest.TestCase):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
         state = self._pass_new()
+        assert state is not None
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -61,6 +63,7 @@ class BalancedParensTestCase(unittest.TestCase):
         # Simulate that transforms failed until we get to the inner parenthesis.
         state = self.pass_.advance(self.input_path, state)
         state = self.pass_.advance(self.input_path, state)
+        assert state is not None
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -105,6 +108,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         self.input_path.write_text('This is a (simple) test!\n')
 
         state = self._pass_new()
+        assert state is not None
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -129,6 +133,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         # Simulate that transforms failed until we get to the inner parenthesis.
         state = self.pass_.advance(self.input_path, state)
         state = self.pass_.advance(self.input_path, state)
+        assert state is not None
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -150,6 +155,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         self.input_path.write_text('(This) (is a (((more)) complex) test)!\n')
 
         state = self._pass_new()
+        assert state is not None
         (result, state) = self.pass_.transform(
             self.input_path,
             state,
@@ -219,6 +225,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         self.input_path.write_text('This is a (simple) test!\n')
 
         state = self._pass_new()
+        assert state is not None
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -230,6 +237,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         self.input_path.write_text('This (is a (simple) test)!\n')
 
         state = self._pass_new()
+        assert state is not None
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -244,6 +252,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         # Simulate that transforms failed until we get to the inner parenthesis.
         state = self.pass_.advance(self.input_path, state)
         state = self.pass_.advance(self.input_path, state)
+        assert state is not None
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -313,6 +322,7 @@ class BalancedParensToZeroTestCase(unittest.TestCase):
         self.input_path.write_text('int x = (10 + y) / 2;\n')
 
         state = self._pass_new()
+        assert state is not None
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )
@@ -347,6 +357,7 @@ class BalancedCurly3TestCase(unittest.TestCase):
         self.input_path.write_text('A a = { x, y };\n')
 
         state = self._pass_new()
+        assert state is not None
         (_, state) = self.pass_.transform(
             self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
         )

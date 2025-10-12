@@ -1,3 +1,4 @@
+from collections.abc import Iterable, Iterator
 import contextlib
 import difflib
 import fnmatch
@@ -11,7 +12,6 @@ import shutil
 import string
 import tempfile
 from typing import Optional, Union
-from collections.abc import Iterable, Iterator
 
 
 # Singleton buffer for hash_test_case(), to avoid reallocations.

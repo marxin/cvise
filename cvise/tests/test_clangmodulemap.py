@@ -337,5 +337,5 @@ def test_fileref(tmp_path: Path, test_case_path: Path):
 
     assert b'@fileref' in bundle_paths
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] for h in bundle.hints}
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
     assert refs == {b'a.h', b'b.h'}
