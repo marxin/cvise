@@ -910,9 +910,13 @@ const CXXRecordDecl *Transformation::getBaseDeclFromType(const Type *Ty)
       .getTypePtr());
   }
 
+  case Type::UnresolvedUsing:
+    return NULL;
+
   default:
     Base = Ty->getAsCXXRecordDecl();
-    TransAssert(Base && "Bad base class type!");
+    if (!Base)
+      return NULL;
 
     // getAsCXXRecordDecl could return a ClassTemplateSpecializationDecl.
     // For example:
