@@ -1079,6 +1079,17 @@ class TestClangDelta(unittest.TestCase):
             '--transformation=replace-dependent-typedef --counter=1',
         )
 
+    def test_replace_derived_class_replace_dependent_typedef_3(self):
+        self.check_query_instances(
+            'replace-dependent-typedef/test3.cc',
+            '--query-instances=replace-dependent-typedef',
+            'Available transformation instances: 1',
+        )
+        self.check_clang_delta(
+            'replace-dependent-typedef/test3.cc',
+            '--transformation=replace-dependent-typedef --counter=1',
+        )
+
     def test_replace_derived_class_replace_derived1(self):
         self.check_clang_delta(
             'replace-derived-class/replace-derived1.cpp',
