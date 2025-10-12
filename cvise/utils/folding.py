@@ -14,7 +14,7 @@ from cvise.utils.hint import HintApplicationStats
 class FoldingStateIn:
     """Input parameters for a folding job's transform."""
 
-    sub_states: tuple[HintState]
+    sub_states: tuple[HintState, ...]
 
     def real_chunk(self) -> int:
         return sum(s.real_chunk() for s in self.sub_states)

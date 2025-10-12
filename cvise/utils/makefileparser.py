@@ -106,9 +106,9 @@ def parse(makefile_path: Path) -> Makefile:
         elif mk.rules:
             rule = mk.rules[-1]
             rule.loc.end = loc.end
-            rule.unclassified_lines.append(loc)
+            rule.unclassified_lines.append(line_with_loc)
         else:
-            mk.unclassified_lines.append(loc)
+            mk.unclassified_lines.append(line_with_loc)
 
     # Collect the names of all special/phony targets.
     for rule in mk.rules:

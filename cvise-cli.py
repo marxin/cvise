@@ -7,6 +7,7 @@ import importlib.util
 from itertools import chain
 import logging
 import multiprocessing
+import multiprocessing.forkserver
 import os
 import os.path
 from pathlib import Path

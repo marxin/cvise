@@ -193,9 +193,9 @@ class _BundlePreamble(msgspec.Struct, omit_defaults=True):
 # Singleton encoder/decoder objects, to save time on recreating them.
 _json_encoder: Optional[msgspec.json.Encoder] = None
 _encoding_buf: Optional[bytearray] = None
-_preamble_decoder: Optional[msgspec.json.Encoder] = None
-_vocab_decoder: Optional[msgspec.json.Encoder] = None
-_hint_decoder: Optional[msgspec.json.Encoder] = None
+_preamble_decoder: Optional[msgspec.json.Decoder] = None
+_vocab_decoder: Optional[msgspec.json.Decoder] = None
+_hint_decoder: Optional[msgspec.json.Decoder] = None
 
 
 def is_special_hint_type(type: bytes) -> bool:

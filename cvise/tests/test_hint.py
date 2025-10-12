@@ -300,7 +300,7 @@ def test_apply_hints_dir(tmp_path: Path):
     assert (output_dir / 'bar.cc').read_text() == 'void b();'
 
 
-def test_apply_hints_dir_nonexisting_parent(tmp_path: Path):
+def test_apply_hints_dir_nonexisting_parent(tmp_path: Path, tmp_test_case: Path):
     """Test that an exception occurs when the destination path is in a non-existing directory.
 
     This behavior is important to avoid silently recreating already-deleted work directories of canceled jobs.
