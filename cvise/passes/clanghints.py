@@ -151,16 +151,31 @@ class ClangHintsPass(HintBasedPass):
             raise ClangDeltaError(
                 f'clang_delta (--transformation={self.arg} --std={std}) failed with exit code {returncode}{delim}{stderr}'
             )
+        return parse_clang_delta_hints(stdout)
 
-        # When reading, gracefully handle EOF because the tool might've failed with no output.
-        stdout = iter(stdout.splitlines())
-        vocab_line = next(stdout, None)
-        vocab_decoder = msgspec.json.Decoder(type=list[str])
-        vocab = [s.encode() for s in vocab_decoder.decode(vocab_line)] if vocab_line else []
 
-        hints = []
-        hint_decoder = msgspec.json.Decoder(type=Hint)
-        for line in stdout:
-            if not line.isspace():
-                hints.append(hint_decoder.decode(line))
-        return HintBundle(vocabulary=vocab, hints=hints)
+def parse_clang_delta_hints(stdout: bytes) -> HintBundle:
+    # When reading, gracefully handle EOF because the tool might've failed with no output.
+    if not stdout.strip():
+        return HintBundle(hints=[])
+    stdout_view = memoryview(stdout)
+
+    # Read vocabulary: size, newline, zero-separated string list.
+    pos = stdout.index(b'\n')
+    vocab_size = int(stdout_view[:pos])
+    pos += 1
+    vocab = []
+    for _ in range(vocab_size):
+        end = stdout.index(0, pos)
+        vocab.append(bytes(stdout_view[pos:end]))
+        pos = end + 1
+
+    # Read hints.
+    hints = []
+    hint_decoder = msgspec.json.Decoder(type=Hint)
+    while pos < len(stdout):
+        end = stdout.index(b'\n', pos)
+        hints.append(hint_decoder.decode(stdout_view[pos:end]))
+        pos = end + 1
+
+    return HintBundle(vocabulary=vocab, hints=hints)

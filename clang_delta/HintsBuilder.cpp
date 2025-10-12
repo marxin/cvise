@@ -12,7 +12,7 @@
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Basic/SourceManager.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/Support/FormatVariadic.h"
+#include "llvm/Support/raw_ostream.h"
 
 HintsBuilder::HintScope::HintScope(HintsBuilder &B) : Builder(B) {}
 
@@ -54,37 +54,27 @@ HintsBuilder::HintScope HintsBuilder::MakeHintScope() {
 
 void HintsBuilder::ReverseOrder() { std::reverse(Hints.begin(), Hints.end()); }
 
-std::string HintsBuilder::GetVocabularyJson() const {
-  std::string Array;
-  for (const auto &S : Vocab) {
-    if (!Array.empty())
-      Array += ",";
-    Array += '"';
-    // For simplicity, we assume no character needs escaping for JSON (always
-    // true for replacement strings in clang_delta).
-    Array += S;
-    Array += '"';
-  }
-  return '[' + Array + ']';
-}
-
-std::vector<std::string> HintsBuilder::GetHintJsons() const {
-  std::vector<std::string> Jsons;
-  Jsons.reserve(Hints.size());
+void HintsBuilder::Output(llvm::raw_ostream &OutStream) const {
+  OutStream << Vocab.size() << '\n';
+  // Separate vocabulary strings with the null character, to avoid the
+  // complexity of escaping JSON strings here.
+  for (const auto &S : Vocab)
+    OutStream << S << '\0';
   for (const auto &H : Hints) {
-    std::string Array;
+    OutStream << "{\"p\":[";
+    bool First = true;
     for (const auto &P : H.Patches) {
-      if (!Array.empty())
-        Array += ",";
-      Array += '{';
-      Array += llvm::formatv(R"txt("l":{0},"r":{1})txt", P.L, P.R);
+      if (!First)
+        OutStream << ',';
+      First = false;
+      OutStream << '{';
+      OutStream << "\"l\":" << P.L << ",\"r\":" << P.R;
       if (P.V.has_value())
-        Array += llvm::formatv(R"txt(,"v":{0})txt", *P.V);
-      Array += '}';
+        OutStream << ",\"v\":" << *P.V;
+      OutStream << '}';
     }
-    Jsons.push_back(llvm::formatv(R"txt({{"p":[{0}]})txt", Array));
+    OutStream << "]}\n";
   }
-  return Jsons;
 }
 
 void HintsBuilder::FinishCurrentHint() {
