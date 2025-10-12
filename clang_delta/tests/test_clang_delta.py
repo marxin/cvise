@@ -1,3 +1,4 @@
+from __future__ import annotations
 import importlib.util
 import os
 from pathlib import Path
@@ -45,18 +46,27 @@ def get_expected_output_path(testcase: str, output_file: Union[str, None] = None
 
 class TestClangDelta(unittest.TestCase):
     @classmethod
-    def check_clang_delta(cls, testcase, arguments, output_file=None):
-        cmd = f'{get_clang_delta_path()} {get_testcase_path(testcase)} {arguments}'
-        output = subprocess.check_output(cmd, shell=True, encoding='utf8')
+    def check_clang_delta(cls, testcase: str, arguments: str, output_file: str | None = None):
+        cmd = [get_clang_delta_path(), str(get_testcase_path(testcase))] + arguments.split()
+        output = subprocess.check_output(cmd, encoding='utf8')
         expected = get_expected_output_path(testcase, output_file).read_text()
         assert output == expected
 
     @classmethod
-    def check_clang_delta_hints(cls, testcase: str, arguments, begin_index, end_index, output_file=None):
+    def check_clang_delta_hints(
+        cls,
+        testcase: str,
+        arguments: str,
+        begin_index: int | None,
+        end_index: int | None,
+        output_file: str | None = None,
+    ):
         testcase_path = get_testcase_path(testcase)
-        cmd = f'{get_clang_delta_path()} {testcase_path} {arguments} --generate-hints'
-        hints = subprocess.check_output(cmd, shell=True)
+        cmd = [get_clang_delta_path(), str(testcase_path)] + arguments.split() + ['--generate-hints']
+        hints = subprocess.check_output(cmd)
         bundle = parse_clang_delta_hints(hints)
+        if begin_index is not None and end_index is not None:
+            bundle.hints = bundle.hints[begin_index:end_index]
         with tempfile.TemporaryDirectory() as dir:
             dest_path = Path(dir) / testcase_path.name
             apply_hints([bundle], testcase_path, dest_path)
