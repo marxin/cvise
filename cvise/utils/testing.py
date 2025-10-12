@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Mapping, Sequence
 from concurrent.futures import FIRST_COMPLETED, Future, wait
 import contextlib
 from dataclasses import dataclass
@@ -16,8 +17,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Any, Callable, Sequence
-from collections.abc import Mapping
+from typing import Any, Callable
 import concurrent.futures
 
 from cvise.cvise import CVise

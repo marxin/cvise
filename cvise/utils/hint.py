@@ -9,13 +9,13 @@ heuristics and to perform reduction more efficiently (as algorithms can now be
 applied to all heuristics in a uniform way).
 """
 
+from collections.abc import Sequence
 from copy import copy, deepcopy
 import dataclasses
 import json
 import msgspec
 from pathlib import Path
 from typing import Any, Optional, TextIO
-from collections.abc import Sequence
 import zstandard
 
 from cvise.utils.fileutil import mkdir_up_to
