@@ -54,6 +54,8 @@ set(SOURCE_FILES
   "/tests/callexpr-to-value/test2.output"
   "/tests/callexpr-to-value/test3.c"
   "/tests/callexpr-to-value/test3.output"
+  "/tests/callexpr-to-value/test4.c"
+  "/tests/callexpr-to-value/test4.output"
   "/tests/class-to-struct/class-to-struct1.C"
   "/tests/class-to-struct/class-to-struct1.output"
   "/tests/class-to-struct/class-to-struct-forward.C"
