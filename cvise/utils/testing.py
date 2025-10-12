@@ -126,7 +126,7 @@ class TestEnvironment:
         test_script,
         folder: Path,
         test_case: Path,
-        all_test_cases: set[str],
+        all_test_cases: set[Path],
         should_copy_test_cases: bool,
         transform,
         pid_queue: queue.Queue | None = None,
