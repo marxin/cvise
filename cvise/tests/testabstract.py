@@ -7,7 +7,7 @@ from typing import Optional, Union
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.fileutil import CloseableTemporaryFile
-from cvise.utils.hint import HINT_SCHEMA_STRICT, HintBundle, load_hints
+from cvise.utils.hint import HINT_SCHEMA_STRICT, Hint, HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
 
 
@@ -87,37 +87,48 @@ def validate_stored_hints(state: Union[HintState, None], pass_: HintBasedPass, t
 
 def validate_hint_bundle(bundle: HintBundle, test_case: Path, allowed_hint_types: Optional[set[bytes]] = None) -> None:
     for hint in bundle.hints:
-        # Check against JSON Schema.
-        json_dump = msgspec.json.encode(hint)
-        dict_obj = msgspec.json.decode(json_dump)
-        jsonschema.validate(dict_obj, HINT_SCHEMA_STRICT)
-        # Also check the things that the JSON Schema cannot enforce.
-        if hint.type is not None:
-            assert hint.type < len(bundle.vocabulary)
-            hint_type = bundle.vocabulary[hint.type]
-            if allowed_hint_types is not None:
-                assert hint_type in allowed_hint_types
-        if hint.extra is not None:
-            assert hint.extra < len(bundle.vocabulary)
-            if hint.type is not None and bundle.vocabulary[hint.type] in _TYPES_WITH_PATH_EXTRA:
-                path = Path(bundle.vocabulary[hint.extra].decode())
-                assert not path.is_absolute()
-                assert (test_case / path).exists()
-                assert (test_case / path).is_relative_to(test_case)
-        for patch in hint.patches:
-            assert patch.left <= patch.right
-            assert (patch.path is not None) == test_case.is_dir()
-            if patch.path is not None:
-                assert patch.path < len(bundle.vocabulary)
-                path = Path(bundle.vocabulary[patch.path].decode())
-                assert not path.is_absolute()
-                assert (test_case / path).exists()
-                assert (test_case / path).is_relative_to(test_case)
+        try:
+            _validate_hint(hint, bundle, test_case, allowed_hint_types)
+        except Exception as e:
+            raise ValueError(f'Error validating hint {hint}') from e
+
+
+def _validate_hint(hint: Hint, bundle: HintBundle, test_case: Path, allowed_hint_types: Optional[set[bytes]]) -> None:
+    # Check against JSON Schema.
+    json_dump = msgspec.json.encode(hint)
+    dict_obj = msgspec.json.decode(json_dump)
+    jsonschema.validate(dict_obj, HINT_SCHEMA_STRICT)
+    # Also check the things that the JSON Schema cannot enforce.
+    if hint.type is not None:
+        assert hint.type < len(bundle.vocabulary)
+        hint_type = bundle.vocabulary[hint.type]
+        if allowed_hint_types is not None:
+            assert hint_type in allowed_hint_types
+    if hint.extra is not None:
+        assert hint.extra < len(bundle.vocabulary)
+        if hint.type is not None and bundle.vocabulary[hint.type] in _TYPES_WITH_PATH_EXTRA:
+            path = Path(bundle.vocabulary[hint.extra].decode())
+            assert not path.is_absolute()
+            assert (test_case / path).exists()
+            assert (test_case / path).is_relative_to(test_case)
+    for patch in hint.patches:
+        assert (patch.left is None) == (patch.right is None)
+        assert (patch.path is not None) == test_case.is_dir()
+        if patch.path is not None:
+            assert patch.path < len(bundle.vocabulary)
+            path = Path(bundle.vocabulary[patch.path].decode())
+            assert not path.is_absolute()
+            assert (test_case / path).exists()
+            assert (test_case / path).is_relative_to(test_case)
+            if patch.right is not None:
                 assert patch.right <= (test_case / path).stat().st_size
-            if patch.operation is not None:
-                assert patch.operation < len(bundle.vocabulary)
-                assert bundle.vocabulary[patch.operation] in _KNOWN_OPERATIONS
-            else:
-                assert patch.left < patch.right  # only special operations can use zero-size patches
-            if patch.value is not None:
-                assert patch.value < len(bundle.vocabulary)
+        if patch.operation is not None:
+            assert patch.operation < len(bundle.vocabulary)
+            assert bundle.vocabulary[patch.operation] in _KNOWN_OPERATIONS
+        else:
+            # only special operations can use zero-size patches
+            assert patch.left is not None
+            assert patch.right is not None
+            assert patch.left < patch.right
+        if patch.value is not None:
+            assert patch.value < len(bundle.vocabulary)

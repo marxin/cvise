@@ -8,7 +8,7 @@ from cvise.utils.hint import Hint, HintBundle, Patch
 
 
 class CommentsPass(HintBasedPass):
-    # The hints vocabulary - strings used by our hint.
+    # The hints vocabulary - strings used by our hints.
     INITIAL_VOCAB = (b'multi-line', b'single-line')
     # The indices must match the order in INITIAL_VOCAB.
     MULTI_LINE_VOCAB_ID = 0
