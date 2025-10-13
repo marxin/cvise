@@ -193,6 +193,8 @@ class InsideBracketsRemovingPass(HintBasedPass):
                 assert input_bundle.vocabulary[input_hint.type] == b'remove-brackets'
                 assert len(input_hint.patches) == 1
                 input_patch = input_hint.patches[0]
+                assert input_patch.left is not None
+                assert input_patch.right is not None
                 if input_patch.right - input_patch.left == 1:
                     continue  # don't create empty hints
                 hints.append(Hint(patches=(Patch(left=input_patch.left + 1, right=input_patch.right - 1),)))

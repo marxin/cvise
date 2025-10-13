@@ -2,6 +2,7 @@ from pathlib import Path
 import pytest
 from typing import Any
 
+from cvise.passes.abstract import PassResult
 from cvise.passes.rmunusedfiles import RmUnusedFilesPass
 from cvise.tests.testabstract import collect_all_transforms_dir, validate_stored_hints
 from cvise.utils.hint import Hint, HintBundle, Patch
@@ -84,3 +85,27 @@ def test_unused_files_deleted(tmp_path: Path, test_case_path: Path):
             b'',
         ),
     ) in all_transforms
+
+
+def test_unused_empty_dirs_deleted(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'a').mkdir()
+    (test_case_path / 'b').mkdir()
+    (test_case_path / 'b' / 'foo.txt').touch()
+    (test_case_path / 'c').mkdir()
+    (test_case_path / 'd').mkdir()
+    (test_case_path / 'd' / 'e').mkdir()
+    # Fake filerefs to "c".
+    filerefs_bundle = HintBundle(
+        hints=[Hint(type=0, patches=(), extra=1)],
+        vocabulary=[b'@fileref', b'c'],
+    )
+    p, state = init_pass(tmp_path, test_case_path, dependee_hints=[filerefs_bundle])
+    out_path = tmp_path / 'out'
+
+    result, _new_state = p.transform(
+        out_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=test_case_path
+    )
+
+    assert result == PassResult.OK
+    # "a" and "e" deleted
+    assert set(out_path.rglob('*')) == {out_path / 'b', out_path / 'b' / 'foo.txt', out_path / 'c', out_path / 'd'}

@@ -13,6 +13,7 @@ from collections.abc import Sequence
 from copy import copy, deepcopy
 import dataclasses
 import json
+import math
 import msgspec
 from pathlib import Path
 from typing import Any, Optional, TextIO
@@ -29,17 +30,17 @@ class Patch(msgspec.Struct, omit_defaults=True, gc=False, frozen=True):
     See HINT_PATCH_SCHEMA.
     """
 
-    left: int = msgspec.field(name='l')
-    right: int = msgspec.field(name='r')
     path: Optional[int] = msgspec.field(default=None, name='p')
+    left: Optional[int] = msgspec.field(default=None, name='l')
+    right: Optional[int] = msgspec.field(default=None, name='r')
     operation: Optional[int] = msgspec.field(default=None, name='o')
     value: Optional[int] = msgspec.field(default=None, name='v')
 
     def comparison_key(self) -> tuple:
         return (
             -1 if self.path is None else self.path,
-            self.left,
-            self.right,
+            -1 if self.left is None else self.left,
+            -1 if self.right is None else self.right,
             -1 if self.operation is None else self.operation,
             -1 if self.value is None else self.value,
         )
@@ -102,7 +103,7 @@ HINT_PATCH_SCHEMA = {
         'r': {
             'description': (
                 "Right position of the chunk (index of the next character in the text after the chunk's last '"
-                "'character). Must be greater than or equal to 'l'."
+                "'character). Must be specified iff 'l' is, and must be greater than or equal to 'l'."
             ),
             'type': 'integer',
         },
@@ -131,7 +132,6 @@ HINT_PATCH_SCHEMA = {
             'minimum': 0,
         },
     },
-    'required': ['l', 'r'],
 }
 
 HINT_PATCH_SCHEMA_STRICT = deepcopy(HINT_PATCH_SCHEMA)
@@ -228,20 +228,41 @@ def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: 
     for path in subtree:
         path_rel = path.relative_to(source_path)
         path_in_dest = destination_path / path_rel
+        patches_to_apply = path_to_patches.get(path_rel, [])
 
+        if _take_rm_patch(patches_to_apply, bundles, path, stats):
+            continue  # skip creating the file/dir
         if path.is_symlink():
-            continue
-
+            continue  # TODO: handle symlinks
         if path.is_dir():
+            # The sorted path order guarantees the parents should've been created.
             path_in_dest.mkdir()
             continue
-
-        patches_to_apply = path_to_patches.get(path_rel, [])
         _apply_hint_patches_to_file(
             patches_to_apply, bundles, source_file=path, destination_file=path_in_dest, stats=stats
         )
 
     return stats
+
+
+def _take_rm_patch(
+    patches: list[_PatchWithBundleRef],
+    bundles: list[HintBundle],
+    source_file: Path,
+    stats: HintApplicationStats,
+) -> bool:
+    for patch_ref in patches:
+        p: Patch = patch_ref.patch
+        bundle: HintBundle = bundles[patch_ref.bundle_id]
+        if p.operation is None:
+            continue
+        if bundle.vocabulary[p.operation] != b'rm':
+            continue
+        if source_file.is_file():
+            stats.size_delta_per_pass.setdefault(bundle.pass_user_visible_name, 0)
+            stats.size_delta_per_pass[bundle.pass_user_visible_name] -= source_file.lstat().st_size
+        return True
+    return False
 
 
 def _apply_hint_patches_to_file(
@@ -255,31 +276,34 @@ def _apply_hint_patches_to_file(
     orig_data = memoryview(source_file.read_bytes())
 
     new_data = bytearray()
-    should_rm = False
     start_pos = 0
     for patch_ref in merged_patches:
         p: Patch = patch_ref.patch
         bundle: HintBundle = bundles[patch_ref.bundle_id]
-        assert start_pos <= p.left <= len(orig_data)
-        assert p.left <= p.right <= len(orig_data)
-        if p.operation is not None and bundle.vocabulary[p.operation] == b'rm':
-            should_rm = True
-        # Add the unmodified chunk up to the current patch begin.
-        new_data.extend(orig_data[start_pos : p.left])
-        # Skip the original chunk inside the current patch.
-        start_pos = p.right
         stats.size_delta_per_pass.setdefault(bundle.pass_user_visible_name, 0)
-        stats.size_delta_per_pass[bundle.pass_user_visible_name] -= p.right - p.left
-        # Insert the replacement value, if provided.
-        if p.value is not None:
-            to_insert = bundle.vocabulary[p.value]
-            new_data += to_insert
-            stats.size_delta_per_pass[bundle.pass_user_visible_name] += len(to_insert)
+        try:
+            assert p.left is not None
+            assert p.right is not None
+            assert start_pos <= p.left <= len(orig_data)
+            assert p.left <= p.right <= len(orig_data)
+            # Add the unmodified chunk up to the current patch begin.
+            new_data.extend(orig_data[start_pos : p.left])
+            # Skip the original chunk inside the current patch.
+            start_pos = p.right
+            stats.size_delta_per_pass[bundle.pass_user_visible_name] -= p.right - p.left
+            # Insert the replacement value, if provided.
+            if p.value is not None:
+                to_insert = bundle.vocabulary[p.value]
+                new_data += to_insert
+                stats.size_delta_per_pass[bundle.pass_user_visible_name] += len(to_insert)
+        except Exception as e:
+            raise RuntimeError(
+                f'Failure while applying patch {p} from pass "{bundle.pass_name}" on file "source_file" with size {len(orig_data)}'
+            ) from e
     # Add the unmodified chunk after the last patch end.
     new_data.extend(orig_data[start_pos:])
 
-    if not should_rm:  # otherwise don't create the file - this is equvalent to removing it
-        destination_file.write_bytes(new_data)
+    destination_file.write_bytes(new_data)
 
 
 def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
@@ -370,7 +394,11 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: list[HintBund
     for hint in source_bundle.hints:
         for patch in hint.patches:
             path_rel = Path(source_bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
-            path_to_queries.setdefault(path_rel, []).extend((patch.left, patch.right))
+            queries = path_to_queries.setdefault(path_rel, [])
+            if patch.left is not None:
+                queries.append(patch.left)
+            if patch.right is not None:
+                queries.append(patch.right)
     path_to_subtrahends: dict[Path, list[_PatchWithBundleRef]] = {}
     for bundle_id, bundle in enumerate(bundles_to_subtract):
         for hint in bundle.hints:
@@ -393,9 +421,15 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: list[HintBund
         for patch in hint.patches:
             path_rel = Path(source_bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
             mapping = path_to_positions_mapping[path_rel]
-            new_patch = msgspec.structs.replace(patch, left=mapping[patch.left], right=mapping[patch.right])
+            new_patch = msgspec.structs.replace(
+                patch,
+                left=None if patch.left is None else mapping[patch.left],
+                right=None if patch.right is None else mapping[patch.right],
+            )
             if (
-                new_patch.left < new_patch.right
+                new_patch.left is None
+                or new_patch.right is None
+                or new_patch.left < new_patch.right
                 or new_patch.left == new_patch.right
                 and new_patch.operation is not None
             ):
@@ -418,21 +452,22 @@ def _calc_positions_mapping_for_patches(
     position_delta = 0
     for query in sorted(set(queries)):
         # Apply patches up until the current position.
-        while ptr < len(merged_patches) and merged_patches[ptr].patch.right <= query:
-            patch_ref = merged_patches[ptr]
-            to_delete = patch_ref.patch.right - patch_ref.patch.left
-            to_insert = (
-                0
-                if patch_ref.patch.value is None
-                else len(bundles[patch_ref.bundle_id].vocabulary[patch_ref.patch.value])
-            )
-            position_delta += to_insert - to_delete
+        while ptr < len(merged_patches) and (merged_patches[ptr].patch.right or 0) <= query:
+            ref = merged_patches[ptr]
+            patch = ref.patch
+            if patch.left is not None and patch.right is not None:
+                to_delete = patch.right - patch.left
+                to_insert = 0 if patch.value is None else len(bundles[ref.bundle_id].vocabulary[patch.value])
+                position_delta += to_insert - to_delete
             ptr += 1
         new_pos = query + position_delta
-        if ptr < len(merged_patches) and merged_patches[ptr].patch.left < query:
-            # Adjust if we're inside another patch.
-            to_delete = query - merged_patches[ptr].patch.left
+
+        # Adjust if we're inside another patch.
+        next_left = merged_patches[ptr].patch.left if ptr < len(merged_patches) else None
+        if next_left is not None and next_left < query:
+            to_delete = query - next_left
             new_pos -= to_delete
+
         positions_mapping[query] = new_pos
     return positions_mapping
 
@@ -500,22 +535,37 @@ def sort_hints(bundle: HintBundle) -> None:
 def _merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequence[_PatchWithBundleRef]:
     """Returns non-overlapping hint patches, merging patches where necessary."""
 
-    def sorting_key(p: _PatchWithBundleRef):
-        is_replacement = p.patch.value is not None
-        # Among all patches starting in the same location, use additional criteria:
+    def sorting_key(ref: _PatchWithBundleRef):
+        p = ref.patch
+        is_replacement = p.value is not None
+        # Criteria:
+        # * prefer seeing positionless patches (without left/right) first;
+        # * positioned patches should be first sorted by their left;
         # * prefer seeing larger patches first, hence sort by decreasing "r";
         # * (if still a tie) prefer deletion over text replacement.
-        return p.patch.left, -p.patch.right, is_replacement
+        return (
+            -math.inf if p.left is None else p.left,
+            -math.inf if p.right is None else -p.right,
+            is_replacement,
+        )
 
     merged: list[_PatchWithBundleRef] = []
     for cur in sorted(patches, key=sorting_key):
         if merged:
             prev = merged[-1]
-            if max(prev.patch.left, cur.patch.left) < min(prev.patch.right, cur.patch.right):
+            prev_p = prev.patch
+            cur_p = cur.patch
+            if (
+                prev_p.left is not None
+                and prev_p.right is not None
+                and cur_p.left is not None
+                and cur_p.right is not None
+                and max(prev_p.left, cur_p.left) < min(prev_p.right, cur_p.right)
+            ):
                 # There's an overlap with the previous patch; note that only real overlaps (with at least one common
                 # character) are detected. Extend the previous patch to fit the new patch.
-                if cur.patch.right > prev.patch.right:
-                    prev.patch = msgspec.structs.replace(prev.patch, right=cur.patch.right)
+                if cur_p.right > prev_p.right:
+                    prev.patch = msgspec.structs.replace(prev.patch, right=cur_p.right)
                 continue
         # No overlap with previous items - just add the new patch.
         merged.append(cur)
