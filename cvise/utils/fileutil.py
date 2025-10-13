@@ -51,18 +51,6 @@ def rmfolder(name):
         pass
 
 
-def mkdir_up_to(dir_to_create: Path, last_parent_dir: Path) -> None:
-    """Similar to Path.mkdir(parents=True), but stops at the given ancestor directory which must exist.
-
-    We use it to avoid canceled-but-not-killed-yet C-Vise jobs recreating temporary work directories that the C-Vise
-    main process has deleted.
-    """
-    if dir_to_create == last_parent_dir or not dir_to_create.is_relative_to(last_parent_dir):
-        return
-    mkdir_up_to(dir_to_create.parent, last_parent_dir)
-    dir_to_create.mkdir(exist_ok=True)
-
-
 def sanitize_for_file_name(text: str) -> str:
     """Replaces characters which might be invalid or error-prone (e.g., spaces) when used in file names."""
     return re.sub(r'[^a-zA-Z0-9_.-]', '_', text)
@@ -94,7 +82,6 @@ def get_dir_count(test_case: Path) -> int:
 
 def copy_test_case(source: Path, destination_parent: Path) -> None:
     assert not source.is_absolute()
-    mkdir_up_to(destination_parent / source.parent, destination_parent)
     if source.is_dir():
         shutil.copytree(source, destination_parent / source)
     else:

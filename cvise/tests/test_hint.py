@@ -300,6 +300,22 @@ def test_apply_hints_dir(tmp_path: Path):
     assert (output_dir / 'bar.cc').read_text() == 'void b();'
 
 
+def test_apply_hints_empty_dir(tmp_path: Path, tmp_test_case: Path):
+    """Test that an empty directory is preserved (in case of multi-file inputs)."""
+    input_dir = tmp_path / 'input'
+    input_dir.mkdir()
+    (input_dir / 'foo').mkdir()
+    (input_dir / 'foo' / 'bar').mkdir()
+    bundle = HintBundle(hints=[])
+    validate_hint_bundle(bundle, tmp_test_case)
+
+    output_dir = tmp_path / 'output'
+    apply_hints([bundle], input_dir, output_dir)
+
+    assert set(output_dir.rglob('*')) == {output_dir / 'foo', output_dir / 'foo' / 'bar'}
+    assert (output_dir / 'foo' / 'bar').is_dir()
+
+
 def test_apply_hints_dir_nonexisting_parent(tmp_path: Path, tmp_test_case: Path):
     """Test that an exception occurs when the destination path is in a non-existing directory.
 

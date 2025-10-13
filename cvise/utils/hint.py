@@ -18,8 +18,6 @@ from pathlib import Path
 from typing import Any, Optional, TextIO
 import zstandard
 
-from cvise.utils.fileutil import mkdir_up_to
-
 
 # Currently just a hardcoded constant - the number is reserved for backwards-incompatible format changes in the future.
 FORMAT_NAME = 'cvise_hints_v0'
@@ -209,6 +207,11 @@ class _PatchWithBundleRef(msgspec.Struct, gc=False):
 
 def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationStats:
     """Creates the destination file/dir by applying the specified hints to the contents of the source file/dir."""
+    is_dir = source_path.is_dir()
+    if is_dir:
+        destination_path.mkdir(exist_ok=True)
+        assert list(destination_path.iterdir()) == []
+
     # Take patches from all hints and group them by the file/dir path which they're applied to.
     path_to_patches: dict[Path, list[_PatchWithBundleRef]] = {}
     for bundle_id, bundle in enumerate(bundles):
@@ -220,17 +223,18 @@ def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: 
                 path_to_patches.setdefault(path_rel, []).append(p)
 
     # Enumerate all files in the source location and apply corresponding patches, if any, to each.
-    is_dir = source_path.is_dir()
-    subtree = list(source_path.rglob('*')) if is_dir else [source_path]
+    subtree = sorted(source_path.rglob('*')) if is_dir else [source_path]
     stats = HintApplicationStats(size_delta_per_pass={})
     for path in subtree:
-        if path.is_dir() or path.is_symlink():
-            continue
-
         path_rel = path.relative_to(source_path)
         path_in_dest = destination_path / path_rel
-        if is_dir:
-            mkdir_up_to(path_in_dest.parent, destination_path.parent)
+
+        if path.is_symlink():
+            continue
+
+        if path.is_dir():
+            path_in_dest.mkdir()
+            continue
 
         patches_to_apply = path_to_patches.get(path_rel, [])
         _apply_hint_patches_to_file(
@@ -525,15 +529,3 @@ def _lines_range(f: TextIO, begin_index: Optional[int], end_index: Optional[int]
         return list(f)
     cnt = end_index - (begin_index or 0)
     return [next(f) for _ in range(cnt)]
-
-
-def _mkdir_up_to(dir_to_create: Path, last_parent_dir: Path) -> None:
-    """Similar to Path.mkdir(parents=True), but stops at the given ancestor directory.
-
-    We use it to avoid canceled-but-not-killed-yet C-Vise jobs recreating temporary work directories that the C-Vise
-    main process has deleted.
-    """
-    assert dir_to_create.is_relative_to(last_parent_dir)
-    if dir_to_create != last_parent_dir:
-        _mkdir_up_to(dir_to_create.parent, last_parent_dir)
-    dir_to_create.mkdir(exist_ok=True)
