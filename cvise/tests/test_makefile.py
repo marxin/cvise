@@ -4,6 +4,7 @@ from typing import Any
 
 from cvise.passes.makefile import MakefilePass
 from cvise.tests.testabstract import collect_all_transforms_dir, validate_stored_hints
+from cvise.utils.hint import load_hints
 from cvise.utils.process import ProcessEventNotifier
 
 
@@ -500,3 +501,56 @@ a.out:
         """,
         ),
     ) not in all_transforms
+
+
+def test_fileref_arg(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'Makefile').write_text(
+        """
+a.out:
+\tgcc -ansi foo.c -Wall
+        """,
+    )
+    (test_case_path / 'foo.c').touch()
+    p, state = init_pass(tmp_path, test_case_path)
+    bundle_paths = state.hint_bundle_paths()
+
+    assert b'@fileref' in bundle_paths
+    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
+    assert refs == {b'Makefile', b'foo.c'}
+
+
+def test_fileref_parameterized_arg(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'Makefile').write_text(
+        """
+a.out:
+\tclang -fmodules -fmodule-map-file=foo.cppmap -fsanitize-ignorelist=dir/list.txt bar.cppmap
+        """,
+    )
+    (test_case_path / 'foo.cppmap').touch()
+    (test_case_path / 'dir').mkdir()
+    (test_case_path / 'dir' / 'list.txt').touch()
+    p, state = init_pass(tmp_path, test_case_path)
+    bundle_paths = state.hint_bundle_paths()
+
+    assert b'@fileref' in bundle_paths
+    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
+    assert refs == {b'Makefile', b'foo.cppmap', b'dir/list.txt'}
+
+
+def test_fileref_program(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'Makefile').write_text(
+        """
+foo:
+\tsomeprog somearg
+        """,
+    )
+    (test_case_path / 'someprog').touch()
+    p, state = init_pass(tmp_path, test_case_path)
+    bundle_paths = state.hint_bundle_paths()
+
+    assert b'@fileref' in bundle_paths
+    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
+    assert refs == {b'Makefile', b'someprog'}

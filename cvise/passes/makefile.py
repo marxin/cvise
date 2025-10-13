@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from enum import Enum, unique
 from pathlib import Path
 import re
@@ -28,7 +29,7 @@ _FILE_PATH_OPTIONS = re.compile(rb'=(?=(.*))')
 @unique
 class _Vocab(Enum):
     # Items must be listed in the index order; indices must be contiguous and start from zero.
-    MAKEFILE = (0, b'@makefile')
+    MAKEFILE = (0, b'@makefile')  # used to convey makefile file paths to other passes
     FILEREF = (1, b'@fileref')
     REMOVE_ARGUMENTS_ACROSS_ALL_COMMANDS = (2, b'remove-arguments-across-all-commands')
     REMOVE_TARGET = (3, b'remove-target')
@@ -55,21 +56,21 @@ class MakefilePass(HintBasedPass):
 
     def generate_hints(self, test_case: Path, *args, **kwargs):
         makefiles = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
-        vocab: list[bytes] = [v.value[1] for v in _Vocab]  # collect all strings used in hints
+        vocab: list[bytes] = [v.value[1] for v in _Vocab]  # initial set of strings used in hints
+        path_to_vocab: dict[Path, int] = {}
         hints: list[Hint] = []
         for path in makefiles:
-            rel_path = path.relative_to(test_case)
-            vocab.append(str(rel_path).encode())
-            file_id = len(vocab) - 1
-            _add_fileref_hints(file_id, hints)
+            file_id = _get_vocab_id(path.relative_to(test_case), vocab, path_to_vocab)
+            _add_file_level_hints(file_id, hints)
             mk = makefileparser.parse(path)
+            _add_fileref_hints(mk, file_id, test_case, vocab, path_to_vocab, hints)
             _add_arg_removal_hints(mk, file_id, hints)
             _add_target_removal_hints(mk, file_id, hints)
 
         return HintBundle(hints=hints, vocabulary=vocab)
 
 
-def _add_fileref_hints(file_id: int, hints: list[Hint]) -> None:
+def _add_file_level_hints(file_id: int, hints: list[Hint]) -> None:
     hints.append(
         Hint(
             type=_Vocab.MAKEFILE.value[0],
@@ -87,6 +88,37 @@ def _add_fileref_hints(file_id: int, hints: list[Hint]) -> None:
             extra=file_id,
         )
     )
+
+
+def _add_fileref_hints(
+    mk: Makefile, file_id: int, test_case: Path, vocab: list[bytes], path_to_vocab: dict[Path, int], hints: list[Hint]
+) -> None:
+    # Heuristically detect mentions of files in command lines in all recipes.
+    for rule in mk.rules:
+        for recipe_line in rule.recipe:
+            prog_path = test_case / Path(recipe_line.program.value.decode())
+            if prog_path.is_relative_to(test_case) and prog_path.exists():
+                hints.append(
+                    Hint(
+                        type=_Vocab.FILEREF.value[0],
+                        patches=_locs_to_patches([recipe_line.program.loc], file_id),
+                        extra=_get_vocab_id(prog_path.relative_to(test_case), vocab, path_to_vocab),
+                    )
+                )
+
+            for arg in recipe_line.args:
+                possible_paths = [arg.value] + [m.group(1) for m in _FILE_PATH_OPTIONS.finditer(arg.value)]
+                for path_bytes in possible_paths:
+                    arg_path = test_case / Path(path_bytes.decode())
+                    if arg_path.is_relative_to(test_case) and arg_path.exists():
+                        hints.append(
+                            Hint(
+                                type=_Vocab.FILEREF.value[0],
+                                patches=_locs_to_patches([arg.loc], file_id),
+                                extra=_get_vocab_id(arg_path.relative_to(test_case), vocab, path_to_vocab),
+                            )
+                        )
+                        break
 
 
 def _add_arg_removal_hints(mk: Makefile, file_id: int, hints: list[Hint]) -> None:
@@ -108,7 +140,7 @@ def _add_arg_removal_hints(mk: Makefile, file_id: int, hints: list[Hint]) -> Non
         hints.append(
             Hint(
                 type=_Vocab.REMOVE_ARGUMENTS_ACROSS_ALL_COMMANDS.value[0],
-                patches=tuple(Patch(left=loc.begin, right=loc.end, file=file_id) for loc in locs),
+                patches=_locs_to_patches(locs, file_id),
             )
         )
 
@@ -162,13 +194,14 @@ def _add_target_removal_hints(mk: Makefile, file_id: int, hints: list[Hint]) -> 
                         mentions.append(prev_arg.loc)
                         if prev_arg.preceding_spaces_loc:
                             mentions.append(prev_arg.preceding_spaces_loc)
+                    break
 
     # Then generate a hint for each target and all references to it.
     for locs in target_mentions.values():
         hints.append(
             Hint(
                 type=_Vocab.REMOVE_TARGET.value[0],
-                patches=tuple(Patch(left=loc.begin, right=loc.end, file=file_id) for loc in locs),
+                patches=_locs_to_patches(locs, file_id),
             )
         )
 
@@ -189,3 +222,16 @@ def _get_removable_arg_groups(args: list[TextWithLoc]) -> list[list[TextWithLoc]
             continue
         removable.append([arg])
     return removable
+
+
+def _get_vocab_id(path: Path, vocab: list[bytes], path_to_vocab: dict[Path, int]) -> int:
+    if path in path_to_vocab:
+        return path_to_vocab[path]
+    vocab.append(str(path).encode())
+    id = len(vocab) - 1
+    path_to_vocab[path] = id
+    return id
+
+
+def _locs_to_patches(locs: Sequence[SourceLoc], mk_file_id: int) -> tuple[Patch, ...]:
+    return tuple(Patch(left=loc.begin, right=loc.end, file=mk_file_id) for loc in locs)
