@@ -228,13 +228,13 @@ def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: 
             continue
 
         path_rel = path.relative_to(source_path)
-        file_dest = destination_path / path_rel
+        path_in_dest = destination_path / path_rel
         if is_dir:
-            mkdir_up_to(file_dest.parent, destination_path.parent)
+            mkdir_up_to(path_in_dest.parent, destination_path.parent)
 
         patches_to_apply = path_to_patches.get(path_rel, [])
         _apply_hint_patches_to_file(
-            patches_to_apply, bundles, source_file=path, destination_file=file_dest, stats=stats
+            patches_to_apply, bundles, source_file=path, destination_file=path_in_dest, stats=stats
         )
 
     return stats
