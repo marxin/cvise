@@ -26,7 +26,7 @@ extern int yyleng;
  */
 extern int count;
 extern int tok_end_pos;
-extern int file_id;
+extern int path_id;
 void restart_with_new_file(void);
 
 enum tok_kind {

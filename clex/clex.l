@@ -134,13 +134,13 @@ L?\"(\\.|[^\\"])*\"	{ process_token(TOK_STRING); }
 "\\"                    { process_token(TOK_OTHER); }
 
 "/*"        {
-                int start_file_id = file_id;
+                int start_path_id = path_id;
                 int prev = 0;
                 for (;;)  {
                     int c = input();
-                    if (c == EOF || file_id == INT_MAX)
+                    if (c == EOF || path_id == INT_MAX)
                         break;
-                    if (file_id != start_file_id) {
+                    if (path_id != start_path_id) {
                         /* don't cross file boundaries */
                         unput(c);
                         break;

@@ -18,7 +18,7 @@ void possibleChunkBegin(int pos);
 void possibleChunkEnd(int pos);
 
 // index of file that's currently being parsed, or -1 for a single-file input.
-int file_id = 0;
+int path_id = 0;
 
 // index of byte where the current yytext ends in the input.
 int token_end_pos = 0;
@@ -131,14 +131,14 @@ void chunkEnd(int pos)
   if (whitespace_start_pos <= chunk_start_pos && pos <= whitespace_end_pos)
     return;  // Skip deleting chunks consisting of whitespaces only.
   printf("{\"p\":[{\"l\":%d,\"r\":%d", chunk_start_pos, pos);
-  if (file_id != -1)
-    printf(",\"f\":%d", file_id);
+  if (path_id != -1)
+    printf(",\"p\":%d", path_id);
   printf("}]}\n");
 }
 
 void possibleChunkEnd(int pos)
 {
-  assert(file_id != INT_MAX);
+  assert(path_id != INT_MAX);
   // Only attempt deleting chunks exactly at the specified nesting.
   if (nesting == threshold)
     chunkEnd(pos);
@@ -160,8 +160,8 @@ int yywrap(void) {
   if (nesting >= threshold)
     chunkEnd(token_end_pos);
 
-  if (file_id == -1) {
-    file_id = INT_MAX;
+  if (path_id == -1) {
+    path_id = INT_MAX;
     return 1;
   }
   char *path = NULL;
@@ -169,20 +169,20 @@ int yywrap(void) {
   ssize_t nread = getdelim(&path, &size, 0, stdin);
   if (nread == -1 || !strlen(path)) {
     free(path);
-    file_id = INT_MAX;
+    path_id = INT_MAX;
     return 1;
   }
   FILE* f = fopen(path, "r");
   if (!f) {
     fprintf(stderr, "Cannot open file: %s\n", path);
     free(path);
-    file_id = INT_MAX;
+    path_id = INT_MAX;
     return 1;
   }
   free(path);
   if (yyin) {
     fclose(yyin);
-    ++file_id;
+    ++path_id;
   }
   yyin = f;
   reset_to_initial_state();
@@ -211,12 +211,12 @@ int main(int argc, char *argv[])
   threshold = atoi(argv[1]);    // user-specified threshold
 
   if (strcmp(argv[2], "--") == 0) {
-    file_id = 0;
+    path_id = 0;
     yyin = NULL;
     if (yywrap())
       return 2;
   } else {
-    file_id = -1;
+    path_id = -1;
     yyin = fopen(argv[2], "r");
     if (!yyin) {
       fprintf(stderr, "Cannot open file: %s\n", argv[2]);

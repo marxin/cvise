@@ -17,8 +17,8 @@ def init_pass(tmp_dir: Path, input_path: Path) -> tuple[ClangIncludeGraphPass, A
     mk_bundle = HintBundle(vocabulary=[b'@makefile'], hints=[])
     for mk_path in input_path.rglob('**/Makefile'):
         mk_bundle.vocabulary.append(str(mk_path.relative_to(input_path)).encode())
-        file_id = len(mk_bundle.vocabulary) - 1
-        mk_bundle.hints.append(Hint(type=0, extra=file_id))
+        path_id = len(mk_bundle.vocabulary) - 1
+        mk_bundle.hints.append(Hint(type=0, extra=path_id))
 
     # 2. Execute the subordinate passes.
     sub_passes = pass_.create_subordinate_passes()

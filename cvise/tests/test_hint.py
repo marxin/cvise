@@ -286,9 +286,9 @@ def test_apply_hints_dir(tmp_path: Path):
     (input_dir / 'foo.h').write_text('unsigned foo;')
     (input_dir / 'bar.cc').write_text('void bar();')
     vocab = [b'foo.h', b'bar.cc']
-    hint_oo = Hint(patches=(Patch(left=10, right=12, file=0),))
-    hint_un = Hint(patches=(Patch(left=0, right=2, file=0),))
-    hint_ar = Hint(patches=(Patch(left=6, right=8, file=1),))
+    hint_oo = Hint(patches=(Patch(left=10, right=12, path=0),))
+    hint_un = Hint(patches=(Patch(left=0, right=2, path=0),))
+    hint_ar = Hint(patches=(Patch(left=6, right=8, path=1),))
     bundle = HintBundle(hints=[hint_oo, hint_un, hint_ar], vocabulary=vocab)
     validate_hint_bundle(bundle, input_dir, allowed_hint_types=set())
 
@@ -382,22 +382,22 @@ def test_subtract_hints():
 
 
 def test_subtract_hints_multifile():
-    hint_file_a_03 = Hint(patches=(Patch(left=0, right=3, file=0),))
-    hint_file_a_24 = Hint(patches=(Patch(left=2, right=4, file=0),), type=2)
-    hint_file_b_24 = Hint(patches=(Patch(left=2, right=4, file=1),))
-    hint_file_c_24 = Hint(patches=(Patch(left=2, right=4, file=3),), extra=4)
+    hint_file_a_03 = Hint(patches=(Patch(left=0, right=3, path=0),))
+    hint_file_a_24 = Hint(patches=(Patch(left=2, right=4, path=0),), type=2)
+    hint_file_b_24 = Hint(patches=(Patch(left=2, right=4, path=1),))
+    hint_file_c_24 = Hint(patches=(Patch(left=2, right=4, path=3),), extra=4)
     bundle = HintBundle(
         hints=[hint_file_a_03, hint_file_a_24, hint_file_b_24, hint_file_c_24],
         vocabulary=[b'file_a', b'file_b', b'sometype', b'file_c', b'someextra'],
     )
-    hint_file_b_05rm = Hint(patches=(Patch(left=0, right=5, file=0, operation=1),))
+    hint_file_b_05rm = Hint(patches=(Patch(left=0, right=5, path=0, operation=1),))
     bundle_to_apply_1 = HintBundle(hints=[hint_file_b_05rm], vocabulary=[b'file_b', b'rm'])
-    hint_file_a_23 = Hint(patches=(Patch(left=2, right=3, file=1),))
+    hint_file_a_23 = Hint(patches=(Patch(left=2, right=3, path=1),))
     bundle_to_apply_2 = HintBundle(hints=[hint_file_a_23], vocabulary=[b'unused', b'file_a'])
 
     got = subtract_hints(bundle, [bundle_to_apply_1, bundle_to_apply_2])
-    hint_file_a_02 = Hint(patches=(Patch(left=0, right=2, file=0),))
-    hint_file_a_23 = Hint(patches=(Patch(left=2, right=3, file=0),), type=2)
+    hint_file_a_02 = Hint(patches=(Patch(left=0, right=2, path=0),))
+    hint_file_a_23 = Hint(patches=(Patch(left=2, right=3, path=0),), type=2)
     hint_empty = Hint()
     assert got.hints == [hint_file_a_02, hint_file_a_23, hint_empty, hint_file_c_24]
     assert got.vocabulary == bundle.vocabulary
@@ -422,9 +422,9 @@ def test_sort_multifile(tmp_test_case: Path):
     tmp_test_case.mkdir()
     (tmp_test_case / 'bar.txt').write_text('bar')
     (tmp_test_case / 'foo.txt').write_text('foo')
-    hint0 = Hint(patches=(Patch(left=1, right=2, file=0),))
-    hint1 = Hint(patches=(Patch(left=0, right=2, file=1),))
-    hint2 = Hint(patches=(Patch(left=0, right=2, file=0, operation=2),))
+    hint0 = Hint(patches=(Patch(left=1, right=2, path=0),))
+    hint1 = Hint(patches=(Patch(left=0, right=2, path=1),))
+    hint2 = Hint(patches=(Patch(left=0, right=2, path=0, operation=2),))
     bundle = HintBundle(vocabulary=[b'bar.txt', b'foo.txt', b'rm'], hints=[hint0, hint1, hint2])
     validate_hint_bundle(bundle, tmp_test_case)
     sort_hints(bundle)

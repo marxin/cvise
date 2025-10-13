@@ -32,13 +32,13 @@ __declspec(noreturn) void __builtin_unreachable()
 struct tok_t {
   char *str;
   enum tok_kind kind;
-  int file_id;
+  int path_id;
   int id;
   int len;
   int start_pos;
 };
 
-int file_id;
+int path_id;
 static struct tok_t *tok_list;
 static int toks;
 static int max_toks;
@@ -56,7 +56,7 @@ static int add_tok(char *str, enum tok_kind kind) {
   tok_list[toks].str = strdup(str);
   assert(tok_list[toks].str);
   tok_list[toks].kind = kind;
-  tok_list[toks].file_id = file_id;
+  tok_list[toks].path_id = path_id;
   tok_list[toks].id = -1;
   tok_list[toks].len = yyleng;
   tok_list[toks].start_pos = tok_end_pos - yyleng;
@@ -65,7 +65,7 @@ static int add_tok(char *str, enum tok_kind kind) {
 }
 
 void process_token(enum tok_kind kind) {
-  assert(file_id != INT_MAX);
+  assert(path_id != INT_MAX);
   add_tok(yytext, kind);
   count++;
 }
@@ -325,13 +325,13 @@ static void hints_toks(void) {
     while (i + 1 < toks &&
            (tok_list[i + 1].kind == TOK_WS ||
             tok_list[i + 1].kind == TOK_NEWLINE) &&
-           tok_list[i + 1].file_id == tok_list[i].file_id) {
+           tok_list[i + 1].path_id == tok_list[i].path_id) {
       ++i;
     }
     int cut_end = tok_list[i].start_pos + tok_list[i].len;
     printf("{\"p\":[{\"l\":%d,\"r\":%d", cut_start, cut_end);
-    if (tok_list[i].file_id != -1)
-      printf(",\"f\":%d", tok_list[i].file_id);
+    if (tok_list[i].path_id != -1)
+      printf(",\"p\":%d", tok_list[i].path_id);
     printf("}]}\n");
   }
   exit(OK);
@@ -476,8 +476,8 @@ void define(int tok_index) {
 }
 
 int yywrap(void) {
-  if (file_id == -1) {
-    file_id = INT_MAX;
+  if (path_id == -1) {
+    path_id = INT_MAX;
     return 1;
   }
   char *path = NULL;
@@ -485,20 +485,20 @@ int yywrap(void) {
   ssize_t nread = getdelim(&path, &size, 0, stdin);
   if (nread == -1 || !strlen(path)) {
     free(path);
-    file_id = INT_MAX;
+    path_id = INT_MAX;
     return 1;
   }
   FILE* f = fopen(path, "r");
   if (!f) {
     fprintf(stderr, "Cannot open file: %s\n", path);
     free(path);
-    file_id = INT_MAX;
+    path_id = INT_MAX;
     return 1;
   }
   free(path);
   if (yyin) {
     fclose(yyin);
-    ++file_id;
+    ++path_id;
   }
   yyin = f;
   tok_end_pos = 0;
@@ -552,12 +552,12 @@ int main(int argc, char *argv[]) {
   // printf ("file = '%s'\n", argv[3]);
 
   if (strcmp(argv[3], "--") == 0) {
-    file_id = 0;
+    path_id = 0;
     yyin = NULL;
     if (yywrap())
       exit(STOP);
   } else {
-    file_id = -1;
+    path_id = -1;
     yyin = fopen(argv[3], "r");
     if (!yyin) {
       fprintf(stderr, "Cannot open file: %s\n", argv[3]);

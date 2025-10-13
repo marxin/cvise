@@ -70,14 +70,14 @@ class ClangIncludeGraphPass(HintBasedPass):
             merged_vocab.extend(bundle.vocabulary)
         vocab: list[bytes] = list(_HINT_VOCAB) + sorted(set(merged_vocab))
         text_to_vocab: dict[bytes, int] = {s: i for i, s in enumerate(vocab)}
-        hints = [_remap_file_ids(h, b, text_to_vocab) for b in dependee_hints for h in b.hints]
+        hints = [_remap_path_ids(h, b, text_to_vocab) for b in dependee_hints for h in b.hints]
         return HintBundle(hints=list(set(hints)), vocabulary=vocab)
 
 
-def _remap_file_ids(hint: Hint, bundle: HintBundle, text_to_vocab: dict[bytes, int]) -> Hint:
+def _remap_path_ids(hint: Hint, bundle: HintBundle, text_to_vocab: dict[bytes, int]) -> Hint:
     assert hint.extra is not None
     patches = tuple(
-        Patch(left=p.left, right=p.right, file=None if p.file is None else text_to_vocab[bundle.vocabulary[p.file]])
+        Patch(left=p.left, right=p.right, path=None if p.path is None else text_to_vocab[bundle.vocabulary[p.path]])
         for p in hint.patches
     )
     return Hint(type=0, patches=patches, extra=text_to_vocab[bundle.vocabulary[hint.extra]])
@@ -147,7 +147,7 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
                 # If a file was included from a file inside test case, create a patch pointing to the include directive;
                 # otherwise leave the hint patchless (e.g., a system/resource dir header including a standard library
                 # header that's included into the test case).
-                patches = () if from_node is None else (Patch(left=loc_begin, right=loc_end, file=from_node),)
+                patches = () if from_node is None else (Patch(left=loc_begin, right=loc_end, path=from_node),)
                 hints.add(Hint(type=0, patches=patches, extra=to_node))
 
         return HintBundle(hints=list(hints), vocabulary=vocab)

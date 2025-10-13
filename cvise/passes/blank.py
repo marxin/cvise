@@ -33,18 +33,18 @@ class BlankPass(HintBasedPass):
             if is_dir:
                 rel_path = path.relative_to(test_case)
                 vocab.append(str(rel_path).encode())
-                file_id = len(vocab) - 1
+                path_id = len(vocab) - 1
             else:
-                file_id = None
-            self._generate_hints_for_file(path, file_id, hints)
+                path_id = None
+            self._generate_hints_for_file(path, path_id, hints)
         return HintBundle(hints=hints, vocabulary=vocab)
 
-    def _generate_hints_for_file(self, path: Path, file_id: Optional[int], hints: list[Hint]) -> None:
+    def _generate_hints_for_file(self, path: Path, path_id: Optional[int], hints: list[Hint]) -> None:
         with open(path, 'rb') as in_file:
             file_pos = 0
             for line in in_file:
                 end_pos = file_pos + len(line)
                 for idx, pattern in enumerate(self.PATTERNS.values()):
                     if re.match(pattern, line) is not None:
-                        hints.append(Hint(type=idx, patches=(Patch(left=file_pos, right=end_pos, file=file_id),)))
+                        hints.append(Hint(type=idx, patches=(Patch(left=file_pos, right=end_pos, path=path_id),)))
                 file_pos = end_pos

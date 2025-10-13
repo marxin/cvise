@@ -60,22 +60,22 @@ class MakefilePass(HintBasedPass):
         path_to_vocab: dict[Path, int] = {}
         hints: list[Hint] = []
         for path in makefiles:
-            file_id = _get_vocab_id(path.relative_to(test_case), vocab, path_to_vocab)
-            _add_file_level_hints(file_id, hints)
+            path_id = _get_vocab_id(path.relative_to(test_case), vocab, path_to_vocab)
+            _add_file_level_hints(path_id, hints)
             mk = makefileparser.parse(path)
-            _add_fileref_hints(mk, file_id, test_case, vocab, path_to_vocab, hints)
-            _add_arg_removal_hints(mk, file_id, hints)
-            _add_target_removal_hints(mk, file_id, hints)
+            _add_fileref_hints(mk, path_id, test_case, vocab, path_to_vocab, hints)
+            _add_arg_removal_hints(mk, path_id, hints)
+            _add_target_removal_hints(mk, path_id, hints)
 
         return HintBundle(hints=hints, vocabulary=vocab)
 
 
-def _add_file_level_hints(file_id: int, hints: list[Hint]) -> None:
+def _add_file_level_hints(path_id: int, hints: list[Hint]) -> None:
     hints.append(
         Hint(
             type=_Vocab.MAKEFILE.value[0],
             patches=(),
-            extra=file_id,
+            extra=path_id,
         )
     )
 
@@ -85,13 +85,13 @@ def _add_file_level_hints(file_id: int, hints: list[Hint]) -> None:
         Hint(
             type=_Vocab.FILEREF.value[0],
             patches=(),
-            extra=file_id,
+            extra=path_id,
         )
     )
 
 
 def _add_fileref_hints(
-    mk: Makefile, file_id: int, test_case: Path, vocab: list[bytes], path_to_vocab: dict[Path, int], hints: list[Hint]
+    mk: Makefile, path_id: int, test_case: Path, vocab: list[bytes], path_to_vocab: dict[Path, int], hints: list[Hint]
 ) -> None:
     # Heuristically detect mentions of files in command lines in all recipes.
     for rule in mk.rules:
@@ -101,7 +101,7 @@ def _add_fileref_hints(
                 hints.append(
                     Hint(
                         type=_Vocab.FILEREF.value[0],
-                        patches=_locs_to_patches([recipe_line.program.loc], file_id),
+                        patches=_locs_to_patches([recipe_line.program.loc], path_id),
                         extra=_get_vocab_id(prog_path.relative_to(test_case), vocab, path_to_vocab),
                     )
                 )
@@ -116,14 +116,14 @@ def _add_fileref_hints(
                         hints.append(
                             Hint(
                                 type=_Vocab.FILEREF.value[0],
-                                patches=_locs_to_patches([arg.loc], file_id),
+                                patches=_locs_to_patches([arg.loc], path_id),
                                 extra=_get_vocab_id(arg_path.relative_to(test_case), vocab, path_to_vocab),
                             )
                         )
                         break
 
 
-def _add_arg_removal_hints(mk: Makefile, file_id: int, hints: list[Hint]) -> None:
+def _add_arg_removal_hints(mk: Makefile, path_id: int, hints: list[Hint]) -> None:
     arg_locs: dict[bytes, list[SourceLoc]] = {}
 
     for rule in mk.rules:
@@ -142,12 +142,12 @@ def _add_arg_removal_hints(mk: Makefile, file_id: int, hints: list[Hint]) -> Non
         hints.append(
             Hint(
                 type=_Vocab.REMOVE_ARGUMENTS_ACROSS_ALL_COMMANDS.value[0],
-                patches=_locs_to_patches(locs, file_id),
+                patches=_locs_to_patches(locs, path_id),
             )
         )
 
 
-def _add_target_removal_hints(mk: Makefile, file_id: int, hints: list[Hint]) -> None:
+def _add_target_removal_hints(mk: Makefile, path_id: int, hints: list[Hint]) -> None:
     # First, collect target names and their locations in recipe headers.
     target_mentions: dict[Path, list[SourceLoc]] = {}
     for rule in mk.rules:
@@ -205,7 +205,7 @@ def _add_target_removal_hints(mk: Makefile, file_id: int, hints: list[Hint]) -> 
         hints.append(
             Hint(
                 type=_Vocab.REMOVE_TARGET.value[0],
-                patches=_locs_to_patches(locs, file_id),
+                patches=_locs_to_patches(locs, path_id),
             )
         )
 
@@ -237,5 +237,5 @@ def _get_vocab_id(path: Path, vocab: list[bytes], path_to_vocab: dict[Path, int]
     return id
 
 
-def _locs_to_patches(locs: Sequence[SourceLoc], mk_file_id: int) -> tuple[Patch, ...]:
-    return tuple(Patch(left=loc.begin, right=loc.end, file=mk_file_id) for loc in locs)
+def _locs_to_patches(locs: Sequence[SourceLoc], mk_path_id: int) -> tuple[Patch, ...]:
+    return tuple(Patch(left=loc.begin, right=loc.end, path=mk_path_id) for loc in locs)

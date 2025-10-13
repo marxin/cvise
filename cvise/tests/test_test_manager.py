@@ -144,11 +144,11 @@ class LetterRemovingHintPass(HintBasedPass):
         hints = []
         paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
         vocab = [str(p.relative_to(test_case)).encode() for p in paths]
-        for file_id, path in enumerate(paths):
+        for path_id, path in enumerate(paths):
             data = path.read_text()
             for i, c in enumerate(data):
                 if c in self._letters_to_remove:
-                    hints.append(Hint(patches=(Patch(left=i, right=i + 1, file=file_id),)))
+                    hints.append(Hint(patches=(Patch(left=i, right=i + 1, path=path_id),)))
         return HintBundle(hints=hints, vocabulary=vocab)
 
 

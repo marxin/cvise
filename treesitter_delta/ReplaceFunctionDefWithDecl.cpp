@@ -53,7 +53,7 @@ static bool overlaps(const Instance &A, const Instance &B) {
   return std::max(A.StartByte, B.StartByte) < std::min(A.EndByte, B.EndByte);
 }
 
-static void printAsHint(const Instance &Inst, std::optional<int> FileId) {
+static void printAsHint(const Instance &Inst, std::optional<int> PathId) {
   // The "v" numbers here must match the order in getVocabulary().
   std::cout
       << "{\"t\":"
@@ -61,8 +61,8 @@ static void printAsHint(const Instance &Inst, std::optional<int> FileId) {
       << ",\"p\":[{\"l\":" << Inst.StartByte << ",\"r\":" << Inst.EndByte;
   if (Inst.WriteSemicolon)
     std::cout << ",\"v\":0"; // ";"
-  if (FileId.has_value())
-    std::cout << ",\"f\":" << *FileId;
+  if (PathId.has_value())
+    std::cout << ",\"p\":" << *PathId;
   std::cout << "}]}\n";
 }
 
@@ -117,7 +117,7 @@ std::vector<std::string> FuncDefWithDeclReplacer::getVocabulary() const {
 
 void FuncDefWithDeclReplacer::processFile(const std::string &FileContents,
                                           TSTree &Tree,
-                                          std::optional<int> FileId) {
+                                          std::optional<int> PathId) {
   std::unique_ptr<TSQueryCursor, decltype(&ts_query_cursor_delete)> Cursor(
       ts_query_cursor_new(), ts_query_cursor_delete);
   ts_query_cursor_exec(Cursor.get(), Query.get(), ts_tree_root_node(&Tree));
@@ -165,5 +165,5 @@ void FuncDefWithDeclReplacer::processFile(const std::string &FileContents,
   }
 
   for (const auto &Inst : AllInst)
-    printAsHint(Inst, FileId);
+    printAsHint(Inst, PathId);
 }

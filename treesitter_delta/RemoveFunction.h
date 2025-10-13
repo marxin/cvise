@@ -19,7 +19,7 @@
 class FunctionRemover : public Transformation {
 public:
   struct Instance {
-    std::optional<int> FileId;
+    std::optional<int> PathId;
     uint32_t StartByte = 0;
     uint32_t EndByte = 0;
 
@@ -31,7 +31,7 @@ public:
   FunctionRemover();
   ~FunctionRemover() override;
   void processFile(const std::string &FileContents, TSTree &Tree,
-                   std::optional<int> FileId) override;
+                   std::optional<int> PathId) override;
   void finalize() override;
 
 private:
