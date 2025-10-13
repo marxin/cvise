@@ -46,7 +46,7 @@ class RmUnusedFilesPass(HintBasedPass):
                 assert hint.extra is not None
                 referenced_paths.add(test_case / bundle.vocabulary[hint.extra].decode())
 
-        all_paths = {p for p in test_case.rglob('*')}
+        all_paths = set(test_case.rglob('*'))
         unmentioned_paths = sorted(all_paths - referenced_paths)
 
         vocab: list[bytes] = [_RM, _RM_UNUSED_FILE, _RM_UNUSED_EMPTY_DIR]  # the order must match indices below
