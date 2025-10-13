@@ -391,7 +391,7 @@ def test_remove_target_precompiled_module(tmp_path: Path, test_case_path: Path):
     (test_case_path / 'Makefile').write_text(
         """
 a.out: mod.pcm
-\tclang -fmodules -fmodule-path=mod.pcm main.cc
+\tclang -fmodules -fmodule-file=mod.pcm main.cc
 mod.pcm:
 \tclang -fmodules -Xclang -emit-module -fmodule-name=mod mod.cppmap -o mod.pcm
         """,
@@ -524,7 +524,7 @@ def test_fileref_parameterized_arg(tmp_path: Path, test_case_path: Path):
     (test_case_path / 'Makefile').write_text(
         """
 a.out:
-\tclang -fmodules -fmodule-map-path=foo.cppmap -fsanitize-ignorelist=dir/list.txt bar.cppmap
+\tclang -fmodules -fmodule-map-file=foo.cppmap -fsanitize-ignorelist=dir/list.txt bar.cppmap
         """,
     )
     (test_case_path / 'foo.cppmap').touch()
