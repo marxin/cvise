@@ -15,7 +15,9 @@ and letting the code raise the exception to trigger the shutdown.
 """
 
 from collections.abc import Iterator
+import concurrent.futures
 from concurrent.futures import Future
+import contextlib
 from contextlib import contextmanager
 import enum
 import os
@@ -93,7 +95,8 @@ def _on_signal(signum: int, frame) -> None:
         _sigint_observed = True
 
     exception = _create_exception(signum)
-    if not _future.done():
+    # Set the exception on the future, unless it's already done. We don't use done() because it'd be potentially racy.
+    with contextlib.suppress(concurrent.futures.InvalidStateError):
         _future.set_exception(exception)
 
     if _is_on_demand_mode():
