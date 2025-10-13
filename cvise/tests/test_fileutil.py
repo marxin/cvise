@@ -19,7 +19,6 @@ from cvise.utils.fileutil import (
     get_file_size,
     get_line_count,
     hash_test_case,
-    mkdir_up_to,
     replace_test_case_atomically,
     sanitize_for_file_name,
 )
@@ -35,19 +34,6 @@ def input_in_source_dir():
     current = Path(__file__).parent.resolve()
     with tempfile.TemporaryDirectory(dir=current) as tmp_dir:
         yield Path(tmp_dir)
-
-
-def test_mkdir(tmp_path: Path):
-    p = tmp_path / 'some' / 'path'
-    mkdir_up_to(p, tmp_path)
-    assert p.is_dir()
-
-
-def test_mkdir_failure(tmp_path: Path):
-    parent = tmp_path / 'some'
-    p = parent / 'path'
-    with pytest.raises(FileNotFoundError):
-        mkdir_up_to(p, parent)
 
 
 def test_sanitize():
