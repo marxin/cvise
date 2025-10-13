@@ -221,7 +221,7 @@ def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: 
 
     # Enumerate all files in the source location and apply corresponding patches, if any, to each.
     is_dir = source_path.is_dir()
-    subtree = sorted(source_path.rglob('*')) if is_dir else [source_path]
+    subtree = list(source_path.rglob('*')) if is_dir else [source_path]
     stats = HintApplicationStats(size_delta_per_pass={})
     for path in subtree:
         if path.is_dir() or path.is_symlink():
