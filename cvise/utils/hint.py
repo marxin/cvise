@@ -227,12 +227,12 @@ def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: 
         if path.is_dir() or path.is_symlink():
             continue
 
-        file_rel = path.relative_to(source_path)
-        file_dest = destination_path / file_rel
+        path_rel = path.relative_to(source_path)
+        file_dest = destination_path / path_rel
         if is_dir:
             mkdir_up_to(file_dest.parent, destination_path.parent)
 
-        patches_to_apply = path_to_patches.get(file_rel, [])
+        patches_to_apply = path_to_patches.get(path_rel, [])
         _apply_hint_patches_to_file(
             patches_to_apply, bundles, source_file=path, destination_file=file_dest, stats=stats
         )
@@ -365,15 +365,15 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: list[HintBund
     path_to_queries: dict[Path, list[int]] = {}
     for hint in source_bundle.hints:
         for patch in hint.patches:
-            file_rel = Path(source_bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
-            path_to_queries.setdefault(file_rel, []).extend((patch.left, patch.right))
+            path_rel = Path(source_bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
+            path_to_queries.setdefault(path_rel, []).extend((patch.left, patch.right))
     path_to_subtrahends: dict[Path, list[_PatchWithBundleRef]] = {}
     for bundle_id, bundle in enumerate(bundles_to_subtract):
         for hint in bundle.hints:
             for patch in hint.patches:
                 p = _PatchWithBundleRef(patch, bundle_id)
-                file_rel = Path(bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
-                path_to_subtrahends.setdefault(file_rel, []).append(p)
+                path_rel = Path(bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
+                path_to_subtrahends.setdefault(path_rel, []).append(p)
 
     # Calculate how positions in each file shift after applying the subtrahend hints.
     path_to_positions_mapping: dict[Path, dict[int, int]] = {}
@@ -387,8 +387,8 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: list[HintBund
     for hint in source_bundle.hints:
         new_patches = []
         for patch in hint.patches:
-            file_rel = Path(source_bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
-            mapping = path_to_positions_mapping[file_rel]
+            path_rel = Path(source_bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
+            mapping = path_to_positions_mapping[path_rel]
             new_patch = msgspec.structs.replace(patch, left=mapping[patch.left], right=mapping[patch.right])
             if (
                 new_patch.left < new_patch.right
