@@ -233,7 +233,7 @@ module mod {
 mod.pcm:
 \tclang -fmodules -Xclang -emit-module -fmodule-name=mod mod.cppmap -o mod.pcm
 a.out: mod.pcm
-\tclang -fmodules -fmodule-path=mod.pcm main.cc
+\tclang -fmodules -fmodule-file=mod.pcm main.cc
         """
     )
     p, state = init_pass(tmp_path, input_dir)
