@@ -394,7 +394,11 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: list[HintBund
     for hint in source_bundle.hints:
         for patch in hint.patches:
             path_rel = Path(source_bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
-            path_to_queries.setdefault(path_rel, []).extend((patch.left, patch.right))
+            queries = path_to_queries.setdefault(path_rel, [])
+            if patch.left is not None:
+                queries.append(patch.left)
+            if patch.right is not None:
+                queries.append(patch.right)
     path_to_subtrahends: dict[Path, list[_PatchWithBundleRef]] = {}
     for bundle_id, bundle in enumerate(bundles_to_subtract):
         for hint in bundle.hints:
@@ -417,9 +421,15 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: list[HintBund
         for patch in hint.patches:
             path_rel = Path(source_bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
             mapping = path_to_positions_mapping[path_rel]
-            new_patch = msgspec.structs.replace(patch, left=mapping[patch.left], right=mapping[patch.right])
+            new_patch = msgspec.structs.replace(
+                patch,
+                left=None if patch.left is None else mapping[patch.left],
+                right=None if patch.right is None else mapping[patch.right],
+            )
             if (
-                new_patch.left < new_patch.right
+                new_patch.left is None
+                or new_patch.right is None
+                or new_patch.left < new_patch.right
                 or new_patch.left == new_patch.right
                 and new_patch.operation is not None
             ):
@@ -442,21 +452,22 @@ def _calc_positions_mapping_for_patches(
     position_delta = 0
     for query in sorted(set(queries)):
         # Apply patches up until the current position.
-        while ptr < len(merged_patches) and merged_patches[ptr].patch.right <= query:
-            patch_ref = merged_patches[ptr]
-            to_delete = patch_ref.patch.right - patch_ref.patch.left
-            to_insert = (
-                0
-                if patch_ref.patch.value is None
-                else len(bundles[patch_ref.bundle_id].vocabulary[patch_ref.patch.value])
-            )
-            position_delta += to_insert - to_delete
+        while ptr < len(merged_patches) and (merged_patches[ptr].patch.right or 0) <= query:
+            ref = merged_patches[ptr]
+            patch = ref.patch
+            if patch.left is not None and patch.right is not None:
+                to_delete = patch.right - patch.left
+                to_insert = 0 if patch.value is None else len(bundles[ref.bundle_id].vocabulary[patch.value])
+                position_delta += to_insert - to_delete
             ptr += 1
         new_pos = query + position_delta
-        if ptr < len(merged_patches) and merged_patches[ptr].patch.left < query:
-            # Adjust if we're inside another patch.
-            to_delete = query - merged_patches[ptr].patch.left
+
+        # Adjust if we're inside another patch.
+        next_left = merged_patches[ptr].patch.left if ptr < len(merged_patches) else None
+        if next_left is not None and next_left < query:
+            to_delete = query - next_left
             new_pos -= to_delete
+
         positions_mapping[query] = new_pos
     return positions_mapping
 
