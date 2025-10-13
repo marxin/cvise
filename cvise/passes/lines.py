@@ -24,12 +24,12 @@ class LinesPass(HintBasedPass):
         paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
         vocab = [str(p.relative_to(test_case)).encode() for p in paths] if is_dir else []
         hints = []
-        for i, path in enumerate(paths):
-            path_id = i if is_dir else None
-            if self.arg == 'None':
+        if self.arg == 'None':
+            for i, path in enumerate(paths):
+                path_id = i if is_dir else None
                 self._generate_hints_for_text_lines(path, path_id, hints)
-            else:
-                self._generate_topformflat_hints(test_case, is_dir, paths, process_event_notifier, hints)
+        else:
+            self._generate_topformflat_hints(test_case, is_dir, paths, process_event_notifier, hints)
 
         return HintBundle(hints=hints, vocabulary=vocab)
 
