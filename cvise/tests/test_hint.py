@@ -344,11 +344,11 @@ def test_apply_hints_statistics(tmp_test_case: Path, tmp_transformed_file: Path)
     validate_hint_bundle(bundle1, tmp_test_case)
     validate_hint_bundle(bundle2, tmp_test_case)
 
-    stats = apply_hints([bundle1, bundle2], tmp_test_case, tmp_transformed_file)
+    report = apply_hints([bundle1, bundle2], tmp_test_case, tmp_transformed_file)
 
     assert tmp_transformed_file.read_text() == ' az'
-    assert stats.size_delta_per_pass == {'pass1': -1, 'pass2': -7}
-    assert stats.get_passes_ordered_by_delta() == ['pass2', 'pass1']
+    assert report.stats_delta_per_pass == {'pass1': -1, 'pass2': -7}
+    assert report.get_passes_ordered_by_delta() == ['pass2', 'pass1']
 
 
 def test_store_load_hints(tmp_hints_file):

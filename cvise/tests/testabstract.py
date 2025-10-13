@@ -19,7 +19,7 @@ def iterate_pass(current_pass: AbstractPass, path: Path, **kwargs) -> None:
     state = current_pass.new(path, **kwargs)
     while state is not None:
         (result, state) = current_pass.transform(
-            path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=path
+            path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=path, written_paths=set()
         )
         if result == PassResult.OK:
             state = current_pass.advance_on_success(
@@ -42,7 +42,11 @@ def collect_all_transforms(pass_: AbstractPass, state, input_path: Path) -> set[
         tmp_file.close()
         while state is not None:
             result, _new_state = pass_.transform(
-                tmp_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
+                tmp_path,
+                state,
+                process_event_notifier=ProcessEventNotifier(None),
+                original_test_case=input_path,
+                written_paths=set(),
             )
             if result == PassResult.OK:
                 all_outputs.add(tmp_path.read_bytes())
@@ -58,7 +62,11 @@ def collect_all_transforms_dir(pass_: AbstractPass, state, input_path: Path) -> 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
             result, _new_state = pass_.transform(
-                tmp_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
+                tmp_path,
+                state,
+                process_event_notifier=ProcessEventNotifier(None),
+                original_test_case=input_path,
+                written_paths=set(),
             )
             if result == PassResult.OK:
                 contents = tuple(

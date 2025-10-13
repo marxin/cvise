@@ -230,6 +230,12 @@ class AbstractPass:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'advance_on_success'!")
 
     def transform(
-        self, test_case: Path, state, process_event_notifier: ProcessEventNotifier, original_test_case: Path, **kwargs
+        self,
+        test_case: Path,
+        state,
+        process_event_notifier: ProcessEventNotifier,
+        original_test_case: Path,
+        written_paths: set[Path],
+        **kwargs,
     ) -> tuple[PassResult, Any]:
         raise NotImplementedError(f"Class {type(self).__name__} has not implemented 'transform'!")

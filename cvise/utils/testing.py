@@ -174,11 +174,13 @@ class TestEnvironment:
                 self.copy_test_cases()
 
             # transform by state
+            written_paths: set[Path] = set()
             (result, self.state) = self.transform(
                 self.test_case_path,
                 self.state,
                 process_event_notifier=ProcessEventNotifier(self.pid_queue),
                 original_test_case=self.test_case.resolve(),
+                written_paths=written_paths,
             )
             self.result = result
             if self.result != PassResult.OK:
@@ -186,6 +188,11 @@ class TestEnvironment:
 
             # run test script
             self.exitcode = self.run_test(False)
+
+            # cleanup
+            if self.exitcode == 0:
+                fileutil.remove_extraneous_files(self.test_case_path, written_paths)
+
             return self
         except UnicodeDecodeError:
             # most likely the pass is incompatible with non-UTF files - terminate it
@@ -1027,7 +1034,7 @@ class TestManager:
             for (
                 pass_user_visible_name,
                 size_delta,
-            ) in self.success_candidate.pass_state.statistics.size_delta_per_pass.items():
+            ) in self.success_candidate.pass_state.size_delta_per_pass.items():
                 self.pass_statistic.add_committed_success(pass_user_visible_name, size_delta)
         else:
             self.pass_statistic.add_committed_success(
@@ -1072,7 +1079,7 @@ class TestManager:
             notes.append(f'{files} file{"s" if files > 1 else ""} in {dirs} dir{"s" if dirs > 1 else ""}')
         if len(self.pass_contexts) > 1:
             if isinstance(self.success_candidate.pass_state, FoldingStateOut):
-                pass_name = ' + '.join(self.success_candidate.pass_state.statistics.get_passes_ordered_by_delta())
+                pass_name = ' + '.join(self.success_candidate.pass_state.passes_ordered_by_delta)
             else:
                 pass_name = self.success_candidate.pass_.user_visible_name()
             notes.append(f'via {pass_name}')

@@ -1,6 +1,6 @@
 from pathlib import Path
 import tempfile
-from typing import Union
+from typing import Any, Union
 import unittest
 
 from cvise.passes.abstract import PassResult
@@ -26,18 +26,18 @@ class CommentsTestCase(unittest.TestCase):
             self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
         )
 
+    def _transform(self, state: Any, dest_path: Path) -> tuple[PassResult, Any]:
+        return self.pass_.transform(
+            dest_path, state, process_event_notifier=None, original_test_case=self.input_path, written_paths=set()
+        )
+
     def test_block(self):
         self.input_path.write_text('This /* contains *** /* two */ /*comments*/!\n')
 
         state = self._pass_new()
         assert state is not None
         validate_stored_hints(state, self.pass_, self.input_path)
-        (_, state) = self.pass_.transform(
-            self.input_path,
-            state,
-            process_event_notifier=ProcessEventNotifier(None),
-            original_test_case=self.input_path,
-        )
+        (_, state) = self._transform(state, self.input_path)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This  !\n')
@@ -48,12 +48,7 @@ class CommentsTestCase(unittest.TestCase):
         state = self._pass_new()
         assert state is not None
         validate_stored_hints(state, self.pass_, self.input_path)
-        (_, state) = self.pass_.transform(
-            self.input_path,
-            state,
-            process_event_notifier=ProcessEventNotifier(None),
-            original_test_case=self.input_path,
-        )
+        (_, state) = self._transform(state, self.input_path)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This \n \n!\n')
@@ -64,12 +59,7 @@ class CommentsTestCase(unittest.TestCase):
         state = self._pass_new()
         assert state is not None
         validate_stored_hints(state, self.pass_, self.input_path)
-        (result, state) = self.pass_.transform(
-            self.input_path,
-            state,
-            process_event_notifier=ProcessEventNotifier(None),
-            original_test_case=self.input_path,
-        )
+        (result, state) = self._transform(state, self.input_path)
 
         while result == PassResult.OK and state is not None:
             state = self.pass_.advance_on_success(
@@ -81,12 +71,7 @@ class CommentsTestCase(unittest.TestCase):
             )
             if state is None:
                 break
-            (result, state) = self.pass_.transform(
-                self.input_path,
-                state,
-                process_event_notifier=ProcessEventNotifier(None),
-                original_test_case=self.input_path,
-            )
+            (result, state) = self._transform(state, self.input_path)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, ' \n \n!\n')
@@ -97,12 +82,7 @@ class CommentsTestCase(unittest.TestCase):
         state = self._pass_new()
         assert state is not None
         validate_stored_hints(state, self.pass_, self.input_path)
-        (result, state) = self.pass_.transform(
-            self.input_path,
-            state,
-            process_event_notifier=ProcessEventNotifier(None),
-            original_test_case=self.input_path,
-        )
+        (result, state) = self._transform(state, self.input_path)
 
         while result == PassResult.OK and state is not None:
             self.input_path.write_text('/*This*/ ///contains //two\n //comments\n!\n')
@@ -110,12 +90,7 @@ class CommentsTestCase(unittest.TestCase):
             state = self.pass_.advance(self.input_path, state)
             if state is None:
                 break
-            (result, state) = self.pass_.transform(
-                self.input_path,
-                state,
-                process_event_notifier=ProcessEventNotifier(None),
-                original_test_case=self.input_path,
-            )
+            (result, state) = self._transform(state, self.input_path)
 
     def test_non_ascii(self):
         self.input_path.write_bytes(b'int x;\n// Streichholzsch\xc3\xa4chtelchen\nchar t[] = "nonutf\xff";\n// \xff\n')
@@ -123,12 +98,7 @@ class CommentsTestCase(unittest.TestCase):
         state = self._pass_new()
         assert state is not None
         validate_stored_hints(state, self.pass_, self.input_path)
-        (_, state) = self.pass_.transform(
-            self.input_path,
-            state,
-            process_event_notifier=ProcessEventNotifier(None),
-            original_test_case=self.input_path,
-        )
+        (_, state) = self._transform(state, self.input_path)
 
         variant = self.input_path.read_bytes()
         self.assertEqual(variant, b'int x;\n\nchar t[] = "nonutf\xff";\n\n')
@@ -142,9 +112,7 @@ class CommentsTestCase(unittest.TestCase):
         assert state is not None
         output_path = self.tmp_dir / 'transformed_test_case'
         validate_stored_hints(state, self.pass_, self.input_path)
-        (_, state) = self.pass_.transform(
-            output_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=self.input_path
-        )
+        (_, state) = self._transform(state, output_path)
 
         self.assertEqual((output_path / 'foo.h').read_text(), '\nint foo;\n')
         self.assertEqual((output_path / 'bar.cc').read_text(), 'int\n\nbar;\n')

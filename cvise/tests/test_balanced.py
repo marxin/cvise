@@ -1,6 +1,6 @@
 from pathlib import Path
 import tempfile
-from typing import Union
+from typing import Any, Union
 import unittest
 
 from cvise.passes.abstract import PassResult
@@ -26,6 +26,11 @@ class BalancedParensTestCase(unittest.TestCase):
             self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
         )
 
+    def _transform(self, state: Any) -> tuple[PassResult, Any]:
+        return self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path, written_paths=set()
+        )
+
     def test_parens_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
 
@@ -37,9 +42,7 @@ class BalancedParensTestCase(unittest.TestCase):
 
         state = self._pass_new()
         assert state is not None
-        (_, state) = self.pass_.transform(
-            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
-        )
+        (_, state) = self._transform(state)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This is a  test!\n')
@@ -49,9 +52,7 @@ class BalancedParensTestCase(unittest.TestCase):
 
         state = self._pass_new()
         assert state is not None
-        (_, state) = self.pass_.transform(
-            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
-        )
+        (_, state) = self._transform(state)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This !\n')
@@ -64,9 +65,7 @@ class BalancedParensTestCase(unittest.TestCase):
         state = self.pass_.advance(self.input_path, state)
         state = self.pass_.advance(self.input_path, state)
         assert state is not None
-        (_, state) = self.pass_.transform(
-            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
-        )
+        (_, state) = self._transform(state)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This (is a  test)!\n')
@@ -98,6 +97,11 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
             self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
         )
 
+    def _transform(self, state: Any) -> tuple[PassResult, Any]:
+        return self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path, written_paths=set()
+        )
+
     def test_parens_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
 
@@ -109,9 +113,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
 
         state = self._pass_new()
         assert state is not None
-        (_, state) = self.pass_.transform(
-            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
-        )
+        (_, state) = self._transform(state)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This is a simple test!\n')
@@ -134,9 +136,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
         state = self.pass_.advance(self.input_path, state)
         state = self.pass_.advance(self.input_path, state)
         assert state is not None
-        (_, state) = self.pass_.transform(
-            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
-        )
+        (_, state) = self._transform(state)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This (is a simple test)!\n')
@@ -156,12 +156,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
 
         state = self._pass_new()
         assert state is not None
-        (result, state) = self.pass_.transform(
-            self.input_path,
-            state,
-            process_event_notifier=ProcessEventNotifier(None),
-            original_test_case=self.input_path,
-        )
+        (result, state) = self._transform(state)
 
         iteration = 0
 
@@ -175,12 +170,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
             )
             if state is None:
                 break
-            (result, state) = self.pass_.transform(
-                self.input_path,
-                state,
-                process_event_notifier=ProcessEventNotifier(None),
-                original_test_case=self.input_path,
-            )
+            (result, state) = self._transform(state)
             iteration += 1
 
         variant = self.input_path.read_text()
@@ -215,6 +205,11 @@ class BalancedParensInsideTestCase(unittest.TestCase):
             self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
         )
 
+    def _transform(self, state: Any) -> tuple[PassResult, Any]:
+        return self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path, written_paths=set()
+        )
+
     def test_parens_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
 
@@ -226,9 +221,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
 
         state = self._pass_new()
         assert state is not None
-        (_, state) = self.pass_.transform(
-            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
-        )
+        (_, state) = self._transform(state)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This is a () test!\n')
@@ -238,9 +231,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
 
         state = self._pass_new()
         assert state is not None
-        (_, state) = self.pass_.transform(
-            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
-        )
+        (_, state) = self._transform(state)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This ()!\n')
@@ -253,9 +244,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
         state = self.pass_.advance(self.input_path, state)
         state = self.pass_.advance(self.input_path, state)
         assert state is not None
-        (_, state) = self.pass_.transform(
-            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
-        )
+        (_, state) = self._transform(state)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'This (is a () test)!\n')
@@ -312,6 +301,11 @@ class BalancedParensToZeroTestCase(unittest.TestCase):
             self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
         )
 
+    def _transform(self, state: Any) -> tuple[PassResult, Any]:
+        return self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path, written_paths=set()
+        )
+
     def test_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
 
@@ -323,9 +317,7 @@ class BalancedParensToZeroTestCase(unittest.TestCase):
 
         state = self._pass_new()
         assert state is not None
-        (_, state) = self.pass_.transform(
-            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
-        )
+        (_, state) = self._transform(state)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'int x = 0 / 2;\n')
@@ -347,6 +339,11 @@ class BalancedCurly3TestCase(unittest.TestCase):
             self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
         )
 
+    def _transform(self, state: Any) -> tuple[PassResult, Any]:
+        return self.pass_.transform(
+            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path, written_paths=set()
+        )
+
     def test_no_match(self):
         self.input_path.write_text('This is a simple test!\n')
 
@@ -358,9 +355,7 @@ class BalancedCurly3TestCase(unittest.TestCase):
 
         state = self._pass_new()
         assert state is not None
-        (_, state) = self.pass_.transform(
-            self.input_path, state, process_event_notifier=None, original_test_case=self.input_path
-        )
+        (_, state) = self._transform(state)
 
         variant = self.input_path.read_text()
         self.assertEqual(variant, 'A a ;\n')
