@@ -25,21 +25,21 @@ class LinesPass(HintBasedPass):
         vocab = [str(p.relative_to(test_case)).encode() for p in paths] if is_dir else []
         hints = []
         for i, path in enumerate(paths):
-            file_id = i if is_dir else None
+            path_id = i if is_dir else None
             if self.arg == 'None':
-                self._generate_hints_for_text_lines(path, file_id, hints)
+                self._generate_hints_for_text_lines(path, path_id, hints)
             else:
                 self._generate_topformflat_hints(test_case, is_dir, paths, process_event_notifier, hints)
 
         return HintBundle(hints=hints, vocabulary=vocab)
 
-    def _generate_hints_for_text_lines(self, input_path: Path, file_id: Optional[int], hints: list[Hint]) -> None:
+    def _generate_hints_for_text_lines(self, input_path: Path, path_id: Optional[int], hints: list[Hint]) -> None:
         """Generate a hint per each line in the input as written."""
         with open(input_path, 'rb') as in_file:
             file_pos = 0
             for line in in_file:
                 end_pos = file_pos + len(line)
-                hints.append(Hint(patches=(Patch(left=file_pos, right=end_pos, file=file_id),)))
+                hints.append(Hint(patches=(Patch(left=file_pos, right=end_pos, path=path_id),)))
                 file_pos = end_pos
 
     def _generate_topformflat_hints(

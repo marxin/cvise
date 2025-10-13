@@ -47,13 +47,13 @@ class BalancedPass(HintBasedPass):
             if is_dir:
                 rel_path = path.relative_to(test_case)
                 vocabulary.append(str(rel_path).encode())
-                file_id = len(vocabulary) - 1
+                path_id = len(vocabulary) - 1
             else:
-                file_id = None
-            self._generate_hints_for_file(path, config, file_id, hints)
+                path_id = None
+            self._generate_hints_for_file(path, config, path_id, hints)
         return HintBundle(hints=hints, vocabulary=vocabulary)
 
-    def _generate_hints_for_file(self, path: Path, config: Config, file_id: Optional[int], hints: list[Hint]) -> None:
+    def _generate_hints_for_file(self, path: Path, config: Config, path_id: Optional[int], hints: list[Hint]) -> None:
         open_ch = ord(config.search.value[0])
         close_ch = ord(config.search.value[1])
 
@@ -78,19 +78,19 @@ class BalancedPass(HintBasedPass):
                 val = None
                 if config.replacement:
                     val = 0  # when config.replacement is used, the first string in the vocabulary points to it
-                p = Patch(left=start_pos, right=file_pos + 1, file=file_id, value=val)
+                p = Patch(left=start_pos, right=file_pos + 1, path=path_id, value=val)
                 return Hint(patches=(p,))
             if config.to_delete == Deletion.ONLY:
                 return Hint(
                     patches=(
-                        Patch(left=start_pos, right=start_pos + 1, file=file_id),
-                        Patch(left=file_pos, right=file_pos + 1, file=file_id),
+                        Patch(left=start_pos, right=start_pos + 1, path=path_id),
+                        Patch(left=file_pos, right=file_pos + 1, path=path_id),
                     )
                 )
             if config.to_delete == Deletion.INSIDE:
                 if file_pos - start_pos <= 1:
                     return None  # don't create an empty hint
-                return Hint(patches=(Patch(left=start_pos + 1, right=file_pos, file=file_id),))
+                return Hint(patches=(Patch(left=start_pos + 1, right=file_pos, path=path_id),))
             raise ValueError(f'Unexpected config {config}')
 
         # Scan the text left-to-right and maintain active (not yet matched) open brackets in a stack; None denotes a

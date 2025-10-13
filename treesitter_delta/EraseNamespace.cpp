@@ -45,7 +45,7 @@ std::vector<std::string> NamespaceEraser::getVocabulary() const {
 }
 
 void NamespaceEraser::processFile(const std::string &FileContents, TSTree &Tree,
-                                  std::optional<int> FileId) {
+                                  std::optional<int> PathId) {
   std::unique_ptr<TSQueryCursor, decltype(&ts_query_cursor_delete)> Cursor(
       ts_query_cursor_new(), ts_query_cursor_delete);
   ts_query_cursor_exec(Cursor.get(), Query.get(), ts_tree_root_node(&Tree));
@@ -59,8 +59,8 @@ void NamespaceEraser::processFile(const std::string &FileContents, TSTree &Tree,
     // The number "0" refers to the string returned from getVocabulary().
     std::cout << "{\"p\":[{\"l\":" << StartByte << ",\"r\":" << EndByte
               << ",\"v\":0";
-    if (FileId.has_value())
-      std::cout << ",\"f\":" << *FileId;
+    if (PathId.has_value())
+      std::cout << ",\"p\":" << *PathId;
     std::cout << "}]}\n";
   }
 }

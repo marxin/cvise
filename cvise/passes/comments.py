@@ -32,13 +32,13 @@ class CommentsPass(HintBasedPass):
             if is_dir:
                 rel_path = path.relative_to(test_case)
                 vocab.append(str(rel_path).encode())
-                file_id = len(vocab) - 1
+                path_id = len(vocab) - 1
             else:
-                file_id = None
-            self._generate_hints_for_file(path, file_id, hints)
+                path_id = None
+            self._generate_hints_for_file(path, path_id, hints)
         return HintBundle(hints=hints, vocabulary=vocab)
 
-    def _generate_hints_for_file(self, file_path: Path, file_id: Union[int, None], hints: list[Hint]) -> None:
+    def _generate_hints_for_file(self, file_path: Path, path_id: Union[int, None], hints: list[Hint]) -> None:
         prog = file_path.read_bytes()
 
         # Remove all multiline comments - the pattern is:
@@ -46,10 +46,10 @@ class CommentsPass(HintBasedPass):
         # * then - any number of "*" that aren't followed by "/", or of any other characters;
         # * finally - "*/".
         for m in re.finditer(rb'/\*(?:\*(?!/)|[^*])*\*/', prog, flags=re.DOTALL):
-            patch = Patch(left=m.start(), right=m.end(), file=file_id)
+            patch = Patch(left=m.start(), right=m.end(), path=path_id)
             hints.append(Hint(type=self.MULTI_LINE_VOCAB_ID, patches=(patch,)))
 
         # Remove all single-line comments.
         for m in re.finditer(rb'//.*$', prog, flags=re.MULTILINE):
-            patch = Patch(left=m.start(), right=m.end(), file=file_id)
+            patch = Patch(left=m.start(), right=m.end(), path=path_id)
             hints.append(Hint(type=self.SINGLE_LINE_VOCAB_ID, patches=(patch,)))

@@ -46,7 +46,7 @@ class RmUnusedFilesPass(HintBasedPass):
         vocab = [_RM] + [str(p.relative_to(test_case)).encode() for p in unmentioned_files]
         hints = []
         for i, path in enumerate(unmentioned_files):
-            file_id = i + 1  # matches the position in vocab
+            path_id = i + 1  # matches the position in vocab
             size = path.stat().st_size
             hints.append(
                 Hint(
@@ -54,7 +54,7 @@ class RmUnusedFilesPass(HintBasedPass):
                         Patch(
                             left=0,
                             right=size,
-                            file=file_id,
+                            path=path_id,
                             operation=0,  # "rm"
                         ),
                     )

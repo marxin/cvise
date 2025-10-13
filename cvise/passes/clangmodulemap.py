@@ -48,13 +48,13 @@ class ClangModuleMapPass(HintBasedPass):
             file = _parse_file(path)
 
             rel_path = path.relative_to(test_case)
-            file_id = _get_vocab_id(rel_path, vocab, path_to_vocab)
+            path_id = _get_vocab_id(rel_path, vocab, path_to_vocab)
 
             for mod in file.modules:
                 _create_hints_for_module(
-                    mod, test_case, file_id, toplevel=True, hints=hints, vocab=vocab, path_to_vocab=path_to_vocab
+                    mod, test_case, path_id, toplevel=True, hints=hints, vocab=vocab, path_to_vocab=path_to_vocab
                 )
-            _create_hints_for_unclassified_lines(file.unclassified_lines, file_id, hints)
+            _create_hints_for_unclassified_lines(file.unclassified_lines, path_id, hints)
 
         return HintBundle(hints=hints, vocabulary=vocab)
 
@@ -106,7 +106,7 @@ def _get_vocab_id(path: Path, vocab: list[bytes], path_to_vocab: dict[Path, int]
 def _create_hints_for_module(
     mod: _ModuleDecl,
     test_case: Path,
-    file_id: int,
+    path_id: int,
     toplevel: bool,
     hints: list[Hint],
     vocab: list[bytes],
@@ -119,7 +119,7 @@ def _create_hints_for_module(
                 type=_Vocab.DELETE_EMPTY_SUBMODULE.value[0],
                 patches=(
                     Patch(
-                        file=file_id,
+                        path=path_id,
                         left=mod.loc.begin,
                         right=mod.loc.end,
                     ),
@@ -133,12 +133,12 @@ def _create_hints_for_module(
                 type=_Vocab.INLINE_SUBMODULE_CONTENTS.value[0],
                 patches=(
                     Patch(
-                        file=file_id,
+                        path=path_id,
                         left=mod.title_loc.begin,
                         right=mod.title_loc.end,
                     ),
                     Patch(
-                        file=file_id,
+                        path=path_id,
                         left=mod.close_brace_loc.begin,
                         right=mod.close_brace_loc.end,
                     ),
@@ -148,18 +148,18 @@ def _create_hints_for_module(
 
     for header in mod.headers:
         if (test_case / header.file_path).exists():
-            header_file_id = _get_vocab_id(Path(header.file_path), vocab, path_to_vocab)
+            header_path_id = _get_vocab_id(Path(header.file_path), vocab, path_to_vocab)
             hints.append(
                 Hint(
                     type=_Vocab.FILEREF.value[0],
                     patches=(
                         Patch(
-                            file=file_id,
+                            path=path_id,
                             left=header.loc.begin,
                             right=header.loc.end,
                         ),
                     ),
-                    extra=header_file_id,
+                    extra=header_path_id,
                 )
             )
         hints.append(
@@ -167,7 +167,7 @@ def _create_hints_for_module(
                 type=_Vocab.MAKE_HEADER_NON_MODULAR.value[0],
                 patches=(
                     Patch(
-                        file=file_id,
+                        path=path_id,
                         left=header.loc.begin,
                         right=header.loc.end,
                     ),
@@ -180,7 +180,7 @@ def _create_hints_for_module(
                 type=_Vocab.DELETE_USE_DECL.value[0],
                 patches=(
                     Patch(
-                        file=file_id,
+                        path=path_id,
                         left=use.loc.begin,
                         right=use.loc.end,
                     ),
@@ -189,18 +189,18 @@ def _create_hints_for_module(
         )
     for submod in mod.submodules:
         _create_hints_for_module(
-            submod, test_case, file_id, toplevel=False, hints=hints, vocab=vocab, path_to_vocab=path_to_vocab
+            submod, test_case, path_id, toplevel=False, hints=hints, vocab=vocab, path_to_vocab=path_to_vocab
         )
 
 
-def _create_hints_for_unclassified_lines(unclassified_lines: list[_SourceLoc], file_id: int, hints: list[Hint]) -> None:
+def _create_hints_for_unclassified_lines(unclassified_lines: list[_SourceLoc], path_id: int, hints: list[Hint]) -> None:
     for loc in unclassified_lines:
         hints.append(
             Hint(
                 type=_Vocab.DELETE_LINE.value[0],
                 patches=(
                     Patch(
-                        file=file_id,
+                        path=path_id,
                         left=loc.begin,
                         right=loc.end,
                     ),

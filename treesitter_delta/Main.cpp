@@ -110,9 +110,9 @@ int main(int argc, char *argv[]) {
       std::cerr << "Failed to parse " << InputPath << "\n";
       continue;
     }
-    auto FileId = MultiFile ? std::make_optional<int>(Vocab.size() + InputIndex)
+    auto PathId = MultiFile ? std::make_optional<int>(Vocab.size() + InputIndex)
                             : std::nullopt;
-    Transform->processFile(Contents, *Tree, FileId);
+    Transform->processFile(Contents, *Tree, PathId);
   }
   Transform->finalize();
 }

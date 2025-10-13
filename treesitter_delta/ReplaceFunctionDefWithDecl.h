@@ -17,7 +17,7 @@ public:
   ~FuncDefWithDeclReplacer() override;
   std::vector<std::string> getVocabulary() const override;
   void processFile(const std::string &FileContents, TSTree &Tree,
-                   std::optional<int> FileId) override;
+                   std::optional<int> PathId) override;
 
 private:
   std::unique_ptr<TSQuery, decltype(&ts_query_delete)> Query;

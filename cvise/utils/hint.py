@@ -33,13 +33,13 @@ class Patch(msgspec.Struct, omit_defaults=True, gc=False, frozen=True):
 
     left: int = msgspec.field(name='l')
     right: int = msgspec.field(name='r')
-    file: Optional[int] = msgspec.field(default=None, name='f')
+    path: Optional[int] = msgspec.field(default=None, name='p')
     operation: Optional[int] = msgspec.field(default=None, name='o')
     value: Optional[int] = msgspec.field(default=None, name='v')
 
     def comparison_key(self) -> tuple:
         return (
-            -1 if self.file is None else self.file,
+            -1 if self.path is None else self.path,
             self.left,
             self.right,
             -1 if self.operation is None else self.operation,
@@ -108,7 +108,7 @@ HINT_PATCH_SCHEMA = {
             ),
             'type': 'integer',
         },
-        'f': {
+        'p': {
             'description': (
                 'Specifies file where the patch is to be applied - the path is the string with the specified index in '
                 'the vocabulary. Must be specified iff the input is a directory.'
@@ -209,19 +209,19 @@ class _PatchWithBundleRef(msgspec.Struct, gc=False):
 
 def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationStats:
     """Creates the destination file/dir by applying the specified hints to the contents of the source file/dir."""
-    # Take patches from all hints and group them by the file which they're applied to.
+    # Take patches from all hints and group them by the file/dir path which they're applied to.
     path_to_patches: dict[Path, list[_PatchWithBundleRef]] = {}
     for bundle_id, bundle in enumerate(bundles):
         for hint in bundle.hints:
             for patch in hint.patches:
                 # Copying sub-structs improves data locality, helping performance in practice.
                 p = _PatchWithBundleRef(copy(patch), bundle_id)
-                file_rel = Path(bundle.vocabulary[patch.file].decode()) if patch.file is not None else Path()
-                path_to_patches.setdefault(file_rel, []).append(p)
+                path_rel = Path(bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
+                path_to_patches.setdefault(path_rel, []).append(p)
 
     # Enumerate all files in the source location and apply corresponding patches, if any, to each.
     is_dir = source_path.is_dir()
-    subtree = list(source_path.rglob('*')) if is_dir else [source_path]
+    subtree = sorted(source_path.rglob('*')) if is_dir else [source_path]
     stats = HintApplicationStats(size_delta_per_pass={})
     for path in subtree:
         if path.is_dir() or path.is_symlink():
@@ -365,14 +365,14 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: list[HintBund
     path_to_queries: dict[Path, list[int]] = {}
     for hint in source_bundle.hints:
         for patch in hint.patches:
-            file_rel = Path(source_bundle.vocabulary[patch.file].decode()) if patch.file is not None else Path()
+            file_rel = Path(source_bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
             path_to_queries.setdefault(file_rel, []).extend((patch.left, patch.right))
     path_to_subtrahends: dict[Path, list[_PatchWithBundleRef]] = {}
     for bundle_id, bundle in enumerate(bundles_to_subtract):
         for hint in bundle.hints:
             for patch in hint.patches:
                 p = _PatchWithBundleRef(patch, bundle_id)
-                file_rel = Path(bundle.vocabulary[patch.file].decode()) if patch.file is not None else Path()
+                file_rel = Path(bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
                 path_to_subtrahends.setdefault(file_rel, []).append(p)
 
     # Calculate how positions in each file shift after applying the subtrahend hints.
@@ -387,7 +387,7 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: list[HintBund
     for hint in source_bundle.hints:
         new_patches = []
         for patch in hint.patches:
-            file_rel = Path(source_bundle.vocabulary[patch.file].decode()) if patch.file is not None else Path()
+            file_rel = Path(source_bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
             mapping = path_to_positions_mapping[file_rel]
             new_patch = msgspec.structs.replace(patch, left=mapping[patch.left], right=mapping[patch.right])
             if (

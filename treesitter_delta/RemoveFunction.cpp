@@ -94,8 +94,8 @@ static void getMatchCaptures(const TSQueryMatch &Match,
 }
 
 bool FunctionRemover::Instance::operator<(const Instance &Other) const {
-  return std::tie(FileId, StartByte, EndByte) <
-         std::tie(Other.FileId, Other.StartByte, Other.EndByte);
+  return std::tie(PathId, StartByte, EndByte) <
+         std::tie(Other.PathId, Other.StartByte, Other.EndByte);
 }
 
 FunctionRemover::FunctionRemover() : Query(nullptr, ts_query_delete) {
@@ -113,7 +113,7 @@ FunctionRemover::FunctionRemover() : Query(nullptr, ts_query_delete) {
 FunctionRemover::~FunctionRemover() = default;
 
 void FunctionRemover::processFile(const std::string &FileContents, TSTree &Tree,
-                                  std::optional<int> FileId) {
+                                  std::optional<int> PathId) {
   std::unique_ptr<TSQueryCursor, decltype(&ts_query_cursor_delete)> Cursor(
       ts_query_cursor_new(), ts_query_cursor_delete);
   ts_query_cursor_exec(Cursor.get(), Query.get(), ts_tree_root_node(&Tree));
@@ -126,7 +126,7 @@ void FunctionRemover::processFile(const std::string &FileContents, TSTree &Tree,
     // When removing, start from the "template <" node if present.
     TSNode Template = walkUpNodeWithType(Func, "template_declaration");
     TSNode ToRemove = ts_node_is_null(Template) ? Func : Template;
-    InstancesByName[Name].push_back({.FileId = FileId,
+    InstancesByName[Name].push_back({.PathId = PathId,
                                      .StartByte = ts_node_start_byte(ToRemove),
                                      .EndByte = ts_node_end_byte(ToRemove)});
   }
@@ -150,8 +150,8 @@ void FunctionRemover::finalize() {
       if (I > 0)
         std::cout << ",";
       std::cout << "{\"l\":" << Inst.StartByte << ",\"r\":" << Inst.EndByte;
-      if (Inst.FileId.has_value())
-        std::cout << ",\"f\":" << *Inst.FileId;
+      if (Inst.PathId.has_value())
+        std::cout << ",\"p\":" << *Inst.PathId;
       std::cout << "}";
     }
     std::cout << "]}\n";
