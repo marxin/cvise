@@ -23,7 +23,7 @@ _REMOVAL_BLOCKLIST = re.compile(
 _TWO_TOKEN_OPTIONS_REMOVAL_BLOCKLIST = re.compile(
     rb'-I .*|-iquote .*|-isystem .*|-o .*|-Xclang -fallow-pcm-with-compiler-errors'
 )
-_FILE_PATH_OPTIONS = re.compile(rb'=(?=(.*))')
+_FILE_PATH_OPTIONS = re.compile(rb'=(?=(.*))|^-I(.*)')
 
 
 @unique
@@ -107,10 +107,12 @@ def _add_fileref_hints(
                 )
 
             for arg in recipe_line.args:
-                possible_paths = [arg.value] + [m.group(1) for m in _FILE_PATH_OPTIONS.finditer(arg.value)]
+                possible_paths = [arg.value] + [
+                    m.group(m.lastindex or 0) for m in _FILE_PATH_OPTIONS.finditer(arg.value)
+                ]
                 for path_bytes in possible_paths:
                     arg_path = test_case / Path(path_bytes.decode())
-                    if arg_path.is_relative_to(test_case) and arg_path.exists():
+                    if arg_path.is_relative_to(test_case) and arg_path != test_case and arg_path.exists():
                         hints.append(
                             Hint(
                                 type=_Vocab.FILEREF.value[0],
@@ -179,7 +181,9 @@ def _add_target_removal_hints(mk: Makefile, file_id: int, hints: list[Hint]) -> 
 
             for i, arg in enumerate(recipe_line.args):
                 prev_arg = recipe_line.args[i - 1] if i > 0 else None
-                possible_paths = [arg.value] + [m.group(1) for m in _FILE_PATH_OPTIONS.finditer(arg.value)]
+                possible_paths = [arg.value] + [
+                    m.group(m.lastindex or 0) for m in _FILE_PATH_OPTIONS.finditer(arg.value)
+                ]
 
                 for path_bytes in possible_paths:
                     path = Path(path_bytes.decode())

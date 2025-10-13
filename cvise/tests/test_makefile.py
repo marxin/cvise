@@ -554,3 +554,21 @@ foo:
     bundle = load_hints(bundle_paths[b'@fileref'], None, None)
     refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
     assert refs == {b'Makefile', b'someprog'}
+
+
+def test_fileref_dir(tmp_path: Path, test_case_path: Path):
+    (test_case_path / 'Makefile').write_text(
+        """
+a.out:
+\tgcc -Idir1 -I dir2 foo.c
+        """,
+    )
+    (test_case_path / 'dir1').mkdir()
+    (test_case_path / 'dir2').mkdir()
+    p, state = init_pass(tmp_path, test_case_path)
+    bundle_paths = state.hint_bundle_paths()
+
+    assert b'@fileref' in bundle_paths
+    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
+    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
+    assert refs == {b'Makefile', b'dir1', b'dir2'}
