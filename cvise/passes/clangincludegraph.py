@@ -18,7 +18,7 @@ _RECOGNIZED_PROGRAMS = re.compile(r'\bCC\b|clang|CLANG|\bCXX\b|g\+\+|G\+\+|gcc|G
 # case. Remove "$(EXTRA_CFLAGS)" since the makefile substitution isn't used here and it'd look like a name of an input
 # file.
 _REMOVE_ARGS = re.compile(
-    r'(-Xclang=)?(-fmodule-map-path=.*|-fmodule-path=.*)|'
+    r'(-Xclang=)?(-fmodule-map-file=.*|-fmodule-file=.*)|'
     r'\$\(EXTRA_CFLAGS\)'
 )
 _PRECEDING_ARG_TO_REMOVE = re.compile(r'-Xclang')
