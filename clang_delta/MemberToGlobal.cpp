@@ -29,7 +29,7 @@ The pass supports functions, variables, typedefs and nested records. \n";
 static RegisterTransformation<MemberToGlobal>
          Trans("member-to-global", DescriptionMsg);
 
-class MemberToGlobal::CollectionVisitor : public 
+class MemberToGlobal::CollectionVisitor : public
   RecursiveASTVisitor<CollectionVisitor> {
 
 public:
@@ -107,7 +107,7 @@ private:
   MemberToGlobal *ConsumerInstance;
 };
 
-void MemberToGlobal::Initialize(ASTContext &context) 
+void MemberToGlobal::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
 }
@@ -135,7 +135,7 @@ void MemberToGlobal::removeRecordQualifier(const NestedNameSpecifierLoc& NNSLoc)
     SourceRange SR = NNSLoc.getLocalSourceRange();
 #if LLVM_VERSION_MAJOR >= 22
     if (TypeLoc TL = NNSLoc.getAsTypeLoc())
-      SR.setBegin(TL.getNonPrefixBeginLoc());
+      SR.setBegin(TL.castAs<TagTypeLoc>().getNameLoc());
 #endif
     SR.setEnd(SR.getEnd().getLocWithOffset(1));
 
