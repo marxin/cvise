@@ -15,6 +15,7 @@ if importlib.util.find_spec('cvise') is None:
 
 from cvise.passes.clanghints import parse_clang_delta_hints  # noqa: E402
 from cvise.utils.hint import apply_hints  # noqa: E402
+from cvise.tests.testabstract import validate_hint_bundle  # noqa: E402
 
 
 def get_clang_version():
@@ -64,6 +65,7 @@ class TestClangDelta(unittest.TestCase):
         cmd = [get_clang_delta_path(), str(testcase_path)] + arguments.split() + ['--generate-hints']
         hints = subprocess.check_output(cmd)
         bundle = parse_clang_delta_hints(hints)
+        validate_hint_bundle(bundle, testcase_path)
         if begin_index is not None and end_index is not None:
             bundle.hints = bundle.hints[begin_index:end_index]
         with tempfile.TemporaryDirectory() as dir:

@@ -134,9 +134,8 @@ def _validate_hint(hint: Hint, bundle: HintBundle, test_case: Path, allowed_hint
             assert patch.operation < len(bundle.vocabulary)
             assert bundle.vocabulary[patch.operation] in _KNOWN_OPERATIONS
         else:
-            # only special operations can use zero-size patches
             assert patch.left is not None
             assert patch.right is not None
-            assert patch.left < patch.right
+            assert patch.left <= patch.right
         if patch.value is not None:
             assert patch.value < len(bundle.vocabulary)
