@@ -189,7 +189,8 @@ def _process_main_sleeping(
     assert not sigmonitor.get_future().done()
     try:
         process_ready_event.set()
-        time.sleep(_SLEEP_INFINITY)
+        for _ in range(_SLEEP_INFINITY):
+            time.sleep(1)
     except BaseException as e:
         assert type(sigmonitor.get_future().exception(timeout=0)) is type(e)
         process_result_queue.put(type(e))
