@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from cvise.passes.makefile import MakefilePass
-from cvise.tests.testabstract import collect_all_transforms_dir, validate_stored_hints
+from cvise.tests.testabstract import collect_all_transforms_dir, load_ref_hints, validate_stored_hints
 from cvise.utils.hint import load_hints
 from cvise.utils.process import ProcessEventNotifier
 
@@ -513,12 +513,9 @@ a.out:
     )
     (test_case_path / 'foo.c').touch()
     p, state = init_pass(tmp_path, test_case_path)
-    bundle_paths = state.hint_bundle_paths()
+    assert state is not None
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'Makefile', b'foo.c'}
+    assert load_ref_hints(state, b'@fileref') == {(None, None, None, b'Makefile'), (b'Makefile', 19, 24, b'foo.c')}
 
 
 def test_fileref_parameterized_arg(tmp_path: Path, test_case_path: Path):
@@ -532,12 +529,13 @@ a.out:
     (test_case_path / 'dir').mkdir()
     (test_case_path / 'dir' / 'list.txt').touch()
     p, state = init_pass(tmp_path, test_case_path)
-    bundle_paths = state.hint_bundle_paths()
+    assert state is not None
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'Makefile', b'foo.cppmap', b'dir/list.txt'}
+    assert load_ref_hints(state, b'@fileref') == {
+        (None, None, None, b'Makefile'),
+        (b'Makefile', 25, 53, b'foo.cppmap'),
+        (b'Makefile', 54, 88, b'dir/list.txt'),
+    }
 
 
 def test_fileref_program(tmp_path: Path, test_case_path: Path):
@@ -549,12 +547,9 @@ foo:
     )
     (test_case_path / 'someprog').touch()
     p, state = init_pass(tmp_path, test_case_path)
-    bundle_paths = state.hint_bundle_paths()
+    assert state is not None
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'Makefile', b'someprog'}
+    assert load_ref_hints(state, b'@fileref') == {(None, None, None, b'Makefile'), (b'Makefile', 7, 15, b'someprog')}
 
 
 def test_fileref_dir(tmp_path: Path, test_case_path: Path):
@@ -567,9 +562,10 @@ a.out:
     (test_case_path / 'dir1').mkdir()
     (test_case_path / 'dir2').mkdir()
     p, state = init_pass(tmp_path, test_case_path)
-    bundle_paths = state.hint_bundle_paths()
+    assert state is not None
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'Makefile', b'dir1', b'dir2'}
+    assert load_ref_hints(state, b'@fileref') == {
+        (None, None, None, b'Makefile'),
+        (b'Makefile', 13, 19, b'dir1'),
+        (b'Makefile', 23, 27, b'dir2'),
+    }

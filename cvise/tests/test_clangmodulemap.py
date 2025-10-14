@@ -4,8 +4,7 @@ from typing import Any
 import pytest
 
 from cvise.passes.clangmodulemap import ClangModuleMapPass
-from cvise.tests.testabstract import collect_all_transforms_dir, validate_stored_hints
-from cvise.utils.hint import load_hints
+from cvise.tests.testabstract import collect_all_transforms_dir, load_ref_hints, validate_stored_hints
 from cvise.utils.process import ProcessEventNotifier
 
 
@@ -334,9 +333,6 @@ def test_fileref(tmp_path: Path, test_case_path: Path):
     (test_case_path / 'a.h').touch()
     (test_case_path / 'b.h').touch()
     p, state = init_pass(tmp_path, test_case_path)
-    bundle_paths = state.hint_bundle_paths()
+    assert state is not None
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'a.h', b'b.h'}
+    assert load_ref_hints(state, b'@fileref') == {(b'A.modulemap', 36, 65, b'a.h'), (b'A.modulemap', 138, 171, b'b.h')}
