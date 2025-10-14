@@ -1,4 +1,7 @@
 {"interleaving_first": [
+    {"pass": "clangincludegraph"},
+    {"pass": "clangmodulemap", "claim_files": ["**/*.cppmap", "**/*.modulemap"]},
+    {"pass": "makefile", "claim_files": ["**/Makefile", "**/makefile", "**/GNUmakefile"]},
     {"pass": "comments", "c": true },
     {"pass": "line_markers", "c": true },
     {"pass": "blank"},
@@ -33,8 +36,6 @@
     {"pass": "balanced", "arg": "angles-only"},
     {"pass": "balanced", "arg": "square-only"},
     {"pass": "balanced", "arg": "parens-only"},
-    {"pass": "clangincludegraph"},
-    {"pass": "clangmodulemap", "claim_files": ["**/*.cppmap", "**/*.modulemap"]},
     {"pass": "clexhints", "arg": "rm-toks-1-to-4"},
     {"pass": "clexhints", "arg": "rm-toks-5-to-8"},
     {"pass": "clexhints", "arg": "rm-toks-9-to-12"},
@@ -43,7 +44,6 @@
     {"pass": "clexhints", "arg": "rm-toks-21-to-24", "include": ["slow"]},
     {"pass": "clexhints", "arg": "rm-toks-25-to-28", "include": ["slow"]},
     {"pass": "clexhints", "arg": "rm-toks-29-to-32", "include": ["slow"]},
-    {"pass": "makefile", "claim_files": ["**/Makefile", "**/makefile", "**/GNUmakefile"]},
     {"pass": "rmunusedfiles"}
  ],
  "first": [
@@ -85,6 +85,9 @@
     {"pass": "special", "arg": "c", "c": true }
  ],
  "interleaving": [
+    {"pass": "clangincludegraph"},
+    {"pass": "clangmodulemap", "claim_files": ["**/*.cppmap", "**/*.modulemap"]},
+    {"pass": "makefile", "claim_files": ["**/Makefile", "**/makefile", "**/GNUmakefile"]},
     {"pass": "comments", "c": true },
     {"pass": "line_markers", "c": true },
     {"pass": "blank"},
@@ -119,8 +122,6 @@
     {"pass": "balanced", "arg": "angles-only"},
     {"pass": "balanced", "arg": "square-only"},
     {"pass": "balanced", "arg": "parens-only"},
-    {"pass": "clangincludegraph"},
-    {"pass": "clangmodulemap", "claim_files": ["**/*.cppmap", "**/*.modulemap"]},
     {"pass": "clexhints", "arg": "rm-toks-1-to-4"},
     {"pass": "clexhints", "arg": "rm-toks-5-to-8"},
     {"pass": "clexhints", "arg": "rm-toks-9-to-12"},
@@ -129,7 +130,6 @@
     {"pass": "clexhints", "arg": "rm-toks-21-to-24", "include": ["slow"]},
     {"pass": "clexhints", "arg": "rm-toks-25-to-28", "include": ["slow"]},
     {"pass": "clexhints", "arg": "rm-toks-29-to-32", "include": ["slow"]},
-    {"pass": "makefile", "claim_files": ["**/Makefile", "**/makefile", "**/GNUmakefile"]},
     {"pass": "rmunusedfiles"}
  ],
  "main": [
