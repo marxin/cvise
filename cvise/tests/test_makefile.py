@@ -5,7 +5,6 @@ import pytest
 
 from cvise.passes.makefile import MakefilePass
 from cvise.tests.testabstract import collect_all_transforms_dir, load_ref_hints, validate_stored_hints
-from cvise.utils.hint import load_hints
 from cvise.utils.process import ProcessEventNotifier
 
 
