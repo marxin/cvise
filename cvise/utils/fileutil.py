@@ -187,7 +187,7 @@ def remove_extraneous_files(test_case: Path, expected_paths: set[Path]) -> None:
         if path in expected_paths:
             continue
         if path.is_dir():
-            path.rmdir()
+            path.rmdir()  # the reversed order guarantees the files should've been deleted
         else:
             path.unlink()
 
