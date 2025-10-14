@@ -263,8 +263,8 @@ def _take_rm_patch(
             continue
         if bundle.vocabulary[p.operation] != b'rm':
             continue
+        stats_delta_per_pass.setdefault(bundle.pass_user_visible_name, 0)
         if source_file.is_file():
-            stats_delta_per_pass.setdefault(bundle.pass_user_visible_name, 0)
             stats_delta_per_pass[bundle.pass_user_visible_name] -= source_file.lstat().st_size
         return True
     return False
