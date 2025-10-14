@@ -1,5 +1,6 @@
 import re
 from collections.abc import Iterator
+import msgspec
 from pathlib import Path
 from typing import Optional
 
@@ -31,7 +32,11 @@ _PRECEDING_ARG_TO_REMOVE = re.compile(r'-Xclang')
 # simplest way to parallelize initialization, reusing the standard C-Vise worker pool and respecting the --n parameter.
 _INIT_PARALLELIZATION = 10
 
-_HINT_VOCAB: tuple[bytes] = (b'@fileref',)
+_HINT_VOCAB: tuple[bytes, ...] = (b'@fileref', b'@c-include')
+# Indices below must match the order in _HINT_VOCAB.
+_FILEREF_VOCAB_ID = 0
+_C_INCLUDE_VOCAB_ID = 1
+
 _MULTIPLEX_PASS_HINT_TEMPLATE = '@clang-include-graph-{}'
 
 
@@ -40,7 +45,8 @@ class ClangIncludeGraphPass(HintBasedPass):
 
     This pass analyzes compilation commands and runs the "clang_include_graph" tool for each of the commands
     (with slightly modified input arguments). The compilation commands are obtained by parsing all makefiles that the
-    MakefilePass reported (via the "@makefile" hints).
+    MakefilePass reported (via the "@makefile" hints). Results are reported as "@fileref" and "@c-include" hints, to be
+    usable from other passes.
     """
 
     def __init__(self, external_programs: dict[str, Optional[str]], **kwargs):
@@ -69,8 +75,13 @@ class ClangIncludeGraphPass(HintBasedPass):
             merged_vocab.extend(bundle.vocabulary)
         vocab: list[bytes] = list(_HINT_VOCAB) + sorted(set(merged_vocab))
         text_to_vocab: dict[bytes, int] = {s: i for i, s in enumerate(vocab)}
-        hints = [_remap_path_ids(h, b, text_to_vocab) for b in dependee_hints for h in b.hints]
-        return HintBundle(hints=list(set(hints)), vocabulary=vocab)
+        hints = set()
+        for bundle in dependee_hints:
+            for hint in bundle.hints:
+                new_hint = _remap_path_ids(hint, bundle, text_to_vocab)
+                for tp in (_FILEREF_VOCAB_ID, _C_INCLUDE_VOCAB_ID):
+                    hints.add(msgspec.structs.replace(new_hint, type=tp))
+        return HintBundle(hints=list(hints), vocabulary=vocab)
 
 
 def _remap_path_ids(hint: Hint, bundle: HintBundle, text_to_vocab: dict[bytes, int]) -> Hint:
@@ -79,7 +90,7 @@ def _remap_path_ids(hint: Hint, bundle: HintBundle, text_to_vocab: dict[bytes, i
         Patch(left=p.left, right=p.right, path=None if p.path is None else text_to_vocab[bundle.vocabulary[p.path]])
         for p in hint.patches
     )
-    return Hint(type=0, patches=patches, extra=text_to_vocab[bundle.vocabulary[hint.extra]])
+    return msgspec.structs.replace(hint, patches=patches, extra=text_to_vocab[bundle.vocabulary[hint.extra]])
 
 
 class _ClangIncludeGraphMultiplexPass(HintBasedPass):

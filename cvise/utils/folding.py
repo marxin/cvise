@@ -117,6 +117,8 @@ class FoldingManager:
         **kwargs,
     ) -> tuple[PassResult, Union[FoldingStateOut, None]]:
         report = HintBasedPass.load_and_apply_hints(original_test_case, test_case, state.sub_states)
+        if report is None:
+            return PassResult.INVALID, None
         written_paths.update(report.written_paths)
         return PassResult.OK, FoldingStateOut(
             sub_states=state.sub_states,

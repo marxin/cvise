@@ -13,7 +13,7 @@ from cvise.utils.hint import HINT_SCHEMA_STRICT, Hint, HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
 
 _TYPES_WITH_PATH_EXTRA = (b'@fileref',)
-_KNOWN_OPERATIONS = (b'rm',)
+_KNOWN_OPERATIONS = (b'rm', b'paste')
 
 
 def iterate_pass(current_pass: AbstractPass, path: Path, **kwargs) -> None:
@@ -51,9 +51,9 @@ def collect_all_transforms(pass_: AbstractPass, state, input_path: Path) -> set[
             )
             if result == PassResult.OK:
                 all_outputs.add(tmp_path.read_bytes())
-                state = pass_.advance(input_path, state)
             elif result == PassResult.STOP:
                 break
+            state = pass_.advance(input_path, state)
     return all_outputs
 
 
@@ -74,9 +74,9 @@ def collect_all_transforms_dir(pass_: AbstractPass, state, input_path: Path) -> 
                     sorted((str(p.relative_to(tmp_dir)), p.read_bytes()) for p in tmp_path.rglob('*') if not p.is_dir())
                 )
                 all_outputs.add(contents)
-                state = pass_.advance(input_path, state)
             elif result == PassResult.STOP:
                 break
+            state = pass_.advance(input_path, state)
     return all_outputs
 
 

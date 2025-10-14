@@ -9,13 +9,24 @@ heuristics and to perform reduction more efficiently (as algorithms can now be
 applied to all heuristics in a uniform way).
 """
 
+<<<<<<< HEAD
+=======
+from __future__ import annotations
+from collections.abc import Sequence
+from copy import deepcopy
+>>>>>>> 08616028 (multifile: Introduce InlineIncludePass)
 import dataclasses
 import json
 import math
 from collections.abc import Sequence
 from copy import copy, deepcopy
 from pathlib import Path
+<<<<<<< HEAD
 from typing import Any, Optional, TextIO
+=======
+from typing import Any, TextIO
+import zstandard
+>>>>>>> 08616028 (multifile: Introduce InlineIncludePass)
 
 import msgspec
 import zstandard
@@ -30,11 +41,11 @@ class Patch(msgspec.Struct, omit_defaults=True, gc=False, frozen=True):
     See HINT_PATCH_SCHEMA.
     """
 
-    path: Optional[int] = msgspec.field(default=None, name='p')
-    left: Optional[int] = msgspec.field(default=None, name='l')
-    right: Optional[int] = msgspec.field(default=None, name='r')
-    operation: Optional[int] = msgspec.field(default=None, name='o')
-    value: Optional[int] = msgspec.field(default=None, name='v')
+    path: int | None = msgspec.field(default=None, name='p')
+    left: int | None = msgspec.field(default=None, name='l')
+    right: int | None = msgspec.field(default=None, name='r')
+    operation: int | None = msgspec.field(default=None, name='o')
+    value: int | None = msgspec.field(default=None, name='v')
 
     def comparison_key(self) -> tuple:
         return (
@@ -52,9 +63,9 @@ class Hint(msgspec.Struct, omit_defaults=True, gc=False, frozen=True):
     See HINT_SCHEMA.
     """
 
-    type: Optional[int] = msgspec.field(default=None, name='t')
+    type: int | None = msgspec.field(default=None, name='t')
     patches: tuple[Patch, ...] = msgspec.field(default=(), name='p')
-    extra: Optional[int] = msgspec.field(default=None, name='e')
+    extra: int | None = msgspec.field(default=None, name='e')
 
     def comparison_key(self) -> tuple:
         return (
@@ -118,15 +129,17 @@ HINT_PATCH_SCHEMA = {
         'o': {
             'description': (
                 'Specifies the type of the special operation to be performed on the file/chunk. The number specifies '
-                'the index in the vocabulary. The only currently supported operation is "rm" - deleting the file.'
+                'the index in the vocabulary. The only currently supported operation are "rm" - deleting the file, '
+                '"paste" - inserting .'
             ),
             'type': 'integer',
             'minimum': 0,
         },
         'v': {
             'description': (
-                'Indicates that the chunk needs to be replaced with a new value - the string with the specified index '
-                'in the vocabulary.'
+                'By default, indicates that the chunk needs to be replaced with a new value - the string with the '
+                'specified index in the vocabulary. For "paste" operations, specifies the path of the file which '
+                'contents are to be used as a replacement.'
             ),
             'type': 'integer',
             'minimum': 0,
@@ -190,11 +203,11 @@ class _BundlePreamble(msgspec.Struct, omit_defaults=True):
 
 
 # Singleton encoder/decoder objects, to save time on recreating them.
-_json_encoder: Optional[msgspec.json.Encoder] = None
-_encoding_buf: Optional[bytearray] = None
-_preamble_decoder: Optional[msgspec.json.Decoder] = None
-_vocab_decoder: Optional[msgspec.json.Decoder] = None
-_hint_decoder: Optional[msgspec.json.Decoder] = None
+_json_encoder: msgspec.json.Encoder | None = None
+_encoding_buf: bytearray | None = None
+_preamble_decoder: msgspec.json.Decoder | None = None
+_vocab_decoder: msgspec.json.Decoder | None = None
+_hint_decoder: msgspec.json.Decoder | None = None
 
 
 def is_special_hint_type(type: bytes) -> bool:
@@ -204,10 +217,15 @@ def is_special_hint_type(type: bytes) -> bool:
 class _PatchWithBundleRef(msgspec.Struct, gc=False):
     patch: Patch
     bundle_id: int
+    hint_id: int
 
 
-def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationReport:
-    """Creates the destination file/dir by applying the specified hints to the contents of the source file/dir."""
+def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationReport | None:
+    """Creates the destination file/dir by applying the specified hints to the contents of the source file/dir.
+
+    Returns None on an unsolvable merge conflict - e.g., one hint pasting a context of a file that gets modified by
+    another hint.
+    """
     is_dir = source_path.is_dir()
     if is_dir:
         destination_path.mkdir(exist_ok=True)
@@ -216,10 +234,9 @@ def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: 
     # Take patches from all hints and group them by the file/dir path which they're applied to.
     path_to_patches: dict[Path, list[_PatchWithBundleRef]] = {}
     for bundle_id, bundle in enumerate(bundles):
-        for hint in bundle.hints:
+        for hint_id, hint in enumerate(bundle.hints):
             for patch in hint.patches:
-                # Copying sub-structs improves data locality, helping performance in practice.
-                p = _PatchWithBundleRef(copy(patch), bundle_id)
+                p = _PatchWithBundleRef(patch, bundle_id, hint_id)
                 path_rel = Path(bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
                 path_to_patches.setdefault(path_rel, []).append(p)
 
@@ -240,13 +257,16 @@ def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: 
             # The sorted path order guarantees the parents should've been created.
             path_in_dest.mkdir()
             continue
-        _apply_hint_patches_to_file(
+        if not _apply_hint_patches_to_file(
             patches_to_apply,
             bundles,
+            test_case=source_path,
             source_file=path,
             destination_file=path_in_dest,
+            path_to_patches=path_to_patches,
             stats_delta_per_pass=report.stats_delta_per_pass,
-        )
+        ):
+            return None
     return report
 
 
@@ -273,10 +293,12 @@ def _take_rm_patch(
 def _apply_hint_patches_to_file(
     patches: list[_PatchWithBundleRef],
     bundles: list[HintBundle],
+    test_case: Path,
     source_file: Path,
     destination_file: Path,
+    path_to_patches: dict[Path, list[_PatchWithBundleRef]],
     stats_delta_per_pass: dict[str, int],
-) -> None:
+) -> bool:
     merged_patches = _merge_overlapping_patches(patches)
     orig_data = memoryview(source_file.read_bytes())
 
@@ -298,17 +320,28 @@ def _apply_hint_patches_to_file(
             stats_delta_per_pass[bundle.pass_user_visible_name] -= p.right - p.left
             # Insert the replacement value, if provided.
             if p.value is not None:
-                to_insert = bundle.vocabulary[p.value]
+                if p.operation is not None and bundle.vocabulary[p.operation] == b'paste':
+                    ins_path = Path(bundle.vocabulary[p.value].decode())
+                    if _has_patches_from_other_hints(patch_ref, path_to_patches.get(ins_path, [])):
+                        return False  # merge conflict that's unsolvable (in the current implementation)
+                    to_insert = (test_case / ins_path).read_bytes()
+                else:
+                    to_insert = bundle.vocabulary[p.value]
                 new_data += to_insert
                 stats_delta_per_pass[bundle.pass_user_visible_name] += len(to_insert)
         except Exception as e:
             raise RuntimeError(
-                f'Failure while applying patch {p} from pass "{bundle.pass_name}" on file "source_file" with size {len(orig_data)}'
+                f'Failure while applying patch {p} from pass "{bundle.pass_name}" on file "{source_file}" with size {len(orig_data)}'
             ) from e
     # Add the unmodified chunk after the last patch end.
     new_data.extend(orig_data[start_pos:])
 
     destination_file.write_bytes(new_data)
+    return True
+
+
+def _has_patches_from_other_hints(ref: _PatchWithBundleRef, other_refs: list[_PatchWithBundleRef]) -> bool:
+    return any(o.bundle_id != ref.bundle_id or o.hint_id != ref.hint_id for o in other_refs)
 
 
 def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
@@ -351,7 +384,7 @@ def store_hints(bundle: HintBundle, hints_file_path: Path) -> None:
         f.write(buf)
 
 
-def load_hints(hints_file_path: Path, begin_index: Optional[int], end_index: Optional[int]) -> HintBundle:
+def load_hints(hints_file_path: Path, begin_index: int | None, end_index: int | None) -> HintBundle:
     """Deserializes hints from a file.
 
     If provided, the [begin; end) half-range can be used to only load hints with the specified indices.
@@ -406,9 +439,9 @@ def subtract_hints(source_bundle: HintBundle, bundles_to_subtract: list[HintBund
                 queries.append(patch.right)
     path_to_subtrahends: dict[Path, list[_PatchWithBundleRef]] = {}
     for bundle_id, bundle in enumerate(bundles_to_subtract):
-        for hint in bundle.hints:
+        for hint_id, hint in enumerate(bundle.hints):
             for patch in hint.patches:
-                p = _PatchWithBundleRef(patch, bundle_id)
+                p = _PatchWithBundleRef(patch, bundle_id, hint_id)
                 path_rel = Path(bundle.vocabulary[patch.path].decode()) if patch.path is not None else Path()
                 path_to_subtrahends.setdefault(path_rel, []).append(p)
 
@@ -577,7 +610,7 @@ def _merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequen
     return merged
 
 
-def _lines_range(f: TextIO, begin_index: Optional[int], end_index: Optional[int]) -> list[str]:
+def _lines_range(f: TextIO, begin_index: int | None, end_index: int | None) -> list[str]:
     for _ in range(begin_index or 0):
         next(f)  # simply discard
     if end_index is None:
