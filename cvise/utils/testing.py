@@ -189,7 +189,7 @@ class TestEnvironment:
             # run test script
             self.exitcode = self.run_test(False)
 
-            # cleanup
+            # cleanup (only useful for successful case - otherwise job's dir will be anyway deleted by main process)
             if self.exitcode == 0:
                 fileutil.remove_extraneous_files(self.test_case_path, written_paths)
 
