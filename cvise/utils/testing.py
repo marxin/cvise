@@ -905,10 +905,12 @@ class TestManager:
             self.release_all_jobs()
 
     def run_passes(self, passes: Sequence[AbstractPass], interleaving: bool):
+        # Automatically add subordinate (helper) passes where needed. Prioritize them early in the list, so that they
+        # get executed as early as possible and unblock their main pass' execution.
         extra_passes = []
         for p in passes:
             extra_passes += p.create_subordinate_passes()
-        passes = list(passes) + extra_passes
+        passes = extra_passes + list(passes)
 
         assert len(passes) == 1 or interleaving
 
