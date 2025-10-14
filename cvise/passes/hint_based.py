@@ -13,7 +13,7 @@ from cvise.utils.hint import (
     group_hints_by_type,
     is_special_hint_type,
     HintBundle,
-    HintApplicationStats,
+    HintApplicationReport,
     load_hints,
     sort_hints,
     store_hints,
@@ -272,16 +272,19 @@ class HintBasedPass(AbstractPass):
         )
         return self.new_from_hints(hints, tmp_dir)
 
-    def transform(self, test_case: Path, state: HintState, original_test_case: Path, *args, **kwargs):
+    def transform(
+        self, test_case: Path, state: HintState, original_test_case: Path, written_paths: set[Path], *args, **kwargs
+    ):
         if not state.per_type_states:  # possible if all hints produced by new()/advance_on_success() were "special"
             return PassResult.STOP, None
-        self.load_and_apply_hints(original_test_case, test_case, [state])
+        report = self.load_and_apply_hints(original_test_case, test_case, [state])
+        written_paths.update(report.written_paths)
         return PassResult.OK, state
 
     @staticmethod
     def load_and_apply_hints(
         original_test_case: Path, test_case: Path, states: Sequence[HintState]
-    ) -> HintApplicationStats:
+    ) -> HintApplicationReport:
         hint_bundles: list[HintBundle] = []
         for state in states:
             sub_state = state.current_substate()
@@ -290,8 +293,7 @@ class HintBasedPass(AbstractPass):
             hint_bundles.append(
                 load_hints(state.tmp_dir / sub_state.hints_file_name, hints_range_begin, hints_range_end)
             )
-        stats = apply_hints(hint_bundles, source_path=original_test_case, destination_path=test_case)
-        return stats
+        return apply_hints(hint_bundles, source_path=original_test_case, destination_path=test_case)
 
     def advance(self, test_case: Path, state):
         return state.advance()

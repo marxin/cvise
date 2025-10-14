@@ -610,3 +610,19 @@ def test_pass_dependency(input_path: Path, manager: testing.TestManager):
 
 def _read_files_in_dir(dir: Path) -> dict[Path, str]:
     return {p.relative_to(dir): p.read_text() for p in dir.rglob('*') if not p.is_dir()}
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+@pytest.mark.parametrize('input_contents', [{Path('foo.txt'): 'abacaba', Path('bar.txt'): 'ddaabbcc'}])
+@pytest.mark.parametrize('interestingness_script', ['grep aba {test_case}/* && mkdir {test_case}/noise'])
+def test_remove_extraneous_files(input_path: Path, manager: testing.TestManager):
+    """Verifies that files/dirs created by the interestingness test are deleted."""
+    p = LetterRemovingHintPass('abcd')
+    while True:
+        files_before = _read_files_in_dir(input_path)
+        manager.run_passes([p], interleaving=True)
+        if _read_files_in_dir(input_path) == files_before:
+            break
+
+    assert _read_files_in_dir(input_path) == {Path('foo.txt'): 'aba', Path('bar.txt'): ''}
+    assert not (input_path / 'noise').exists()

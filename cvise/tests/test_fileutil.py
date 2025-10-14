@@ -19,6 +19,7 @@ from cvise.utils.fileutil import (
     get_file_size,
     get_line_count,
     hash_test_case,
+    remove_extraneous_files,
     replace_test_case_atomically,
     sanitize_for_file_name,
 )
@@ -516,3 +517,17 @@ def test_diff_dir(tmp_path: Path):
 +foo
 """
         )
+
+
+def test_remove_extraneous(tmp_path: Path):
+    (tmp_path / 'foo.txt').touch()
+    (tmp_path / 'bar.txt').touch()
+    (tmp_path / 'a').mkdir()
+    (tmp_path / 'a' / 'x.txt').touch()
+    (tmp_path / 'b').mkdir()
+    (tmp_path / 'b' / 'c').mkdir()
+
+    expected_paths = {tmp_path / 'foo.txt', tmp_path / 'a'}
+    remove_extraneous_files(tmp_path, expected_paths)
+
+    assert set(tmp_path.rglob('*')) == expected_paths

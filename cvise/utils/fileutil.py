@@ -181,6 +181,17 @@ def diff_test_cases(orig_test_case: Path, changed_test_case: Path) -> bytes:
     return b''.join(diff_lines)
 
 
+def remove_extraneous_files(test_case: Path, expected_paths: set[Path]) -> None:
+    paths = sorted(test_case.rglob('*'), reverse=True)
+    for path in paths:
+        if path in expected_paths:
+            continue
+        if path.is_dir():
+            path.rmdir()  # the reversed order guarantees the files should've been deleted
+        else:
+            path.unlink()
+
+
 def _try_read_file_lines(path: Path) -> list[bytes]:
     if not path.is_file():
         return []

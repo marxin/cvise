@@ -7,7 +7,6 @@ from typing import Any, Union
 
 from cvise.passes.abstract import PassResult
 from cvise.passes.hint_based import HintBasedPass, HintState
-from cvise.utils.hint import HintApplicationStats
 
 
 @dataclass(frozen=True)
@@ -24,7 +23,8 @@ class FoldingStateIn:
 class FoldingStateOut(FoldingStateIn):
     """Results returned from a folding job's transform."""
 
-    statistics: HintApplicationStats
+    size_delta_per_pass: dict[str, int]
+    passes_ordered_by_delta: list[str]
 
 
 class FoldingManager:
@@ -108,10 +108,18 @@ class FoldingManager:
 
     @staticmethod
     def transform(
-        test_case: Path, state: FoldingStateIn, process_event_notifier, original_test_case: Path, *args, **kwargs
+        test_case: Path,
+        state: FoldingStateIn,
+        process_event_notifier,
+        original_test_case: Path,
+        written_paths: set[Path],
+        *args,
+        **kwargs,
     ) -> tuple[PassResult, Union[FoldingStateOut, None]]:
-        statistics = HintBasedPass.load_and_apply_hints(original_test_case, test_case, state.sub_states)
+        report = HintBasedPass.load_and_apply_hints(original_test_case, test_case, state.sub_states)
+        written_paths.update(report.written_paths)
         return PassResult.OK, FoldingStateOut(
             sub_states=state.sub_states,
-            statistics=statistics,
+            size_delta_per_pass=report.stats_delta_per_pass,
+            passes_ordered_by_delta=report.get_passes_ordered_by_delta(),
         )

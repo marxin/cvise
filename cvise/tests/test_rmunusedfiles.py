@@ -103,7 +103,11 @@ def test_unused_empty_dirs_deleted(tmp_path: Path, test_case_path: Path):
     out_path = tmp_path / 'out'
 
     result, _new_state = p.transform(
-        out_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=test_case_path
+        out_path,
+        state,
+        process_event_notifier=ProcessEventNotifier(None),
+        original_test_case=test_case_path,
+        written_paths=set(),
     )
 
     assert result == PassResult.OK

@@ -174,11 +174,12 @@ HINT_SCHEMA_STRICT['properties']['p']['items'] = HINT_PATCH_SCHEMA_STRICT
 
 
 @dataclasses.dataclass
-class HintApplicationStats:
-    size_delta_per_pass: dict[str, int]
+class HintApplicationReport:
+    stats_delta_per_pass: dict[str, int]
+    written_paths: set[Path]
 
     def get_passes_ordered_by_delta(self) -> list[str]:
-        ordered = sorted(self.size_delta_per_pass.items(), key=lambda kv: kv[1])
+        ordered = sorted(self.stats_delta_per_pass.items(), key=lambda kv: kv[1])
         return [kv[0] for kv in ordered]
 
 
@@ -205,7 +206,7 @@ class _PatchWithBundleRef(msgspec.Struct, gc=False):
     bundle_id: int
 
 
-def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationStats:
+def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: Path) -> HintApplicationReport:
     """Creates the destination file/dir by applying the specified hints to the contents of the source file/dir."""
     is_dir = source_path.is_dir()
     if is_dir:
@@ -224,32 +225,36 @@ def apply_hints(bundles: list[HintBundle], source_path: Path, destination_path: 
 
     # Enumerate all files in the source location and apply corresponding patches, if any, to each.
     subtree = sorted(source_path.rglob('*')) if is_dir else [source_path]
-    stats = HintApplicationStats(size_delta_per_pass={})
+    report = HintApplicationReport(stats_delta_per_pass={}, written_paths=set())
     for path in subtree:
         path_rel = path.relative_to(source_path)
         path_in_dest = destination_path / path_rel
         patches_to_apply = path_to_patches.get(path_rel, [])
 
-        if _take_rm_patch(patches_to_apply, bundles, path, stats):
+        if _take_rm_patch(patches_to_apply, bundles, path, report.stats_delta_per_pass):
             continue  # skip creating the file/dir
         if path.is_symlink():
             continue  # TODO: handle symlinks
+        report.written_paths.add(path_in_dest)
         if path.is_dir():
             # The sorted path order guarantees the parents should've been created.
             path_in_dest.mkdir()
             continue
         _apply_hint_patches_to_file(
-            patches_to_apply, bundles, source_file=path, destination_file=path_in_dest, stats=stats
+            patches_to_apply,
+            bundles,
+            source_file=path,
+            destination_file=path_in_dest,
+            stats_delta_per_pass=report.stats_delta_per_pass,
         )
-
-    return stats
+    return report
 
 
 def _take_rm_patch(
     patches: list[_PatchWithBundleRef],
     bundles: list[HintBundle],
     source_file: Path,
-    stats: HintApplicationStats,
+    stats_delta_per_pass: dict[str, int],
 ) -> bool:
     for patch_ref in patches:
         p: Patch = patch_ref.patch
@@ -259,8 +264,8 @@ def _take_rm_patch(
         if bundle.vocabulary[p.operation] != b'rm':
             continue
         if source_file.is_file():
-            stats.size_delta_per_pass.setdefault(bundle.pass_user_visible_name, 0)
-            stats.size_delta_per_pass[bundle.pass_user_visible_name] -= source_file.lstat().st_size
+            stats_delta_per_pass.setdefault(bundle.pass_user_visible_name, 0)
+            stats_delta_per_pass[bundle.pass_user_visible_name] -= source_file.lstat().st_size
         return True
     return False
 
@@ -270,7 +275,7 @@ def _apply_hint_patches_to_file(
     bundles: list[HintBundle],
     source_file: Path,
     destination_file: Path,
-    stats: HintApplicationStats,
+    stats_delta_per_pass: dict[str, int],
 ) -> None:
     merged_patches = _merge_overlapping_patches(patches)
     orig_data = memoryview(source_file.read_bytes())
@@ -280,7 +285,7 @@ def _apply_hint_patches_to_file(
     for patch_ref in merged_patches:
         p: Patch = patch_ref.patch
         bundle: HintBundle = bundles[patch_ref.bundle_id]
-        stats.size_delta_per_pass.setdefault(bundle.pass_user_visible_name, 0)
+        stats_delta_per_pass.setdefault(bundle.pass_user_visible_name, 0)
         try:
             assert p.left is not None
             assert p.right is not None
@@ -290,12 +295,12 @@ def _apply_hint_patches_to_file(
             new_data.extend(orig_data[start_pos : p.left])
             # Skip the original chunk inside the current patch.
             start_pos = p.right
-            stats.size_delta_per_pass[bundle.pass_user_visible_name] -= p.right - p.left
+            stats_delta_per_pass[bundle.pass_user_visible_name] -= p.right - p.left
             # Insert the replacement value, if provided.
             if p.value is not None:
                 to_insert = bundle.vocabulary[p.value]
                 new_data += to_insert
-                stats.size_delta_per_pass[bundle.pass_user_visible_name] += len(to_insert)
+                stats_delta_per_pass[bundle.pass_user_visible_name] += len(to_insert)
         except Exception as e:
             raise RuntimeError(
                 f'Failure while applying patch {p} from pass "{bundle.pass_name}" on file "source_file" with size {len(orig_data)}'

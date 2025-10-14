@@ -1,6 +1,8 @@
 from pathlib import Path
 import pytest
+from typing import Any
 
+from cvise.passes.abstract import PassResult
 from cvise.passes.line_markers import LineMarkersPass
 from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
 from cvise.utils.process import ProcessEventNotifier
@@ -11,7 +13,7 @@ def input_path(tmp_path: Path):
     return tmp_path / 'input.cc'
 
 
-def init_pass(tmp_path: Path, input_path: Path):
+def init_pass(tmp_path: Path, input_path: Path) -> tuple[LineMarkersPass, Any]:
     pass_ = LineMarkersPass()
     state = pass_.new(
         input_path, tmp_dir=tmp_path, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
@@ -20,14 +22,22 @@ def init_pass(tmp_path: Path, input_path: Path):
     return pass_, state
 
 
+def transform(pass_: LineMarkersPass, input_path: Path, state: Any) -> tuple[PassResult, Any]:
+    return pass_.transform(
+        input_path,
+        state,
+        process_event_notifier=ProcessEventNotifier(None),
+        original_test_case=input_path,
+        written_paths=set(),
+    )
+
+
 def test_all(tmp_path: Path, input_path: Path):
     input_path.write_text("# 1 'foo.h'\n# 2 'bar.h'\n#4   'x.h'")
     pass_, state = init_pass(tmp_path, input_path)
     assert state is not None
 
-    (_, state) = pass_.transform(
-        input_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
-    )
+    (_, state) = transform(pass_, input_path, state)
 
     assert input_path.read_text() == ''
 
@@ -37,9 +47,7 @@ def test_only_last(tmp_path: Path, input_path: Path):
     pass_, state = init_pass(tmp_path, input_path)
     assert state is not None
 
-    (_, state) = pass_.transform(
-        input_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
-    )
+    (_, state) = transform(pass_, input_path, state)
 
     assert input_path.read_text() == 'int x = 2;'
 
@@ -64,9 +72,7 @@ def test_non_ascii(tmp_path: Path, input_path: Path):
     )
     pass_, state = init_pass(tmp_path, input_path)
     assert state is not None
-    (_, state) = pass_.transform(
-        input_path, state, process_event_notifier=ProcessEventNotifier(None), original_test_case=input_path
-    )
+    (_, state) = transform(pass_, input_path, state)
 
     assert (
         input_path.read_bytes()
