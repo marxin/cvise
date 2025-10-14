@@ -456,6 +456,7 @@ class TestManager:
         self.interleaving: bool = False
         if not self.is_valid_test(self.test_script):
             raise InvalidInterestingnessTestError(self.test_script)
+        self.current_test_case: Path = Path()
         self.jobs: list[Job] = []
         # The "order" is an incremental counter for numbering jobs.
         self.order: int = 0
@@ -1065,28 +1066,35 @@ class TestManager:
             if ctx.stage == PassStage.ENUMERATING and ctx.state is not None:
                 ctx.stage = PassStage.BEFORE_INIT
 
-        pct = 100 - (self.total_file_size * 100.0 / self.orig_total_file_size)
-        notes = []
-        notes.append(f'{round(pct, 1)}%')
-        notes.append(f'{self.total_file_size} bytes')
-        if self.total_line_count:
-            notes.append(f'{self.total_line_count} lines')
-        if len(self.test_cases) > 1:
-            notes.append(str(new_test_case.name))
-        if self.current_test_case.is_dir():
-            files = self.total_file_count
-            dirs = self.total_dir_count
-            notes.append(f'{files} file{"s" if files > 1 else ""} in {dirs} dir{"s" if dirs > 1 else ""}')
         if len(self.pass_contexts) > 1:
             if isinstance(self.success_candidate.pass_state, FoldingStateOut):
                 pass_name = ' + '.join(self.success_candidate.pass_state.passes_ordered_by_delta)
             else:
                 pass_name = self.success_candidate.pass_.user_visible_name()
-            notes.append(f'via {pass_name}')
+            log_note = f'via {pass_name}'
+        else:
+            log_note = ''
 
         self.success_candidate.release()
         self.success_candidate = None
 
+        self.log_test_case_metrics(log_note)
+
+    def log_test_case_metrics(self, extra_note: str | None = None) -> None:
+        pct = 100 - (float(self.total_file_size) * 100.0 / self.orig_total_file_size)
+        notes = []
+        notes.append(f'{round(pct, 1)}%')
+        notes.append(f'{self.total_file_size} bytes')
+        if self.total_line_count:
+            notes.append(f'{self.total_line_count} lines')
+        if len(self.test_cases) > 1 and self.current_test_case:
+            notes.append(str(self.current_test_case.name))
+        if any(p.is_dir() for p in self.test_cases):
+            files = self.total_file_count
+            dirs = self.total_dir_count
+            notes.append(f'{files} file{"s" if files > 1 else ""} in {dirs} dir{"s" if dirs > 1 else ""}')
+        if extra_note is not None:
+            notes.append(extra_note)
         logging.info('(' + ', '.join(notes) + ')')
 
     def should_proceed_with_success_candidate(self):

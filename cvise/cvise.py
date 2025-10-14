@@ -222,6 +222,7 @@ class CVise:
                 '' if self.test_manager.parallel_tests == 1 else 's',
             )
         )
+        self.test_manager.log_test_case_metrics()
 
         if not self.tidy:
             self.test_manager.backup_test_cases()
