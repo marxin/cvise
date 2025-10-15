@@ -89,7 +89,7 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
     """
 
     def __init__(self, modulo: int, external_programs: dict[str, Optional[str]]):
-        super().__init__(external_programs=external_programs)
+        super().__init__(arg=str(modulo), external_programs=external_programs)
         self._modulo = modulo
         self._hint_type = _MULTIPLEX_PASS_HINT_TEMPLATE.format(self._modulo).encode()
 
@@ -133,16 +133,18 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
             toks = _split_by_null_char(stdout)
             while True:
                 try:
-                    from_path = Path(next(toks))
+                    from_path = next(toks)
                     loc_begin = int(next(toks))
                     loc_end = int(next(toks))
-                    to_path = Path(next(toks))
+                    to_path = next(toks)
                 except StopIteration:
                     break
-                to_node = _get_vocab_id(to_path, test_case, vocab, path_to_vocab)
+                if not from_path or not to_path:
+                    continue  # possible, e.g., for header directives in module maps
+                to_node = _get_vocab_id(Path(to_path), test_case, vocab, path_to_vocab)
                 if to_node is None:
                     continue
-                from_node = _get_vocab_id(from_path, test_case, vocab, path_to_vocab)
+                from_node = _get_vocab_id(Path(from_path), test_case, vocab, path_to_vocab)
                 # If a file was included from a file inside test case, create a patch pointing to the include directive;
                 # otherwise leave the hint patchless (e.g., a system/resource dir header including a standard library
                 # header that's included into the test case).
@@ -205,7 +207,7 @@ def _get_vocab_id(path: Path, test_case: Path, vocab: list[bytes], path_to_vocab
     if not path.is_absolute():
         path = test_case / path
     path = path.resolve()
-    if not path.is_relative_to(test_case):
+    if not path.is_relative_to(test_case) or path == test_case:
         return None
     rel_path = path.relative_to(test_case)
     if rel_path in path_to_vocab:

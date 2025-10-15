@@ -5,7 +5,7 @@ import pytest
 
 from cvise.passes.clangincludegraph import ClangIncludeGraphPass
 from cvise.passes.hint_based import HintBasedPass
-from cvise.tests.testabstract import validate_stored_hints
+from cvise.tests.testabstract import load_ref_hints, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
 from cvise.utils.hint import Hint, HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
@@ -48,7 +48,7 @@ def test_header_chain(tmp_path: Path):
     input_dir = tmp_path / 'test_case'
     input_dir.mkdir()
     (input_dir / 'main.cc').write_text('#include "foo.h"\n')
-    (input_dir / 'foo.h').write_text('#include "bar.h"')
+    (input_dir / 'foo.h').write_text('// hello\n#include "bar.h"')
     (input_dir / 'bar.h').touch()
     (input_dir / 'Makefile').write_text(
         """
@@ -58,12 +58,8 @@ a.out:
     )
     p, state = init_pass(tmp_path, input_dir)
     assert state is not None
-    bundle_paths = state.hint_bundle_paths()
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'bar.h', b'foo.h'}
+    assert load_ref_hints(state, b'@fileref') == {(b'main.cc', 0, 16, b'foo.h'), (b'foo.h', 9, 24, b'bar.h')}
 
 
 def test_multiple_commands(tmp_path: Path):
@@ -86,12 +82,13 @@ program:
     )
     p, state = init_pass(tmp_path, input_dir)
     assert state is not None
-    bundle_paths = state.hint_bundle_paths()
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'bar.h', b'common.h', b'foo.h'}
+    assert load_ref_hints(state, b'@fileref') == {
+        (b'foo.c', 0, 16, b'foo.h'),
+        (b'foo.h', 0, 19, b'common.h'),
+        (b'bar.c', 0, 16, b'bar.h'),
+        (b'bar.h', 0, 19, b'common.h'),
+    }
 
 
 @pytest.mark.parametrize('cmd_flag', ['-Isub', '-I sub', '-iquotesub', '-iquote sub'])
@@ -105,12 +102,8 @@ def test_include_search_path(tmp_path: Path, cmd_flag: str):
     (input_dir / 'Makefile').write_text(f'a.out:\n\tgcc -c {cmd_flag} -Wall main.cc\n')
     p, state = init_pass(tmp_path, input_dir)
     assert state is not None
-    bundle_paths = state.hint_bundle_paths()
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'sub/foo.h'}
+    assert load_ref_hints(state, b'@fileref') == {(b'main.cc', 0, 16, b'sub/foo.h')}
 
 
 def test_unrelated_commands(tmp_path: Path):
@@ -130,12 +123,8 @@ foo.txt:
     )
     p, state = init_pass(tmp_path, input_dir)
     assert state is not None
-    bundle_paths = state.hint_bundle_paths()
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'header.hpp'}
+    assert load_ref_hints(state, b'@fileref') == {(b'good.cpp', 0, 21, b'header.hpp')}
 
 
 def test_unknown_flags(tmp_path: Path):
@@ -152,12 +141,8 @@ a.out:
     )
     p, state = init_pass(tmp_path, input_dir)
     assert state is not None
-    bundle_paths = state.hint_bundle_paths()
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'header.h'}
+    assert load_ref_hints(state, b'@fileref') == {(b'good.c', 0, 19, b'header.h')}
 
 
 def test_some_commands_fail(tmp_path: Path):
@@ -181,12 +166,11 @@ good2.o:
     )
     p, state = init_pass(tmp_path, input_dir)
     assert state is not None
-    bundle_paths = state.hint_bundle_paths()
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'good1.h', b'good2.h'}
+    assert load_ref_hints(state, b'@fileref') == {
+        (b'good1.c', 0, 18, b'good1.h'),
+        (b'good2.c', 0, 18, b'good2.h'),
+    }
 
 
 def test_includes_from_outside(tmp_path: Path):
@@ -205,12 +189,8 @@ a.out:
     )
     p, state = init_pass(tmp_path, input_dir)
     assert state is not None
-    bundle_paths = state.hint_bundle_paths()
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'inside.h'}
+    assert load_ref_hints(state, b'@fileref') == {(None, None, None, b'inside.h')}
 
 
 def test_clang_header_module(tmp_path: Path):
@@ -232,19 +212,19 @@ module mod {
     (input_dir / 'Makefile').write_text(
         """
 mod.pcm:
-\tclang -fmodules -Xclang -emit-module -fmodule-name=mod mod.cppmap -o mod.pcm
+\tclang -xc++ -fmodules -Xclang -emit-module -fmodule-name=mod -c mod.cppmap -o mod.pcm
 a.out: mod.pcm
 \tclang -fmodules -fmodule-file=mod.pcm main.cc
         """
     )
     p, state = init_pass(tmp_path, input_dir)
     assert state is not None
-    bundle_paths = state.hint_bundle_paths()
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'modular1.h', b'modular2.h', b'text.h'}
+    assert load_ref_hints(state, b'@fileref') == {
+        (b'main.cc', 0, 21, b'modular1.h'),
+        (b'modular1.h', 0, 21, b'modular2.h'),
+        (b'modular2.h', 0, 17, b'text.h'),
+    }
 
 
 def test_clang_header_module_home_is_cwd(tmp_path: Path):
@@ -265,14 +245,10 @@ module mod {
     (input_dir / 'Makefile').write_text(
         """
 mod.pcm:
-\tclang -c -fmodules -Xclang -emit-module -fmodule-name=mod -Xclang -fmodule-map-file-home-is-cwd -xc++ another_sub/mod.cppmap -o mod.pcm
+\tclang -xc++ -fmodules -Xclang -emit-module -fmodule-name=mod -Xclang -fmodule-map-file-home-is-cwd -c another_sub/mod.cppmap -o mod.pcm
         """
     )
     p, state = init_pass(tmp_path, input_dir)
     assert state is not None
-    bundle_paths = state.hint_bundle_paths()
 
-    assert b'@fileref' in bundle_paths
-    bundle = load_hints(bundle_paths[b'@fileref'], None, None)
-    refs = {bundle.vocabulary[h.extra] if h.extra else None for h in bundle.hints}
-    assert refs == {b'sub/modular.h', b'sub/text.h'}
+    assert load_ref_hints(state, b'@fileref') == {(b'sub/modular.h', 0, 17, b'sub/text.h')}
