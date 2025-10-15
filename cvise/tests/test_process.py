@@ -75,6 +75,17 @@ def test_run_process_success(process_event_notifier: ProcessEventNotifier, pid_q
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_run_process_slow(process_event_notifier: ProcessEventNotifier):
+    stdout, stderr, returncode = process_event_notifier.run_process(
+        'echo a && sleep 1 && echo b && sleep 1 && echo c', shell=True
+    )
+
+    assert stdout == b'a\nb\nc\n'
+    assert stderr == b''
+    assert returncode == 0
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 def test_run_process_nonzero_return_code(process_event_notifier: ProcessEventNotifier, pid_queue: queue.Queue):
     stdout, stderr, returncode = process_event_notifier.run_process(['false'])
 
@@ -136,6 +147,28 @@ def test_run_process_finish_notification_after_exit(
     assert returncode != 0
 
     thread.join()
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_run_process_stdin(process_event_notifier: ProcessEventNotifier):
+    stdout, stderr, returncode = process_event_notifier.run_process(
+        'cat', shell=True, stdin=subprocess.PIPE, input=b'foo'
+    )
+
+    assert stdout == b'foo'
+    assert stderr == b''
+    assert returncode == 0
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_run_process_stdin_slow(process_event_notifier: ProcessEventNotifier):
+    stdout, stderr, returncode = process_event_notifier.run_process(
+        'sleep 3 && cat', shell=True, stdin=subprocess.PIPE, input=b'foo'
+    )
+
+    assert stdout == b'foo'
+    assert stderr == b''
+    assert returncode == 0
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')

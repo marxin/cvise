@@ -265,6 +265,8 @@ class ProcessEventNotifier:
     that should be killed.
     """
 
+    _EVENT_LOOP_STEP = 1  # seconds
+
     def __init__(self, pid_queue: queue.Queue | None):
         self._my_pid = os.getpid()
         self._pid_queue = pid_queue
@@ -302,7 +304,7 @@ class ProcessEventNotifier:
                 # have not enough time to properly kill children, and zombies aren't a concern.
                 with _auto_kill_on_timeout(proc):
                     with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION):
-                        stdout_data, stderr_data = proc.communicate(input=input, timeout=timeout)  # type: ignore[arg-type]
+                        stdout_data, stderr_data = self._communicate_with_sig_checks(proc, input, timeout)
 
         return stdout_data, stderr_data, proc.returncode  # type: ignore
 
@@ -342,6 +344,25 @@ class ProcessEventNotifier:
             if self._pid_queue:
                 event_type = ProcessEventType.ORPHANED if proc.returncode is None else ProcessEventType.FINISHED
                 self._pid_queue.put(ProcessEvent(worker_pid=self._my_pid, child_pid=proc.pid, event_type=event_type))
+
+    def _communicate_with_sig_checks(
+        self, proc: subprocess.Popen, input: bytes | None, timeout: float | None
+    ) -> tuple[bytes, bytes]:
+        stop_time = None if timeout is None else time.monotonic() + timeout
+        while True:
+            sigmonitor.maybe_retrigger_action()
+
+            step_timeout = self._EVENT_LOOP_STEP
+            if stop_time is not None:
+                left = max(0, stop_time - time.monotonic())
+                step_timeout = min(step_timeout, left)
+
+            try:
+                return proc.communicate(input=input, timeout=step_timeout)  # type: ignore[arg-type]
+            except subprocess.TimeoutExpired:
+                if step_timeout == 0:
+                    raise  # we reached the original timeout, so bail out
+                input = b''  # the input has been written in the first communicate() call
 
 
 class MPTaskLossWorkaround:
