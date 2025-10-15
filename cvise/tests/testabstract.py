@@ -145,7 +145,7 @@ def _validate_hint(hint: Hint, bundle: HintBundle, test_case: Path, allowed_hint
             assert patch.value < len(bundle.vocabulary)
 
 
-def load_ref_hints(state: HintState, type: bytes) -> set[tuple[Path | None, int | None, int | None, Path]]:
+def load_ref_hints(state: HintState, type: bytes) -> set[tuple[bytes | None, int | None, int | None, bytes]]:
     bundle_paths = state.hint_bundle_paths()
     if type not in bundle_paths:
         return set()
@@ -155,15 +155,9 @@ def load_ref_hints(state: HintState, type: bytes) -> set[tuple[Path | None, int 
         assert hint.extra is not None
         assert len(hint.patches) <= 1
         if hint.patches:
-            assert hint.patches[0].path is not None
-            items.add(
-                (
-                    bundle.vocabulary[hint.patches[0].path],
-                    hint.patches[0].left,
-                    hint.patches[0].right,
-                    bundle.vocabulary[hint.extra],
-                )
-            )
+            p = hint.patches[0]
+            assert p.path is not None
+            items.add((bundle.vocabulary[p.path], p.left, p.right, bundle.vocabulary[hint.extra]))
         else:
             items.add((None, None, None, bundle.vocabulary[hint.extra]))
     return items
