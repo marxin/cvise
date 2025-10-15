@@ -1,9 +1,10 @@
 from pathlib import Path
-import pytest
 from typing import Union
 
-from cvise.passes.hint_based import HintState
+import pytest
+
 from cvise.passes.blank import BlankPass
+from cvise.passes.hint_based import HintState
 from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir, validate_stored_hints
 from cvise.utils.process import ProcessEventNotifier
 

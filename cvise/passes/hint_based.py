@@ -1,19 +1,20 @@
 from __future__ import annotations
+
+import os
+import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
-import os
 from pathlib import Path
-import tempfile
 from typing import Any
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult, ProcessEventNotifier
 from cvise.utils.fileutil import sanitize_for_file_name
 from cvise.utils.hint import (
+    HintApplicationReport,
+    HintBundle,
     apply_hints,
     group_hints_by_type,
     is_special_hint_type,
-    HintBundle,
-    HintApplicationReport,
     load_hints,
     sort_hints,
     store_hints,

@@ -1,18 +1,18 @@
-from collections.abc import Iterator
 import contextlib
 import gc
 import multiprocessing
 import multiprocessing.managers
 import os
-import pytest
 import queue
 import signal
 import threading
 import time
 import weakref
+from collections.abc import Iterator
+
+import pytest
 
 from cvise.utils import sigmonitor
-
 
 _SLEEP_INFINITY = 100
 

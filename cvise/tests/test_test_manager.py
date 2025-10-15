@@ -3,21 +3,21 @@ import glob
 import logging
 import multiprocessing
 import os
-from pathlib import Path
-import psutil
-import pytest
 import re
 import sys
 import time
+from pathlib import Path
 from typing import Union
 from unittest.mock import patch
+
+import psutil
+import pytest
 
 from cvise.passes.abstract import AbstractPass, PassResult  # noqa: E402
 from cvise.passes.hint_based import HintBasedPass  # noqa: E402
 from cvise.utils import sigmonitor, statistics, testing  # noqa: E402
 from cvise.utils.fileutil import filter_files_by_patterns
 from cvise.utils.hint import Hint, HintBundle, Patch
-
 
 DEFAULT_INPUT_CONTENTS = """foo
 bar

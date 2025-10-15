@@ -1,6 +1,6 @@
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 from cvise.passes.special import SpecialPass
 from cvise.tests.testabstract import iterate_pass

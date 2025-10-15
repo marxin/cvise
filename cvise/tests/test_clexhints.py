@@ -1,14 +1,14 @@
-from pathlib import Path
-import pytest
 import stat
+from pathlib import Path
 from typing import Any
+
+import pytest
 
 from cvise.passes.abstract import SubsegmentState
 from cvise.passes.clexhints import ClexHintsPass
 from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
 from cvise.utils.process import ProcessEventNotifier
-
 
 # How many times to repeat each test that involves randomness (for extra reassurance).
 RANDOM_TEST_REPETITIONS = 10

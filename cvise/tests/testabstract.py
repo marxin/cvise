@@ -1,15 +1,15 @@
+import tempfile
+from pathlib import Path
+from typing import Optional, Union
+
 import jsonschema
 import msgspec
-from pathlib import Path
-import tempfile
-from typing import Optional, Union
 
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.fileutil import CloseableTemporaryFile
 from cvise.utils.hint import HINT_SCHEMA_STRICT, Hint, HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
-
 
 _TYPES_WITH_PATH_EXTRA = (b'@fileref',)
 _KNOWN_OPERATIONS = (b'rm',)

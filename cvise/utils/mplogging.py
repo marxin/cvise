@@ -1,13 +1,13 @@
 """Collects logs from multiprocessing workers and filters out canceled workers."""
 
-from collections import deque
-from collections.abc import Iterator
-from contextlib import contextmanager
 import copy
-from dataclasses import dataclass
 import logging
 import multiprocessing
 import threading
+from collections import deque
+from collections.abc import Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import Callable
 
 

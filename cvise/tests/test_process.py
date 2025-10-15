@@ -1,21 +1,22 @@
 import multiprocessing
 import os
-from pathlib import Path
-import pebble
-import pytest
 import queue
 import signal
 import subprocess
 import sys
 import threading
 import time
+from pathlib import Path
 from typing import Callable
+
+import pebble
+import pytest
 
 from cvise.utils.process import (
     MPContextHook,
     ProcessEvent,
-    ProcessEventType,
     ProcessEventNotifier,
+    ProcessEventType,
     ProcessKiller,
     ProcessMonitor,
 )

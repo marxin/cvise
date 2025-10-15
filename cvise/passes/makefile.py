@@ -1,14 +1,13 @@
+import re
 from collections.abc import Sequence
 from enum import Enum, unique
 from pathlib import Path
-import re
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import makefileparser
 from cvise.utils.fileutil import filter_files_by_patterns
 from cvise.utils.hint import Hint, HintBundle, Patch
 from cvise.utils.makefileparser import Makefile, SourceLoc, TextWithLoc
-
 
 # TODO: make these configurable
 _ARG_REMOVAL_PROG_ALLOWLIST = re.compile(r'\bCC\b|clang|CLANG|\bCXX\b|g\+\+|G\+\+|gcc|GCC')

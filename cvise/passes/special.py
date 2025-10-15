@@ -1,5 +1,5 @@
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Callable, Union
 
 from cvise.passes.abstract import AbstractPass, PassResult

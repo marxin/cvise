@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 
 import argparse
-from contextlib import nullcontext
 import datetime
 import importlib.util
-from itertools import chain
 import logging
 import multiprocessing
 import multiprocessing.forkserver
 import os
 import os.path
-from pathlib import Path
 import sys
 import tempfile
 import time
+from contextlib import nullcontext
+from itertools import chain
+from pathlib import Path
 
 # If the cvise modules cannot be found
 # add the known install location to the path
@@ -23,15 +23,18 @@ if importlib.util.find_spec('cvise') is None:
     sys.path.append(destdir + '@CMAKE_INSTALL_FULL_DATADIR@')
 
 import chardet  # noqa: E402
+import psutil  # noqa: E402
+
 from cvise.cvise import CVise  # noqa: E402
 from cvise.passes.abstract import AbstractPass  # noqa: E402
 from cvise.utils import statistics, testing  # noqa: E402
-from cvise.utils.error import CViseError  # noqa: E402
-from cvise.utils.error import MissingPassGroupsError  # noqa: E402
+from cvise.utils.error import (
+    CViseError,  # noqa: E402
+    MissingPassGroupsError,  # noqa: E402
+)
 from cvise.utils.externalprograms import find_external_programs  # noqa: E402
 from cvise.utils.fileutil import CloseableTemporaryFile  # noqa: E402
 from cvise.utils.hint import apply_hints, load_hints  # noqa: E402
-import psutil  # noqa: E402
 
 
 class DeltaTimeFormatter(logging.Formatter):

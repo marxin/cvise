@@ -3,8 +3,8 @@ import sys
 assert sys.platform != 'win32'
 
 import contextlib  # noqa: E402
-import termios  # noqa: E402
 import select  # noqa: E402
+import termios  # noqa: E402
 from typing import Union  # noqa: E402
 
 

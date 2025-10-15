@@ -1,8 +1,8 @@
 import os
-from pathlib import Path
 import re
 import shutil
 import tempfile
+from pathlib import Path
 
 from cvise.passes.abstract import AbstractPass, PassResult
 

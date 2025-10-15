@@ -1,7 +1,8 @@
-import msgspec
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from typing import Optional
+
+import msgspec
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.fileutil import filter_files_by_patterns

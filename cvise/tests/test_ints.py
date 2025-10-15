@@ -1,6 +1,6 @@
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 from cvise.passes.abstract import PassResult
 from cvise.passes.ints import IntsPass

@@ -1,12 +1,12 @@
 from pathlib import Path
-import pytest
 from typing import Any
+
+import pytest
 
 from cvise.passes.treesitter import TreeSitterPass
 from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
 from cvise.utils.process import ProcessEventNotifier
-
 
 REPLACE_FUNC_DEF = 'replace-function-def-with-decl'
 ERASE_NAMESPACE = 'erase-namespace'

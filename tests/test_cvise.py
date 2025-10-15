@@ -1,13 +1,14 @@
-from collections.abc import Iterator
 import os
-from pathlib import Path
-import pytest
 import shutil
 import signal
 import stat
 import subprocess
 import tempfile
 import time
+from collections.abc import Iterator
+from pathlib import Path
+
+import pytest
 
 
 def get_source_path(testcase: str) -> Path:

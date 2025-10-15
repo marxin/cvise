@@ -1,12 +1,13 @@
 from __future__ import annotations
+
 import importlib.util
 import os
-from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
 destdir = os.getenv('DESTDIR', '')
 if importlib.util.find_spec('cvise') is None:
@@ -14,8 +15,8 @@ if importlib.util.find_spec('cvise') is None:
     sys.path.append(destdir + '@CMAKE_INSTALL_FULL_DATADIR@')
 
 from cvise.passes.clanghints import parse_clang_delta_hints  # noqa: E402
-from cvise.utils.hint import apply_hints  # noqa: E402
 from cvise.tests.testabstract import validate_hint_bundle  # noqa: E402
+from cvise.utils.hint import apply_hints  # noqa: E402
 
 
 def get_clang_version():

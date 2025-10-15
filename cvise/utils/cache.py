@@ -1,7 +1,7 @@
+import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-import tempfile
 from typing import Optional
 
 from cvise.passes.abstract import AbstractPass

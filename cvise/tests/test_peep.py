@@ -1,6 +1,6 @@
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 from cvise.passes.peep import PeepPass
 from cvise.tests.testabstract import iterate_pass
