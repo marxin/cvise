@@ -1,8 +1,9 @@
 import re
 from collections.abc import Iterator
-import msgspec
 from pathlib import Path
 from typing import Optional
+
+import msgspec
 
 from cvise.passes.abstract import AbstractPass
 from cvise.passes.hint_based import HintBasedPass

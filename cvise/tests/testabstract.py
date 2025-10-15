@@ -12,7 +12,11 @@ from cvise.utils.fileutil import CloseableTemporaryFile
 from cvise.utils.hint import HINT_SCHEMA_STRICT, Hint, HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
 
-_TYPES_WITH_PATH_EXTRA = (b'@fileref',)
+
+_TYPES_WITH_PATH_EXTRA = (
+    b'@fileref',
+    b'@c-include',
+)
 _KNOWN_OPERATIONS = (b'rm', b'paste')
 
 
@@ -143,6 +147,12 @@ def _validate_hint(hint: Hint, bundle: HintBundle, test_case: Path, allowed_hint
             assert patch.left <= patch.right
         if patch.value is not None:
             assert patch.value < len(bundle.vocabulary)
+            if patch.operation is not None and bundle.vocabulary[patch.operation] == b'paste':
+                path = Path(bundle.vocabulary[patch.value].decode())
+                assert not path.is_absolute()
+                full_path = test_case / path
+                assert full_path.is_relative_to(test_case)
+                assert full_path.is_file()
 
 
 def load_ref_hints(state: HintState, type: bytes) -> set[tuple[bytes | None, int | None, int | None, bytes]]:

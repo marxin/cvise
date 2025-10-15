@@ -47,7 +47,7 @@ class InlineIncludesPass(HintBasedPass):
                         from_path = Path(bundle.vocabulary[patch.path].decode())
                         inclusions.append(_IncludeLoc(from_path, patch.left, patch.right))
                 else:
-                    inclusions.append(None)
+                    inclusions.append(None)  # inclusion from an unspecified location (e.g., outside the test case)
 
         vocab = [b'paste']
         hints = []
@@ -55,6 +55,8 @@ class InlineIncludesPass(HintBasedPass):
             if len(inclusions) != 1:
                 continue
             loc = inclusions[0]
+            if loc is None:
+                continue
 
             vocab.append(str(to_path).encode())
             header_path_id = len(vocab) - 1

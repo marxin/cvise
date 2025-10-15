@@ -9,24 +9,15 @@ heuristics and to perform reduction more efficiently (as algorithms can now be
 applied to all heuristics in a uniform way).
 """
 
-<<<<<<< HEAD
-=======
 from __future__ import annotations
-from collections.abc import Sequence
-from copy import deepcopy
->>>>>>> 08616028 (multifile: Introduce InlineIncludePass)
+
 import dataclasses
 import json
 import math
 from collections.abc import Sequence
-from copy import copy, deepcopy
+from copy import deepcopy
 from pathlib import Path
-<<<<<<< HEAD
-from typing import Any, Optional, TextIO
-=======
 from typing import Any, TextIO
-import zstandard
->>>>>>> 08616028 (multifile: Introduce InlineIncludePass)
 
 import msgspec
 import zstandard

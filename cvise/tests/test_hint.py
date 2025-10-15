@@ -346,6 +346,7 @@ def test_apply_hints_statistics(tmp_test_case: Path, tmp_transformed_file: Path)
     validate_hint_bundle(bundle2, tmp_test_case)
 
     report = apply_hints([bundle1, bundle2], tmp_test_case, tmp_transformed_file)
+    assert report is not None
 
     assert tmp_transformed_file.read_text() == ' az'
     assert report.stats_delta_per_pass == {'pass1': -1, 'pass2': -7}
