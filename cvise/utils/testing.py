@@ -321,6 +321,22 @@ class PassContext:
             and any(not is_special_hint_type(t) for t in self.hint_bundle_paths.keys())
         )
 
+    def should_reinit_after_test_case_update(self, other_contexts: Sequence[PassContext]) -> bool:
+        """Whether the pass should be initialized in the next round, after a reduction is applied to the test case."""
+        if self.stage == PassStage.ENUMERATING and self.state is not None:
+            # A pass that hasn't finished enumerating its states has to be reinitialized immediately, to continue the
+            # enumeration.
+            return True
+        if isinstance(self.pass_, HintBasedPass):
+            # Also reinitialize a pass if it generates input data for other passes.
+            outputs = set(self.pass_.output_hint_types())
+            for ctx in other_contexts:
+                if ctx.enabled and not ctx.defunct and isinstance(ctx.pass_, HintBasedPass):
+                    inputs = set(ctx.pass_.input_hint_types())
+                    if not outputs.isdisjoint(inputs):
+                        return True
+        return False
+
 
 @unique
 class JobType(Enum):
@@ -1066,8 +1082,8 @@ class TestManager:
                 self.success_candidate.pass_state if pass_id == self.success_candidate.pass_id else None
             )
 
-            # Next round should reinitialize unfinished passes.
-            if ctx.stage == PassStage.ENUMERATING and ctx.state is not None:
+            # Decide which passes to reinit in the next round.
+            if ctx.should_reinit_after_test_case_update([c for c in self.pass_contexts if c != ctx]):
                 ctx.stage = PassStage.BEFORE_INIT
 
         if len(self.pass_contexts) > 1:
