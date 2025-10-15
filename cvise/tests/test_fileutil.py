@@ -1,15 +1,16 @@
 import contextlib
 import enum
 import os
-from pathlib import Path
-import pytest
 import shutil
 import signal
 import subprocess
 import sys
 import tempfile
 import time
+from pathlib import Path
 from typing import Callable, Union
+
+import pytest
 
 from cvise.utils.fileutil import (
     chdir,

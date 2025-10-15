@@ -1,5 +1,5 @@
-from pathlib import Path
 import re
+from pathlib import Path
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.hint import Hint, HintBundle, Patch

@@ -1,9 +1,10 @@
-import msgspec
 from pathlib import Path
+
+import msgspec
 import pytest
 
-from cvise.utils.hint import apply_hints, Hint, HintBundle, load_hints, Patch, sort_hints, store_hints, subtract_hints
 from cvise.tests.testabstract import validate_hint_bundle
+from cvise.utils.hint import Hint, HintBundle, Patch, apply_hints, load_hints, sort_hints, store_hints, subtract_hints
 
 
 @pytest.fixture

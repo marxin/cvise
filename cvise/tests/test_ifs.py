@@ -1,7 +1,7 @@
-from pathlib import Path
 import tempfile
-from typing import Any
 import unittest
+from pathlib import Path
+from typing import Any
 
 from cvise.passes.abstract import ProcessEventNotifier
 from cvise.passes.ifs import IfPass

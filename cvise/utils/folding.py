@@ -1,8 +1,8 @@
 """Implementation of folding (merging) multiple successful transformations."""
 
+import random
 from dataclasses import dataclass
 from pathlib import Path
-import random
 from typing import Any, Union
 
 from cvise.passes.abstract import PassResult

@@ -1,15 +1,15 @@
 import logging
-import msgspec
-from pathlib import Path
 import shlex
 import subprocess
 import time
+from pathlib import Path
 from typing import Optional, Union
+
+import msgspec
 
 from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.hint import Hint, HintBundle
 from cvise.utils.process import ProcessEventNotifier
-
 
 CLANG_STD_CHOICES = ('c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++2b')
 

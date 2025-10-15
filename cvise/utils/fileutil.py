@@ -1,18 +1,17 @@
-from collections.abc import Iterable, Iterator
 import contextlib
 import difflib
 import fnmatch
 import hashlib
 import io
 import os
-from pathlib import Path
 import random
 import re
 import shutil
 import string
 import tempfile
+from collections.abc import Iterable, Iterator
+from pathlib import Path
 from typing import Optional, Union
-
 
 # Singleton buffer for hash_test_case(), to avoid reallocations.
 _hash_buf: Optional[bytearray] = None

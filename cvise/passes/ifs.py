@@ -1,6 +1,6 @@
-from pathlib import Path
 import re
 import tempfile
+from pathlib import Path
 from typing import Optional
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult

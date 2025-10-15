@@ -1,15 +1,12 @@
 from __future__ import annotations
-from collections.abc import Mapping, Sequence
-from concurrent.futures import FIRST_COMPLETED, Future, wait
+
+import concurrent.futures
 import contextlib
-from dataclasses import dataclass
-from enum import auto, Enum, unique
 import filecmp
 import logging
 import math
 import multiprocessing
 import os
-from pathlib import Path
 import platform
 import queue
 import shutil
@@ -17,8 +14,14 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Mapping, Sequence
+from concurrent.futures import FIRST_COMPLETED, Future, wait
+from dataclasses import dataclass
+from enum import Enum, auto, unique
+from pathlib import Path
 from typing import Any, Callable
-import concurrent.futures
+
+import pebble
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import AbstractPass, PassResult
@@ -37,7 +40,6 @@ from cvise.utils.folding import FoldingManager, FoldingStateIn, FoldingStateOut
 from cvise.utils.hint import is_special_hint_type, load_hints
 from cvise.utils.process import MPContextHook, MPTaskLossWorkaround, ProcessEventNotifier, ProcessMonitor
 from cvise.utils.readkey import KeyLogger
-import pebble
 
 MAX_PASS_INCREASEMENT_THRESHOLD = 3
 

@@ -1,26 +1,27 @@
 """Helpers for interacting with child processes."""
 
 from __future__ import annotations
+
 import collections
-from collections.abc import Iterator, Mapping
-from concurrent.futures import ALL_COMPLETED, Future, wait
 import contextlib
-from dataclasses import dataclass, field
-from enum import auto, Enum, unique
 import heapq
-import os
 import multiprocessing
 import multiprocessing.managers
-import pebble
-import psutil
+import os
 import queue
 import shlex
 import subprocess
 import threading
 import time
+from collections.abc import Iterator, Mapping
+from concurrent.futures import ALL_COMPLETED, Future, wait
+from dataclasses import dataclass, field
+from enum import Enum, auto, unique
+
+import pebble
+import psutil
 
 from cvise.utils import sigmonitor
-
 
 _mp_task_loss_workaround_obj: MPTaskLossWorkaround | None = None
 

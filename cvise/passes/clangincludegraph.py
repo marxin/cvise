@@ -1,6 +1,6 @@
+import re
 from collections.abc import Iterator
 from pathlib import Path
-import re
 from typing import Optional
 
 from cvise.passes.abstract import AbstractPass
@@ -8,7 +8,6 @@ from cvise.passes.hint_based import HintBasedPass
 from cvise.utils import makefileparser
 from cvise.utils.hint import Hint, HintBundle, Patch
 from cvise.utils.process import ProcessEventNotifier
-
 
 # TODO: Make these parameters configurable.
 # Only execute clang_include_graph for the makefile recipe commands that start from the following programs. The goal is

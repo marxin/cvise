@@ -1,7 +1,7 @@
-from pathlib import Path
 import tempfile
-from typing import Any, Union
 import unittest
+from pathlib import Path
+from typing import Any, Union
 
 from cvise.passes.abstract import PassResult
 from cvise.passes.comments import CommentsPass

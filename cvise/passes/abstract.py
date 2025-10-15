@@ -1,11 +1,12 @@
 from __future__ import annotations
+
 import copy
-from dataclasses import dataclass
-from enum import auto, Enum, unique
 import logging
-from pathlib import Path
 import random
 import shutil
+from dataclasses import dataclass
+from enum import Enum, auto, unique
+from pathlib import Path
 from typing import Any
 
 from cvise.utils.process import ProcessEventNotifier

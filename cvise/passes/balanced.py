@@ -1,7 +1,7 @@
-from enum import Enum, auto, unique
-from dataclasses import dataclass
-from pathlib import Path
 import re
+from dataclasses import dataclass
+from enum import Enum, auto, unique
+from pathlib import Path
 from typing import Optional, Union
 
 from cvise.passes.hint_based import HintBasedPass

@@ -1,6 +1,7 @@
 from pathlib import Path
-import pytest
 from typing import Any
+
+import pytest
 
 from cvise.passes.abstract import PassResult
 from cvise.passes.rmunusedfiles import RmUnusedFilesPass

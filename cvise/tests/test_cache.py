@@ -1,8 +1,9 @@
-from collections.abc import Iterator
-from pathlib import Path
-import pytest
 import tempfile
 import uuid
+from collections.abc import Iterator
+from pathlib import Path
+
+import pytest
 
 from cvise.passes.abstract import AbstractPass
 from cvise.utils import fileutil

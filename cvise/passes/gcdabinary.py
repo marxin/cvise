@@ -1,6 +1,6 @@
 import logging
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from typing import Optional
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult

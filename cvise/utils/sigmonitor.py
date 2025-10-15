@@ -14,17 +14,17 @@ Ctrl-C keystroke. This helper allows to prevent whether a signal was observer
 and letting the code raise the exception to trigger the shutdown.
 """
 
-from collections.abc import Iterator
 import concurrent.futures
-from concurrent.futures import Future
 import contextlib
-from contextlib import contextmanager
 import enum
 import os
-from pathlib import Path
 import signal
-from typing import Optional
 import weakref
+from collections.abc import Iterator
+from concurrent.futures import Future
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Optional
 
 
 @enum.unique

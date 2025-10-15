@@ -3,9 +3,9 @@ import unittest
 from cvise.utils.nestedmatcher import (
     BalancedExpr,
     BalancedPattern,
-    find,
     OrPattern,
     RegExPattern,
+    find,
     search,
 )
 

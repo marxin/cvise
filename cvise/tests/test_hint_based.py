@@ -3,7 +3,7 @@ from typing import Optional
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.tests.testabstract import collect_all_transforms, iterate_pass, validate_hint_bundle
-from cvise.utils.hint import Hint, HintBundle, load_hints, Patch
+from cvise.utils.hint import Hint, HintBundle, Patch, load_hints
 from cvise.utils.process import ProcessEventNotifier
 
 

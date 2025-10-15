@@ -3,7 +3,6 @@ from pathlib import Path
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.hint import Hint, HintBundle, Patch
 
-
 _FILEREF = b'@fileref'
 _RM = b'rm'
 _RM_UNUSED_FILE = b'rm-unused-file'

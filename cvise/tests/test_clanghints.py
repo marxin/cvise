@@ -3,8 +3,8 @@
 Note that these tests are focused on the Python side of this pass. The clang_delta counterpart has its own comprehensive
 tests in clang_delta/tests/test_clang_delta.py."""
 
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from typing import Any
 
 from cvise.passes.clanghints import ClangHintsPass

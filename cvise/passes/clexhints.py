@@ -1,8 +1,9 @@
-import msgspec
-from pathlib import Path
 import re
 import subprocess
+from pathlib import Path
 from typing import Optional
+
+import msgspec
 
 from cvise.passes.abstract import SubsegmentState
 from cvise.passes.hint_based import HintBasedPass

@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 import copy
+import re
 from dataclasses import dataclass
 from enum import Enum, unique
 from pathlib import Path
-import re
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.fileutil import filter_files_by_patterns

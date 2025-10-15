@@ -1,6 +1,7 @@
 from pathlib import Path
-import pytest
 from typing import Any
+
+import pytest
 
 from cvise.passes.makefile import MakefilePass
 from cvise.tests.testabstract import collect_all_transforms_dir, validate_stored_hints

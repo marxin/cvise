@@ -9,16 +9,16 @@ heuristics and to perform reduction more efficiently (as algorithms can now be
 applied to all heuristics in a uniform way).
 """
 
-from collections.abc import Sequence
-from copy import copy, deepcopy
 import dataclasses
 import json
 import math
-import msgspec
+from collections.abc import Sequence
+from copy import copy, deepcopy
 from pathlib import Path
 from typing import Any, Optional, TextIO
-import zstandard
 
+import msgspec
+import zstandard
 
 # Currently just a hardcoded constant - the number is reserved for backwards-incompatible format changes in the future.
 FORMAT_NAME = 'cvise_hints_v0'

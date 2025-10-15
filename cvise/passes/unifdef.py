@@ -1,8 +1,8 @@
 import filecmp
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+from pathlib import Path
 
 from cvise.passes.abstract import AbstractPass, PassResult
 

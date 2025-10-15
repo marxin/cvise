@@ -1,6 +1,7 @@
 from pathlib import Path
-import pytest
 from typing import Any
+
+import pytest
 
 from cvise.passes.clangincludegraph import ClangIncludeGraphPass
 from cvise.passes.hint_based import HintBasedPass

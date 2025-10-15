@@ -1,5 +1,5 @@
-from pathlib import Path
 import re
+from pathlib import Path
 
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils import nestedmatcher

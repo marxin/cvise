@@ -1,8 +1,8 @@
-from dataclasses import dataclass
-from itertools import chain
 import json
 import logging
 import os
+from dataclasses import dataclass
+from itertools import chain
 
 from cvise.passes.abstract import AbstractPass
 from cvise.passes.balanced import BalancedPass
