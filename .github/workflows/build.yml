@@ -39,7 +39,7 @@ jobs:
     steps:
     - run: zypper -n install
         binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel
-        python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess python3-pytest-xdist
+        python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess
         unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-pip python3-jsonschema
         python3-msgspec python3-zstandard
     - run: zypper -n install sqlite-devel python3
@@ -55,7 +55,7 @@ jobs:
             ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
             make -j`nproc` VERBOSE=1
     - name: test
-      run: pytest -n $(($(nproc) + 1))
+      run: pytest
       working-directory: objdir
 
   CI-python:
@@ -83,7 +83,7 @@ jobs:
       with:
         python-version: "${{ matrix.python }}"
         cache: 'pip'
-    - run: pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess pytest-xdist zstandard
+    - run: pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
     - run: wget https://apt.llvm.org/llvm.sh
     - run: chmod +x llvm.sh
     - run: ./llvm.sh all
@@ -92,7 +92,7 @@ jobs:
       working-directory: objdir
     - run: make -j`nproc` VERBOSE=1
       working-directory: objdir
-    - run: python -m pytest -n $(($(nproc) + 1))
+    - run: python -m pytest
       working-directory: objdir
 
   ruff:
@@ -141,7 +141,7 @@ jobs:
     steps:
     - run: zypper -n install
         binutils clang-devel cmake flex gcc-c++ llvm-devel python3 python3-pyright
-        python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess python3-pytest-xdist
+        python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess
         unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-jsonschema
         python3-msgspec python3-zstandard
     - uses: actions/checkout@v4
