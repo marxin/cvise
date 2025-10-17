@@ -44,6 +44,7 @@
     {"pass": "clexhints", "arg": "rm-toks-21-to-24", "include": ["slow"]},
     {"pass": "clexhints", "arg": "rm-toks-25-to-28", "include": ["slow"]},
     {"pass": "clexhints", "arg": "rm-toks-29-to-32", "include": ["slow"]},
+    {"pass": "inlineincludes"},
     {"pass": "rmunusedfiles"}
  ],
  "first": [
@@ -130,6 +131,7 @@
     {"pass": "clexhints", "arg": "rm-toks-21-to-24", "include": ["slow"]},
     {"pass": "clexhints", "arg": "rm-toks-25-to-28", "include": ["slow"]},
     {"pass": "clexhints", "arg": "rm-toks-29-to-32", "include": ["slow"]},
+    {"pass": "inlineincludes"},
     {"pass": "rmunusedfiles"}
  ],
  "main": [

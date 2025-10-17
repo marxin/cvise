@@ -55,7 +55,7 @@ jobs:
             ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
             make -j`nproc` VERBOSE=1
     - name: test
-      run: pytest
+      run: pytest -sx
       working-directory: objdir
 
   CI-python:
@@ -92,7 +92,7 @@ jobs:
       working-directory: objdir
     - run: make -j`nproc` VERBOSE=1
       working-directory: objdir
-    - run: python -m pytest
+    - run: pytest -sx --log-cli-level=INFO --log-cli-format='%(asctime)s.%(msecs)03d %(levelname)s %(message)s'
       working-directory: objdir
 
   ruff:

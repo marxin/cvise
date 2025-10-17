@@ -279,13 +279,15 @@ class HintBasedPass(AbstractPass):
         if not state.per_type_states:  # possible if all hints produced by new()/advance_on_success() were "special"
             return PassResult.STOP, None
         report = self.load_and_apply_hints(original_test_case, test_case, [state])
+        if report is None:
+            return PassResult.INVALID, None
         written_paths.update(report.written_paths)
         return PassResult.OK, state
 
     @staticmethod
     def load_and_apply_hints(
         original_test_case: Path, test_case: Path, states: Sequence[HintState]
-    ) -> HintApplicationReport:
+    ) -> HintApplicationReport | None:
         hint_bundles: list[HintBundle] = []
         for state in states:
             sub_state = state.current_substate()
