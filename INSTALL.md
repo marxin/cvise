@@ -75,12 +75,12 @@ manager:
 
 * [Flex](http://flex.sourceforge.net/)
 
-* [LLVM/Clang 9.0.0 or later](http://llvm.org/releases/download.html)
+* [LLVM/Clang 18.0.0 or later](http://llvm.org/releases/download.html)
   (No need to compile it: the appropriate "pre-built binaries" package is
   all you need).  For example, the openSUSE Tumbleweed provides them
   by `llvm-devel` and `clang-devel` packages.
 
-  Tested LLVM versions: ``9.0.0`` - ``15.0.0``
+  Tested LLVM versions: ``18.0.0`` - ``22.0.0``
 
 * [Python 3.9+](https://www.python.org/downloads/)
 
