@@ -18,6 +18,7 @@ jobs:
 
     strategy:
       matrix:
+        # Note: when changing the versions below, update INSTALL.md as well.
         llvm: [18, 19, 20, 21]
         build-type: [DEBUG]
         include:
