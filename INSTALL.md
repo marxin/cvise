@@ -98,6 +98,8 @@ manager:
 
 * [unifdef](http://dotat.at/prog/unifdef/)
 
+* [eval_type_backport](https://pypi.org/project/eval-type-backport/) (only needed when using Python 3.9)
+
 Optional packages:
 
 * [pytest](https://docs.pytest.org/en/latest/)

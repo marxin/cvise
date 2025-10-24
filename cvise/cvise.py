@@ -20,6 +20,7 @@ from cvise.passes.ifs import IfPass
 from cvise.passes.includeincludes import IncludeIncludesPass
 from cvise.passes.includes import IncludesPass
 from cvise.passes.indent import IndentPass
+from cvise.passes.inlineincludes import InlineIncludesPass
 from cvise.passes.ints import IntsPass
 from cvise.passes.line_markers import LineMarkersPass
 from cvise.passes.lines import LinesPass
@@ -89,6 +90,7 @@ class CVise:
         'includeincludes': IncludeIncludesPass,
         'includes': IncludesPass,
         'indent': IndentPass,
+        'inlineincludes': InlineIncludesPass,
         'ints': IntsPass,
         'line_markers': LineMarkersPass,
         'lines': LinesPass,
