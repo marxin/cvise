@@ -86,7 +86,7 @@ jobs:
       with:
         python-version: "${{ matrix.python }}"
         cache: 'pip'
-    - run: pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard ${{ matrix.extra-deps }}
+    - run: pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard ${{ join(matrix.extra-deps, ' ') }}
     - run: wget https://apt.llvm.org/llvm.sh
     - run: chmod +x llvm.sh
     - run: ./llvm.sh all
