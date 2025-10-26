@@ -181,11 +181,8 @@ bool ReplaceSimpleTypedef::isValidType(const Type *Ty, const TypedefNameDecl *D)
     return true;
 
   if (const RecordType *RDTy = Ty->getAs<RecordType>()) {
-#if LLVM_VERSION_MAJOR < 22
     const RecordDecl *RD = RDTy->getDecl();
-#else
-    const RecordDecl *RD = RDTy->getOriginalDecl();
-#endif
+
     // omit some trivial cases, e.g.,
     // typedef struct S { int x; } S;
     if (RD->getNameAsString() == D->getNameAsString())
