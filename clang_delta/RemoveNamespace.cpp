@@ -389,11 +389,8 @@ bool RemoveNamespaceRewriteVisitor::VisitDeclRefExpr(DeclRefExpr *DRE)
 
 bool RemoveNamespaceRewriteVisitor::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
 {
-#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(RTLoc.getDecl());
-#else
-  const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(RTLoc.getOriginalDecl());
-#endif
+
   if (!RD)
     return true;
 
@@ -528,11 +525,8 @@ bool RemoveNamespaceRewriteVisitor::VisitDependentTemplateSpecializationTypeLoc(
 bool RemoveNamespaceRewriteVisitor::VisitInjectedClassNameTypeLoc(
        InjectedClassNameTypeLoc TyLoc)
 {
-#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *CXXRD = TyLoc.getDecl();
-#else
-  const CXXRecordDecl *CXXRD = TyLoc.getOriginalDecl();
-#endif
+
   TransAssert(CXXRD && "Invalid CXXRecordDecl!");
 
   std::string Name;
@@ -565,11 +559,8 @@ bool RemoveNamespaceRewriteVisitor::VisitTypedefTypeLoc(TypedefTypeLoc TyLoc)
 
 bool RemoveNamespaceRewriteVisitor::VisitEnumTypeLoc(EnumTypeLoc TyLoc)
 {
-#if LLVM_VERSION_MAJOR < 22
   const EnumDecl *D = TyLoc.getDecl();
-#else
-  const EnumDecl *D = TyLoc.getOriginalDecl();
-#endif
+
 
   std::string Name;
   if (ConsumerInstance->getNewName(D, Name)) {

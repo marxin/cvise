@@ -89,7 +89,7 @@ public:
   }
 
   bool VisitTagTypeLoc(TagTypeLoc TL) {
-    if (ConsumerInstance->isTheDecl(TL.getOriginalDecl()))
+    if (ConsumerInstance->isTheDecl(TL.getDecl()))
       ConsumerInstance->removeRecordQualifier(TL.getQualifierLoc());
     return true;
   }

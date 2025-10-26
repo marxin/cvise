@@ -284,11 +284,8 @@ void InstantiateTemplateParam::getForwardDeclStr(
        RecordDeclSet &TempAvailableRecordDecls)
 {
   if (const RecordType *RT = Ty->getAsUnionType()) {
-#if LLVM_VERSION_MAJOR < 22
     const RecordDecl *RD = RT->getDecl();
-#else
-    const RecordDecl *RD = RT->getOriginalDecl();
-#endif
+
     addOneForwardDeclStr(RD, ForwardStr, TempAvailableRecordDecls);
     return;
   }

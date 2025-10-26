@@ -297,11 +297,8 @@ template<typename T>
 bool CommonRenameClassRewriteVisitor<T>::VisitInjectedClassNameTypeLoc(
        InjectedClassNameTypeLoc TyLoc)
 {
-#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *CXXRD = TyLoc.getDecl();
-#else
-  const CXXRecordDecl *CXXRD = TyLoc.getOriginalDecl();
-#endif
+
   TransAssert(CXXRD && "Invalid CXXRecordDecl!");
 
   std::string Name;
@@ -342,11 +339,8 @@ bool CommonRenameClassRewriteVisitor<T>::VisitRecordTypeLoc(RecordTypeLoc RTLoc)
   if (Ty->isUnionType())
     return true;
 
-#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(RTLoc.getDecl());
-#else
-  const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(RTLoc.getOriginalDecl());
-#endif
+
   if (!RD)
     return true;
 

@@ -79,11 +79,8 @@ bool ReplaceClassWithBaseTemplateSpecRewriteVisitor::VisitRecordTypeLoc(
   if (Ty->isUnionType())
     return true;
 
-#if LLVM_VERSION_MAJOR < 22
   const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(TLoc.getDecl());
-#else
-  const CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(TLoc.getOriginalDecl());
-#endif
+
   if (!RD || (RD->getCanonicalDecl() != ConsumerInstance->TheCXXRecord))
     return true;
 

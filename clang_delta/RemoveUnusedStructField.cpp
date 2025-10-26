@@ -326,11 +326,8 @@ void RemoveUnusedStructField::getInitExprs(const Type *Ty,
     TransAssert(0 && "Bad RecordType!");
   }
 
-#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *RD = RT->getDecl();
-#else
-  const RecordDecl *RD = RT->getOriginalDecl();
-#endif
+
   unsigned int VecSz = IdxVec->size();
   for (IndexVector::const_iterator FI = IdxVec->begin(),
        FE = IdxVec->end(); FI != FE; ++FI)
@@ -412,11 +409,8 @@ const RecordDecl *RemoveUnusedStructField::getBaseRecordDef(const Type *Ty)
     return NULL;
 
   const RecordType *RT = Ty->getAsStructureType();
-#if LLVM_VERSION_MAJOR < 22
   const RecordDecl *RD = RT->getDecl();
-#else
-  const RecordDecl *RD = RT->getOriginalDecl();
-#endif
+
   return RD->getDefinition();
 }
 

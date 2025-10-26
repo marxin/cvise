@@ -99,12 +99,7 @@ bool RemoveBaseClass::isDirectlyDerivedFrom(const CXXRecordDecl *SubC,
       continue;
 
     const RecordType *RT = I->getType()->getAs<RecordType>();
-#if LLVM_VERSION_MAJOR < 22
     const CXXRecordDecl *BaseDecl = dyn_cast<CXXRecordDecl>(RT->getDecl());
-#else
-    const CXXRecordDecl *BaseDecl =
-        dyn_cast<CXXRecordDecl>(RT->getOriginalDecl());
-#endif
     if (Base->getCanonicalDecl() == BaseDecl->getCanonicalDecl())
       return true;
   }
