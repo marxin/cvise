@@ -417,6 +417,9 @@ class TestManager:
     RESTART_JOB_INTERVAL = 100
     # Used for setting up timeouts on pass init jobs - the regular timeout is multiplied by this factor.
     INIT_TIMEOUT_FACTOR = 10
+    # Used for setting the upper boundary on the scheduled task timeouts (see workaround_missing_timeouts()). This
+    # factor is normally equal to 1, but durations can grow on a heavily loaded machine.
+    MISSING_TIMEOUT_THRESHOLD = 10
 
     def __init__(
         self,
@@ -718,11 +721,18 @@ class TestManager:
         To avoid hanging C-Vise waiting for such never-ending tasks, we double-check timeouts of each task ourselves
         and force-cancel violating tasks.
         """
-        THRESHOLD = 10  # usually this factor is around 1, but durations can grow on a heavily loaded machine
         now = time.monotonic()
         for job in self.jobs:
-            if not job.future.done() and now - job.start_time >= THRESHOLD * job.timeout:
+            if not job.future.done() and now - job.start_time >= self.MISSING_TIMEOUT_THRESHOLD * job.timeout:
                 self.cancel_job(job)
+
+    def time_till_missing_timeout_workaround(self) -> float | None:
+        """How many seconds till the time point when the workaround_missing_timeouts() needs to be triggered."""
+        if not self.jobs:
+            return None
+        when = min(job.start_time + self.MISSING_TIMEOUT_THRESHOLD * job.timeout for job in self.jobs)
+        now = time.monotonic()
+        return when - now
 
     def process_done_futures(self) -> None:
         jobs_to_remove = []
@@ -906,7 +916,11 @@ class TestManager:
                 pass
 
             # no more jobs could be scheduled at the moment - wait for some results
-            wait([j.future for j in self.jobs] + [sigmonitor.get_future()], return_when=FIRST_COMPLETED)
+            wait(
+                [j.future for j in self.jobs] + [sigmonitor.get_future()],
+                return_when=FIRST_COMPLETED,
+                timeout=self.time_till_missing_timeout_workaround(),
+            )
             sigmonitor.maybe_retrigger_action()
 
             self.workaround_missing_timeouts()
