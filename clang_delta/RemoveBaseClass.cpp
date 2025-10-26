@@ -15,10 +15,13 @@
 #include "RemoveBaseClass.h"
 
 #include "clang/AST/ASTContext.h"
-#include "clang/AST/TypeBase.h"
 #include "clang/Basic/SourceManager.h"
 #include "llvm/Config/llvm-config.h"
 #include "llvm/Support/Casting.h"
+
+#if LLVM_VERSION_MAJOR >= 22
+#include "clang/AST/TypeBase.h"
+#endif
 
 #include "CommonRenameClassRewriteVisitor.h"
 #include "TransformationManager.h"
