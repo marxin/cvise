@@ -14,21 +14,22 @@
 
 #include "RemoveCtorInitializer.h"
 
-#include "clang/Basic/SourceManager.h"
-#include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/Basic/SourceManager.h"
+#include "llvm/Config/llvm-config.h"
 
 #include "TransformationManager.h"
 
 using namespace clang;
 
-static const char *DescriptionMsg = 
+static const char *DescriptionMsg =
 "This pass tries to remove an initializer from a Ctor. \n";
 
 static RegisterTransformation<RemoveCtorInitializer>
          Trans("remove-ctor-initializer", DescriptionMsg);
 
-class RemoveCtorInitializerASTVisitor : public 
+class RemoveCtorInitializerASTVisitor : public
   RecursiveASTVisitor<RemoveCtorInitializerASTVisitor> {
 
 public:
@@ -56,7 +57,7 @@ bool RemoveCtorInitializerASTVisitor::VisitCXXConstructorDecl(
     if (!Init->isWritten()) {
       continue;
     }
-      
+
     if (Init->isInClassMemberInitializer() ||
         Init->isPackExpansion() ||
         Init->isDelegatingInitializer()) {
@@ -73,7 +74,7 @@ bool RemoveCtorInitializerASTVisitor::VisitCXXConstructorDecl(
     }
     else if (const Type *Ty = Init->getBaseClass()) {
       const CXXRecordDecl *Base = ConsumerInstance->getBaseDeclFromType(Ty);
-      if (Base && Base->hasDefinition() && 
+      if (Base && Base->hasDefinition() &&
           Base->needsImplicitDefaultConstructor()) {
         Idx++;
         continue;
@@ -81,7 +82,7 @@ bool RemoveCtorInitializerASTVisitor::VisitCXXConstructorDecl(
     }
 
     ConsumerInstance->ValidInstanceNum++;
-    if (ConsumerInstance->ValidInstanceNum == 
+    if (ConsumerInstance->ValidInstanceNum ==
         ConsumerInstance->TransformationCounter) {
       ConsumerInstance->TheInitializer = Init;
       ConsumerInstance->TheCtorDecl = Ctor;
@@ -89,11 +90,11 @@ bool RemoveCtorInitializerASTVisitor::VisitCXXConstructorDecl(
     }
     Idx++;
   }
- 
+
   return true;
 }
 
-void RemoveCtorInitializer::Initialize(ASTContext &context) 
+void RemoveCtorInitializer::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new RemoveCtorInitializerASTVisitor(this);

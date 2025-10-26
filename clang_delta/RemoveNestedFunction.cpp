@@ -16,10 +16,11 @@
 
 #include <sstream>
 
-#include "llvm/ADT/SmallVector.h"
-#include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceManager.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/Config/llvm-config.h"
 
 #include "TransformationManager.h"
 #include "CommonStatementVisitor.h"

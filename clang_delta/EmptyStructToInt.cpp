@@ -15,12 +15,13 @@
 #include "EmptyStructToInt.h"
 
 #include "clang/Basic/SourceManager.h"
-
 #include "clang/Lex/Lexer.h"
 #include "clang/AST/RecordLayout.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Config/llvm-config.h"
+
 #include "TransformationManager.h"
 
 using namespace clang;
@@ -38,7 +39,7 @@ it: \
 static RegisterTransformation<EmptyStructToInt>
          Trans("empty-struct-to-int", DescriptionMsg);
 
-class EmptyStructToIntASTVisitor : public 
+class EmptyStructToIntASTVisitor : public
   RecursiveASTVisitor<EmptyStructToIntASTVisitor> {
 
 public:
@@ -54,7 +55,7 @@ private:
   EmptyStructToInt *ConsumerInstance;
 };
 
-class EmptyStructToIntRewriteVisitor : public 
+class EmptyStructToIntRewriteVisitor : public
   RecursiveASTVisitor<EmptyStructToIntRewriteVisitor> {
 
 public:
@@ -81,7 +82,7 @@ bool EmptyStructToIntASTVisitor::VisitRecordDecl(RecordDecl *RD)
   if (ConsumerInstance->isInIncludedFile(RD) ||
       !ConsumerInstance->isValidRecordDecl(RD))
     return true;
- 
+
   const RecordDecl *CanonicalRD = dyn_cast<RecordDecl>(RD->getCanonicalDecl());
   if (ConsumerInstance->VisitedRecordDecls.count(CanonicalRD))
     return true;
@@ -99,7 +100,7 @@ bool EmptyStructToIntASTVisitor::VisitCXXRecordDecl(CXXRecordDecl *CXXRD)
   if (!CanonicalRD->hasDefinition())
     return true;
 
-  for (CXXRecordDecl::base_class_const_iterator I = 
+  for (CXXRecordDecl::base_class_const_iterator I =
        CanonicalRD->bases_begin(), E = CanonicalRD->bases_end(); I != E; ++I) {
     const CXXBaseSpecifier *BS = I;
     const Type *Ty = BS->getType().getTypePtr();
@@ -199,12 +200,12 @@ bool EmptyStructToIntRewriteVisitor::VisitElaboratedTypeLoc(
     return true;
   }
 
-  const char *StartBuf = 
+  const char *StartBuf =
     ConsumerInstance->SrcManager->getCharacterData(StartLoc);
   const char *EndBuf = ConsumerInstance->SrcManager->getCharacterData(EndLoc);
 
   ConsumerInstance->Rewritten = true;
-  // It's possible, e.g., 
+  // It's possible, e.g.,
   // struct S1 {
   //   struct { } S;
   // };
@@ -216,13 +217,13 @@ bool EmptyStructToIntRewriteVisitor::VisitElaboratedTypeLoc(
   // We need to omit it.
   if (StartBuf > EndBuf) {
     SourceLocation KeywordLoc = Loc.getElaboratedKeywordLoc();
-    const llvm::StringRef Keyword = 
+    const llvm::StringRef Keyword =
       TypeWithKeyword::getKeywordName(ETy->getKeyword());
-    ConsumerInstance->TheRewriter.ReplaceText(KeywordLoc, 
+    ConsumerInstance->TheRewriter.ReplaceText(KeywordLoc,
                                               Keyword.size(), "int");
     return true;
   }
-  
+
   ConsumerInstance->TheRewriter.RemoveText(SourceRange(StartLoc, EndLoc));
   return true;
 }
@@ -269,7 +270,7 @@ bool EmptyStructToIntRewriteVisitor::VisitVarDecl(VarDecl *VD)
   return true;
 }
 
-void EmptyStructToInt::Initialize(ASTContext &context) 
+void EmptyStructToInt::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new EmptyStructToIntASTVisitor(this);
@@ -292,9 +293,9 @@ void EmptyStructToInt::HandleTranslationUnit(ASTContext &Ctx)
   Ctx.getDiagnostics().setSuppressAllDiagnostics(false);
   removeRecordDecls();
   RewriteVisitor->TraverseDecl(Ctx.getTranslationUnitDecl());
-  
+
   // sanity check that we actually
-  // have done some text modifications. 
+  // have done some text modifications.
   // It could be false due to invalid code being transformed.
   if (!Rewritten) {
     TransError = TransNoTextModificationError;
@@ -385,13 +386,13 @@ void EmptyStructToInt::removeRecordDecls(void)
     const RecordDecl *RD = dyn_cast<RecordDecl>(*I);
     SourceRange Range = RD->getSourceRange();
     SourceLocation LocEnd = Range.getEnd();
-    SourceLocation SemiLoc = 
-      Lexer::findLocationAfterToken(LocEnd, 
+    SourceLocation SemiLoc =
+      Lexer::findLocationAfterToken(LocEnd,
                                     tok::semi,
                                     *SrcManager,
                                     Context->getLangOpts(),
                                     /*SkipTrailingWhitespaceAndNewLine=*/true);
-    // handle cases such as 
+    // handle cases such as
     // struct S {} s;
     if (SemiLoc.isInvalid()) {
       if (!RD->isThisDeclarationADefinition())
@@ -459,7 +460,7 @@ bool EmptyStructToInt::isValidRecordDecl(const RecordDecl *RD)
         return false;
       const FieldDecl *FD = *(Def->field_begin());
       TransAssert(FD && "Invalid FieldDecl");
-      // skip case such as 
+      // skip case such as
       // struct S { struct S *p; };
       if (pointToSelf(FD))
         return false;
@@ -525,7 +526,7 @@ const RecordDecl *EmptyStructToInt::getBaseRecordDef(const Type *Ty)
 
 }
 
-void EmptyStructToInt::getInitExprs(const Type *Ty, 
+void EmptyStructToInt::getInitExprs(const Type *Ty,
                                     const Expr *E,
                                     const IndexVector *IdxVec,
                                     ExprVector &InitExprs)
@@ -538,14 +539,14 @@ void EmptyStructToInt::getInitExprs(const Type *Ty,
     TransAssert(ILE && "Invalid array initializer!");
     unsigned int NumInits = ILE->getNumInits();
     Ty = ArrayTy->getElementType().getTypePtr();
-    
+
     for (unsigned I = 0; I < NumInits; ++I) {
       const Expr *Init = ILE->getInit(I);
       getInitExprs(Ty, Init, IdxVec, InitExprs);
     }
     return;
   }
- 
+
   const InitListExpr *ILE = dyn_cast<InitListExpr>(E);
   if (!ILE)
     return;

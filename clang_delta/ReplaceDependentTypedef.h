@@ -35,7 +35,7 @@ friend class ReplaceDependentTypedefCollectionVisitor;
 
 public:
   ReplaceDependentTypedef(const char *TransName, const char *Desc)
-    : Transformation(TransName, Desc, /*MultipleRewrites=*/true),
+    : Transformation(TransName, Desc, /*MultipleRewritesFlag=*/true),
       CollectionVisitor(NULL)
   {}
 

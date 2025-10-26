@@ -14,15 +14,16 @@
 
 #include "ReplaceClassWithBaseTemplateSpec.h"
 
-#include "clang/Basic/SourceManager.h"
-#include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/Basic/SourceManager.h"
+#include "llvm/Config/llvm-config.h"
 
 #include "TransformationManager.h"
 
 using namespace clang;
 
-static const char *DescriptionMsg = 
+static const char *DescriptionMsg =
 "This pass tries to replace a class with its base class if \n\
   * this class has only one base class, and \n\
   * this class doesn't have any explicit declaration, and \n\
@@ -32,7 +33,7 @@ static const char *DescriptionMsg =
 static RegisterTransformation<ReplaceClassWithBaseTemplateSpec>
          Trans("replace-class-with-base-template-spec", DescriptionMsg);
 
-class ReplaceClassWithBaseTemplateSpecVisitor : public 
+class ReplaceClassWithBaseTemplateSpecVisitor : public
   RecursiveASTVisitor<ReplaceClassWithBaseTemplateSpecVisitor> {
 
 public:
@@ -89,7 +90,7 @@ bool ReplaceClassWithBaseTemplateSpecRewriteVisitor::VisitRecordTypeLoc(
   return true;
 }
 
-void ReplaceClassWithBaseTemplateSpec::Initialize(ASTContext &context) 
+void ReplaceClassWithBaseTemplateSpec::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new ReplaceClassWithBaseTemplateSpecVisitor(this);
@@ -145,7 +146,7 @@ void ReplaceClassWithBaseTemplateSpec::handleOneCXXRecordDecl(
 
   ValidInstanceNum++;
   if (ValidInstanceNum == TransformationCounter) {
-    BS->getType().getAsStringInternal(TheBaseName, 
+    BS->getType().getAsStringInternal(TheBaseName,
                                       getPrintingPolicy());
     TheCXXRecord = CXXRD;
   }
