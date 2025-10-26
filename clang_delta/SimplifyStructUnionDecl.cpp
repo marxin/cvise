@@ -30,7 +30,7 @@ declaration. \n";
 static RegisterTransformation<SimplifyStructUnionDecl>
          Trans("simplify-struct-union-decl", DescriptionMsg);
 
-class SimplifyStructUnionDeclVisitor : public 
+class SimplifyStructUnionDeclVisitor : public
   RecursiveASTVisitor<SimplifyStructUnionDeclVisitor> {
 
 public:
@@ -70,13 +70,13 @@ bool SimplifyStructUnionDeclVisitor::VisitFieldDecl(FieldDecl *FD)
   return ConsumerInstance->handleOneDeclarator(T);
 }
 
-void SimplifyStructUnionDecl::Initialize(ASTContext &context) 
+void SimplifyStructUnionDecl::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   AnalysisVisitor = new SimplifyStructUnionDeclVisitor(this);
 }
 
-bool SimplifyStructUnionDecl::HandleTopLevelDecl(DeclGroupRef DGR) 
+bool SimplifyStructUnionDecl::HandleTopLevelDecl(DeclGroupRef DGR)
 {
   DeclGroupRef::iterator DI = DGR.begin();
   if (isInIncludedFile(*DI))
@@ -118,7 +118,7 @@ bool SimplifyStructUnionDecl::HandleTopLevelDecl(DeclGroupRef DGR)
   }
 
   DeclGroupRef DefDGR = DeclGroupRef::getFromOpaquePtr(DGRPointer);
-  for (DeclGroupRef::iterator I = DefDGR.begin(), 
+  for (DeclGroupRef::iterator I = DefDGR.begin(),
        E = DefDGR.end(); I != E; ++I) {
     VarDecl *VD = dyn_cast<VarDecl>(*I);
     if (VD)
@@ -159,7 +159,7 @@ void SimplifyStructUnionDecl::doCombination(void)
   DeclGroupRef FirstDGR = DeclGroupRef::getFromOpaquePtr(P1);
   DeclGroupRef SecondDGR = DeclGroupRef::getFromOpaquePtr(P2);
 
-  SourceLocation EndLoc = 
+  SourceLocation EndLoc =
     RewriteHelper->getDeclGroupRefEndLoc(FirstDGR);
 
   std::string DStr;
@@ -183,7 +183,7 @@ bool SimplifyStructUnionDecl::isSafeToRemoveName(void)
   if (!SafeToRemoveName)
     return false;
 
-  const RecordDecl *RD = 
+  const RecordDecl *RD =
     dyn_cast<RecordDecl>(TheRecordDecl->getCanonicalDecl());
   RecordDecl::redecl_iterator I = RD->redecls_begin();
   RecordDecl::redecl_iterator E = RD->redecls_end();

@@ -11,9 +11,11 @@
 #ifndef COMMON_PARAMETER_REWRITE_VISITOR_H
 #define COMMON_PARAMETER_REWRITE_VISITOR_H
 
+#include "clang/AST/RecursiveASTVisitor.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/SmallPtrSet.h"
-#include "clang/AST/RecursiveASTVisitor.h"
+#include "llvm/Config/llvm-config.h"
+
 #include "RewriteUtils.h"
 
 template<typename T, typename Trans>
@@ -105,30 +107,30 @@ bool CommonParameterRewriteVisitor<T, Trans>::VisitCallExpr(
 {
   const clang::FunctionDecl *CalleeDecl = NULL;
   const clang::Expr *E = CallE->getCallee();
-  if (const clang::UnresolvedLookupExpr *UE = 
+  if (const clang::UnresolvedLookupExpr *UE =
       llvm::dyn_cast<clang::UnresolvedLookupExpr>(E)) {
     clang::DeclarationName DName = UE->getName();
     TransAssert(((DName.getNameKind() == clang::DeclarationName::Identifier) ||
-                 (DName.getNameKind() == 
+                 (DName.getNameKind() ==
                     clang::DeclarationName::CXXOperatorName)) &&
                 "Not an indentifier!");
 #if LLVM_VERSION_MAJOR < 22
     if (const clang::NestedNameSpecifier *NNS = UE->getQualifier()) {
-      if (const clang::DeclContext *Ctx = 
+      if (const clang::DeclContext *Ctx =
           ConsumerInstance->getDeclContextFromSpecifier(NNS)) {
 #else
     if (const clang::NestedNameSpecifier NNS = UE->getQualifier()) {
       if (const clang::DeclContext *Ctx =
           ConsumerInstance->getDeclContextFromSpecifier(&NNS)) {
 #endif
-        DeclContextSet VisitedCtxs; 
-        CalleeDecl = 
+        DeclContextSet VisitedCtxs;
+        CalleeDecl =
           ConsumerInstance->lookupFunctionDecl(DName, Ctx, VisitedCtxs);
       }
     }
     if (!CalleeDecl) {
-      DeclContextSet VisitedCtxs; 
-      CalleeDecl = ConsumerInstance->lookupFunctionDecl(DName, 
+      DeclContextSet VisitedCtxs;
+      CalleeDecl = ConsumerInstance->lookupFunctionDecl(DName,
                      ConsumerInstance->TheFuncDecl->getLookupParent(),
                      VisitedCtxs);
     }
@@ -142,19 +144,19 @@ bool CommonParameterRewriteVisitor<T, Trans>::VisitCallExpr(
     }
   }
 
-  if (clang::FunctionTemplateDecl *TheTmplFuncD = 
+  if (clang::FunctionTemplateDecl *TheTmplFuncD =
         ConsumerInstance->TheFuncDecl->getDescribedFunctionTemplate()) {
     clang::FunctionTemplateDecl *TmplFuncD;
     if (CalleeDecl->isTemplateInstantiation())
       TmplFuncD = CalleeDecl->getPrimaryTemplate();
-    else 
+    else
       TmplFuncD = CalleeDecl->getDescribedFunctionTemplate();
-    if (!TmplFuncD || 
+    if (!TmplFuncD ||
         (TmplFuncD->getCanonicalDecl() != TheTmplFuncD->getCanonicalDecl()))
       return true;
   }
 
-  if (clang::FunctionDecl *InstFuncDecl = 
+  if (clang::FunctionDecl *InstFuncDecl =
            CalleeDecl->getInstantiatedFromMemberFunction()) {
     CalleeDecl = InstFuncDecl;
   }
@@ -164,14 +166,14 @@ bool CommonParameterRewriteVisitor<T, Trans>::VisitCallExpr(
   }
 
   // We now have a correct CallExpr
-  // Here we only collect these valid CallExprs, and 
-  // will rewrite them later in a reverse order. 
+  // Here we only collect these valid CallExprs, and
+  // will rewrite them later in a reverse order.
   // The reason is that if we have code like below:
   //    foo(foo(1));
   // we want to rewrite the nested foo(1) first.
   // If we rewrite the outside foo first, we will
-  // end up with bad transformation when we try to 
-  // rewrite foo(1), which has been removed. 
+  // end up with bad transformation when we try to
+  // rewrite foo(1), which has been removed.
   AllCallExprs.push_back(CallE);
   return true;
 }

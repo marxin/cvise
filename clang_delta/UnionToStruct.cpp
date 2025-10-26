@@ -14,9 +14,10 @@
 
 #include "UnionToStruct.h"
 
-#include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceManager.h"
+#include "llvm/Config/llvm-config.h"
 
 #include "TransformationManager.h"
 
@@ -41,7 +42,7 @@ bring in uninitialized local variables.) \n";
 static RegisterTransformation<UnionToStruct>
          Trans("union-to-struct", DescriptionMsg);
 
-class UnionToStructCollectionVisitor : public 
+class UnionToStructCollectionVisitor : public
   RecursiveASTVisitor<UnionToStructCollectionVisitor> {
 
 public:
@@ -103,13 +104,13 @@ bool UnionToStructCollectionVisitor::VisitDeclStmt(DeclStmt *DS)
   return true;
 }
 
-void UnionToStruct::Initialize(ASTContext &context) 
+void UnionToStruct::Initialize(ASTContext &context)
 {
   Transformation::Initialize(context);
   CollectionVisitor = new UnionToStructCollectionVisitor(this);
 }
 
-bool UnionToStruct::HandleTopLevelDecl(DeclGroupRef D) 
+bool UnionToStruct::HandleTopLevelDecl(DeclGroupRef D)
 {
   for (DeclGroupRef::iterator I = D.begin(), E = D.end(); I != E; ++I) {
     if (VarDecl *VD = dyn_cast<VarDecl>(*I))
@@ -119,7 +120,7 @@ bool UnionToStruct::HandleTopLevelDecl(DeclGroupRef D)
   }
   return true;
 }
- 
+
 void UnionToStruct::HandleTranslationUnit(ASTContext &Ctx)
 {
   doAnalysis();
@@ -183,7 +184,7 @@ void UnionToStruct::rewriteOneRecordDecl(const RecordDecl *RD)
 
 void UnionToStruct::rewriteRecordDecls(void)
 {
-  const RecordDecl *RD = 
+  const RecordDecl *RD =
     dyn_cast<RecordDecl>(TheRecordDecl->getCanonicalDecl());
   TransAssert(RD && "NULL RecordDecl!");
   for(RecordDecl::redecl_iterator I = RD->redecls_begin(),
@@ -232,7 +233,7 @@ void UnionToStruct::getInitStrWithPointerType(const Expr *Exp, std::string &Str)
   }
 }
 
-void UnionToStruct::getInitStrWithNonPointerType(const Expr *Exp, 
+void UnionToStruct::getInitStrWithNonPointerType(const Expr *Exp,
                                                  std::string &Str)
 {
   std::string ExprStr("");
@@ -291,7 +292,7 @@ void UnionToStruct::rewriteOneVarDecl(const VarDecl *VD)
 {
   if (dyn_cast<ParmVarDecl>(VD)) {
     RewriteHelper->replaceUnionWithStruct(VD);
-    return; 
+    return;
   }
 
   // If the first decl is RecordDecl, it will be handled
@@ -327,10 +328,10 @@ void UnionToStruct::rewriteOneVarDecl(const VarDecl *VD)
   if (!VDTy->isUnionType()) {
     return;
   }
-  
+
   const Expr *IE = VD->getInit();
   // Looks like we are safe to skip this
-  // e.g. 
+  // e.g.
   // union U { int x; };
   // void foo() { U y; }
   if (dyn_cast<CXXConstructExpr>(IE))
@@ -409,7 +410,7 @@ void UnionToStruct::addOneDeclarator(const DeclaratorDecl *DD, const Type *T)
     return;
 
   const RecordDecl *RD = RDTy->getDecl();
-  const RecordDecl *CanonicalRD = 
+  const RecordDecl *CanonicalRD =
     dyn_cast<RecordDecl>(RD->getCanonicalDecl());
   TransAssert(CanonicalRD && "NULL CanonicalRD!");
   if (CanonicalRD->getNameAsString() == "") {
@@ -431,7 +432,7 @@ void UnionToStruct::addOneDeclarator(const DeclaratorDecl *DD, const Type *T)
 
 UnionToStruct::DeclaratorDeclSet *UnionToStruct::addOneRecord(const RecordDecl *RD)
 {
-  const RecordDecl *CanonicalRD = 
+  const RecordDecl *CanonicalRD =
     dyn_cast<RecordDecl>(RD->getCanonicalDecl());
   TransAssert(CanonicalRD && "NULL CanonicalRD!");
   DeclaratorDeclSet *DDSet = RecordToDeclarator[CanonicalRD];

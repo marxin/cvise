@@ -15,9 +15,13 @@
 #include "RemoveNamespace.h"
 
 #include <sstream>
+
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/Decl.h"
+#include "clang/AST/TemplateName.h"
 #include "clang/Basic/SourceManager.h"
+#include "llvm/Config/llvm-config.h"
 
 #include "TransformationManager.h"
 
@@ -1133,7 +1137,7 @@ void RemoveNamespace::removeNamespace(const NamespaceDecl *ND)
     const char *StartBuf = SrcManager->getCharacterData(StartLoc);
     std::string NDStr(StartBuf, RangeSize);
     size_t Pos = NDStr.find('{');
-    if (Pos != std::string::npos) 
+    if (Pos != std::string::npos)
       EndLoc = StartLoc.getLocWithOffset(Pos);
   }
 

@@ -16,14 +16,17 @@
 
 #include <cctype>
 #include <sstream>
-#include "clang/Basic/SourceManager.h"
-#include "clang/Rewrite/Core/Rewriter.h"
+
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/Expr.h"
-#include "clang/AST/TypeLoc.h"
 #include "clang/AST/ExprCXX.h"
+#include "clang/AST/TypeLoc.h"
+#include "clang/Basic/SourceManager.h"
+#include "clang/Rewrite/Core/Rewriter.h"
+#include "llvm/Config/llvm-config.h"
+#include "llvm/Support/Casting.h"
 
 #include "HintsBuilder.h"
 

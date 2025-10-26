@@ -15,8 +15,10 @@
 #include "MemberToGlobal.h"
 
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/TypeLoc.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Lex/Lexer.h"
+#include "llvm/Config/llvm-config.h"
 
 #include "TransformationManager.h"
 
