@@ -192,6 +192,7 @@ class CVise:
                     user_clang_delta_std=clang_delta_std,
                     clang_delta_preserve_routine=clang_delta_preserve_routine,
                     max_transforms=max_transforms,
+                    strategy=pass_dict.get('strategy'),
                     claim_files=claim_files,
                     claimed_by_others_files=claimed_by_others_files,
                 )
