@@ -1,4 +1,3 @@
-import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,8 +16,8 @@ class _Item:
 class Cache:
     MAX_ITEMS_PER_PASS_GROUP = 3
 
-    def __init__(self, tmp_prefix: str):
-        self._tmp_prefix: str = tmp_prefix
+    def __init__(self, tmp_dir_manager: fileutil.TmpDirManager):
+        self._tmp_dir_manager = tmp_dir_manager
         self._items: dict[str, dict[bytes, _Item]] = {}
 
     def __enter__(self):
@@ -27,7 +26,7 @@ class Cache:
     def __exit__(self, exc_type, exc_val, exc_tb):
         for mapping in self._items.values():
             for item in mapping.values():
-                fileutil.rmfolder(item.tmp_dir)
+                self._tmp_dir_manager.delete_dir(item.tmp_dir)
         self._items = {}
 
     def lookup(self, passes: Sequence[AbstractPass], hash_before: bytes) -> Optional[Path]:
@@ -46,10 +45,10 @@ class Cache:
             evict_hash = next(iter(mapping.keys()))
 
         if evict_hash is not None:
-            fileutil.rmfolder(mapping[evict_hash].tmp_dir)
+            self._tmp_dir_manager.delete_dir(mapping[evict_hash].tmp_dir)
             del mapping[evict_hash]
 
-        tmp_dir = Path(tempfile.mkdtemp(prefix=self._tmp_prefix))
+        tmp_dir = self._tmp_dir_manager.create_dir(prefix='cache')
         mapping[hash_before] = _Item(tmp_dir, tmp_dir / path_after)
         fileutil.copy_test_case(path_after, tmp_dir)
 

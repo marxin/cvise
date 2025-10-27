@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import difflib
 import fnmatch
@@ -9,17 +11,18 @@ import re
 import shutil
 import string
 import tempfile
+import threading
 from collections.abc import Iterable, Iterator
+from copy import copy
 from pathlib import Path
-from typing import Optional, Union
 
 # Singleton buffer for hash_test_case(), to avoid reallocations.
-_hash_buf: Optional[bytearray] = None
+_hash_buf: bytearray | None = None
 
 
 # TODO: use tempfile.NamedTemporaryFile(delete_on_close=False) since Python 3.12 is the oldest supported release
 @contextlib.contextmanager
-def CloseableTemporaryFile(mode='w+b', dir: Union[Path, None] = None):
+def CloseableTemporaryFile(mode='w+b', dir: Path | None = None):
     if dir is None:
         dir = Path(tempfile.gettempdir())
     # Use a unique name pattern, so that if NamedTemporaryFile construction or cleanup aborted mid-way (e.g., via
@@ -42,12 +45,97 @@ def chdir(path: Path) -> Iterator[None]:
         os.chdir(original_workdir)
 
 
-def rmfolder(name):
-    assert 'cvise' in str(name)
-    try:
-        shutil.rmtree(name)
-    except OSError:
-        pass
+class TmpDirManager:
+    TEMP_PREFIX = 'cvise-'
+    JANITOR_INTERVAL = 10  # seconds
+    _MAX_RETRIES = 10000
+    _ALPHABET = string.ascii_letters + string.digits
+    _RANDOM_LENGTH = 6
+
+    def __init__(self, prefix=None, save_temps: bool = False):
+        self._save_temps = save_temps
+        self.root: Path | None = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX if prefix is None else prefix))
+        self._lock = threading.Lock()
+        self._dirs = set()
+        self._janitor_thread = threading.Thread(target=self._janitor_thread_main)
+        self._shutdown_event = threading.Event()
+
+    def create_dir(self, prefix: str) -> Path:
+        assert self.root is not None
+        created = self._do_create_dir(prefix)
+        assert created.relative_to(self.root)
+        return created
+
+    def delete_dir(self, dir: Path) -> None:
+        assert dir in self._dirs
+        if self._save_temps:
+            return
+        shutil.rmtree(dir, ignore_errors=True)  # the janitor thread will clean leftovers on error
+        with self._lock:
+            self._dirs.remove(dir)
+
+    def __enter__(self) -> TmpDirManager:
+        self._janitor_thread.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._shutdown_event.set()
+        self._janitor_thread.join(timeout=600)  # semi-arbitrary timeout to prevent possibility of deadlocks
+        if not self._save_temps:
+            shutil.rmtree(
+                self.root,
+            )
+        self._dirs.clear()
+        self.root = None
+
+    def _do_create_dir(self, prefix: str) -> Path:
+        # We don't use tempfile.mkdtemp() because to prevent racing with the deletions by the janitor thread, we need to
+        # put a candidate dir into _dirs before we create it.
+        assert self.root is not None
+        for attempt in range(self._MAX_RETRIES):
+            # On the first attempt, try without adding suffixes, to reduce risk of hitting path length limits in C-Vise.
+            suffix = '' if attempt == 0 else self._random_suffix()
+            candidate = self.root / (prefix + suffix)
+            if candidate.exists():
+                continue
+
+            with self._lock:
+                if candidate in self._dirs:
+                    continue
+                self._dirs.add(candidate)
+
+            try:
+                candidate.mkdir(mode=0o700)
+            except FileExistsError:
+                pass
+            else:
+                return candidate
+
+            with self._lock:
+                self._dirs.remove(candidate)
+
+        raise RuntimeError(
+            f'Failed to create temporary directory under {self.root} with prefix "{prefix}" after {self._MAX_RETRIES}'
+            + ' attempts'
+        )
+
+    def _random_suffix(self) -> str:
+        return '-' + ''.join(random.choices(self._ALPHABET, k=self._RANDOM_LENGTH))
+
+    def _janitor_thread_main(self) -> None:
+        while not self._shutdown_event.is_set():
+            with self._lock:
+                present = list(self.root.iterdir())
+                known = copy(self._dirs)
+
+            to_delete = set(present) - set(known)
+            for path in to_delete:
+                if path.is_file():
+                    path.unlink(missing_ok=True)
+                else:
+                    shutil.rmtree(path, ignore_errors=True)
+
+            self._shutdown_event.wait(timeout=self.JANITOR_INTERVAL)
 
 
 def sanitize_for_file_name(text: str) -> str:
