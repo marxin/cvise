@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 import logging
 import shlex
 import subprocess
 import time
 from pathlib import Path
-from typing import Optional, Union
 
 import msgspec
 
+from cvise.passes.abstract import BinaryState, SubsegmentState
 from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.hint import Hint, HintBundle
 from cvise.utils.process import ProcessEventNotifier
@@ -22,7 +24,7 @@ class ClangState(HintState):
     clang_std: str
 
     @staticmethod
-    def wrap(parent: Union[HintState, None], clang_std: str) -> Union[HintState, None]:
+    def wrap(parent: HintState | None, clang_std: str) -> HintState | None:
         if parent is None:
             return None
         wrapped = object.__new__(ClangState)
@@ -42,19 +44,24 @@ class ClangHintsPass(HintBasedPass):
     we want to brute-force Clang's `--std=` parameter that maximizes the generated set of hints. This requires having
     special logic in new() and carrying over some extra information from new() to advance_on_success() throughout all
     advance() calls.
+
+    Strategy by default is "binsearch" - trying all instances first, then the first half, then the second, etc. Another
+    supported strategy is "onebyone" - attempting each instance, starting from a random one, individually.
     """
 
     def __init__(
         self,
         arg: str,
-        external_programs: dict[str, Optional[str]],
-        user_clang_delta_std: Optional[str] = None,
+        external_programs: dict[str, str | None],
+        user_clang_delta_std: str | None = None,
+        strategy: str | None = None,
         **kwargs,
     ):
         super().__init__(
             arg=arg, external_programs=external_programs, user_clang_delta_std=user_clang_delta_std, **kwargs
         )
         self._user_clang_delta_std = user_clang_delta_std
+        self._strategy = strategy
 
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
@@ -65,8 +72,8 @@ class ClangHintsPass(HintBasedPass):
         # Choose the best standard unless the user provided one.
         std_choices = [self._user_clang_delta_std] if self._user_clang_delta_std else CLANG_STD_CHOICES
         best_std = None
-        best_bundle: Union[HintBundle, None] = None
-        last_error: Union[ClangDeltaError, None] = None
+        best_bundle: HintBundle | None = None
+        last_error: ClangDeltaError | None = None
         for std in std_choices:
             start = time.monotonic()
             try:
@@ -122,6 +129,13 @@ class ClangHintsPass(HintBasedPass):
             return None
         new_state = self.advance_on_success_from_hints(hints, state, new_tmp_dir)
         return ClangState.wrap(new_state, state.clang_std)
+
+    def create_elementary_state(self, hint_count: int) -> BinaryState | SubsegmentState | None:
+        if self._strategy == 'binsearch' or self._strategy is None:  # default strategy
+            return BinaryState.create(instances=hint_count)
+        if self._strategy == 'onebyone':
+            return SubsegmentState.create(instances=hint_count, min_chunk=1, max_chunk=1)
+        raise ValueError(f'Unexpected strategy: {self._strategy}')
 
     def _generate_hints_for_standard(
         self, test_case: Path, std: str, timeout: int, process_event_notifier: ProcessEventNotifier
