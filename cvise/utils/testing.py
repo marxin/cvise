@@ -1115,20 +1115,27 @@ class TestManager:
         self.log_test_case_metrics(log_note)
 
     def log_test_case_metrics(self, extra_note: str | None = None) -> None:
-        pct = 100 - (float(self.total_file_size) * 100.0 / self.orig_total_file_size)
+        total_bytes = self.total_file_size
+        pct = 100 - (float(total_bytes) * 100.0 / self.orig_total_file_size)
         notes = []
         notes.append(f'{round(pct, 1)}%')
-        notes.append(f'{self.total_file_size} bytes')
-        if self.total_line_count:
-            notes.append(f'{self.total_line_count} lines')
+        notes.append(f'{total_bytes} byte{"s" if total_bytes != 1 else ""}')
+
+        lines = self.total_line_count
+        if lines:
+            notes.append(f'{lines} line{"s" if lines > 1 else ""}')
+
         if len(self.test_cases) > 1 and self.current_test_case:
             notes.append(str(self.current_test_case.name))
+
         if any(p.is_dir() for p in self.test_cases):
             files = self.total_file_count
             dirs = self.total_dir_count
             notes.append(f'{files} file{"s" if files > 1 else ""} in {dirs} dir{"s" if dirs > 1 else ""}')
+
         if extra_note is not None:
             notes.append(extra_note)
+
         logging.info('(' + ', '.join(notes) + ')')
 
     def should_proceed_with_success_candidate(self):
