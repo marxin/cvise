@@ -1107,7 +1107,7 @@ class TestManager:
                 pass_name = self.success_candidate.pass_.user_visible_name()
             log_note = f'via {pass_name}'
         else:
-            log_note = ''
+            log_note = None
 
         self.success_candidate.release()
         self.success_candidate = None
