@@ -40,6 +40,7 @@ from cvise.utils.folding import FoldingManager, FoldingStateIn, FoldingStateOut
 from cvise.utils.hint import is_special_hint_type, load_hints
 from cvise.utils.process import MPContextHook, MPTaskLossWorkaround, ProcessEventNotifier, ProcessMonitor
 from cvise.utils.readkey import KeyLogger
+from cvise.utils.resource import TimeoutEstimator
 
 MAX_PASS_INCREASEMENT_THRESHOLD = 3
 
@@ -338,6 +339,15 @@ class PassContext:
         return False
 
 
+@dataclass
+class PassGlobalInfo:
+    init_job_timeout_estimator: TimeoutEstimator
+
+    @staticmethod
+    def create(starting_init_job_timeout: float) -> PassGlobalInfo:
+        return PassGlobalInfo(init_job_timeout_estimator=TimeoutEstimator(starting_init_job_timeout))
+
+
 @unique
 class JobType(Enum):
     INIT = auto()
@@ -425,7 +435,7 @@ class TestManager:
         self,
         pass_statistic,
         test_script: Path,
-        timeout,
+        user_specified_timeout,
         save_temps,
         test_cases: list[Path],
         parallel_tests,
@@ -440,9 +450,10 @@ class TestManager:
         start_with_pass,
         skip_after_n_transforms,
         stopping_threshold,
+        no_auto_adjust_timeout: bool,
     ):
         self.test_script: Path = test_script.absolute()
-        self.timeout = timeout
+        self.user_specified_timeout = user_specified_timeout
         self.save_temps = save_temps
         self.pass_statistic = pass_statistic
         self.test_cases: set[Path] = set()
@@ -459,6 +470,7 @@ class TestManager:
         self.start_with_pass = start_with_pass
         self.skip_after_n_transforms = skip_after_n_transforms
         self.stopping_threshold = stopping_threshold
+        self.no_auto_adjust_timeout = no_auto_adjust_timeout
         self.exit_stack = contextlib.ExitStack()
 
         for test_case in test_cases:
@@ -471,6 +483,8 @@ class TestManager:
                 raise ScriptInsideTestCaseError(test_case, self.test_script)
             self.test_cases.add(test_case)
 
+        self.transform_job_timeout_estimator = TimeoutEstimator(user_specified_timeout)
+        self.pass_global_infos: dict[str, PassGlobalInfo] = {}
         self.orig_total_file_size = self.total_file_size
         self.cache = None if self.no_cache else cache.Cache(f'{self.TEMP_PREFIX}cache-')
         self.pass_contexts: list[PassContext] = []
@@ -793,6 +807,10 @@ class TestManager:
         job.temporary_folder = None
 
         self.pass_statistic.add_initialized(job.pass_, job.start_time)
+
+        pass_name = repr(job.pass_)
+        self.pass_global_infos[pass_name].init_job_timeout_estimator.update(job.start_time)
+
         if isinstance(ctx.pass_, HintBasedPass):
             ctx.hint_bundle_paths = {} if ctx.state is None else ctx.state.hint_bundle_paths()
 
@@ -816,6 +834,7 @@ class TestManager:
             return
         assert outcome == PassCheckingOutcome.ACCEPT
         self.pass_statistic.add_success(job.pass_)
+        self.transform_job_timeout_estimator.update(job.start_time)
         self.maybe_update_success_candidate(job.order, job.pass_, job.pass_id, env)
         if self.interleaving:
             self.folding_manager.on_transform_job_success(env.state)
@@ -953,6 +972,11 @@ class TestManager:
             else:
                 return
 
+        for pass_ in passes:
+            pass_name = repr(pass_)
+            if pass_name not in self.pass_global_infos:
+                self.pass_global_infos[pass_name] = PassGlobalInfo.create(self.get_starting_init_job_timeout())
+
         self.order = 1
         self.last_restart_job_order = None
         self.pass_restart_queue = []
@@ -1048,6 +1072,9 @@ class TestManager:
             self.terminate_all()
             self.remove_roots()
             sys.exit(1)
+
+    def get_starting_init_job_timeout(self) -> float:
+        return self.INIT_TIMEOUT_FACTOR * self.transform_job_timeout_estimator.estimate()
 
     def process_result(self) -> None:
         assert self.success_candidate
@@ -1205,6 +1232,13 @@ class TestManager:
         ctx = self.pass_contexts[pass_id]
         assert ctx.can_init_now(ready_hint_types)
 
+        pass_name = repr(ctx.pass_)
+        timeout = (
+            self.INIT_TIMEOUT_FACTOR * self.user_specified_timeout
+            if self.no_auto_adjust_timeout
+            else self.pass_global_infos[pass_name].init_job_timeout_estimator.estimate()
+        )
+
         dependee_types = set(ctx.pass_.input_hint_types()) if isinstance(ctx.pass_, HintBasedPass) else set()
         dependee_bundle_paths = []
         for other in self.pass_contexts:
@@ -1223,7 +1257,7 @@ class TestManager:
                 pass_new=ctx.pass_.new,
                 test_case=self.current_test_case,
                 tmp_dir=tmp_dir,
-                job_timeout=self.timeout,
+                job_timeout=timeout,
                 pid_queue=self.process_monitor.pid_queue,
                 dependee_bundle_paths=dependee_bundle_paths,
             )
@@ -1234,14 +1268,11 @@ class TestManager:
                 pass_previous_state=ctx.state,
                 new_tmp_dir=tmp_dir,
                 pass_succeeded_state=ctx.taken_succeeded_state,
-                job_timeout=self.timeout,
+                job_timeout=timeout,
                 pid_queue=self.process_monitor.pid_queue,
                 dependee_bundle_paths=dependee_bundle_paths,
             )
-        init_timeout = self.INIT_TIMEOUT_FACTOR * self.timeout
-        future = self.worker_pool.schedule(
-            _worker_process_job_wrapper, args=[self.order, env.run], timeout=init_timeout
-        )
+        future = self.worker_pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run], timeout=timeout)
         self.jobs.append(
             Job(
                 type=JobType.INIT,
@@ -1252,7 +1283,7 @@ class TestManager:
                 pass_user_visible_name=ctx.pass_.user_visible_name(),
                 pass_job_counter=ctx.pass_job_counter,
                 start_time=time.monotonic(),
-                timeout=init_timeout,
+                timeout=timeout,
                 temporary_folder=tmp_dir,
             )
         )
@@ -1271,6 +1302,11 @@ class TestManager:
         # simply hardcode that hint-based passes are capable of this (and they actually need the original files anyway).
         should_copy_test_cases = not isinstance(ctx.pass_, HintBasedPass)
 
+        timeout = (
+            self.user_specified_timeout
+            if self.no_auto_adjust_timeout
+            else self.transform_job_timeout_estimator.estimate()
+        )
         folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=ctx.temporary_root))
         env = TestEnvironment(
             ctx.state,
@@ -1283,9 +1319,7 @@ class TestManager:
             ctx.pass_.transform,
             self.process_monitor.pid_queue,
         )
-        future = self.worker_pool.schedule(
-            _worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout
-        )
+        future = self.worker_pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run], timeout=timeout)
         self.jobs.append(
             Job(
                 type=JobType.TRANSFORM,
@@ -1296,7 +1330,7 @@ class TestManager:
                 pass_user_visible_name=ctx.pass_.user_visible_name(),
                 pass_job_counter=ctx.pass_job_counter,
                 start_time=time.monotonic(),
-                timeout=self.timeout,
+                timeout=timeout,
                 temporary_folder=folder,
             )
         )
@@ -1311,6 +1345,11 @@ class TestManager:
         assert self.interleaving
 
         should_copy_test_cases = False  # the fold transform creates the files itself
+        timeout = (
+            self.user_specified_timeout
+            if self.no_auto_adjust_timeout
+            else self.transform_job_timeout_estimator.estimate()
+        )
         folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX + 'folding-'))
         env = TestEnvironment(
             folding_state,
@@ -1323,9 +1362,7 @@ class TestManager:
             FoldingManager.transform,
             self.process_monitor.pid_queue,
         )
-        future = self.worker_pool.schedule(
-            _worker_process_job_wrapper, args=[self.order, env.run], timeout=self.timeout
-        )
+        future = self.worker_pool.schedule(_worker_process_job_wrapper, args=[self.order, env.run], timeout=timeout)
         self.jobs.append(
             Job(
                 type=JobType.TRANSFORM,
@@ -1336,7 +1373,7 @@ class TestManager:
                 pass_user_visible_name='Folding',
                 pass_job_counter=None,
                 start_time=time.monotonic(),
-                timeout=self.timeout,
+                timeout=timeout,
                 temporary_folder=folder,
             )
         )
