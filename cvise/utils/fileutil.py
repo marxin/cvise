@@ -84,6 +84,7 @@ class TmpDirManager:
         if not self._save_temps:
             shutil.rmtree(
                 self.root,
+                ignore_errors=True,  # this is unfortunate, however skipping all other cleanup would likely be annoying
             )
         self._dirs.clear()
         self.root = None
