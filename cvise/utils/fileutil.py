@@ -79,6 +79,7 @@ class TmpDirManager:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        assert self.root is not None
         self._shutdown_event.set()
         self._janitor_thread.join(timeout=600)  # semi-arbitrary timeout to prevent possibility of deadlocks
         if not self._save_temps:
