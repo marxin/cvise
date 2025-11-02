@@ -54,7 +54,7 @@ class TmpDirManager:
 
     def __init__(self, prefix=None, save_temps: bool = False):
         self._save_temps = save_temps
-        self.root: Path | None = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX if prefix is None else prefix))
+        self.root = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX if prefix is None else prefix))
         self._lock = threading.Lock()
         self._dirs = set()
         self._janitor_thread = threading.Thread(target=self._janitor_thread_main)
