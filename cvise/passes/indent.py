@@ -16,14 +16,13 @@ class IndentPass(AbstractPass):
         return 0
 
     def advance(self, test_case: Path, state):
-        return state + 1
+        return None
 
     def advance_on_success(self, test_case: Path, state, *args, **kwargs):
-        return state + 1
+        return None
 
     def transform(self, test_case: Path, state, process_event_notifier, *args, **kwargs):
-        if state != 0:
-            return (PassResult.STOP, state)
+        assert state == 0
 
         old = test_case.read_text()
         cmd = [self.external_programs['clang-format'], '-i']
