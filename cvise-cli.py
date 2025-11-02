@@ -397,16 +397,12 @@ def do_reduce(args):
         args.renaming,
     )
     if args.list_passes:
-        logging.info('Available passes:')
-        logging.info('INITIAL PASSES')
-        for p in pass_group['first']:
-            logging.info(str(p))
-        logging.info('MAIN PASSES')
-        for p in pass_group['main']:
-            logging.info(str(p))
-        logging.info('CLEANUP PASSES')
-        for p in pass_group['last']:
-            logging.info(str(p))
+        print('Available passes:')
+        for cat in CVise.PASS_CATEGORIES:
+            if cat.name in pass_group:
+                print(cat.log_title)
+                for p in pass_group[cat.name]:
+                    print(str(p))
         sys.exit(0)
 
     pass_statistic = statistics.PassStatistic()
