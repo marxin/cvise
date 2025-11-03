@@ -21,10 +21,10 @@ class ClangState(HintState):
 
     See the comment in ClangHintsPass for the background."""
 
-    clang_std: str
+    clang_std: str | None
 
     @staticmethod
-    def wrap(parent: HintState | None, clang_std: str) -> HintState | None:
+    def wrap(parent: HintState | None, clang_std: str | None) -> HintState | None:
         if parent is None:
             return None
         wrapped = object.__new__(ClangState)
@@ -41,9 +41,9 @@ class ClangHintsPass(HintBasedPass):
     """A pass that performs reduction using the hints produced by the clang_delta tool.
 
     Implementation-wise, we don't use default new/advance/advance_on_success implementation from the base class, because
-    we want to brute-force Clang's `--std=` parameter that maximizes the generated set of hints. This requires having
-    special logic in new() and carrying over some extra information from new() to advance_on_success() throughout all
-    advance() calls.
+    we want to brute-force Clang's `--std=` parameter that maximizes the generated set of hints (unless "iterate_stds"
+    is False). This requires having special logic in new() and carrying over some extra information from new() to
+    advance_on_success() throughout all advance() calls.
 
     Strategy by default is "binsearch" - trying all instances first, then the first half, then the second, etc. Another
     supported strategy is "onebyone" - attempting each instance, starting from a random one, individually.
@@ -55,6 +55,7 @@ class ClangHintsPass(HintBasedPass):
         external_programs: dict[str, str | None],
         user_clang_delta_std: str | None = None,
         strategy: str | None = None,
+        iterate_stds: bool | None = None,
         **kwargs,
     ):
         super().__init__(
@@ -62,6 +63,7 @@ class ClangHintsPass(HintBasedPass):
         )
         self._user_clang_delta_std = user_clang_delta_std
         self._strategy = strategy
+        self._iterate_stds = iterate_stds == True
 
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
@@ -69,8 +71,14 @@ class ClangHintsPass(HintBasedPass):
     def new(
         self, test_case: Path, tmp_dir: Path, job_timeout, process_event_notifier: ProcessEventNotifier, *args, **kwargs
     ):
-        # Choose the best standard unless the user provided one.
-        std_choices = [self._user_clang_delta_std] if self._user_clang_delta_std else CLANG_STD_CHOICES
+        # If configured accordingly, choose the best standard unless the user provided one.
+        if self._user_clang_delta_std:
+            std_choices = [self._user_clang_delta_std]
+        elif self._iterate_stds:
+            std_choices = CLANG_STD_CHOICES
+        else:
+            std_choices = [None]  # denotes not specifying "--std=" at all
+
         best_std = None
         best_bundle: HintBundle | None = None
         last_error: ClangDeltaError | None = None
@@ -93,14 +101,20 @@ class ClangHintsPass(HintBasedPass):
         if best_bundle is None:
             logging.warning('%s', last_error)
             return None
-        assert best_std is not None
 
-        logging.info(
-            'clang_delta %s using C++ standard: %s with %d transformation opportunities',
-            self.arg,
-            best_std,
-            len(best_bundle.hints),
-        )
+        if best_std:
+            logging.info(
+                'clang_delta %s using C++ standard: %s with %d transformation opportunities',
+                self.arg,
+                best_std,
+                len(best_bundle.hints),
+            )
+        else:
+            logging.debug(
+                'clang_delta %s: %d transformation opportunities',
+                self.arg,
+                len(best_bundle.hints),
+            )
         # Let the parent class complete the initialization, but create our own state to remember the chosen standard.
         hint_state = self.new_from_hints(best_bundle, tmp_dir)
         return ClangState.wrap(hint_state, best_std)
@@ -138,32 +152,27 @@ class ClangHintsPass(HintBasedPass):
         raise ValueError(f'Unexpected strategy: {self._strategy}')
 
     def _generate_hints_for_standard(
-        self, test_case: Path, std: str, timeout: int, process_event_notifier: ProcessEventNotifier
+        self, test_case: Path, std: str | None, timeout: int, process_event_notifier: ProcessEventNotifier
     ) -> HintBundle:
-        cmd = [
-            self.external_programs['clang_delta'],
-            f'--transformation={self.arg}',
-            f'--std={std}',
-            '--generate-hints',
-            str(test_case),
-        ]
+        options = [f'--transformation={self.arg}', '--generate-hints']
+        if std is not None:
+            options.append(f'--std={std}')
 
+        cmd = [self.external_programs['clang_delta']] + options + [str(test_case)]
         logging.debug(shlex.join(str(s) for s in cmd))
 
         try:
             stdout, stderr, returncode = process_event_notifier.run_process(cmd, timeout=timeout)
         except subprocess.TimeoutExpired as e:
-            raise ClangDeltaError(
-                f'clang_delta (--transformation={self.arg} --std={std}) {timeout}s timeout reached'
-            ) from e
+            raise ClangDeltaError(f'clang_delta ({" ".join(options)}) {timeout}s timeout reached') from e
         except subprocess.SubprocessError as e:
-            raise ClangDeltaError(f'clang_delta (--transformation={self.arg} --std={std}) failed: {e}') from e
+            raise ClangDeltaError(f'clang_delta ({" ".join(options)}) failed: {e}') from e
 
         if returncode != 0:
             stderr = stderr.decode('utf-8', 'ignore').strip()
             delim = ': ' if stderr else ''
             raise ClangDeltaError(
-                f'clang_delta (--transformation={self.arg} --std={std}) failed with exit code {returncode}{delim}{stderr}'
+                f'clang_delta ({" ".join(options)}) failed with exit code {returncode}{delim}{stderr}'
             )
         return parse_clang_delta_hints(stdout)
 
