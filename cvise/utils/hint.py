@@ -563,23 +563,8 @@ def sort_hints(bundle: HintBundle) -> None:
 
 def _merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequence[_PatchWithBundleRef]:
     """Returns non-overlapping hint patches, merging patches where necessary."""
-
-    def sorting_key(ref: _PatchWithBundleRef):
-        p = ref.patch
-        is_replacement = p.value is not None
-        # Criteria:
-        # * prefer seeing positionless patches (without left/right) first;
-        # * positioned patches should be first sorted by their left;
-        # * prefer seeing larger patches first, hence sort by decreasing "r";
-        # * (if still a tie) prefer deletion over text replacement.
-        return (
-            -math.inf if p.left is None else p.left,
-            -math.inf if p.right is None else -p.right,
-            is_replacement,
-        )
-
     merged: list[_PatchWithBundleRef] = []
-    for cur in sorted(patches, key=sorting_key):
+    for cur in sorted(patches, key=_patch_merge_sorting_key):
         if merged:
             prev = merged[-1]
             prev_p = prev.patch
@@ -599,6 +584,22 @@ def _merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequen
         # No overlap with previous items - just add the new patch.
         merged.append(cur)
     return merged
+
+
+def _patch_merge_sorting_key(ref: _PatchWithBundleRef):
+    """Sorting key used for merging overlapping patches."""
+    p = ref.patch
+    is_replacement = p.value is not None
+    # Criteria:
+    # * prefer seeing positionless patches (without left/right) first;
+    # * positioned patches should be first sorted by their left;
+    # * prefer seeing larger patches first, hence sort by decreasing "r";
+    # * (if still a tie) prefer deletion over text replacement.
+    return (
+        -math.inf if p.left is None else p.left,
+        -math.inf if p.right is None else -p.right,
+        is_replacement,
+    )
 
 
 def _lines_range(f: TextIO, begin_index: int | None, end_index: int | None) -> list[str]:
