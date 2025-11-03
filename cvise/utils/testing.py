@@ -53,14 +53,6 @@ class PassCheckingOutcome(Enum):
     STOP = auto()
 
 
-def rmfolder(name):
-    assert 'cvise' in str(name)
-    try:
-        shutil.rmtree(name)
-    except OSError:
-        pass
-
-
 @dataclass
 class InitEnvironment:
     """Holds data for executing a Pass new() method in a worker."""
@@ -237,8 +229,7 @@ class PassContext:
     stage: PassStage
     # Whether the pass is enabled for the current test case.
     enabled: bool
-    # Stores pass-specific files to be used during transform jobs (e.g., hints generated during initialization), and
-    # temporary folders for each transform job.
+    # Stores pass-specific files to be used during transform jobs (e.g., hints generated during initialization).
     temporary_root: Path | None
     # The pass state as returned by the pass new()/advance()/advance_on_success() methods.
     state: Any
@@ -371,17 +362,17 @@ class SuccessCandidate:
     tmp_dir: Path | None = None
     test_case_path: Path | None = None
 
-    def take_file_ownership(self, test_case_path: Path) -> None:
+    def take_file_ownership(self, test_case_path: Path, tmp_dir_mgr: fileutil.TmpDirManager) -> None:
         assert self.tmp_dir is None
         assert self.test_case_path is None
-        self.tmp_dir = Path(tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}candidate-'))
+        self.tmp_dir = tmp_dir_mgr.create_dir(prefix='candidate')
         self.test_case_path = self.tmp_dir / test_case_path.name
         shutil.move(test_case_path, self.test_case_path)
 
-    def release(self) -> None:
+    def release(self, tmp_dir_mgr: fileutil.TmpDirManager) -> None:
         if self.tmp_dir is not None:
-            rmfolder(self.tmp_dir)
-        self.tmp_dir = None
+            tmp_dir_mgr.delete_dir(self.tmp_dir)
+            self.tmp_dir = None
         self.test_case_path = None
 
     def better_than(self, other: SuccessCandidate) -> bool:
@@ -409,7 +400,6 @@ class TestManager:
     MAX_TIMEOUTS = 20
     MAX_CRASH_DIRS = 10
     MAX_EXTRA_DIRS = 25000
-    TEMP_PREFIX = 'cvise-'
     BUG_DIR_PREFIX = 'cvise_bug_'
     EXTRA_DIR_PREFIX = 'cvise_extra_'
     # How often passes should be restarted (see maybe_schedule_job()). Chosen at 1% to not slow down the overall
@@ -443,7 +433,6 @@ class TestManager:
     ):
         self.test_script: Path = test_script.absolute()
         self.timeout = timeout
-        self.save_temps = save_temps
         self.pass_statistic = pass_statistic
         self.test_cases: set[Path] = set()
         self.test_cases_modes: dict[Path, int] = {}
@@ -472,7 +461,8 @@ class TestManager:
             self.test_cases.add(test_case)
 
         self.orig_total_file_size = self.total_file_size
-        self.cache = None if self.no_cache else cache.Cache(f'{self.TEMP_PREFIX}cache-')
+        self.tmp_dir_manager = fileutil.TmpDirManager(save_temps=save_temps)
+        self.cache = None if self.no_cache else cache.Cache(self.tmp_dir_manager)
         self.pass_contexts: list[PassContext] = []
         self.interleaving: bool = False
         if not self.is_valid_test(self.test_script):
@@ -480,9 +470,9 @@ class TestManager:
         self.current_test_case: Path = Path()
         self.jobs: list[Job] = []
         # The "order" is an incremental counter for numbering jobs.
-        self.order: int = 0
+        self.order: int = 1
         # Remembers the "order" that the first job in the current batch (run_parallel_tests()) got.
-        self.current_batch_start_order: int = 0
+        self.current_batch_start_order: int = 1
         # Identifies the most recent pass restart job (whether in the current batch or not).
         self.last_restart_job_order: int | None = None
         self.success_candidate: SuccessCandidate | None = None
@@ -509,6 +499,8 @@ class TestManager:
         self.mp_task_loss_workaround = MPTaskLossWorkaround(self.parallel_tests)
 
     def __enter__(self):
+        self.exit_stack.enter_context(self.tmp_dir_manager)
+
         if self.cache:
             self.exit_stack.enter_context(self.cache)
 
@@ -537,15 +529,13 @@ class TestManager:
         self.worker_pool = None
 
     def remove_roots(self):
-        if self.save_temps:
-            return
         for ctx in self.pass_contexts:
             if not ctx.temporary_root:
                 continue
-            rmfolder(ctx.temporary_root)
+            self.tmp_dir_manager.delete_dir(ctx.temporary_root)
             ctx.temporary_root = None
         if self.success_candidate:
-            self.success_candidate.release()
+            self.success_candidate.release(self.tmp_dir_manager)
             self.success_candidate = None
 
     def restore_mode(self):
@@ -664,7 +654,7 @@ class TestManager:
     def check_sanity(self):
         logging.debug('perform sanity check... ')
 
-        folder = Path(tempfile.mkdtemp(prefix=f'{self.TEMP_PREFIX}sanity-'))
+        folder = self.tmp_dir_manager.create_dir(prefix='sanity')
         test_env = TestEnvironment(
             None,
             0,
@@ -679,12 +669,10 @@ class TestManager:
 
         test_env.copy_test_cases()
         returncode = test_env.run_test(verbose=True)
+        self.tmp_dir_manager.delete_dir(folder)
         if returncode == 0:
-            rmfolder(folder)
             logging.debug('sanity check successful')
         else:
-            if not self.save_temps:
-                rmfolder(folder)
             raise InsaneTestCaseError(self.test_cases, self.test_script)
 
     @classmethod
@@ -692,8 +680,8 @@ class TestManager:
         logging.info(f'****** {event} ******')
 
     def release_job(self, job: Job) -> None:
-        if not self.save_temps and job.temporary_folder is not None:
-            rmfolder(job.temporary_folder)
+        if job.temporary_folder is not None:
+            self.tmp_dir_manager.delete_dir(job.temporary_folder)
         self.jobs.remove(job)
 
     def release_all_jobs(self) -> None:
@@ -711,7 +699,7 @@ class TestManager:
                 # Gracefully handle exceptions here - storing "extra" dirs is not critical for the reduction use case,
                 # and an exception can occur simply due to child processes of the interestingness test creating/deleting
                 # files in its work dir. Just make sure to delete the half-created extra dir.
-                rmfolder(extra_dir)
+                shutil.rmtree(extra_dir)
             else:
                 logging.info(f'Created extra directory {extra_dir} for you to look at later')
 
@@ -785,10 +773,10 @@ class TestManager:
         ctx.stage = PassStage.ENUMERATING
         ctx.state = job.future.result()
 
-        # Put the job's folder into the pass context for future transform jobs; the old folder, if any, has to be cleaned up.
+        # Put the job's folder into the pass context for future transform jobs; the old folder, if any, has to be
+        # cleaned up.
         if ctx.temporary_root is not None:
-            rmfolder(ctx.temporary_root)
-            ctx.temporary_root = None
+            self.tmp_dir_manager.delete_dir(ctx.temporary_root)
         ctx.temporary_root = job.temporary_folder
         job.temporary_folder = None
 
@@ -872,8 +860,8 @@ class TestManager:
             return
         if self.success_candidate:
             # Make sure to clean up old temporary files.
-            self.success_candidate.release()
-        new.take_file_ownership(env.test_case_path)
+            self.success_candidate.release(self.tmp_dir_manager)
+        new.take_file_ownership(env.test_case_path, self.tmp_dir_manager)
         self.success_candidate = new
 
     def terminate_all(self) -> None:
@@ -953,7 +941,6 @@ class TestManager:
             else:
                 return
 
-        self.order = 1
         self.last_restart_job_order = None
         self.pass_restart_queue = []
         self.pass_contexts = []
@@ -1109,7 +1096,7 @@ class TestManager:
         else:
             log_note = None
 
-        self.success_candidate.release()
+        self.success_candidate.release(self.tmp_dir_manager)
         self.success_candidate = None
 
         self.log_test_case_metrics(log_note)
@@ -1213,8 +1200,7 @@ class TestManager:
                     path for type, path in other.hint_bundle_paths.items() if type in dependee_types
                 ]
 
-        sanitized_name = fileutil.sanitize_for_file_name(str(ctx.pass_))
-        tmp_dir = Path(tempfile.mkdtemp(prefix=f'{TestManager.TEMP_PREFIX}{sanitized_name}-'))
+        tmp_dir = self.tmp_dir_manager.create_dir(prefix=fileutil.sanitize_for_file_name(str(ctx.pass_)))
         logging.debug(f'Creating pass root folder: {tmp_dir}')
 
         # Either initialize the pass from scratch, or advance from the previous state.
@@ -1271,7 +1257,7 @@ class TestManager:
         # simply hardcode that hint-based passes are capable of this (and they actually need the original files anyway).
         should_copy_test_cases = not isinstance(ctx.pass_, HintBasedPass)
 
-        folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX, dir=ctx.temporary_root))
+        folder = self.tmp_dir_manager.create_dir(prefix=f'job{self.order}')
         env = TestEnvironment(
             ctx.state,
             self.order,
@@ -1311,7 +1297,7 @@ class TestManager:
         assert self.interleaving
 
         should_copy_test_cases = False  # the fold transform creates the files itself
-        folder = Path(tempfile.mkdtemp(prefix=self.TEMP_PREFIX + 'folding-'))
+        folder = self.tmp_dir_manager.create_dir(prefix='folding')
         env = TestEnvironment(
             folding_state,
             self.order,

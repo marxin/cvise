@@ -23,8 +23,9 @@ def cache_tmp_prefix() -> str:
 
 @pytest.fixture
 def cache(cache_tmp_prefix: str) -> Iterator[Cache]:
-    with Cache(tmp_prefix=cache_tmp_prefix) as cache:
-        yield cache
+    with fileutil.TmpDirManager(prefix=cache_tmp_prefix) as tmp_dir_manager:
+        with Cache(tmp_dir_manager) as cache:
+            yield cache
     assert _get_cache_storage_dirs(cache_tmp_prefix) == []  # no leftover temp files
 
 

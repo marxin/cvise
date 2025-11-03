@@ -9,6 +9,7 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Callable, Union
+from unittest.mock import patch
 
 import pytest
 
@@ -23,6 +24,7 @@ from cvise.utils.fileutil import (
     remove_extraneous_files,
     replace_test_case_atomically,
     sanitize_for_file_name,
+    TmpDirManager,
 )
 
 
@@ -36,6 +38,37 @@ def input_in_source_dir():
     current = Path(__file__).parent.resolve()
     with tempfile.TemporaryDirectory(dir=current) as tmp_dir:
         yield Path(tmp_dir)
+
+
+def test_tmp_dir_mgr():
+    with TmpDirManager() as mgr:
+        dir1 = mgr.create_dir(prefix='dir')
+        dir2 = mgr.create_dir(prefix='dir')
+
+        assert dir1.is_dir()
+        assert dir2.is_dir()
+        assert dir1 != dir2
+        assert 'dir' in str(dir1)
+        assert 'dir' in str(dir2)
+
+        mgr.delete_dir(dir2)
+        assert not dir2.exists()
+        assert dir1.exists()
+
+    assert not dir1.exists()
+
+
+@patch('cvise.utils.fileutil.TmpDirManager.JANITOR_INTERVAL', 1)
+def test_tmp_dir_mgr_janitor():
+    with TmpDirManager() as mgr:
+        garbage = mgr.root / 'garbage'
+        garbage.mkdir()
+
+        for _ in range(10):
+            time.sleep(1)
+            if not garbage.exists():
+                break
+        assert not garbage.exists()
 
 
 def test_sanitize():
