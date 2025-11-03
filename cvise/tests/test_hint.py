@@ -234,6 +234,34 @@ def test_apply_hints_overlapping_replacements(tmp_test_case: Path, tmp_transform
     assert tmp_transformed_file.read_text() == 'afoo'
 
 
+def test_apply_hints_insertion(tmp_test_case: Path, tmp_transformed_file: Path):
+    """Test a hint that inserts text."""
+    tmp_test_case.write_text('abcd')
+    vocab = [b'x']
+    hints = [Hint(patches=(Patch(left=1, right=1, value=0),))]
+    bundle = HintBundle(vocabulary=vocab, hints=hints)
+    validate_hint_bundle(bundle, tmp_test_case)
+
+    apply_hints([bundle], tmp_test_case, tmp_transformed_file)
+
+    assert tmp_transformed_file.read_text() == 'axbcd'
+
+
+def test_apply_hints_insertion_inside_deletion(tmp_test_case: Path, tmp_transformed_file: Path):
+    """Test an insertion is a no-op when happening inside a deleted chunk."""
+    tmp_test_case.write_text('abcd')
+    vocab = [b'x']
+    hint1 = Hint(patches=(Patch(left=1, right=3),))  # deletes "bc"
+    hint2 = Hint(patches=(Patch(left=2, right=2, value=0),))  # inserts "x" after "b"
+    hints = [hint1, hint2]
+    bundle = HintBundle(vocabulary=vocab, hints=hints)
+    validate_hint_bundle(bundle, tmp_test_case)
+
+    apply_hints([bundle], tmp_test_case, tmp_transformed_file)
+
+    assert tmp_transformed_file.read_text() == 'ad'
+
+
 def test_apply_hints_multiple_bundles(tmp_test_case: Path, tmp_transformed_file: Path):
     tmp_test_case.write_text('foobar')
     hint02 = Hint(patches=(Patch(left=0, right=2),))

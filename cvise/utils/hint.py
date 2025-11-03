@@ -582,20 +582,17 @@ def _merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequen
     for cur in sorted(patches, key=sorting_key):
         if merged:
             prev = merged[-1]
-            prev_p = prev.patch
-            cur_p = cur.patch
-            if (
-                prev_p.left is not None
-                and prev_p.right is not None
-                and cur_p.left is not None
-                and cur_p.right is not None
-                and max(prev_p.left, cur_p.left) < min(prev_p.right, cur_p.right)
-            ):
-                # There's an overlap with the previous patch; note that only real overlaps (with at least one common
-                # character) are detected. Extend the previous patch to fit the new patch.
-                if cur_p.right > prev_p.right:
-                    prev.patch = msgspec.structs.replace(prev.patch, right=cur_p.right)
-                continue
+            p = prev.patch
+            c = cur.patch
+            if p.left is not None and p.right is not None and c.left is not None and c.right is not None:
+                # Check whether there's an overlap with the previous patch; note that only real overlaps (with at least
+                # one common character and/or fully containing the new patch) are detected.
+                xl = max(p.left, c.left)
+                xr = min(p.right, c.right)
+                if (xl < xr) or (xl == xr and c.left == c.right):
+                    if c.right > p.right:  # Extend the previous patch to fit the new patch.
+                        prev.patch = msgspec.structs.replace(prev.patch, right=c.right)
+                    continue
         # No overlap with previous items - just add the new patch.
         merged.append(cur)
     return merged
