@@ -63,7 +63,7 @@ class ClangHintsPass(HintBasedPass):
         )
         self._user_clang_delta_std = user_clang_delta_std
         self._strategy = strategy
-        self._iterate_stds = iterate_stds == True
+        self._iterate_stds = False if iterate_stds is None else iterate_stds
 
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
