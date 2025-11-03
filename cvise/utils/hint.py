@@ -586,7 +586,7 @@ def _merge_overlapping_patches(patches: Sequence[_PatchWithBundleRef]) -> Sequen
     return merged
 
 
-def _patch_merge_sorting_key(ref: _PatchWithBundleRef):
+def _patch_merge_sorting_key(ref: _PatchWithBundleRef) -> tuple:
     """Sorting key used for merging overlapping patches."""
     p = ref.patch
     is_replacement = p.value is not None
