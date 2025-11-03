@@ -764,9 +764,12 @@ class TestManager:
         logging.warning('Test timed out for %s.', job.pass_user_visible_name)
         if job.temporary_folder:
             self.save_extra_dir(job.temporary_folder)
+        self.pass_statistic.add_aborted(job.pass_, job.start_time, self.parallel_tests, job.type == JobType.TRANSFORM)
+
         if job.pass_id is None:
             # The logic of disabling a pass after repeated timeouts isn't applicable to folding jobs.
             return
+
         ctx = self.pass_contexts[job.pass_id]
         ctx.timeout_count += 1
         if job.type == JobType.TRANSFORM:
@@ -792,7 +795,7 @@ class TestManager:
         ctx.temporary_root = job.temporary_folder
         job.temporary_folder = None
 
-        self.pass_statistic.add_initialized(job.pass_, job.start_time)
+        self.pass_statistic.add_initialized(job.pass_, job.start_time, self.parallel_tests if self.interleaving else 1)
         if isinstance(ctx.pass_, HintBasedPass):
             ctx.hint_bundle_paths = {} if ctx.state is None else ctx.state.hint_bundle_paths()
 
@@ -806,6 +809,7 @@ class TestManager:
 
         outcome = self.check_pass_result(job)
         if outcome == PassCheckingOutcome.STOP:
+            self.pass_statistic.add_failure(job.pass_)
             assert ctx is not None
             ctx.state = None
             return
@@ -933,6 +937,9 @@ class TestManager:
         if self.jobs:
             for job in self.jobs:
                 self.cancel_job(job)
+                self.pass_statistic.add_aborted(
+                    job.pass_, job.start_time, self.parallel_tests, job.type == JobType.TRANSFORM
+                )
             self.mp_task_loss_workaround.execute(self.worker_pool)  # only do it if at least one job canceled
             self.release_all_jobs()
 
