@@ -69,7 +69,7 @@ class InitEnvironment:
     pass_new: Callable
     test_case: Path
     tmp_dir: Path
-    job_timeout: int
+    job_timeout: float
     pid_queue: queue.Queue
     dependee_bundle_paths: list[Path]
 
@@ -98,7 +98,7 @@ class AdvanceOnSuccessEnvironment:
     pass_previous_state: Any
     new_tmp_dir: Path
     pass_succeeded_state: Any
-    job_timeout: int
+    job_timeout: float
     pid_queue: queue.Queue
     dependee_bundle_paths: list[Path]
 
@@ -435,7 +435,7 @@ class TestManager:
         self,
         pass_statistic,
         test_script: Path,
-        user_specified_timeout,
+        user_specified_timeout: int,
         save_temps,
         test_cases: list[Path],
         parallel_tests,
