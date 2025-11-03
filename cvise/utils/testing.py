@@ -472,7 +472,7 @@ class TestManager:
         # The "order" is an incremental counter for numbering jobs.
         self.order: int = 1
         # Remembers the "order" that the first job in the current batch (run_parallel_tests()) got.
-        self.current_batch_start_order: int = 0
+        self.current_batch_start_order: int = 1
         # Identifies the most recent pass restart job (whether in the current batch or not).
         self.last_restart_job_order: int | None = None
         self.success_candidate: SuccessCandidate | None = None
