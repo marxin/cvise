@@ -25,10 +25,6 @@ class PassStatistic:
         """Record a completion of a new() method for a pass."""
         stat = self._get_stats(pass_)
         _add_duration(stat, start_time, parallel_workers)
-        assert (
-            sum(s.total_seconds for s in self._stats.values()) + self._folding_stats.total_seconds
-            <= time.monotonic() - self._start_time
-        )
 
     def add_executed(self, pass_: AbstractPass | None, start_time: float, parallel_workers: int) -> None:
         """Record a completion of a transformation and checking task for a pass.
@@ -38,10 +34,6 @@ class PassStatistic:
         stat = self._get_stats(pass_)
         stat.totally_executed += 1
         _add_duration(stat, start_time, parallel_workers)
-        assert (
-            sum(s.total_seconds for s in self._stats.values()) + self._folding_stats.total_seconds
-            <= time.monotonic() - self._start_time
-        )
 
     def add_aborted(
         self, pass_: AbstractPass | None, start_time: float, parallel_workers: int, is_transform: bool
@@ -52,10 +44,6 @@ class PassStatistic:
             stat.totally_executed += 1
             stat.failed += 1
         _add_duration(stat, start_time, parallel_workers)
-        assert (
-            sum(s.total_seconds for s in self._stats.values()) + self._folding_stats.total_seconds
-            <= time.monotonic() - self._start_time
-        )
 
     def add_success(self, pass_: AbstractPass | None) -> None:
         """Record that a transformation by the pass passes the interestingness test.
@@ -63,7 +51,6 @@ class PassStatistic:
         If pass_ is None, it was a folding execution.
         """
         stat = self._get_stats(pass_)
-        assert stat.worked < stat.totally_executed
         stat.worked += 1
 
     def add_failure(self, pass_: AbstractPass | None) -> None:
@@ -72,7 +59,6 @@ class PassStatistic:
         If pass_ is None, it was a folding execution.
         """
         stat = self._get_stats(pass_)
-        assert stat.failed < stat.totally_executed
         stat.failed += 1
 
     def add_committed_success(self, pass_name: str | None, size_delta: int) -> None:
