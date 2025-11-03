@@ -141,6 +141,7 @@ set(SOURCE_FILES
   "utils/readkey_posix.py"
   "utils/readkey_windows.py"
   "utils/readkey.py"
+  "utils/resource.py"
   "utils/sigmonitor.py"
   "utils/statistics.py"
   "utils/testing.py"

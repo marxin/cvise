@@ -237,6 +237,11 @@ def main():
         default=300,
         help='Interestingness test timeout in seconds',
     )
+    parser.add_argument(
+        '--no-auto-adjust-timeout',
+        type=bool,
+        help='Disable automatic timeout calculation based on actual execution durations.',
+    )
     parser.add_argument('--no-cache', action='store_true', help="Don't cache behavior of passes")
     parser.add_argument(
         '--skip-key-off',
@@ -471,6 +476,7 @@ def do_reduce(args):
             args.start_with_pass,
             args.skip_after_n_transforms,
             args.stopping_threshold,
+            args.no_auto_adjust_timeout,
         ) as test_manager:
             reducer = CVise(test_manager, args.skip_interestingness_test_check)
 

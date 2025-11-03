@@ -304,6 +304,7 @@ def manager(tmp_path: Path, input_path: Path, interestingness_script: str, job_t
     START_WITH_PASS = None
     SKIP_AFTER_N_TRANSFORMS = None
     STOPPING_THRESHOLD = 1.0
+    NO_AUTO_ADJUST_TIMEOUT = False
     pass_statistic = statistics.PassStatistic()
 
     script_path = tmp_path / 'check.sh'
@@ -328,6 +329,7 @@ def manager(tmp_path: Path, input_path: Path, interestingness_script: str, job_t
         START_WITH_PASS,
         SKIP_AFTER_N_TRANSFORMS,
         STOPPING_THRESHOLD,
+        NO_AUTO_ADJUST_TIMEOUT,
     )
     test_manager.__enter__()
     try:
