@@ -158,7 +158,10 @@ class ClangHintsPass(HintBasedPass):
         if std is not None:
             options.append(f'--std={std}')
 
-        cmd = [self.external_programs['clang_delta']] + options + [str(test_case)]
+        prog = self.external_programs['clang_delta']
+        assert prog is not None
+
+        cmd = [prog] + options + [str(test_case)]
         logging.debug(shlex.join(str(s) for s in cmd))
 
         try:
