@@ -127,10 +127,10 @@ class TmpDirManager:
     def _janitor_thread_main(self) -> None:
         while not self._shutdown_event.is_set():
             with self._lock:
-                present = list(self.root.iterdir())
-                known = copy(self._dirs)
+                present: set[Path] = set(self.root.iterdir())
+                known: set[Path] = copy(self._dirs)
 
-            to_delete = set(present) - set(known)
+            to_delete = present - known
             for path in to_delete:
                 if path.is_file():
                     path.unlink(missing_ok=True)
