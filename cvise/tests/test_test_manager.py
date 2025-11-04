@@ -310,6 +310,8 @@ def manager(tmp_path: Path, input_path: Path, interestingness_script: str, job_t
     script_path.write_text(interestingness_script.format(test_case=input_path))
     script_path.chmod(0o744)
 
+    start_time = time.monotonic()
+
     test_manager = testing.TestManager(
         pass_statistic,
         script_path,
@@ -335,6 +337,7 @@ def manager(tmp_path: Path, input_path: Path, interestingness_script: str, job_t
     finally:
         if test_manager.worker_pool:  # some tests shut down the manager themselves
             test_manager.__exit__(None, None, None)
+        _assert_stats_validity(pass_statistic, start_time)
 
 
 def test_succeed_via_naive_pass(input_path: Path, manager):
@@ -627,3 +630,11 @@ def test_remove_extraneous_files(input_path: Path, manager: testing.TestManager)
 
     assert _read_files_in_dir(input_path) == {Path('foo.txt'): 'aba', Path('bar.txt'): ''}
     assert not (input_path / 'noise').exists()
+
+
+def _assert_stats_validity(pass_statistic: statistics.PassStatistic, start_time: float) -> None:
+    stats = [stat for _name, stat in pass_statistic.sorted_results]
+    for stat in stats:
+        assert stat.worked + stat.failed <= stat.totally_executed
+    elapsed = time.monotonic() - start_time
+    assert sum(stat.total_seconds for stat in stats) <= elapsed
