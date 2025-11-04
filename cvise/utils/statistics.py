@@ -87,5 +87,6 @@ class PassStatistic:
 
 
 def _add_duration(stat: SinglePassStatistic, start_time: float, parallel_workers: int) -> None:
-    # Account for parallelism when adding up durations.
+    # Account for parallelism when adding up durations. It's only an approximation since there might be fewer active
+    # jobs at times.
     stat.total_seconds += (time.monotonic() - start_time) / parallel_workers
