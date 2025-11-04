@@ -19,7 +19,6 @@ class PassStatistic:
     def __init__(self):
         self._stats: dict[str, SinglePassStatistic] = {}
         self._folding_stats = SinglePassStatistic('Folding')
-        self._start_time = time.monotonic()
 
     def add_initialized(self, pass_: AbstractPass, start_time: float, parallel_workers: int) -> None:
         """Record a completion of a new() method for a pass."""
