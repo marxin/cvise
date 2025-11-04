@@ -99,11 +99,11 @@ class ClangHintsPass(HintBasedPass):
             )
 
         if best_bundle is None:
-            logging.warning('%s', last_error)
+            logging.debug('%s', last_error)
             return None
 
         if best_std:
-            logging.info(
+            logging.debug(
                 'clang_delta %s using C++ standard: %s with %d transformation opportunities',
                 self.arg,
                 best_std,
