@@ -4,6 +4,7 @@ import logging
 import shlex
 import subprocess
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import msgspec
@@ -16,6 +17,7 @@ from cvise.utils.process import ProcessEventNotifier
 CLANG_STD_CHOICES = ('c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++2b')
 
 
+@dataclass(frozen=True, slots=True)
 class ClangState(HintState):
     """Extends HintState to store additional information needed by ClangHintsPass.
 
@@ -27,10 +29,8 @@ class ClangState(HintState):
     def wrap(parent: HintState | None, clang_std: str | None) -> HintState | None:
         if parent is None:
             return None
-        wrapped = object.__new__(ClangState)
-        wrapped.__dict__.update(parent.__dict__)
-        wrapped.clang_std = clang_std
-        return wrapped
+        attrs = {k: getattr(parent, k) for k in HintState.__slots__ if hasattr(parent, k)}
+        return ClangState(clang_std=clang_std, **attrs)
 
 
 class ClangDeltaError(Exception):

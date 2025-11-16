@@ -53,7 +53,7 @@ class PassCheckingOutcome(Enum):
     STOP = auto()
 
 
-@dataclass
+@dataclass(slots=True)
 class InitEnvironment:
     """Holds data for executing a Pass new() method in a worker."""
 
@@ -80,7 +80,7 @@ class InitEnvironment:
             return None
 
 
-@dataclass
+@dataclass(slots=True)
 class AdvanceOnSuccessEnvironment:
     """Holds data for executing a Pass advance_on_success() method in a worker."""
 

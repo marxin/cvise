@@ -9,7 +9,7 @@ from cvise.passes.abstract import PassResult
 from cvise.passes.hint_based import HintBasedPass, HintState
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class FoldingStateIn:
     """Input parameters for a folding job's transform."""
 
@@ -19,7 +19,7 @@ class FoldingStateIn:
         return sum(s.real_chunk() for s in self.sub_states)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class FoldingStateOut(FoldingStateIn):
     """Results returned from a folding job's transform."""
 

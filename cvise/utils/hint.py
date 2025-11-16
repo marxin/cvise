@@ -66,7 +66,7 @@ class Hint(msgspec.Struct, omit_defaults=True, gc=False, frozen=True):
         )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class HintBundle:
     """Stores a collection of hints.
 
@@ -177,7 +177,7 @@ HINT_SCHEMA_STRICT['additionalProperties'] = False
 HINT_SCHEMA_STRICT['properties']['p']['items'] = HINT_PATCH_SCHEMA_STRICT
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class HintApplicationReport:
     stats_delta_per_pass: dict[str, int]
     written_paths: set[Path]
