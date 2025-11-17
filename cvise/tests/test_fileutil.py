@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Callable, Union
 from unittest.mock import patch
@@ -14,7 +15,6 @@ from unittest.mock import patch
 import pytest
 
 from cvise.utils.fileutil import (
-    chdir,
     copy_test_case,
     diff_test_cases,
     filter_files_by_patterns,
@@ -115,7 +115,7 @@ def test_copy(tmp_path: Path):
     target_dir = tmp_path / 'targetdir'
     target_dir.mkdir()
 
-    with chdir(work_dir):
+    with _chdir(work_dir):
         copy_test_case(test_case, target_dir)
 
     assert (target_dir / test_case).read_text() == 'foo'
@@ -133,7 +133,7 @@ def test_copy_dir(tmp_path: Path):
     target_dir = tmp_path / 'targetdir'
     target_dir.mkdir()
 
-    with chdir(work_dir):
+    with _chdir(work_dir):
         copy_test_case(test_case, target_dir)
 
     assert (target_dir / 'test').is_dir()
@@ -150,7 +150,7 @@ def test_copy_failure_nonexisting_destination(tmp_path: Path):
     target_dir = tmp_path / 'targetdir'
     # note no mkdir() for target_dir
 
-    with chdir(work_dir):
+    with _chdir(work_dir):
         with pytest.raises(FileNotFoundError):
             copy_test_case(test_case, target_dir)
 
@@ -164,7 +164,7 @@ def test_replace(tmp_path: Path):
     new_dir.mkdir()
     (new_dir / test_case).write_text('bar')
 
-    with chdir(work_dir):
+    with _chdir(work_dir):
         replace_test_case_atomically(new_dir / test_case, test_case)
 
     assert (work_dir / test_case).read_text() == 'bar'
@@ -188,7 +188,7 @@ def test_replace_dir(tmp_path: Path):
     (new_dir / test_case / 'd').mkdir()
     (new_dir / test_case / 'd' / 'd.txt').write_text('newbar')
 
-    with chdir(work_dir):
+    with _chdir(work_dir):
         replace_test_case_atomically(new_dir / test_case, test_case)
 
     assert (work_dir / test_case / 'a.txt').read_text() == 'newfoo'
@@ -509,7 +509,7 @@ def test_diff_files(tmp_path: Path):
     changed_path.parent.mkdir()
     changed_path.write_text('just\nhello\n')
 
-    with chdir(tmp_path):
+    with _chdir(tmp_path):
         assert (
             diff_test_cases(name, changed_path)
             == b"""--- foo.txt
@@ -536,7 +536,7 @@ def test_diff_dir(tmp_path: Path):
     (changed_path / 'x.txt').write_text('foo')
     (changed_path / 'other_dir').mkdir()
 
-    with chdir(tmp_path):
+    with _chdir(tmp_path):
         assert (
             diff_test_cases(name, changed_path)
             == b"""--- repro/dir
@@ -565,3 +565,14 @@ def test_remove_extraneous(tmp_path: Path):
     remove_extraneous_files(tmp_path, expected_paths)
 
     assert set(tmp_path.rglob('*')) == expected_paths
+
+
+# TODO: use contextlib.chdir once Python 3.11 is the oldest supported release
+@contextlib.contextmanager
+def _chdir(path: Path) -> Iterator[None]:
+    original_workdir = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(original_workdir)

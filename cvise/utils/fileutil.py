@@ -34,17 +34,6 @@ def CloseableTemporaryFile(mode='w+b', dir: Path | None = None):
             yield f
 
 
-# TODO: use contextlib.chdir once Python 3.11 is the oldest supported release
-@contextlib.contextmanager
-def chdir(path: Path) -> Iterator[None]:
-    original_workdir = os.getcwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(original_workdir)
-
-
 class TmpDirManager:
     TEMP_PREFIX = 'cvise-'
     JANITOR_INTERVAL = 10  # seconds

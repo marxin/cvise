@@ -198,19 +198,18 @@ class TestEnvironment:
             return self
 
     def run_test(self, verbose):
-        with fileutil.chdir(self.folder):
-            # Make the job use our custom temp dir instead of the standard one, so that the standard location doesn't
-            # get cluttered with files it might leave undeleted (the process might do this because of an oversight in
-            # the interestingness test, or because C-Vise abruptly kills our job without a chance for a proper cleanup).
-            with tempfile.TemporaryDirectory(dir=self.folder, prefix='overridetmp') as tmp_override:
-                env = override_tmpdir_env(os.environ.copy(), Path(tmp_override))
-                stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(
-                    str(self.test_script), shell=True, env=env
-                )
-            if verbose and returncode != 0:
-                # Drop invalid UTF sequences.
-                logging.debug('stdout:\n%s', stdout.decode('utf-8', 'ignore'))
-                logging.debug('stderr:\n%s', stderr.decode('utf-8', 'ignore'))
+        # Make the job use our custom temp dir instead of the standard one, so that the standard location doesn't get
+        # cluttered with files it might leave undeleted (the process might do this because of an oversight in the
+        # interestingness test, or because C-Vise abruptly kills our job without a chance for a proper cleanup).
+        with tempfile.TemporaryDirectory(dir=self.folder, prefix='overridetmp') as tmp_override:
+            env = override_tmpdir_env(os.environ.copy(), Path(tmp_override))
+            stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(
+                str(self.test_script), shell=True, env=env, cwd=self.folder
+            )
+        if verbose and returncode != 0:
+            # Drop invalid UTF sequences.
+            logging.debug('stdout:\n%s', stdout.decode('utf-8', 'ignore'))
+            logging.debug('stderr:\n%s', stderr.decode('utf-8', 'ignore'))
         return returncode
 
 

@@ -1,6 +1,7 @@
 import tempfile
 import uuid
 from collections.abc import Iterator
+import os
 from pathlib import Path
 
 import pytest
@@ -12,8 +13,12 @@ from cvise.utils.cache import Cache
 
 @pytest.fixture(autouse=True)
 def cd_to_tmp_path(tmp_path: Path) -> Iterator[None]:
-    with fileutil.chdir(tmp_path):
+    original_workdir = os.getcwd()
+    os.chdir(tmp_path)
+    try:
         yield
+    finally:
+        os.chdir(original_workdir)
 
 
 @pytest.fixture
