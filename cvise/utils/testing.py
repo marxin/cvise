@@ -129,7 +129,7 @@ class TestEnvironment:
         self.folder: Path = folder
         self.test_script = test_script
         self.exitcode = None
-        self.result = None
+        self.result: PassResult | None = None
         self.order = order
         self.transform = transform
         self.pid_queue = pid_queue
