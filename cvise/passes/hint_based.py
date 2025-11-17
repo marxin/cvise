@@ -24,7 +24,7 @@ _HINTS_FILE_NAME_PREFIX_TEMPLATE = 'hints{type}-'
 _HINTS_FILE_NAME_SUFFIX = '.jsonl.zst'
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PerTypeHintState:
     """A sub-item of HintState storing information for a particular hint type.
 
@@ -79,7 +79,7 @@ class PerTypeHintState:
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SpecialHintState:
     """A sub-item of HintState for "special" hint types - those that start from "@".
 
@@ -92,7 +92,7 @@ class SpecialHintState:
     hint_count: int
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class HintState:
     """Stores the current state of the HintBasedPass.
 

@@ -20,7 +20,7 @@ class PassResult(Enum):
     ERROR = auto()
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SubsegmentState:
     """Iterates over subsegments of the given instances, with at most the given chunk size.
 
