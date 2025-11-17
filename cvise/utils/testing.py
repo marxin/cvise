@@ -127,7 +127,7 @@ class TestEnvironment:
     ):
         self.state = state
         self.folder: Path = folder
-        self.base_size = None
+        self.original_size = None
         self.test_script = test_script
         self.exitcode = None
         self.result = None
@@ -136,12 +136,14 @@ class TestEnvironment:
         self.pid_queue = pid_queue
         self.test_case: Path = test_case
         self.should_copy_test_cases = should_copy_test_cases
-        self.base_size = fileutil.get_file_size(test_case)
         self.all_test_cases: set[Path] = all_test_cases
 
     @property
     def size_improvement(self):
-        return self.base_size - fileutil.get_file_size(self.test_case_path)
+        assert self.success
+        assert self.original_size is not None
+        assert self.new_size is not None
+        return self.original_size - self.new_size
 
     @property
     def test_case_path(self) -> Path:
@@ -183,8 +185,10 @@ class TestEnvironment:
             # run test script
             self.exitcode = self.run_test(False)
 
-            # cleanup (only useful for successful case - otherwise job's dir will be anyway deleted by main process)
+            # cleanup and stats (only useful for successful case - otherwise job's dir will be deleted anyway)
             if self.exitcode == 0:
+                self.original_size = fileutil.get_file_size(self.test_case)
+                self.new_size = fileutil.get_file_size(self.test_case_path)
                 fileutil.remove_extraneous_files(self.test_case_path, written_paths)
 
             return self
