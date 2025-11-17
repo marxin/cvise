@@ -71,9 +71,6 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
-        include:
-          - python: "3.9"
-            extra-deps: ["eval_type_backport"]
       fail-fast: false
 
     steps:
