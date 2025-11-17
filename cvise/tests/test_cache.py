@@ -1,7 +1,7 @@
+import os
 import tempfile
 import uuid
 from collections.abc import Iterator
-import os
 from pathlib import Path
 
 import pytest

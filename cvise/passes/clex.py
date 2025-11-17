@@ -1,11 +1,10 @@
 from pathlib import Path
-from typing import Optional
 
 from cvise.passes.abstract import AbstractPass, PassResult
 
 
 class ClexPass(AbstractPass):
-    def __init__(self, arg: str, external_programs: dict[str, Optional[str]], **kwargs):
+    def __init__(self, arg: str, external_programs: dict[str, str | None], **kwargs):
         super().__init__(arg=arg, external_programs=external_programs, **kwargs)
 
     def check_prerequisites(self):

@@ -1,6 +1,5 @@
 import re
 from pathlib import Path
-from typing import Union
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.utils.fileutil import filter_files_by_patterns
@@ -38,7 +37,7 @@ class CommentsPass(HintBasedPass):
             self._generate_hints_for_file(path, path_id, hints)
         return HintBundle(hints=hints, vocabulary=vocab)
 
-    def _generate_hints_for_file(self, file_path: Path, path_id: Union[int, None], hints: list[Hint]) -> None:
+    def _generate_hints_for_file(self, file_path: Path, path_id: int | None, hints: list[Hint]) -> None:
         prog = file_path.read_bytes()
 
         # Remove all multiline comments - the pattern is:

@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from cvise.passes.abstract import AbstractPass
 from cvise.utils import fileutil
@@ -29,7 +28,7 @@ class Cache:
                 self._tmp_dir_manager.delete_dir(item.tmp_dir)
         self._items = {}
 
-    def lookup(self, passes: Sequence[AbstractPass], hash_before: bytes) -> Optional[Path]:
+    def lookup(self, passes: Sequence[AbstractPass], hash_before: bytes) -> Path | None:
         key = self._key(passes)
         item = self._items.get(key, {}).get(hash_before)
         return item.path if item else None

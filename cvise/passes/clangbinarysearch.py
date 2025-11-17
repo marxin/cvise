@@ -3,7 +3,6 @@ import re
 import subprocess
 import time
 from pathlib import Path
-from typing import Optional
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
@@ -12,9 +11,9 @@ class ClangBinarySearchPass(AbstractPass):
     def __init__(
         self,
         arg: str,
-        external_programs: dict[str, Optional[str]],
-        user_clang_delta_std: Optional[str] = None,
-        clang_delta_preserve_routine: Optional[str] = None,
+        external_programs: dict[str, str | None],
+        user_clang_delta_std: str | None = None,
+        clang_delta_preserve_routine: str | None = None,
         **kwargs,
     ):
         super().__init__(

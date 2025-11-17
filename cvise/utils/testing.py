@@ -14,12 +14,12 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import FIRST_COMPLETED, Future, wait
 from dataclasses import dataclass
 from enum import Enum, auto, unique
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pebble
 

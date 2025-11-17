@@ -7,7 +7,6 @@ import re
 import sys
 import time
 from pathlib import Path
-from typing import Union
 from unittest.mock import patch
 
 import psutil
@@ -232,12 +231,12 @@ def cwd_to_tmp_path(tmp_path: Path):
 
 
 @pytest.fixture
-def input_contents() -> Union[str, dict[Path, str]]:
+def input_contents() -> str | dict[Path, str]:
     return DEFAULT_INPUT_CONTENTS
 
 
 @pytest.fixture
-def input_path(tmp_path: Path, input_contents: Union[str, dict[Path, str]]) -> Path:
+def input_path(tmp_path: Path, input_contents: str | dict[Path, str]) -> Path:
     RELATIVE_PATH = Path('test_case')
     path = tmp_path / RELATIVE_PATH
     if isinstance(input_contents, str):

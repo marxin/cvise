@@ -1,6 +1,6 @@
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Union
 
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils.error import UnknownArgumentError
@@ -11,7 +11,7 @@ class SpecialPass(AbstractPass):
         return True
 
     def __get_config(self):
-        config: dict[str, Union[str, Callable, None]] = {
+        config: dict[str, str | Callable | None] = {
             'search': None,
             'replace_fn': None,
         }

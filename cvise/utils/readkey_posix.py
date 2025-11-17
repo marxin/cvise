@@ -5,13 +5,12 @@ assert sys.platform != 'win32'
 import contextlib  # noqa: E402
 import select  # noqa: E402
 import termios  # noqa: E402
-from typing import Union  # noqa: E402
 
 
 class KeyLogger:
     def __init__(self):
         self.fd = sys.stdin.fileno()
-        self.old_term: Union[list, None] = None  # initialized in __enter__()
+        self.old_term: list | None = None  # initialized in __enter__()
 
     def __enter__(self):
         with contextlib.suppress(termios.error):  # this happens when run in pytest
@@ -35,7 +34,7 @@ class KeyLogger:
         (dr, _dw, _de) = select.select([sys.stdin], [], [], 0)
         return dr != []
 
-    def pressed_key(self) -> Union[str, None]:
+    def pressed_key(self) -> str | None:
         if self._kbhit():
             return self._getch()
         else:

@@ -24,7 +24,6 @@ from collections.abc import Iterator
 from concurrent.futures import Future
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional
 
 
 @enum.unique
@@ -37,7 +36,7 @@ class Mode(enum.Enum):
 _mode: Mode = Mode.RAISE_EXCEPTION
 _sigint_observed: bool = False
 _sigterm_observed: bool = False
-_future: Optional[Future] = None
+_future: Future | None = None
 
 
 def init(mode: Mode) -> None:
