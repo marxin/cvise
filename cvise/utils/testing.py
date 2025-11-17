@@ -742,12 +742,13 @@ class TestManager:
                     self.handle_timed_out_job(job)
                     continue
                 raise exc
-            if job.type == JobType.INIT:
-                self.handle_finished_init_job(job)
-            elif job.type == JobType.TRANSFORM:
-                self.handle_finished_transform_job(job)
-            else:
-                raise ValueError(f'Unexpected job type {job.type}')
+            match job.type:
+                case JobType.INIT:
+                    self.handle_finished_init_job(job)
+                case JobType.TRANSFORM:
+                    self.handle_finished_transform_job(job)
+                case _:
+                    raise ValueError(f'Unexpected job type {job.type}')
 
         for job in jobs_to_remove:
             self.release_job(job)
@@ -799,26 +800,24 @@ class TestManager:
         if ctx:
             ctx.running_transform_order_to_state.pop(job.order)
 
-        outcome = self.check_pass_result(job)
-        if outcome == PassCheckingOutcome.STOP:
-            self.pass_statistic.add_failure(job.pass_)
-            assert ctx is not None
-            ctx.state = None
-            return
-        if outcome == PassCheckingOutcome.IGNORE:
-            self.pass_statistic.add_failure(job.pass_)
-            if self.interleaving:
-                self.folding_manager.on_transform_job_failure(env.state)
-            return
-        assert outcome == PassCheckingOutcome.ACCEPT
-        self.pass_statistic.add_success(job.pass_)
-        self.maybe_update_success_candidate(job.order, job.pass_, job.pass_id, env)
-        if self.interleaving:
-            self.folding_manager.on_transform_job_success(env.state)
-        if ctx:
-            ctx.current_batch_succeeded_states.append(env.state)
-            assert job.pass_job_counter is not None
-            ctx.last_success_pass_job_counter = max(ctx.last_success_pass_job_counter, job.pass_job_counter)
+        match self.check_pass_result(job):
+            case PassCheckingOutcome.STOP:
+                self.pass_statistic.add_failure(job.pass_)
+                assert ctx is not None
+                ctx.state = None
+            case PassCheckingOutcome.IGNORE:
+                self.pass_statistic.add_failure(job.pass_)
+                if self.interleaving:
+                    self.folding_manager.on_transform_job_failure(env.state)
+            case PassCheckingOutcome.ACCEPT:
+                self.pass_statistic.add_success(job.pass_)
+                self.maybe_update_success_candidate(job.order, job.pass_, job.pass_id, env)
+                if self.interleaving:
+                    self.folding_manager.on_transform_job_success(env.state)
+                if ctx:
+                    ctx.current_batch_succeeded_states.append(env.state)
+                    assert job.pass_job_counter is not None
+                    ctx.last_success_pass_job_counter = max(ctx.last_success_pass_job_counter, job.pass_job_counter)
 
     def check_pass_result(self, job: Job):
         test_env: TestEnvironment = job.future.result()
@@ -834,16 +833,17 @@ class TestManager:
                 return PassCheckingOutcome.IGNORE
             return PassCheckingOutcome.ACCEPT
 
-        if test_env.result == PassResult.OK:
-            assert test_env.exitcode
-            if self.also_interesting is not None and test_env.exitcode == self.also_interesting:
-                self.save_extra_dir(test_env.test_case_path)
-        elif test_env.result == PassResult.STOP:
-            return PassCheckingOutcome.STOP
-        elif test_env.result == PassResult.ERROR:
-            if not self.silent_pass_bug:
-                self.report_pass_bug(job, 'pass error')
+        match test_env.result:
+            case PassResult.OK:
+                assert test_env.exitcode
+                if self.also_interesting is not None and test_env.exitcode == self.also_interesting:
+                    self.save_extra_dir(test_env.test_case_path)
+            case PassResult.STOP:
                 return PassCheckingOutcome.STOP
+            case PassResult.ERROR:
+                if not self.silent_pass_bug:
+                    self.report_pass_bug(job, 'pass error')
+                    return PassCheckingOutcome.STOP
 
         if not self.no_give_up and job.pass_id is not None:
             ctx = self.pass_contexts[job.pass_id]
@@ -994,13 +994,13 @@ class TestManager:
                 while any(c.can_start_job_now(ready_hint_types) for c in self.pass_contexts) and not self.skip:
                     # Ignore more key presses after skip has been detected
                     if not self.skip_key_off and not self.skip:
-                        key = self.key_logger.pressed_key()
-                        if key == 's':
-                            self.skip = True
-                            self.log_key_event('skipping the rest of this pass')
-                        elif key == 'd':
-                            self.log_key_event('toggle print diff')
-                            self.print_diff = not self.print_diff
+                        match self.key_logger.pressed_key():
+                            case 's':
+                                self.skip = True
+                                self.log_key_event('skipping the rest of this pass')
+                            case 'd':
+                                self.log_key_event('toggle print diff')
+                                self.print_diff = not self.print_diff
 
                     self.run_parallel_tests()
 

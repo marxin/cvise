@@ -126,14 +126,14 @@ class ClangBinarySearchPass(AbstractPass):
 
         stdout, stderr, returncode = process_event_notifier.run_process(cmd)
         self.parse_stderr(state, stderr)
-        if returncode == 0:
-            test_case.write_bytes(stdout)
-            return (PassResult.OK, state)
-        else:
-            return (
-                PassResult.STOP if returncode == 255 else PassResult.ERROR,
-                state,
-            )
+        match returncode:
+            case 0:
+                test_case.write_bytes(stdout)
+                return (PassResult.OK, state)
+            case 255:
+                return (PassResult.STOP, state)
+            case _:
+                return (PassResult.ERROR, state)
 
 
 def attach_clang_delta_std(state, std):

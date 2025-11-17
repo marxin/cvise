@@ -74,24 +74,26 @@ class BalancedPass(HintBasedPass):
         def create_hint(start_pos, file_pos):
             if start_pos is None:
                 return None
-            if config.to_delete == Deletion.ALL:
-                val = None
-                if config.replacement:
-                    val = 0  # when config.replacement is used, the first string in the vocabulary points to it
-                p = Patch(left=start_pos, right=file_pos + 1, path=path_id, value=val)
-                return Hint(patches=(p,))
-            if config.to_delete == Deletion.ONLY:
-                return Hint(
-                    patches=(
-                        Patch(left=start_pos, right=start_pos + 1, path=path_id),
-                        Patch(left=file_pos, right=file_pos + 1, path=path_id),
+            match config.to_delete:
+                case Deletion.ALL:
+                    val = None
+                    if config.replacement:
+                        val = 0  # when config.replacement is used, the first string in the vocabulary points to it
+                    p = Patch(left=start_pos, right=file_pos + 1, path=path_id, value=val)
+                    return Hint(patches=(p,))
+                case Deletion.ONLY:
+                    return Hint(
+                        patches=(
+                            Patch(left=start_pos, right=start_pos + 1, path=path_id),
+                            Patch(left=file_pos, right=file_pos + 1, path=path_id),
+                        )
                     )
-                )
-            if config.to_delete == Deletion.INSIDE:
-                if file_pos - start_pos <= 1:
-                    return None  # don't create an empty hint
-                return Hint(patches=(Patch(left=start_pos + 1, right=file_pos, path=path_id),))
-            raise ValueError(f'Unexpected config {config}')
+                case Deletion.INSIDE:
+                    if file_pos - start_pos <= 1:
+                        return None  # don't create an empty hint
+                    return Hint(patches=(Patch(left=start_pos + 1, right=file_pos, path=path_id),))
+                case _:
+                    raise ValueError(f'Unexpected config {config}')
 
         # Scan the text left-to-right and maintain active (not yet matched) open brackets in a stack; None denotes a
         # "bad" open bracket - without the expected prefix.
@@ -107,34 +109,36 @@ class BalancedPass(HintBasedPass):
 
     def __get_config(self) -> Config:
         BalancedExpr = nestedmatcher.BalancedExpr
-        if self.arg == 'square-inside':
-            return Config(search=BalancedExpr.squares, to_delete=Deletion.INSIDE)
-        if self.arg == 'angles-inside':
-            return Config(search=BalancedExpr.angles, to_delete=Deletion.INSIDE)
-        if self.arg == 'parens-inside':
-            return Config(search=BalancedExpr.parens, to_delete=Deletion.INSIDE)
-        if self.arg == 'curly-inside':
-            return Config(search=BalancedExpr.curlies, to_delete=Deletion.INSIDE)
-        if self.arg == 'square':
-            return Config(search=BalancedExpr.squares, to_delete=Deletion.ALL)
-        if self.arg == 'angles':
-            return Config(search=BalancedExpr.angles, to_delete=Deletion.ALL)
-        if self.arg == 'parens-to-zero':
-            return Config(search=BalancedExpr.parens, to_delete=Deletion.ALL, replacement='0')
-        if self.arg == 'parens':
-            return Config(search=BalancedExpr.parens, to_delete=Deletion.ALL)
-        if self.arg == 'curly':
-            return Config(search=BalancedExpr.curlies, to_delete=Deletion.ALL)
-        if self.arg == 'curly2':
-            return Config(search=BalancedExpr.curlies, to_delete=Deletion.ALL, replacement=';')
-        if self.arg == 'curly3':
-            return Config(search=BalancedExpr.curlies, to_delete=Deletion.ALL, search_prefix=r'=\s*')
-        if self.arg == 'parens-only':
-            return Config(search=BalancedExpr.parens, to_delete=Deletion.ONLY)
-        if self.arg == 'curly-only':
-            return Config(search=BalancedExpr.curlies, to_delete=Deletion.ONLY)
-        if self.arg == 'angles-only':
-            return Config(search=BalancedExpr.angles, to_delete=Deletion.ONLY)
-        if self.arg == 'square-only':
-            return Config(search=BalancedExpr.squares, to_delete=Deletion.ONLY)
-        raise UnknownArgumentError(self.__class__.__name__, self.arg)
+        match self.arg:
+            case 'square-inside':
+                return Config(search=BalancedExpr.squares, to_delete=Deletion.INSIDE)
+            case 'angles-inside':
+                return Config(search=BalancedExpr.angles, to_delete=Deletion.INSIDE)
+            case 'parens-inside':
+                return Config(search=BalancedExpr.parens, to_delete=Deletion.INSIDE)
+            case 'curly-inside':
+                return Config(search=BalancedExpr.curlies, to_delete=Deletion.INSIDE)
+            case 'square':
+                return Config(search=BalancedExpr.squares, to_delete=Deletion.ALL)
+            case 'angles':
+                return Config(search=BalancedExpr.angles, to_delete=Deletion.ALL)
+            case 'parens-to-zero':
+                return Config(search=BalancedExpr.parens, to_delete=Deletion.ALL, replacement='0')
+            case 'parens':
+                return Config(search=BalancedExpr.parens, to_delete=Deletion.ALL)
+            case 'curly':
+                return Config(search=BalancedExpr.curlies, to_delete=Deletion.ALL)
+            case 'curly2':
+                return Config(search=BalancedExpr.curlies, to_delete=Deletion.ALL, replacement=';')
+            case 'curly3':
+                return Config(search=BalancedExpr.curlies, to_delete=Deletion.ALL, search_prefix=r'=\s*')
+            case 'parens-only':
+                return Config(search=BalancedExpr.parens, to_delete=Deletion.ONLY)
+            case 'curly-only':
+                return Config(search=BalancedExpr.curlies, to_delete=Deletion.ONLY)
+            case 'angles-only':
+                return Config(search=BalancedExpr.angles, to_delete=Deletion.ONLY)
+            case 'square-only':
+                return Config(search=BalancedExpr.squares, to_delete=Deletion.ONLY)
+            case _:
+                raise UnknownArgumentError(self.__class__.__name__, self.arg)

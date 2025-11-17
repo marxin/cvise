@@ -43,11 +43,11 @@ class ClangPass(AbstractPass):
         logging.debug(' '.join(cmd))
 
         stdout, _, returncode = process_event_notifier.run_process(cmd)
-        if returncode == 0:
-            test_case.write_bytes(stdout)
-            return (PassResult.OK, state)
-        else:
-            if returncode == 255 or returncode == 1:
+        match returncode:
+            case 0:
+                test_case.write_bytes(stdout)
+                return (PassResult.OK, state)
+            case 1 | 255:
                 return (PassResult.STOP, state)
-            else:
+            case _:
                 return (PassResult.ERROR, state)

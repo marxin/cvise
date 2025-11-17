@@ -27,12 +27,13 @@ class IndentPass(AbstractPass):
         old = test_case.read_text()
         cmd = [self.external_programs['clang-format'], '-i']
 
-        if self.arg == 'regular':
-            cmd.extend(['-style', '{SpacesInAngles: true}', str(test_case)])
-        elif self.arg == 'final':
-            cmd.append(str(test_case))
-        else:
-            raise UnknownArgumentError(self.__class__.__name__, self.arg)
+        match self.arg:
+            case 'regular':
+                cmd.extend(['-style', '{SpacesInAngles: true}', str(test_case)])
+            case 'final':
+                cmd.append(str(test_case))
+            case _:
+                raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
         _, _, returncode = process_event_notifier.run_process(cmd)
         if returncode != 0:
