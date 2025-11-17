@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import logging
 import shlex
 import subprocess
@@ -29,7 +30,7 @@ class ClangState(HintState):
     def wrap(parent: HintState | None, clang_std: str | None) -> HintState | None:
         if parent is None:
             return None
-        attrs = {k: getattr(parent, k) for k in HintState.__slots__ if hasattr(parent, k)}
+        attrs = {f.name: getattr(parent, f.name) for f in dataclasses.fields(parent) if hasattr(parent, f.name)}
         return ClangState(clang_std=clang_std, **attrs)
 
 
