@@ -57,6 +57,8 @@ def collect_all_transforms(pass_: AbstractPass, state, input_path: Path) -> set[
                     all_outputs.add(tmp_path.read_bytes())
                 case PassResult.STOP:
                     break
+                case _:
+                    pass
             state = pass_.advance(input_path, state)
     return all_outputs
 
@@ -83,6 +85,8 @@ def collect_all_transforms_dir(pass_: AbstractPass, state, input_path: Path) -> 
                     all_outputs.add(contents)
                 case PassResult.STOP:
                     break
+                case _:
+                    pass
             state = pass_.advance(input_path, state)
     return all_outputs
 

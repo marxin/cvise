@@ -844,6 +844,8 @@ class TestManager:
                 if not self.silent_pass_bug:
                     self.report_pass_bug(job, 'pass error')
                     return PassCheckingOutcome.STOP
+            case _:
+                pass
 
         if not self.no_give_up and job.pass_id is not None:
             ctx = self.pass_contexts[job.pass_id]
