@@ -127,7 +127,6 @@ class TestEnvironment:
     ):
         self.state = state
         self.folder: Path = folder
-        self.original_size = None
         self.test_script = test_script
         self.exitcode = None
         self.result = None
@@ -137,9 +136,11 @@ class TestEnvironment:
         self.test_case: Path = test_case
         self.should_copy_test_cases = should_copy_test_cases
         self.all_test_cases: set[Path] = all_test_cases
+        self.original_size: int | None = None
+        self.new_size: int | None = None
 
     @property
-    def size_improvement(self):
+    def size_improvement(self) -> int:
         assert self.success
         assert self.original_size is not None
         assert self.new_size is not None
