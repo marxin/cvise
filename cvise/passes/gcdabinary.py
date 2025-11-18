@@ -1,13 +1,12 @@
 import logging
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
 
 class GCDABinaryPass(AbstractPass):
-    def __init__(self, external_programs: dict[str, Optional[str]], **kwargs):
+    def __init__(self, external_programs: dict[str, str | None], **kwargs):
         super().__init__(external_programs=external_programs, **kwargs)
 
     def check_prerequisites(self):

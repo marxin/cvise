@@ -114,17 +114,17 @@ def __get_leftmost_match(matches):
 
 
 def __match_pattern(pattern, string, pos=0, search=False):
-    if isinstance(pattern, OrPattern):
-        left_match = __match_pattern(pattern.left, string, pos=pos, search=search)
-        right_match = __match_pattern(pattern.right, string, pos=pos, search=search)
-
-        return __get_leftmost_match([left_match, right_match])
-    elif isinstance(pattern, BalancedPattern):
-        match = __get_balanced_match(pattern, string, pos=pos, search=search)
-    elif isinstance(pattern, RegExPattern):
-        match = __get_regex_match(pattern, string, pos=pos, search=search)
-    else:
-        return None
+    match pattern:
+        case OrPattern():
+            left_match = __match_pattern(pattern.left, string, pos=pos, search=search)
+            right_match = __match_pattern(pattern.right, string, pos=pos, search=search)
+            return __get_leftmost_match([left_match, right_match])
+        case BalancedPattern():
+            match = __get_balanced_match(pattern, string, pos=pos, search=search)
+        case RegExPattern():
+            match = __get_regex_match(pattern, string, pos=pos, search=search)
+        case _:
+            return None
 
     return match
 

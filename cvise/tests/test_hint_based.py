@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 from cvise.passes.hint_based import HintBasedPass
 from cvise.tests.testabstract import collect_all_transforms, iterate_pass, validate_hint_bundle
@@ -8,7 +7,7 @@ from cvise.utils.process import ProcessEventNotifier
 
 
 class StubHintBasedPass(HintBasedPass):
-    def __init__(self, contents_to_hints: dict[bytes, list[Hint]], vocabulary: Optional[list[bytes]] = None):
+    def __init__(self, contents_to_hints: dict[bytes, list[Hint]], vocabulary: list[bytes] | None = None):
         super().__init__()
         self.contents_to_hints = contents_to_hints
         self.vocabulary = vocabulary or []

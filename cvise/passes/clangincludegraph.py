@@ -1,7 +1,6 @@
 import re
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Optional
 
 import msgspec
 
@@ -50,7 +49,7 @@ class ClangIncludeGraphPass(HintBasedPass):
     usable from other passes.
     """
 
-    def __init__(self, external_programs: dict[str, Optional[str]], **kwargs):
+    def __init__(self, external_programs: dict[str, str | None], **kwargs):
         super().__init__(external_programs=external_programs, **kwargs)
 
     def check_prerequisites(self):
@@ -100,7 +99,7 @@ class _ClangIncludeGraphMultiplexPass(HintBasedPass):
     Processes commands with indices equal to the specified parameter modulo _INIT_PARALLELIZATION.
     """
 
-    def __init__(self, modulo: int, external_programs: dict[str, Optional[str]]):
+    def __init__(self, modulo: int, external_programs: dict[str, str | None]):
         super().__init__(arg=str(modulo), external_programs=external_programs)
         self._modulo = modulo
         self._hint_type = _MULTIPLEX_PASS_HINT_TEMPLATE.format(self._modulo).encode()
@@ -214,7 +213,7 @@ def _split_by_null_char(data: bytes) -> Iterator[str]:
         start = sep + 1
 
 
-def _get_vocab_id(path: Path, test_case: Path, vocab: list[bytes], path_to_vocab: dict[Path, int]) -> Optional[int]:
+def _get_vocab_id(path: Path, test_case: Path, vocab: list[bytes], path_to_vocab: dict[Path, int]) -> int | None:
     test_case = test_case.resolve()
     if not path.is_absolute():
         path = test_case / path

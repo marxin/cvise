@@ -9,7 +9,7 @@ requires-python = ">=3.10"
 
 [tool.ruff]
 exclude = ["objdir", "tree-sitter", "tree-sitter-cpp"]
-target-version = "py39"
+target-version = "py310"
 line-length = 120
 
 [tool.ruff.lint]

@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 from cvise.passes.abstract import PassResult
 from cvise.passes.balanced import BalancedPass
@@ -21,7 +21,7 @@ class BalancedParensTestCase(unittest.TestCase):
     def tearDown(self):
         self.tmp_dir_obj.cleanup()
 
-    def _pass_new(self) -> Union[HintState, None]:
+    def _pass_new(self) -> HintState | None:
         return self.pass_.new(
             self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
         )
@@ -92,7 +92,7 @@ class BalancedParensOnlyTestCase(unittest.TestCase):
     def tearDown(self):
         self.tmp_dir_obj.cleanup()
 
-    def _pass_new(self) -> Union[HintState, None]:
+    def _pass_new(self) -> HintState | None:
         return self.pass_.new(
             self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
         )
@@ -200,7 +200,7 @@ class BalancedParensInsideTestCase(unittest.TestCase):
     def tearDown(self):
         self.tmp_dir_obj.cleanup()
 
-    def _pass_new(self) -> Union[HintState, None]:
+    def _pass_new(self) -> HintState | None:
         return self.pass_.new(
             self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
         )
@@ -296,7 +296,7 @@ class BalancedParensToZeroTestCase(unittest.TestCase):
     def tearDown(self):
         self.tmp_dir_obj.cleanup()
 
-    def _pass_new(self) -> Union[HintState, None]:
+    def _pass_new(self) -> HintState | None:
         return self.pass_.new(
             self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
         )
@@ -334,7 +334,7 @@ class BalancedCurly3TestCase(unittest.TestCase):
     def tearDown(self):
         self.tmp_dir_obj.cleanup()
 
-    def _pass_new(self) -> Union[HintState, None]:
+    def _pass_new(self) -> HintState | None:
         return self.pass_.new(
             self.input_path, tmp_dir=self.tmp_dir, process_event_notifier=ProcessEventNotifier(None), dependee_hints=[]
         )

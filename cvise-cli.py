@@ -357,12 +357,13 @@ def main():
         syslog.setFormatter(formatter)
         root_logger.addHandler(syslog)
 
-    if args.action == 'reduce':
-        do_reduce(args)
-    elif args.action == 'apply-hints':
-        do_apply_hints(args)
-    else:
-        logging.error('Unknown action to perform: {args.action}')
+    match args.action:
+        case 'reduce':
+            do_reduce(args)
+        case 'apply-hints':
+            do_apply_hints(args)
+        case _:
+            logging.error('Unknown action to perform: {args.action}')
 
     logging.shutdown()
 

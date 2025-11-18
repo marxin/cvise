@@ -1,6 +1,6 @@
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Union
 
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils.error import UnknownArgumentError
@@ -11,7 +11,7 @@ class SpecialPass(AbstractPass):
         return True
 
     def __get_config(self):
-        config: dict[str, Union[str, Callable, None]] = {
+        config: dict[str, str | Callable | None] = {
             'search': None,
             'replace_fn': None,
         }
@@ -22,17 +22,18 @@ class SpecialPass(AbstractPass):
         def replace_empty(m):
             return ''
 
-        if self.arg == 'a':
-            config['search'] = r'transparent_crc\s*\((?P<list>[^)]*)\)'
-            config['replace_fn'] = replace_printf
-        elif self.arg == 'b':
-            config['search'] = r"extern 'C'"
-            config['replace_fn'] = replace_empty
-        elif self.arg == 'c':
-            config['search'] = r"extern 'C\+\+'"
-            config['replace_fn'] = replace_empty
-        else:
-            raise UnknownArgumentError(self.__class__.__name__, self.arg)
+        match self.arg:
+            case 'a':
+                config['search'] = r'transparent_crc\s*\((?P<list>[^)]*)\)'
+                config['replace_fn'] = replace_printf
+            case 'b':
+                config['search'] = r"extern 'C'"
+                config['replace_fn'] = replace_empty
+            case 'c':
+                config['search'] = r"extern 'C\+\+'"
+                config['replace_fn'] = replace_empty
+            case _:
+                raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
         return config
 

@@ -3,7 +3,7 @@
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 from cvise.passes.abstract import PassResult
 from cvise.passes.hint_based import HintBasedPass, HintState
@@ -50,7 +50,7 @@ class FoldingManager:
 
     def __init__(self):
         self.folding_candidates: list[HintState] = []
-        self.best_successful_fold: Union[FoldingStateOut, None] = None
+        self.best_successful_fold: FoldingStateOut | None = None
         self.failed_folds: list[FoldingStateOut] = []
         self.attempted_folds: set[FoldingStateIn] = set()
 
@@ -66,7 +66,7 @@ class FoldingManager:
             # random-based sense) in future folds: see maybe_prepare_folding_job().
             self.failed_folds.append(state)
 
-    def maybe_prepare_folding_job(self, job_order: int, best_success_state: Any) -> Union[FoldingStateIn, None]:
+    def maybe_prepare_folding_job(self, job_order: int, best_success_state: Any) -> FoldingStateIn | None:
         if len(self.folding_candidates) < 2:
             # Nothing to fold.
             return None
@@ -76,11 +76,14 @@ class FoldingManager:
 
         # We'll always take the hints from the best discovery so far. This gives us a good starting point - whatever we
         # add below should likely result in something that becomes the-new-best (if it passes the interestingness test).
-        forcelist_states: set[HintState] = set()
-        if isinstance(best_success_state, HintState):
-            forcelist_states = {best_success_state}
-        elif isinstance(best_success_state, FoldingStateOut):
-            forcelist_states = set(best_success_state.sub_states)
+        forcelist_states: set[HintState]
+        match best_success_state:
+            case HintState():
+                forcelist_states = {best_success_state}
+            case FoldingStateOut():
+                forcelist_states = set(best_success_state.sub_states)
+            case _:
+                forcelist_states = set()
 
         # Heuristically avoid "bad" items (those that cause unsuccessful folds). For this, we look at previously failed
         # folds and "ban" randomly selected halves of them.
@@ -115,7 +118,7 @@ class FoldingManager:
         written_paths: set[Path],
         *args,
         **kwargs,
-    ) -> tuple[PassResult, Union[FoldingStateOut, None]]:
+    ) -> tuple[PassResult, FoldingStateOut | None]:
         report = HintBasedPass.load_and_apply_hints(original_test_case, test_case, state.sub_states)
         if report is None:
             return PassResult.INVALID, None

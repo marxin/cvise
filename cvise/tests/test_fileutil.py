@@ -7,14 +7,14 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Callable, Union
 from unittest.mock import patch
 
 import pytest
 
 from cvise.utils.fileutil import (
+    TmpDirManager,
     copy_test_case,
     diff_test_cases,
     filter_files_by_patterns,
@@ -24,7 +24,6 @@ from cvise.utils.fileutil import (
     remove_extraneous_files,
     replace_test_case_atomically,
     sanitize_for_file_name,
-    TmpDirManager,
 )
 
 
@@ -289,7 +288,7 @@ def _stress_test_atomicity(path_to_check: Path, init_callback: Callable, test_co
     RECHECK_ITERATIONS = 10
     TEST_HALVING_STEPS = 10
 
-    def run_subprocess(sleep: Union[float, None]):
+    def run_subprocess(sleep: float | None):
         init_callback()
         # Enable tracing in the subprocess in order to slow it down, to increase chances of hitting a bug.
         code = 'from sys import settrace; ' + 'trace = lambda *args: trace; ' + 'settrace(trace); ' + test_code

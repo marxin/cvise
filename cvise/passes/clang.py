@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from typing import Optional
 
 from cvise.passes.abstract import AbstractPass, PassResult
 
@@ -9,8 +8,8 @@ class ClangPass(AbstractPass):
     def __init__(
         self,
         arg: str,
-        external_programs: dict[str, Optional[str]],
-        user_clang_delta_std: Optional[str] = None,
+        external_programs: dict[str, str | None],
+        user_clang_delta_std: str | None = None,
         **kwargs,
     ):
         super().__init__(
@@ -43,11 +42,11 @@ class ClangPass(AbstractPass):
         logging.debug(' '.join(cmd))
 
         stdout, _, returncode = process_event_notifier.run_process(cmd)
-        if returncode == 0:
-            test_case.write_bytes(stdout)
-            return (PassResult.OK, state)
-        else:
-            if returncode == 255 or returncode == 1:
+        match returncode:
+            case 0:
+                test_case.write_bytes(stdout)
+                return (PassResult.OK, state)
+            case 1 | 255:
                 return (PassResult.STOP, state)
-            else:
+            case _:
                 return (PassResult.ERROR, state)

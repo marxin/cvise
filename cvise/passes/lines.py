@@ -1,6 +1,5 @@
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 import msgspec
 
@@ -11,7 +10,7 @@ from cvise.utils.process import ProcessEventNotifier
 
 
 class LinesPass(HintBasedPass):
-    def __init__(self, arg: str, external_programs: dict[str, Optional[str]], **kwargs):
+    def __init__(self, arg: str, external_programs: dict[str, str | None], **kwargs):
         super().__init__(arg=arg, external_programs=external_programs, **kwargs)
 
     def check_prerequisites(self):
@@ -34,7 +33,7 @@ class LinesPass(HintBasedPass):
 
         return HintBundle(hints=hints, vocabulary=vocab)
 
-    def _generate_hints_for_text_lines(self, input_path: Path, path_id: Optional[int], hints: list[Hint]) -> None:
+    def _generate_hints_for_text_lines(self, input_path: Path, path_id: int | None, hints: list[Hint]) -> None:
         """Generate a hint per each line in the input as written."""
         with open(input_path, 'rb') as in_file:
             file_pos = 0

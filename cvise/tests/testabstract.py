@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import tempfile
 from pathlib import Path
 
@@ -11,7 +9,6 @@ from cvise.passes.hint_based import HintBasedPass, HintState
 from cvise.utils.fileutil import CloseableTemporaryFile
 from cvise.utils.hint import HINT_SCHEMA_STRICT, Hint, HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
-
 
 _TYPES_WITH_PATH_EXTRA = (
     b'@fileref',
@@ -53,10 +50,13 @@ def collect_all_transforms(pass_: AbstractPass, state, input_path: Path) -> set[
                 original_test_case=input_path,
                 written_paths=set(),
             )
-            if result == PassResult.OK:
-                all_outputs.add(tmp_path.read_bytes())
-            elif result == PassResult.STOP:
-                break
+            match result:
+                case PassResult.OK:
+                    all_outputs.add(tmp_path.read_bytes())
+                case PassResult.STOP:
+                    break
+                case _:
+                    pass
             state = pass_.advance(input_path, state)
     return all_outputs
 
@@ -73,13 +73,18 @@ def collect_all_transforms_dir(pass_: AbstractPass, state, input_path: Path) -> 
                 original_test_case=input_path,
                 written_paths=set(),
             )
-            if result == PassResult.OK:
-                contents = tuple(
-                    sorted((str(p.relative_to(tmp_dir)), p.read_bytes()) for p in tmp_path.rglob('*') if not p.is_dir())
-                )
-                all_outputs.add(contents)
-            elif result == PassResult.STOP:
-                break
+            match result:
+                case PassResult.OK:
+                    contents = tuple(
+                        sorted(
+                            (str(p.relative_to(tmp_dir)), p.read_bytes()) for p in tmp_path.rglob('*') if not p.is_dir()
+                        )
+                    )
+                    all_outputs.add(contents)
+                case PassResult.STOP:
+                    break
+                case _:
+                    pass
             state = pass_.advance(input_path, state)
     return all_outputs
 

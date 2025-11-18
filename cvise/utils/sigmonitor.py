@@ -24,7 +24,6 @@ from collections.abc import Iterator
 from concurrent.futures import Future
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional
 
 
 @enum.unique
@@ -37,7 +36,7 @@ class Mode(enum.Enum):
 _mode: Mode = Mode.RAISE_EXCEPTION
 _sigint_observed: bool = False
 _sigterm_observed: bool = False
-_future: Optional[Future] = None
+_future: Future | None = None
 
 
 def init(mode: Mode) -> None:
@@ -89,27 +88,29 @@ def signal_observed_for_testing() -> bool:
 def _on_signal(signum: int, frame) -> None:
     global _sigint_observed
     global _sigterm_observed
-    if signum == signal.SIGTERM:
-        _sigterm_observed = True
-    elif signum == signal.SIGINT:
-        _sigint_observed = True
+    match signum:
+        case signal.SIGTERM:
+            _sigterm_observed = True
+        case signal.SIGINT:
+            _sigint_observed = True
 
     exception = _create_exception(signum)
     # Set the exception on the future, unless it's already done. We don't use done() because it'd be potentially racy.
     with contextlib.suppress(concurrent.futures.InvalidStateError):
         _future.set_exception(exception)
 
-    if _is_on_demand_mode():
-        return
-    if _mode == Mode.RAISE_EXCEPTION and not _can_raise_in_frame(frame):
-        # This is to avoid the "Exception ignored in" log spam.
-        return
-    # Prefer the standard signal handler in case there's some nontrivial logic in it (e.g., not raising an exception
-    # depending on stack frame contents).
-    if _mode == Mode.RAISE_EXCEPTION and signum == signal.SIGINT:
-        signal.default_int_handler(signum, frame)
-    else:
-        _trigger_signal_action(signum, exception)
+    match _mode:
+        case _ if _is_on_demand_mode():
+            pass
+        case Mode.RAISE_EXCEPTION if not _can_raise_in_frame(frame):
+            # No immediate exception - to avoid the "Exception ignored in" log spam.
+            pass
+        case Mode.RAISE_EXCEPTION if signum == signal.SIGINT:
+            # Prefer the standard signal handler in case there's some nontrivial logic in it (e.g., not raising an
+            # exception depending on stack frame contents).
+            signal.default_int_handler(signum, frame)
+        case _:
+            _trigger_signal_action(signum, exception)
     # no code after this point - the action above might've raised the exception or terminated the process
 
 
@@ -131,11 +132,13 @@ def _trigger_signal_action(signum: int, exception: BaseException) -> None:
 
 
 def _create_exception(signum: int) -> BaseException:
-    if signum == signal.SIGINT:
-        return KeyboardInterrupt()
-    if signum == signal.SIGTERM:
-        return SystemExit(1)
-    raise ValueError('No signal')
+    match signum:
+        case signal.SIGINT:
+            return KeyboardInterrupt()
+        case signal.SIGTERM:
+            return SystemExit(1)
+        case _:
+            raise ValueError('No signal')
 
 
 def _can_raise_in_frame(frame) -> bool:

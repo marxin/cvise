@@ -3,7 +3,6 @@ import re
 import subprocess
 import time
 from pathlib import Path
-from typing import Optional
 
 from cvise.passes.abstract import AbstractPass, BinaryState, PassResult
 
@@ -12,9 +11,9 @@ class ClangBinarySearchPass(AbstractPass):
     def __init__(
         self,
         arg: str,
-        external_programs: dict[str, Optional[str]],
-        user_clang_delta_std: Optional[str] = None,
-        clang_delta_preserve_routine: Optional[str] = None,
+        external_programs: dict[str, str | None],
+        user_clang_delta_std: str | None = None,
+        clang_delta_preserve_routine: str | None = None,
         **kwargs,
     ):
         super().__init__(
@@ -126,14 +125,14 @@ class ClangBinarySearchPass(AbstractPass):
 
         stdout, stderr, returncode = process_event_notifier.run_process(cmd)
         self.parse_stderr(state, stderr)
-        if returncode == 0:
-            test_case.write_bytes(stdout)
-            return (PassResult.OK, state)
-        else:
-            return (
-                PassResult.STOP if returncode == 255 else PassResult.ERROR,
-                state,
-            )
+        match returncode:
+            case 0:
+                test_case.write_bytes(stdout)
+                return (PassResult.OK, state)
+            case 255:
+                return (PassResult.STOP, state)
+            case _:
+                return (PassResult.ERROR, state)
 
 
 def attach_clang_delta_std(state, std):

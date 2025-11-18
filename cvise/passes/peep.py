@@ -181,14 +181,15 @@ class PeepPass(AbstractPass):
     def advance(self, test_case: Path, state):
         new_state = state.copy()
 
-        if self.arg == 'a':
-            lim = len(self.regexes_to_replace)
-        elif self.arg == 'b':
-            lim = len(self.delimited_regexes_to_replace)
-        elif self.arg == 'c':
-            lim = 1
-        else:
-            raise UnknownArgumentError(self.__class__.__name__, self.arg)
+        match self.arg:
+            case 'a':
+                lim = len(self.regexes_to_replace)
+            case 'b':
+                lim = len(self.delimited_regexes_to_replace)
+            case 'c':
+                lim = 1
+            case _:
+                raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
         new_state['regex'] += 1
 

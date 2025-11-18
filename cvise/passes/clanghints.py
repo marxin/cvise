@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import dataclasses
 import logging
 import shlex
@@ -146,11 +144,13 @@ class ClangHintsPass(HintBasedPass):
         return ClangState.wrap(new_state, state.clang_std)
 
     def create_elementary_state(self, hint_count: int) -> BinaryState | SubsegmentState | None:
-        if self._strategy == 'binsearch' or self._strategy is None:  # default strategy
-            return BinaryState.create(instances=hint_count)
-        if self._strategy == 'onebyone':
-            return SubsegmentState.create(instances=hint_count, min_chunk=1, max_chunk=1)
-        raise ValueError(f'Unexpected strategy: {self._strategy}')
+        match self._strategy:
+            case 'binsearch' | None:  # default strategy
+                return BinaryState.create(instances=hint_count)
+            case 'onebyone':
+                return SubsegmentState.create(instances=hint_count, min_chunk=1, max_chunk=1)
+            case _:
+                raise ValueError(f'Unexpected strategy: {self._strategy}')
 
     def _generate_hints_for_standard(
         self, test_case: Path, std: str | None, timeout: int, process_event_notifier: ProcessEventNotifier

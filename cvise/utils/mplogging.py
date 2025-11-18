@@ -5,10 +5,9 @@ import logging
 import multiprocessing
 import threading
 from collections import deque
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Callable
 
 
 class MPLogger:

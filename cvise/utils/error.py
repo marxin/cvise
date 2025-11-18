@@ -29,14 +29,15 @@ class InvalidFileError(CViseError):
         self.error = error
 
     def _get_error_name(self):
-        if self.error == os.R_OK:
-            return 'read'
-        elif self.error == os.W_OK:
-            return 'written'
-        elif self.error == os.X_OK:
-            return 'executed'
-        elif self.error == os.F_OK:
-            return 'accessed'
+        match self.error:
+            case os.R_OK:
+                return 'read'
+            case os.W_OK:
+                return 'written'
+            case os.X_OK:
+                return 'executed'
+            case os.F_OK:
+                return 'accessed'
 
     def __str__(self):
         return f"The specified file '{self.path}' cannot be {self._get_error_name()}!"

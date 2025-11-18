@@ -1,12 +1,11 @@
 from pathlib import Path
-from typing import Optional
 
 from cvise.passes.abstract import AbstractPass, PassResult
 from cvise.utils.error import UnknownArgumentError
 
 
 class IndentPass(AbstractPass):
-    def __init__(self, external_programs: dict[str, Optional[str]], **kwargs):
+    def __init__(self, external_programs: dict[str, str | None], **kwargs):
         super().__init__(external_programs=external_programs, **kwargs)
 
     def check_prerequisites(self):
@@ -27,12 +26,13 @@ class IndentPass(AbstractPass):
         old = test_case.read_text()
         cmd = [self.external_programs['clang-format'], '-i']
 
-        if self.arg == 'regular':
-            cmd.extend(['-style', '{SpacesInAngles: true}', str(test_case)])
-        elif self.arg == 'final':
-            cmd.append(str(test_case))
-        else:
-            raise UnknownArgumentError(self.__class__.__name__, self.arg)
+        match self.arg:
+            case 'regular':
+                cmd.extend(['-style', '{SpacesInAngles: true}', str(test_case)])
+            case 'final':
+                cmd.append(str(test_case))
+            case _:
+                raise UnknownArgumentError(self.__class__.__name__, self.arg)
 
         _, _, returncode = process_event_notifier.run_process(cmd)
         if returncode != 0:

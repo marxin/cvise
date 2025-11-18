@@ -3,7 +3,6 @@ import sys
 assert sys.platform == 'win32'
 
 import msvcrt  # noqa: E402
-from typing import Union  # noqa: E402
 
 
 class KeyLogger:
@@ -13,7 +12,7 @@ class KeyLogger:
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
-    def pressed_key(self) -> Union[str, None]:
+    def pressed_key(self) -> str | None:
         if msvcrt.kbhit():
             return msvcrt.getch().decode('utf-8')
         else:
