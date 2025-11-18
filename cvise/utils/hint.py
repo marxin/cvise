@@ -9,8 +9,6 @@ heuristics and to perform reduction more efficiently (as algorithms can now be
 applied to all heuristics in a uniform way).
 """
 
-from __future__ import annotations
-
 import dataclasses
 import json
 import math
