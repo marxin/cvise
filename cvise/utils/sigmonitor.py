@@ -99,12 +99,12 @@ def _on_signal(signum: int, frame) -> None:
     with contextlib.suppress(concurrent.futures.InvalidStateError):
         _future.set_exception(exception)
 
-    if _is_on_demand_mode():
-        return
     match _mode:
+        case _ if _is_on_demand_mode():
+            pass
         case Mode.RAISE_EXCEPTION if not _can_raise_in_frame(frame):
             # No immediate exception - to avoid the "Exception ignored in" log spam.
-            return
+            pass
         case Mode.RAISE_EXCEPTION if signum == signal.SIGINT:
             # Prefer the standard signal handler in case there's some nontrivial logic in it (e.g., not raising an
             # exception depending on stack frame contents).
