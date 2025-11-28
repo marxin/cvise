@@ -84,7 +84,7 @@ manager:
 
 * [Python 3.10+](https://www.python.org/downloads/)
 
-* [Pebble](https://pypi.org/project/Pebble/)
+* [Pebble (5.1.1+ recommended)](https://pypi.org/project/Pebble/)
 
 * [chardet](https://pypi.org/project/chardet/)
 
