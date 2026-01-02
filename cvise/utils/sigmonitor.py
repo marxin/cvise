@@ -1,134 +1,194 @@
 """Helper for setting up signal handlers and reliably propagating them.
 
 There's no default SIGTERM handler, which doesn't allow doing proper cleanup on
-shutdown.
-
-Meanwhile Python Standard Library already provides a default handler for SIGINT
-that raises KeyboardInterrupt, in some cases it's not propagated - e.g.:
+shutdown. Additionally, while Python Standard Library already provides a default
+handler for SIGINT that raises KeyboardInterrupt, in some cases it's not
+propagated - e.g.:
 
 > Due to the precarious circumstances under which __del__() methods are
 > invoked, exceptions that occur during their execution are ignored, <...>
 
 Such situations, while rare, would result in C-Vise not terminating on the
-Ctrl-C keystroke. This helper allows to prevent whether a signal was observer
-and letting the code raise the exception to trigger the shutdown.
+Ctrl-C keystroke. Additionally, many standard library functions don't perform
+correct cleanup or even crash when an exception occurs in the middle of their
+execution.
+
+So instead of raising exceptions at arbitrary locations when a signal arrives,
+we use deferred approach: the code should have "checkpoints" where it'd check if
+a signal has arrived and raise an exception if so. We expose two interfaces (a
+future-based and a file descriptor based) to allow code break from event loops.
+
+Only when a termination signal arrives more than once (e.g., the user presses
+Ctrl-C twice), we raise an exception synchronously.
 """
 
+from __future__ import annotations
+
+import atexit
 import concurrent.futures
 import contextlib
-import enum
 import os
 import signal
-import weakref
-from collections.abc import Iterator
+import socket
 from concurrent.futures import Future
-from contextlib import contextmanager
-from pathlib import Path
+from dataclasses import dataclass
 
 
-@enum.unique
-class Mode(enum.Enum):
-    RAISE_EXCEPTION = enum.auto()
-    QUICK_EXIT = enum.auto()
-    RAISE_EXCEPTION_ON_DEMAND = enum.auto()
+# Global singleton buffer used for reading wakeup sockets.
+_SOCK_READ_BUF_SIZE = 1024
 
 
-_mode: Mode = Mode.RAISE_EXCEPTION
-_sigint_observed: bool = False
-_sigterm_observed: bool = False
-_future: Future | None = None
+@dataclass(slots=True)
+class _Context:
+    """Holds the module singleton state after the init() is called."""
+
+    future: Future
+    read_buf: bytearray
+    # File descriptors for triggering the "wakeup" whenever any signal arrives.
+    wakeup_read_sock: socket.socket
+    wakeup_write_sock: socket.socket
+    # File descriptors for notifying SIGINT/SIGTERM specifically.
+    sigintterm_read_sock: socket.socket
+    sigintterm_write_sock: socket.socket
+    # Whether a signal was observed that needs to be handled later.
+    sigint_observed: bool = False
+    sigterm_observed: bool = False
 
 
-def init(mode: Mode) -> None:
-    global _mode
-    _mode = mode
-    # Ignore old signal handlers (in tests, the old handler could've been installed by ourselves as well; calling it
+_context: _Context | None = None
+
+
+def init(sigint: bool = True) -> None:
+    global _context
+    if _context is None:
+        wakeup_socks = socket.socketpair()
+        sigintterm_socks = socket.socketpair()
+        for socks in (wakeup_socks, sigintterm_socks):
+            for sock in socks:
+                sock.setblocking(False)
+
+        _context = _Context(
+            future=Future(),
+            read_buf=bytearray(_SOCK_READ_BUF_SIZE),
+            wakeup_read_sock=wakeup_socks[0],
+            wakeup_write_sock=wakeup_socks[1],
+            sigintterm_read_sock=sigintterm_socks[0],
+            sigintterm_write_sock=sigintterm_socks[1],
+        )
+
+        signal.set_wakeup_fd(_context.wakeup_write_sock.fileno(), warn_on_full_buffer=False)
+        atexit.register(_release_socks)
+
+    assert _context is not None
+
+    # Overwrite old signal handlers (in tests, the old handler could've been installed by ourselves as well; calling it
     # would result in an infinite recursion).
     signal.signal(signal.SIGTERM, _on_signal)
-    signal.signal(signal.SIGINT, _on_signal)
-
-    global _future
-    _future = Future()
+    signal.signal(signal.SIGINT, _on_signal if sigint else signal.SIG_IGN)
 
 
-def maybe_retrigger_action() -> None:
+def maybe_raise_exc() -> None:
+    """Raises an exception corresponding to a previously observed signal, if any."""
+    assert _context
     # If multiple signals occurred, prefer SIGTERM.
-    if _sigterm_observed:
-        _trigger_signal_action(signal.SIGTERM, _create_exception(signal.SIGTERM))
-    elif _sigint_observed:
-        _trigger_signal_action(signal.SIGINT, _create_exception(signal.SIGINT))
-
-
-@contextmanager
-def scoped_mode(new_mode: Mode) -> Iterator[None]:
-    global _mode
-
-    # It's unlikely to happen, but cheap to check: no need to enter the scope if we know we'll terminate afterwards.
-    _implicit_maybe_retrigger_action()
-
-    previous_mode = _mode
-    try:
-        _mode = new_mode
-        yield
-    finally:
-        _mode = previous_mode
-        # Let the signals, if any, propagate according to the new mode.
-        _implicit_maybe_retrigger_action()
+    if _context.sigterm_observed:
+        raise _create_exception(signal.SIGTERM)
+    elif _context.sigint_observed:
+        raise _create_exception(signal.SIGINT)
 
 
 def get_future() -> Future:
-    assert _future is not None
-    return _future
+    """Returns a future that's resolved with an exception when a SIGINT/SIGTERM signal arrives."""
+    assert _context is not None
+    return _context.future
+
+
+def get_wakeup_sock() -> socket.socket:
+    """Returns a socket that's populated with the numbers of arrived signals.
+
+    Is intended to be used with select(); the handler should call handle_readable_wakeup_fd().
+    """
+    assert _context is not None
+    return _context.wakeup_read_sock
+
+
+def get_sigintterm_sock() -> socket.socket:
+    """Returns a socket that's populated with opaque data when SIGINT/SIGTERM signals arrive.
+
+    Is intended to be used with select() in conjunction with get_wakeup_sock(); the handler should call
+    handle_readable_wakeup_fd() for both. This dedicated socket allows a program to have multiple select() loops as long
+    as they don't consume the same dedicated pipe.
+    """
+    assert _context is not None
+    return _context.sigintterm_read_sock
+
+
+def handle_readable_wakeup_fd(sock: socket.socket) -> None:
+    """To be called when the corresponding FD is readable."""
+    # Drain the socket.
+    assert _context is not None
+    try:
+        nbytes = os.readv(sock.fileno(), (_context.read_buf,))
+    except (BlockingIOError, TimeoutError):
+        raise  # we expect the file descriptor to be in non-blocking mode
+    except OSError:
+        return
+
+    # In case of the common wakeup FD, copy the notification(s) into corresponding dedicated sockets.
+    if sock != _context.wakeup_read_sock:
+        return
+    contents = memoryview(_context.read_buf)[:nbytes]
+    sigintterm_notified = False
+    for b in contents:
+        match b:
+            case signal.SIGINT | signal.SIGTERM if not sigintterm_notified:
+                sigintterm_notified = True
+                _notify_sock(_context.sigintterm_write_sock)
+            case _:
+                raise ValueError(f'Unexpected signal wakeup data: {b}')
 
 
 def signal_observed_for_testing() -> bool:
-    return _sigint_observed or _sigterm_observed
+    assert _context is not None
+    return _context.sigint_observed or _context.sigterm_observed
+
+
+def _release_socks() -> None:
+    if _context is None:
+        return
+    signal.set_wakeup_fd(-1)
+    for sock in (
+        _context.wakeup_read_sock,
+        _context.wakeup_write_sock,
+        _context.sigintterm_read_sock,
+        _context.sigintterm_write_sock,
+    ):
+        sock.close()
+
+
+def _notify_sock(sock: socket.socket) -> None:
+    try:
+        sock.send(b'\0')
+    except BlockingIOError:
+        pass  # discard the notification if the buffer is full - it's sufficient to have nonzero number of pending bytes
 
 
 def _on_signal(signum: int, frame) -> None:
-    global _sigint_observed
-    global _sigterm_observed
+    assert _context
+    repeated = _context.sigterm_observed or _context.sigint_observed
     match signum:
         case signal.SIGTERM:
-            _sigterm_observed = True
+            _context.sigterm_observed = True
         case signal.SIGINT:
-            _sigint_observed = True
+            _context.sigint_observed = True
 
     exception = _create_exception(signum)
     # Set the exception on the future, unless it's already done. We don't use done() because it'd be potentially racy.
     with contextlib.suppress(concurrent.futures.InvalidStateError):
-        _future.set_exception(exception)
+        _context.future.set_exception(exception)
 
-    match _mode:
-        case _ if _is_on_demand_mode():
-            pass
-        case Mode.RAISE_EXCEPTION if not _can_raise_in_frame(frame):
-            # No immediate exception - to avoid the "Exception ignored in" log spam.
-            pass
-        case Mode.RAISE_EXCEPTION if signum == signal.SIGINT:
-            # Prefer the standard signal handler in case there's some nontrivial logic in it (e.g., not raising an
-            # exception depending on stack frame contents).
-            signal.default_int_handler(signum, frame)
-        case _:
-            _trigger_signal_action(signum, exception)
-    # no code after this point - the action above might've raised the exception or terminated the process
-
-
-def _is_on_demand_mode() -> bool:
-    return _mode == Mode.RAISE_EXCEPTION_ON_DEMAND
-
-
-def _implicit_maybe_retrigger_action() -> None:
-    if not _is_on_demand_mode():
-        maybe_retrigger_action()
-
-
-def _trigger_signal_action(signum: int, exception: BaseException) -> None:
-    if _mode == Mode.QUICK_EXIT:
-        os._exit(1)
-    else:
+    if repeated:
         raise exception
-    # no code after this point - this is unreachable
 
 
 def _create_exception(signum: int) -> BaseException:
@@ -139,14 +199,3 @@ def _create_exception(signum: int) -> BaseException:
             return SystemExit(1)
         case _:
             raise ValueError('No signal')
-
-
-def _can_raise_in_frame(frame) -> bool:
-    while frame is not None:
-        if frame.f_code:
-            if frame.f_code.co_name == '__del__':
-                return False
-            if frame.f_code.co_filename and Path(frame.f_code.co_filename).stem == Path(weakref.__file__).stem:
-                return False
-        frame = frame.f_back
-    return True

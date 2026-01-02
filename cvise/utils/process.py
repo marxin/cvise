@@ -285,26 +285,22 @@ class ProcessEventNotifier:
         if shell:
             assert isinstance(cmd, str)
 
-        # Prevent signals from interrupting in the middle of any operation besides proc.communicate() - abrupt exits
-        # could result in spawning a child without having its PID reported or leaving the queue in inconsistent state.
-        with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION_ON_DEMAND):
-            proc = subprocess.Popen(
-                cmd,
-                stdout=stdout,
-                stderr=stderr,
-                shell=shell,
-                env=env,
-                **kwargs,
-            )
-            self._notify_start(proc)
+        proc = subprocess.Popen(
+            cmd,
+            stdout=stdout,
+            stderr=stderr,
+            shell=shell,
+            env=env,
+            **kwargs,
+        )
+        self._notify_start(proc)
 
-            with self._auto_notify_end(proc):
-                # If a timeout was specified and the process exceeded it, we need to kill it - otherwise we'll leave a
-                # zombie process on *nix. If it's KeyboardInterrupt/SystemExit, the worker will terminate soon, so we may
-                # have not enough time to properly kill children, and zombies aren't a concern.
-                with _auto_kill_on_timeout(proc):
-                    with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION):
-                        stdout_data, stderr_data = self._communicate_with_sig_checks(proc, input, timeout)
+        with self._auto_notify_end(proc):
+            # If a timeout was specified and the process exceeded it, we need to kill it - otherwise we'll leave a
+            # zombie process on *nix. If it's KeyboardInterrupt/SystemExit, the worker will terminate soon, so we may
+            # have not enough time to properly kill children, and zombies aren't a concern.
+            with _auto_kill_on_timeout(proc):
+                stdout_data, stderr_data = self._communicate_with_sig_checks(proc, input, timeout)
 
         return stdout_data, stderr_data, proc.returncode  # type: ignore
 
@@ -350,7 +346,7 @@ class ProcessEventNotifier:
     ) -> tuple[bytes, bytes]:
         stop_time = None if timeout is None else time.monotonic() + timeout
         while True:
-            sigmonitor.maybe_retrigger_action()
+            sigmonitor.maybe_raise_exc()
 
             step_timeout = self._EVENT_LOOP_STEP
             if stop_time is not None:
@@ -438,12 +434,9 @@ class MPTaskLossWorkaround:
         assert _mp_task_loss_workaround_obj
         status_queue = _mp_task_loss_workaround_obj._task_status_queue
         exit_flag = _mp_task_loss_workaround_obj._task_exit_flag
-        # Don't allow signals to interrupt IPC primitives since this might leave them in locked/inconsistent state; only
-        # exit in the safe location from the pool loop.
-        with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION_ON_DEMAND):
-            status_queue.put((task_id, os.getpid()))
-            while not exit_flag.wait(timeout=MPTaskLossWorkaround._POLL_LOOP_STEP):
-                sigmonitor.maybe_retrigger_action()
+        status_queue.put((task_id, os.getpid()))
+        while not exit_flag.wait(timeout=MPTaskLossWorkaround._POLL_LOOP_STEP):
+            sigmonitor.maybe_raise_exc()
 
 
 @contextlib.contextmanager

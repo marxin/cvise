@@ -907,7 +907,7 @@ class TestManager:
 
         ready_hint_types = self.get_fully_initialized_hint_types()
         while self.jobs or any(c.can_start_job_now(ready_hint_types) for c in self.pass_contexts):
-            sigmonitor.maybe_retrigger_action()
+            sigmonitor.maybe_raise_exc()
 
             # schedule new jobs, as long as there are free workers
             while len(self.jobs) < self.parallel_tests and self.maybe_schedule_job():
@@ -919,7 +919,7 @@ class TestManager:
                 return_when=FIRST_COMPLETED,
                 timeout=self.time_till_missing_timeout_workaround(),
             )
-            sigmonitor.maybe_retrigger_action()
+            sigmonitor.maybe_raise_exc()
 
             self.workaround_missing_timeouts()
             self.process_done_futures()
@@ -1368,18 +1368,18 @@ def override_tmpdir_env(old_env: Mapping[str, str], tmp_override: Path) -> Mappi
 
 
 def _init_worker_process(initializers: list[Callable]) -> None:
-    # By default (when not executing a job), terminate a worker immediately on relevant signals. Raising an exception at
-    # unexpected times, especially inside multiprocessing internals, can put the worker into a bad state.
-    sigmonitor.init(sigmonitor.Mode.QUICK_EXIT)
+    # Observe SIGTERM but not SIGINT - the latter would be handled by the main process and result in the process pool
+    # termination, arriving to us as SIGTERM in the end; handling both signals could result in incomplete cleanup.
+    sigmonitor.init(sigint=False)
     for func in initializers:
         func()
 
 
 def _worker_process_job_wrapper(job_order: int, func: Callable) -> Any:
-    # Handle signals as exceptions within the job, to let the code do proper resource deallocation (like terminating
-    # subprocesses), but once the func returns after a signal was triggered, terminate the worker.
-    with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION):
-        # Annotate each log message with the job order, for the log recipient in the main process to discard logs coming
-        # from canceled jobs.
-        with mplogging.worker_process_job_wrapper(job_order):
-            return func()
+    sigmonitor.maybe_raise_exc()
+    # Annotate each log message with the job order, for the log recipient in the main process to discard logs coming
+    # from canceled jobs.
+    with mplogging.worker_process_job_wrapper(job_order):
+        res = func()
+        sigmonitor.maybe_raise_exc()
+    return res
