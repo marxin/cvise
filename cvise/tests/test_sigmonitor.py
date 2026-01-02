@@ -1,5 +1,4 @@
 import contextlib
-import gc
 import multiprocessing
 import multiprocessing.managers
 import os
@@ -7,7 +6,6 @@ import queue
 import signal
 import threading
 import time
-import weakref
 from collections.abc import Iterator
 
 import pytest
