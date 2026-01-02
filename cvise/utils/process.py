@@ -265,7 +265,7 @@ class ProcessEventNotifier:
     that should be killed.
     """
 
-    _EVENT_LOOP_STEP = 0.1  # seconds
+    _EVENT_LOOP_STEP = 1  # seconds
 
     def __init__(self, pid_queue: queue.Queue | None):
         self._my_pid = os.getpid()
