@@ -307,7 +307,7 @@ def main():
         nargs='?',
         help='Executable to check interestingness of test cases',
     )
-    parser.add_argument('test_cases', metavar='TEST_CASE', nargs='+', help='Test cases')
+    parser.add_argument('test_cases', metavar='TEST_CASE', nargs='+', help='Test cases (files or directories)')
     parser.add_argument(
         '--stopping-threshold',
         default=1.0,
