@@ -262,6 +262,62 @@ def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     assert (test_case / 'a.cc').read_text() == '#include "a.h"\nint nextHi = x;\n'
 
 
+def test_dir_makefile_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    test_case = tmp_path / 'repro'
+    test_case.mkdir()
+    (test_case / 'h1.h').write_text('int x;\n')
+    (test_case / 'h2.h').write_text('#include "h1.h"\n')
+    (test_case / 'src1.c').write_text('#include "h2.h"\n')
+    (test_case / 'src2.c').write_text('// duplicate!\nint x;\n')
+    (test_case / 'src3.c').write_text('int main() {\n}\n')
+    (test_case / 'Makefile').write_text(
+        """.PHONY: all clean
+all: prog
+src1.o:
+\tgcc -c src1.c
+src2.o:
+\tgcc -c src2.c
+src3.o:
+\tgcc -c src3.c
+prog: src1.o src2.o src3.o
+\tgcc -o prog src1.o src2.o src3.o
+clean:
+\trm -f src1.o src2.o src3.o prog
+"""
+    )
+
+    proc = start_cvise(
+        [
+            '-c',
+            "(make -C repro 2>&1 || true) | grep 'multiple definition'",
+            'repro',
+            '--tidy',
+        ],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    stdout, stderr = proc.communicate()
+
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
+    assert _read_files_in_dir(test_case) == {
+        'Makefile': """.PHONY: all clean
+all: prog
+src1.o:
+\tgcc -c src1.c
+src2.o:
+\tgcc -c src2.c
+prog: src1.o src2.o
+\tgcc -o prog src1.o src2.o
+clean:
+\trm -f src1.o src2.o prog
+""",
+        'src1.c': 'int x;\n',
+        'src2.c': 'int x;\n',
+    }
+
+
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 def test_script_inside_test_case_error(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     test_case = tmp_path / 'repro'
@@ -337,3 +393,7 @@ def test_failing_interestingness_test(tmp_path: Path, overridden_subprocess_tmpd
 
     assert proc.returncode != 0, f'Process succeeded unexpectedly; stderr:\n{stderr}\nstdout:\n{stdout}'
     assert 'interestingness test does not return' in stdout
+
+
+def _read_files_in_dir(dir: Path) -> dict[Path, str]:
+    return {str(p.relative_to(dir)): p.read_text() for p in dir.rglob('*') if not p.is_dir()}
