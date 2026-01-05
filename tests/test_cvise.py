@@ -274,11 +274,11 @@ def test_dir_makefile_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Pa
         """.PHONY: all clean
 all: prog
 src1.o:
-\tgcc -c src1.c
+\tgcc -Werror -c src1.c
 src2.o:
-\tgcc -c src2.c
+\tgcc -Werror -c src2.c
 src3.o:
-\tgcc -c src3.c
+\tgcc -Werror -c src3.c
 prog: src1.o src2.o src3.o
 \tgcc -o prog src1.o src2.o src3.o
 clean:
@@ -305,9 +305,9 @@ clean:
         'Makefile': """.PHONY: all clean
 all: prog
 src1.o:
-\tgcc -c src1.c
+\tgcc -Werror -c src1.c
 src2.o:
-\tgcc -c src2.c
+\tgcc -Werror -c src2.c
 prog: src1.o src2.o
 \tgcc -o prog src1.o src2.o
 clean:
@@ -395,5 +395,5 @@ def test_failing_interestingness_test(tmp_path: Path, overridden_subprocess_tmpd
     assert 'interestingness test does not return' in stdout
 
 
-def _read_files_in_dir(dir: Path) -> dict[Path, str]:
+def _read_files_in_dir(dir: Path) -> dict[str, str]:
     return {str(p.relative_to(dir)): p.read_text() for p in dir.rglob('*') if not p.is_dir()}
