@@ -262,8 +262,8 @@ def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     assert (test_case / 'a.cc').read_text() == '#include "a.h"\nint nextHi = x;\n'
 
 
-def test_dir_makefile_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
-    """Test reducing headers and a makefile for a simple link-time error test case.
+def test_dir_linker_duplicate_var_error(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    """Test reducing headers and a makefile for a link-time error due to duplicate variables.
 
     Here we had to hardcode particular error messages from real linkers.
     """
