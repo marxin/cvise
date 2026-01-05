@@ -289,7 +289,7 @@ clean:
     proc = start_cvise(
         [
             '-c',
-            "(make -C repro 2>&1 || true) | grep 'multiple definition'",
+            "(make -C repro 2>&1 || true) | awk '{ print } /multiple definition/ { found=1 } END { exit !found }'",
             'repro',
             '--tidy',
         ],
