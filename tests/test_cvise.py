@@ -263,6 +263,12 @@ def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
 
 
 def test_dir_makefile_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    """Test reducing headers and a makefile for a simple link-time error test case.
+
+    Here we had to hardcode particular error messages from real linkers.
+    """
+    ERROR_REGEX = 'multiple|duplicate'
+
     test_case = tmp_path / 'repro'
     test_case.mkdir()
     (test_case / 'h1.h').write_text('int x;\n')
@@ -286,10 +292,11 @@ clean:
 """
     )
 
+    # Use awk instead of grep to easily see the whole build log if the test fails.
     proc = start_cvise(
         [
             '-c',
-            "(make -C repro 2>&1 || true) | awk '{ print } /multiple definition/ { found=1 } END { exit !found }'",
+            f"(make -C repro 2>&1 || true) | awk '{{ print }} /{ERROR_REGEX}/ {{ y=1 }} END {{ exit !y }}'",
             'repro',
             '--tidy',
         ],
