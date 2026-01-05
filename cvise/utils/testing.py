@@ -202,7 +202,7 @@ class TestEnvironment:
             logging.exception('Unexpected TestEnvironment::run failure')
             return self
 
-    def run_test(self, verbose: bool) -> tuple[int, bytes, bytes]:
+    def run_test(self) -> tuple[int, bytes, bytes]:
         # Make the job use our custom temp dir instead of the standard one, so that the standard location doesn't get
         # cluttered with files it might leave undeleted (the process might do this because of an oversight in the
         # interestingness test, or because C-Vise abruptly kills our job without a chance for a proper cleanup).
@@ -668,7 +668,7 @@ class TestManager:
         logging.debug(f'sanity check tmpdir = {test_env.folder}')
 
         test_env.copy_test_cases()
-        returncode, stdout, stderr = test_env.run_test(verbose=True)
+        returncode, stdout, stderr = test_env.run_test()
         self.tmp_dir_manager.delete_dir(folder)
         if returncode == 0:
             logging.debug('sanity check successful')
