@@ -79,7 +79,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - run: apt-get update
-    - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex vim unifdef sudo
+    - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex vim unifdef sudo libffi-dev
     - run: chown -R $(whoami) /github/home  # workaround for "directory ... pip ... is not owned or is not writable by the current user"
     - run: rm -rf /__t/Python  # workaround for "error when attempting to execute the process ... pip"
     - uses: actions/setup-python@v6
