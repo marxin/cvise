@@ -569,13 +569,16 @@ class TestManager:
     def total_dir_count(self) -> int:
         return sum(fileutil.get_dir_count(p) for p in self.test_cases)
 
-    def backup_test_cases(self):
+    def backup_test_cases(self) -> None:
         for f in self.test_cases:
-            orig_file = Path(f'{f}.orig')
-
-            if not orig_file.exists():
-                # Copy file and preserve attributes
-                shutil.copy2(f, orig_file)
+            orig_path = Path(f'{f}.orig')
+            if orig_path.exists():
+                continue
+            # Copy files and preserve attributes
+            if f.is_dir():
+                shutil.copytree(f, orig_path, symlinks=True, ignore_dangling_symlinks=True)
+            else:
+                shutil.copy2(f, orig_path)
 
     @staticmethod
     def check_file_permissions(path: Path, modes, error):
