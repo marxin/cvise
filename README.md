@@ -3,7 +3,7 @@
 [![Build](https://github.com/marxin/cvise/actions/workflows/build.yml/badge.svg)](https://github.com/marxin/cvise/actions/workflows/build.yml)
 [![Build LLVM nightly](https://github.com/marxin/cvise/actions/workflows/build-llvm-nightly.yml/badge.svg)](https://github.com/marxin/cvise/actions/workflows/build-llvm-nightly.yml)
 
-## About 
+## About
 
 C-Vise is a super-parallel Python port of the [C-Reduce](https://github.com/csmith-project/creduce/).
 The port is fully compatible to the C-Reduce and uses the same efficient
@@ -109,6 +109,81 @@ template <typename> class a {
   friend decltype(b);
 };
 void c() { a<int> d; }
+```
+
+## Usage with multi-file inputs
+
+C-Vise can also reduce test cases containing multiple files - they can be
+passed in the command line individually or as whole directories. The latter is
+generally more efficient and allows C-Vise perform following reductions:
+
+* deleting some of input files;
+* merging files (e.g., inlining C/C++ headers that are only included once);
+* reducing compilation flags and targets from a `Makefile`.
+
+For example, assuming the following directory tree:
+
+```
+//--- repro/h1.h
+int x;
+
+//--- repro/h2.h
+#include "h1.h"
+
+//--- repro/src1.c
+#include "h2.h"
+
+//--- repro/src2.c
+// duplicate!
+int x;
+
+//--- repro/src3.c
+int main() {
+	return 0;
+}
+
+//--- repro/Makefile
+.PHONY: all clean
+all: prog
+src1.o:
+	gcc -c src1.c
+src2.o:
+	gcc -c src2.c
+src3.o:
+	gcc -c src3.c
+prog: src1.o src2.o src3.o
+	gcc -o prog src1.o src2.o src3.o
+clean:
+	rm -f src1.o src2.o src3.o prog
+```
+
+The reduction can be then run with:
+```console
+$ cvise repro -c "(make -C repro 2>&1 || true) | grep 'multiple definition'"
+...
+Reduced test-cases:
+
+--- repro ---
+
+//--- repro/Makefile
+.PHONY: all clean
+all: prog
+src1.o:
+	gcc -c src1.c
+src2.o:
+	gcc -c src2.c
+prog: src1.o src2.o
+	gcc -o prog src1.o src2.o
+clean:
+	rm -f src1.o src2.o prog
+
+
+//--- repro/src1.c
+int x ;
+
+
+//--- repro/src2.c
+int x ;
 ```
 
 ## Notes
