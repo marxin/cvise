@@ -115,13 +115,10 @@ void c() { a<int> d; }
 
 C-Vise can also reduce test cases containing multiple files - they can be
 passed in the command line individually or as whole directories. The latter is
-especially relevant when the input contains many files and/or involves
-multiple compilation commands, since C-Vise will reduce even a big number of
-files more efficiently, and will be able to attempt:
+generally more efficient and allows C-Vise perform following reductions:
 
 * deleting some of input files;
 * merging files (e.g., inlining C/C++ headers that are only included once);
-* renaming input files (if `--renaming` is specified);
 * reducing compilation flags and targets from a `Makefile`.
 
 For example, assuming the following directory tree:
