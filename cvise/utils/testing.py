@@ -184,7 +184,7 @@ class TestEnvironment:
                 return self
 
             # run test script
-            self.exitcode = self.run_test(False)
+            self.exitcode, _stdout, _stderr = self.run_test()
 
             # cleanup and stats (only useful for successful case - otherwise job's dir will be deleted anyway)
             if self.exitcode == 0:
@@ -202,7 +202,7 @@ class TestEnvironment:
             logging.exception('Unexpected TestEnvironment::run failure')
             return self
 
-    def run_test(self, verbose):
+    def run_test(self) -> tuple[int, bytes, bytes]:
         # Make the job use our custom temp dir instead of the standard one, so that the standard location doesn't get
         # cluttered with files it might leave undeleted (the process might do this because of an oversight in the
         # interestingness test, or because C-Vise abruptly kills our job without a chance for a proper cleanup).
@@ -211,11 +211,7 @@ class TestEnvironment:
             stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(
                 str(self.test_script), shell=True, env=env, cwd=self.folder
             )
-        if verbose and returncode != 0:
-            # Drop invalid UTF sequences.
-            logging.debug('stdout:\n%s', stdout.decode('utf-8', 'ignore'))
-            logging.debug('stderr:\n%s', stderr.decode('utf-8', 'ignore'))
-        return returncode
+            return returncode, stdout, stderr
 
 
 @unique
@@ -672,12 +668,12 @@ class TestManager:
         logging.debug(f'sanity check tmpdir = {test_env.folder}')
 
         test_env.copy_test_cases()
-        returncode = test_env.run_test(verbose=True)
+        returncode, stdout, stderr = test_env.run_test()
         self.tmp_dir_manager.delete_dir(folder)
         if returncode == 0:
             logging.debug('sanity check successful')
         else:
-            raise InsaneTestCaseError(self.test_cases, self.test_script)
+            raise InsaneTestCaseError(self.test_cases, self.test_script, stdout, stderr)
 
     @classmethod
     def log_key_event(cls, event):
