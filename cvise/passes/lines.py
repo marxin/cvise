@@ -22,6 +22,9 @@ class LinesPass(HintBasedPass):
     def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
         is_dir = test_case.is_dir()
         paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
+        if not paths:
+            return HintBundle(hints=[])
+
         vocab = [str(p.relative_to(test_case)).encode() for p in paths] if is_dir else []
         hints = []
         if self.arg == 'None':
