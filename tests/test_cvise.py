@@ -414,8 +414,7 @@ sanity:
 \tgcc -c -DDISTURB=0 src1.cc
 \t! gcc -c -DDISTURB=1 src1.cc
 """,
-        'src1.cc': """
-template <int N>
+        'src1.cc': """template <int N>
 struct Fib {
   static constexpr int value = Fib<N - 1>::value + Fib<N - 2>::value;
 };
