@@ -385,6 +385,22 @@ def test_non_ascii_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: P
     assert 'Streichholz' in stderr
 
 
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_empty_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    test_case = tmp_path / 'repro'
+    test_case.mkdir()
+
+    proc = start_cvise(
+        ['-c', 'true', 'repro'],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    stdout, stderr = proc.communicate()
+
+    assert proc.returncode != 0, f'Process succeeded unexpectedly; stderr:\n{stderr}\nstdout:\n{stdout}'
+    assert 'has reached zero size' in stdout
+
+
 def test_failing_interestingness_test(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     testcase_path = tmp_path / 'test.c'
     testcase_path.write_text('foo')
