@@ -1115,7 +1115,8 @@ class TestManager:
 
     def log_test_case_metrics(self, extra_note: str | None = None) -> None:
         total_bytes = self.total_file_size
-        pct = 100 - (float(total_bytes) * 100.0 / self.orig_total_file_size)
+        size_fraction = total_bytes / max(1, self.orig_total_file_size)
+        pct = 100 - size_fraction * 100.0
         notes = []
         notes.append(f'{round(pct, 1)}%')
         notes.append(f'{total_bytes} byte{"s" if total_bytes != 1 else ""}')

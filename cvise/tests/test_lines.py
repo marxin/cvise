@@ -5,8 +5,14 @@ import pytest
 
 from cvise.passes.lines import LinesPass
 from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir, validate_stored_hints
+from cvise.utils import sigmonitor
 from cvise.utils.externalprograms import find_external_programs
 from cvise.utils.process import ProcessEventNotifier
+
+
+@pytest.fixture(autouse=True)
+def signal_monitor():
+    sigmonitor.init()
 
 
 @pytest.fixture
@@ -836,3 +842,10 @@ def test_multi_file_arg_0_unclosed_block(tmp_path: Path):
 
     assert (('bar.h', b''), ('foo.h', b'class A {\n')) in all_transforms
     assert (('bar.h', b'namespace {\n'), ('foo.h', b'')) in all_transforms
+
+
+def test_multi_file_no_files(tmp_path: Path):
+    input_dir = tmp_path / 'test_case'
+    input_dir.mkdir()
+    p, state = init_pass('0', tmp_path, input_dir)
+    assert collect_all_transforms_dir(p, state, input_dir) == set()
