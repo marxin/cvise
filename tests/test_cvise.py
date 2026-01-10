@@ -346,7 +346,6 @@ struct Fib {
 #endif  // HEAD1_H_
 """
     )
-
     (test_case / 'head2.h').write_text(
         """
 #ifndef HEAD2_H_
@@ -367,9 +366,24 @@ struct Fib<1> {
 #endif  // HEAD2_H_
 """
     )
+    (test_case / 'head3.h').write_text(
+        """
+#ifndef HEAD3_H_
+#define HEAD3_H_
+
+#include <vector>
+
+std::vector<int> Foo() {
+    return {1, 2, 3};
+}
+
+#endif  // HEAD3_H_
+"""
+    )
     (test_case / 'src1.cc').write_text(
         """
 #include "head2.h"
+#include "head3.h"
 static_assert(Fib<6>::value == 8 + DISTURB, "unexpected Fibonacci value #6");
 """
     )
@@ -379,16 +393,16 @@ static_assert(Fib<6>::value == 8 + DISTURB, "unexpected Fibonacci value #6");
         """.PHONY: all sanity
 all: prog sanity
 prog: src1.o src2.o src3.o
-\tgcc -o prog src1.o src2.o src3.o
+\tg++ -o prog -lstdc++ src1.o src2.o src3.o
 src1.o:
-\tgcc -c -DDISTURB=0 src1.cc
+\tg++ -c -DDISTURB=0 src1.cc
 src2.o:
-\tgcc -c src2.cc
+\tg++ -c src2.cc
 src3.o:
-\tgcc -c src3.cc
+\tg++ -c src3.cc
 sanity:
-\tgcc -c -DDISTURB=0 src1.cc
-\t! gcc -c -DDISTURB=1 src1.cc
+\tg++ -c -DDISTURB=0 src1.cc
+\t! g++ -c -DDISTURB=1 src1.cc
 """
     )
 
@@ -411,8 +425,8 @@ sanity:
         'Makefile': """.PHONY: all sanity
 all: sanity
 sanity:
-\tgcc -c -DDISTURB=0 src1.cc
-\t! gcc -c -DDISTURB=1 src1.cc
+\tg++ -c -DDISTURB=0 src1.cc
+\t! g++ -c -DDISTURB=1 src1.cc
 """,
         'src1.cc': """template <int N>
 struct Fib {
