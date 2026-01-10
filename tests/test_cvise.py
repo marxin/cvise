@@ -324,6 +324,127 @@ clean:
     }
 
 
+def test_dir_fibonacci_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    """Test reducing headers for a compile-time Fibonacci sequence evaluation.
+
+    To prevent C-Vise from deleting compile-time calculations, our makefile checks that the compilation fails iff a
+    preprocessor definition (used in a compile-time assert) is nonzero.
+    """
+    test_case = tmp_path / 'repro'
+    test_case.mkdir()
+    (test_case / 'head1.h').write_text(
+        """
+#ifndef HEAD1_H_
+#define HEAD1_H_
+
+// Fibonacci sequence, induction step.
+template <int N>
+struct Fib {
+  static constexpr int value = Fib<N - 1>::value + Fib<N - 2>::value;
+};
+
+#endif  // HEAD1_H_
+"""
+    )
+    (test_case / 'head2.h').write_text(
+        """
+#ifndef HEAD2_H_
+#define HEAD2_H_
+
+#include "head1.h"
+
+// Fibonacci sequence, base steps.
+template <>
+struct Fib<0> {
+    static constexpr int value = 0;
+};
+template <>
+struct Fib<1> {
+    static constexpr int value = 1;
+};
+
+#endif  // HEAD2_H_
+"""
+    )
+    (test_case / 'head3.h').write_text(
+        """
+#ifndef HEAD3_H_
+#define HEAD3_H_
+
+#include <vector>
+
+std::vector<int> Foo() {
+    return {1, 2, 3};
+}
+
+#endif  // HEAD3_H_
+"""
+    )
+    (test_case / 'src1.cc').write_text(
+        """
+#include "head2.h"
+#include "head3.h"
+static_assert(Fib<6>::value == 8 + DISTURB, "unexpected Fibonacci value #6");
+"""
+    )
+    (test_case / 'src2.cc').write_text('// unrelated\nint x;\n')
+    (test_case / 'src3.cc').write_text('int main() {\n}\n')
+    (test_case / 'Makefile').write_text(
+        """.PHONY: all sanity
+all: prog sanity
+prog: src1.o src2.o src3.o
+\tg++ -o prog -lstdc++ src1.o src2.o src3.o
+src1.o:
+\tg++ -c -DDISTURB=0 src1.cc
+src2.o:
+\tg++ -c src2.cc
+src3.o:
+\tg++ -c src3.cc
+sanity:
+\tg++ -c -DDISTURB=0 src1.cc
+\t! g++ -c -DDISTURB=1 src1.cc
+"""
+    )
+
+    # Use awk instead of grep to easily see the whole build log if the test fails.
+    proc = start_cvise(
+        [
+            '-c',
+            'make -C repro',
+            'repro',
+        ],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    stdout, stderr = proc.communicate()
+
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
+    assert _read_files_in_dir(test_case) == {
+        'Makefile': """.PHONY: all sanity
+all: sanity
+sanity:
+\tg++ -c -DDISTURB=0 src1.cc
+\t! g++ -c -DDISTURB=1 src1.cc
+""",
+        'src1.cc': """template <int N>
+struct Fib {
+  static constexpr int value = Fib<N - 1>::value + Fib<N - 2>::value;
+};
+template <>
+struct Fib<0> {
+    static constexpr int value = 0;
+};
+template <>
+struct Fib<1> {
+    static constexpr int value = 1;
+};
+static_assert(Fib<6>::value == 8 + DISTURB);
+""",
+    }
+
+
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
 def test_script_inside_test_case_error(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     test_case = tmp_path / 'repro'
