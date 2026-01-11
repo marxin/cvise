@@ -32,6 +32,7 @@ import signal
 import socket
 from concurrent.futures import Future
 from dataclasses import dataclass
+from signal import SIGINT, SIGTERM
 
 
 # Global singleton buffer used for reading wakeup sockets.
@@ -44,6 +45,7 @@ class _Context:
 
     future: Future
     read_buf: bytearray
+    read_view: memoryview
     # File descriptors for triggering the "wakeup" whenever any signal arrives.
     wakeup_read_sock: socket.socket
     wakeup_write_sock: socket.socket
@@ -60,16 +62,18 @@ _context: _Context | None = None
 
 def init(sigint: bool = True) -> None:
     global _context
-    if _context is None:
+    if _context is None:  # if called multiple times (typically in tests), only update flags
         wakeup_socks = socket.socketpair()
         sigintterm_socks = socket.socketpair()
         for socks in (wakeup_socks, sigintterm_socks):
             for sock in socks:
                 sock.setblocking(False)
 
+        read_buf = bytearray(_SOCK_READ_BUF_SIZE)
         _context = _Context(
             future=Future(),
-            read_buf=bytearray(_SOCK_READ_BUF_SIZE),
+            read_buf=read_buf,
+            read_view=memoryview(read_buf),
             wakeup_read_sock=wakeup_socks[0],
             wakeup_write_sock=wakeup_socks[1],
             sigintterm_read_sock=sigintterm_socks[0],
@@ -83,8 +87,8 @@ def init(sigint: bool = True) -> None:
 
     # Overwrite old signal handlers (in tests, the old handler could've been installed by ourselves as well; calling it
     # would result in an infinite recursion).
-    signal.signal(signal.SIGTERM, _on_signal)
-    signal.signal(signal.SIGINT, _on_signal if sigint else signal.SIG_IGN)
+    signal.signal(SIGTERM, _on_signal)
+    signal.signal(SIGINT, _on_signal if sigint else signal.SIG_IGN)
 
 
 def maybe_raise_exc() -> None:
@@ -92,9 +96,9 @@ def maybe_raise_exc() -> None:
     assert _context
     # If multiple signals occurred, prefer SIGTERM.
     if _context.sigterm_observed:
-        raise _create_exception(signal.SIGTERM)
+        raise _create_exception(SIGTERM)
     elif _context.sigint_observed:
-        raise _create_exception(signal.SIGINT)
+        raise _create_exception(SIGINT)
 
 
 def get_future() -> Future:
@@ -129,23 +133,20 @@ def handle_readable_wakeup_fd(sock: socket.socket) -> None:
     assert _context is not None
     try:
         nbytes = os.readv(sock.fileno(), (_context.read_buf,))
-    except (BlockingIOError, TimeoutError):
-        raise  # we expect the file descriptor to be in non-blocking mode
     except OSError:
-        return
+        return  # data was read by another thread or shutdown started
 
-    # In case of the common wakeup FD, copy the notification(s) into corresponding dedicated sockets.
+    # In case of the common wakeup FD, also set corresponding global flags and copy the notifications into the dedicated
+    # sockets.
     if sock != _context.wakeup_read_sock:
         return
-    contents = memoryview(_context.read_buf)[:nbytes]
-    sigintterm_notified = False
-    for b in contents:
-        match b:
-            case signal.SIGINT | signal.SIGTERM if not sigintterm_notified:
-                sigintterm_notified = True
-                _notify_sock(_context.sigintterm_write_sock)
-            case _:
-                raise ValueError(f'Unexpected signal wakeup data: {b}')
+    contents = _context.read_view[:nbytes]
+    if SIGINT in contents:
+        _set_future_exception(_create_exception(SIGINT))
+        _notify_sock(_context.sigintterm_write_sock)
+    if SIGTERM in contents:
+        _set_future_exception(_create_exception(SIGTERM))
+        _notify_sock(_context.sigintterm_write_sock)
 
 
 def signal_observed_for_testing() -> bool:
@@ -176,26 +177,26 @@ def _notify_sock(sock: socket.socket) -> None:
 def _on_signal(signum: int, frame) -> None:
     assert _context
     repeated = _context.sigterm_observed or _context.sigint_observed
-    match signum:
-        case signal.SIGTERM:
-            _context.sigterm_observed = True
-        case signal.SIGINT:
-            _context.sigint_observed = True
+    if signum == SIGINT:
+        _context.sigint_observed = True
+    elif signum == SIGTERM:
+        _context.sigterm_observed = True
 
-    exception = _create_exception(signum)
-    # Set the exception on the future, unless it's already done. We don't use done() because it'd be potentially racy.
-    with contextlib.suppress(concurrent.futures.InvalidStateError):
-        _context.future.set_exception(exception)
-
+    exc = _create_exception(signum)
+    _set_future_exception(exc)
     if repeated:
-        raise exception
+        raise exc
 
 
 def _create_exception(signum: int) -> BaseException:
-    match signum:
-        case signal.SIGINT:
-            return KeyboardInterrupt()
-        case signal.SIGTERM:
-            return SystemExit(1)
-        case _:
-            raise ValueError('No signal')
+    if signum == SIGINT:
+        return KeyboardInterrupt()
+    elif signum == SIGTERM:
+        return SystemExit(1)
+    else:
+        raise ValueError(f'Unexpected signal {signum}')
+
+
+def _set_future_exception(exc: BaseException) -> None:
+    with contextlib.suppress(concurrent.futures.InvalidStateError):  # no done() to avoid races
+        _context.future.set_exception(exc)
