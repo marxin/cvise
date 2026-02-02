@@ -73,7 +73,7 @@ jobs:
       working-directory: objdir
     - run: make -j`sysctl -n hw.physicalcpu` VERBOSE=1
       working-directory: objdir
-    - run: python -m pytest
+    - run: python -m pytest -x -s
       working-directory: objdir
 
   CI-python:
