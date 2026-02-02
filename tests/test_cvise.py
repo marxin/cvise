@@ -275,7 +275,7 @@ def test_dir_linker_duplicate_var_error(tmp_path: Path, overridden_subprocess_tm
     (test_case / 'src1.c').write_text('#include "h2.h"\n')
     (test_case / 'src2.c').write_text('// duplicate!\nint x;\n')
     (test_case / 'src3.c').write_text('int main() {\n}\n')
-    (test_case / 'makefile').write_text(
+    (test_case / 'Makefile').write_text(
         """.PHONY: all clean
 all: prog
 src1.o:
@@ -308,7 +308,7 @@ clean:
         f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
     )
     assert _read_files_in_dir(test_case) == {
-        'makefile': """.PHONY: all clean
+        'Makefile': """.PHONY: all clean
 all: prog
 src1.o:
 \tgcc -Werror -c src1.c
@@ -389,7 +389,7 @@ static_assert(Fib<6>::value == 8 + DISTURB, "unexpected Fibonacci value #6");
     )
     (test_case / 'src2.cc').write_text('// unrelated\nint x;\n')
     (test_case / 'src3.cc').write_text('int main() {\n}\n')
-    (test_case / 'makefile').write_text(
+    (test_case / 'Makefile').write_text(
         """.PHONY: all sanity
 all: prog sanity
 prog: src1.o src2.o src3.o
@@ -422,7 +422,7 @@ sanity:
         f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
     )
     assert _read_files_in_dir(test_case) == {
-        'makefile': """.PHONY: all sanity
+        'Makefile': """.PHONY: all sanity
 all: sanity
 sanity:
 \tg++ -c -DDISTURB=0 src1.cc

@@ -245,7 +245,7 @@ def test_unrelated_files(tmp_path: Path, test_case_path: Path):
             }
         """,
     )
-    (test_case_path / 'makefile').write_text('.PHONY: foo\n')
+    (test_case_path / 'Makefile').write_text('.PHONY: foo\n')
     (test_case_path / 'X.modulemap').write_text(
         """
             module "X" {
@@ -265,7 +265,7 @@ def test_unrelated_files(tmp_path: Path, test_case_path: Path):
             }
         """,
         ),
-        ('makefile', b'.PHONY: foo\n'),
+        ('Makefile', b'.PHONY: foo\n'),
         (
             'X.modulemap',
             b"""
