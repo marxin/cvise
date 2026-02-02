@@ -222,7 +222,7 @@ def filter_files_by_patterns(test_case: Path, include_globs: list[str], default_
     else:
         all = _find_files_matching(test_case, ['**/*'])
         exclude = _find_files_matching(test_case, default_exclude_globs)
-        paths = all - exclude
+        paths = set(all) - set(exclude)
     return sorted(paths)
 
 
@@ -351,21 +351,23 @@ def _robust_temp_dir(dir: Path) -> Iterator[Path]:
             yield Path(tmp_dir)
 
 
-def _find_files_matching(test_case: Path, globs: list[str]) -> set[Path]:
+def _find_files_matching(test_case: Path, globs: list[str]) -> list[Path]:
     if test_case.is_symlink():
-        return set()
+        return []
 
     if not test_case.is_dir():
         # TODO: use full_match() once Python 3.13 is the oldest supported release
         for pattern in globs:
             pattern = pattern.removeprefix('**/')
             if fnmatch.fnmatch(str(test_case), pattern):
-                return {test_case}
-        return set()
+                return [test_case]
+        return []
 
-    paths = set()
+    inode_to_path = {}
     for pattern in globs:
         for path in test_case.glob(pattern):
             if not path.is_dir() and not path.is_symlink() and path.is_relative_to(test_case):
-                paths.add(path)
-    return paths
+                st = path.stat()
+                key = st.st_dev, st.st_ino
+                inode_to_path.setdefault(key, path)
+    return list(inode_to_path.values())
