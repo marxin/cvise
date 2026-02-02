@@ -590,7 +590,7 @@ def test_subprocess_termination(manager: testing.TestManager):
 def _find_processes_by_cmd_line(needle: str) -> list[psutil.Process]:
     processes = []
     for proc in psutil.process_iter():
-        with contextlib.suppress(psutil.NoSuchProcess, psutil.ZombieProcess):
+        with contextlib.suppress(psutil.NoSuchProcess, psutil.ZombieProcess, psutil.AccessDenied):
             if needle in proc.cmdline():
                 processes.append(proc)
     return processes
