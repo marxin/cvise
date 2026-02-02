@@ -67,7 +67,9 @@ jobs:
     - run: brew install llvm
     - run: pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
     - run: mkdir objdir
-    - run: cmake ..
+    - run: cmake .. -DCMAKE_PREFIX_PATH="/opt/homebrew/opt/llvm" -DCMAKE_C_COMPILER="/opt/homebrew/opt/llvm/bin/clang"
+        -DCMAKE_CXX_COMPILER="/opt/homebrew/opt/llvm/bin/clang++"
+        -DCMAKE_EXE_LINKER_FLAGS="-L/opt/homebrew/opt/llvm/lib/c++ -L/opt/homebrew/opt/llvm/lib/unwind -lunwind -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++"
       working-directory: objdir
     - run: make -j`sysctl -n hw.physicalcpu` VERBOSE=1
       working-directory: objdir
