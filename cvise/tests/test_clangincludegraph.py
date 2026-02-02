@@ -50,7 +50,7 @@ def test_header_chain(tmp_path: Path):
     (input_dir / 'main.cc').write_text('#include "foo.h"\n')
     (input_dir / 'foo.h').write_text('// hello\n#include "bar.h"')
     (input_dir / 'bar.h').touch()
-    (input_dir / 'Makefile').write_text(
+    (input_dir / 'makefile').write_text(
         """
 a.out:
 \tgcc main.cc
@@ -70,7 +70,7 @@ def test_multiple_commands(tmp_path: Path):
     (input_dir / 'bar.c').write_text('#include "bar.h"\n')
     (input_dir / 'bar.h').write_text('#include "common.h"\n')
     (input_dir / 'common.h').touch()
-    (input_dir / 'Makefile').write_text(
+    (input_dir / 'makefile').write_text(
         """
 foo.o:
 \tgcc foo.c -o foo.o
@@ -99,7 +99,7 @@ def test_include_search_path(tmp_path: Path, cmd_flag: str):
     sub_dir.mkdir()
     (input_dir / 'main.cc').write_text('#include "foo.h"\n')
     (input_dir / sub_dir / 'foo.h').touch()
-    (input_dir / 'Makefile').write_text(f'a.out:\n\tgcc -c {cmd_flag} -Wall main.cc\n')
+    (input_dir / 'makefile').write_text(f'a.out:\n\tgcc -c {cmd_flag} -Wall main.cc\n')
     p, state = init_pass(tmp_path, input_dir)
     assert state is not None
 
@@ -113,7 +113,7 @@ def test_unrelated_commands(tmp_path: Path):
     (input_dir / 'good.cpp').write_text('#include "header.hpp"\n')
     (input_dir / 'header.hpp').touch()
     (input_dir / 'bad.cpp').write_text('#include "nonexisting.h"\n')
-    (input_dir / 'Makefile').write_text(
+    (input_dir / 'makefile').write_text(
         """
 a.out:
 \tgcc good.cpp
@@ -133,7 +133,7 @@ def test_unknown_flags(tmp_path: Path):
     input_dir.mkdir()
     (input_dir / 'good.c').write_text('#include "header.h"\n')
     (input_dir / 'header.h').touch()
-    (input_dir / 'Makefile').write_text(
+    (input_dir / 'makefile').write_text(
         """
 a.out:
 \tclang -foobar good.c -abacaba
@@ -154,7 +154,7 @@ def test_some_commands_fail(tmp_path: Path):
     (input_dir / 'bad.c').write_text('#include "nonexisting.h"\n')
     (input_dir / 'good2.c').write_text('#include "good2.h"\n')
     (input_dir / 'good2.h').touch()
-    (input_dir / 'Makefile').write_text(
+    (input_dir / 'makefile').write_text(
         """
 good1.o:
 \tgcc -c good1.c
@@ -181,7 +181,7 @@ def test_includes_from_outside(tmp_path: Path):
     header_outside.write_text('#include "inside.h"')
     (input_dir / 'main.c').write_text(f'#include "{header_outside}"\n')
     (input_dir / 'inside.h').touch()
-    (input_dir / 'Makefile').write_text(
+    (input_dir / 'makefile').write_text(
         """
 a.out:
 \tgcc -I. main.c
@@ -209,7 +209,7 @@ module mod {
 }
         """
     )
-    (input_dir / 'Makefile').write_text(
+    (input_dir / 'makefile').write_text(
         """
 mod.pcm:
 \tclang -xc++ -fmodules -Xclang -emit-module -fmodule-name=mod -c mod.cppmap -o mod.pcm
@@ -242,7 +242,7 @@ module mod {
 }
         """
     )
-    (input_dir / 'Makefile').write_text(
+    (input_dir / 'makefile').write_text(
         """
 mod.pcm:
 \tclang -xc++ -fmodules -Xclang -emit-module -fmodule-name=mod -Xclang -fmodule-map-file-home-is-cwd -c another_sub/mod.cppmap -o mod.pcm
