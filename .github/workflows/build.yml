@@ -59,6 +59,21 @@ jobs:
       run: pytest
       working-directory: objdir
 
+  CI-macos:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - run: brew install llvm
+    - run: pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
+    - run: mkdir objdir
+    - run: cmake ..
+      working-directory: objdir
+    - run: make -j`sysctl -n hw.physicalcpu` VERBOSE=1
+      working-directory: objdir
+    - run: python -m pytest
+      working-directory: objdir
+
   CI-python:
     runs-on: ubuntu-latest
     container:

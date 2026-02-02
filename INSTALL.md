@@ -183,6 +183,19 @@ msbuild INSTALL.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VisualStudio
 
 Run with: `python C:\tools\cvise\bin\cvise`
 
+## Building on macOS
+
+Install LLVM via brew, and Python dependencies via pip.
+
+Build commands, assuming that the brew installation path is `~/homebrew`:
+
+```
+mkdir build
+cd build
+LLVM_BASE="$HOME/homebrew/opt/llvm"; cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$LLVM_BASE" -DCMAKE_C_COMPILER="$LLVM_BASE/bin/clang" -DCMAKE_CXX_COMPILER="$LLVM_BASE/bin/clang++" -DCMAKE_EXE_LINKER_FLAGS="-L$LLVM_BASE/lib/c++ -Wl,-rpath,$LLVM_BASE/lib/c++"
+make -j`sysctl -n hw.physicalcpu`
+```
+
 ## Testing
 
 You can test the project with:
