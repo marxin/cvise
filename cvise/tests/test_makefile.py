@@ -25,7 +25,7 @@ def init_pass(tmp_dir: Path, test_case_path: Path) -> tuple[MakefilePass, Any]:
 
 
 def test_remove_argument(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 a.out:
 \tgcc -ansi foo.c
@@ -37,7 +37,7 @@ a.out:
     # "-ansi" removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.out:
 \tgcc foo.c
@@ -47,7 +47,7 @@ a.out:
     # program name ("gcc") not removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.out:
 \t -ansi foo.c
@@ -57,7 +57,7 @@ a.out:
 
 
 def test_dont_remove_file_argument(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 a.o:
 \tgcc -o a.o foo.c
@@ -71,7 +71,7 @@ b.o:
     # "-o a.o" not removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.out:
 \tgcc foo.c
@@ -83,7 +83,7 @@ b.o:
     # "-o" not removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.out:
 \tgcc a.o foo.c
@@ -95,7 +95,7 @@ b.o:
     # "a.o" not removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.out:
 \tgcc -o foo.c
@@ -107,7 +107,7 @@ b.o:
     # "-ob.o" not removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc -o a.o foo.c
@@ -119,7 +119,7 @@ b.o:
 
 
 def test_dont_remove_blocklisted_argument(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 a.o:
 \tgcc -Wall a.c
@@ -135,7 +135,7 @@ c.o:
     # "-Wall" not removed from any of the commands
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc a.c
@@ -148,7 +148,7 @@ c.o:
     ) not in all_transforms
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc -Wall a.c
@@ -161,7 +161,7 @@ c.o:
     ) not in all_transforms
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc -Wall a.c
@@ -174,7 +174,7 @@ c.o:
     ) not in all_transforms
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc -Wall a.c
@@ -187,7 +187,7 @@ c.o:
     ) not in all_transforms
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc -Wall a.c
@@ -260,7 +260,7 @@ b.out: \\
 
 
 def test_argument_with_escaped_quotes(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 a.o:
 \tgcc -Dfoo=\\"x y\\" foo.c
@@ -272,7 +272,7 @@ a.o:
     # -D... removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc foo.c
@@ -282,7 +282,7 @@ a.o:
     # the argument isn't half-removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc -Dfoo=\\"x  foo.c
@@ -291,7 +291,7 @@ a.o:
     ) not in all_transforms
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc  y\\" foo.c
@@ -301,7 +301,7 @@ a.o:
 
 
 def test_argument_with_nested_quotes(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 a.o:
 \tgcc '-Dfoo="x y"' foo.c
@@ -313,7 +313,7 @@ a.o:
     # -D... removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc foo.c
@@ -323,7 +323,7 @@ a.o:
     # the argument isn't partially-removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc '-Dfoo="x foo.c
@@ -332,7 +332,7 @@ a.o:
     ) not in all_transforms
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc y"' foo.c
@@ -341,7 +341,7 @@ a.o:
     ) not in all_transforms
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.o:
 \tgcc '-Dfoo=' foo.c
@@ -351,7 +351,7 @@ a.o:
 
 
 def test_remove_target(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 prog: a.o b.o
 \tgcc -o prog a.o b.o
@@ -366,7 +366,7 @@ b.o:
     # "a.o" removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 prog: b.o
 \tgcc -o prog b.o
@@ -377,7 +377,7 @@ b.o:
     # "b.o" removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 prog: a.o
 \tgcc -o prog a.o
@@ -388,7 +388,7 @@ a.o:
 
 
 def test_remove_target_precompiled_module(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 a.out: mod.pcm
 \tclang -fmodules -fmodule-file=mod.pcm main.cc
@@ -402,7 +402,7 @@ mod.pcm:
     # "mod.pcm" removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.out:
 \tclang -fmodules main.cc\n""",
@@ -411,7 +411,7 @@ a.out:
 
 
 def test_dont_remove_phony_target(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 .PHONY: all clean
 all: a.out
@@ -427,7 +427,7 @@ clean:
     # "a.out" removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 .PHONY: all clean
 all:
@@ -439,7 +439,7 @@ clean:
     # "all" not removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 .PHONY: clean
 a.out:
@@ -452,7 +452,7 @@ clean:
     # "clean" not removed
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 .PHONY: all
 all: a.out
@@ -464,7 +464,7 @@ a.out:
     # "-f" not removed from rm
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 .PHONY: all clean
 all: a.out
@@ -478,7 +478,7 @@ clean:
 
 
 def test_unrelated_file(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').touch()
+    (test_case_path / 'Makefile').touch()
     (test_case_path / 'unrelated.txt').write_text(
         """
 a.out:
@@ -490,7 +490,7 @@ a.out:
 
     assert (
         (
-            'makefile',
+            'Makefile',
             b'',
         ),
         (
@@ -504,7 +504,7 @@ a.out:
 
 
 def test_fileref_arg(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 a.out:
 \tgcc -ansi foo.c -Wall
@@ -514,11 +514,11 @@ a.out:
     p, state = init_pass(tmp_path, test_case_path)
     assert state is not None
 
-    assert load_ref_hints(state, b'@fileref') == {(None, None, None, b'makefile'), (b'makefile', 19, 24, b'foo.c')}
+    assert load_ref_hints(state, b'@fileref') == {(None, None, None, b'Makefile'), (b'Makefile', 19, 24, b'foo.c')}
 
 
 def test_fileref_parameterized_arg(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 a.out:
 \tclang -fmodules -fmodule-map-file=foo.cppmap -fsanitize-ignorelist=dir/list.txt bar.cppmap
@@ -531,14 +531,14 @@ a.out:
     assert state is not None
 
     assert load_ref_hints(state, b'@fileref') == {
-        (None, None, None, b'makefile'),
-        (b'makefile', 25, 53, b'foo.cppmap'),
-        (b'makefile', 54, 88, b'dir/list.txt'),
+        (None, None, None, b'Makefile'),
+        (b'Makefile', 25, 53, b'foo.cppmap'),
+        (b'Makefile', 54, 88, b'dir/list.txt'),
     }
 
 
 def test_fileref_program(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 foo:
 \tsomeprog somearg
@@ -548,11 +548,11 @@ foo:
     p, state = init_pass(tmp_path, test_case_path)
     assert state is not None
 
-    assert load_ref_hints(state, b'@fileref') == {(None, None, None, b'makefile'), (b'makefile', 7, 15, b'someprog')}
+    assert load_ref_hints(state, b'@fileref') == {(None, None, None, b'Makefile'), (b'Makefile', 7, 15, b'someprog')}
 
 
 def test_fileref_dir(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 a.out:
 \tgcc -Idir1 -I dir2 foo.c
@@ -564,7 +564,7 @@ a.out:
     assert state is not None
 
     assert load_ref_hints(state, b'@fileref') == {
-        (None, None, None, b'makefile'),
-        (b'makefile', 13, 19, b'dir1'),
-        (b'makefile', 23, 27, b'dir2'),
+        (None, None, None, b'Makefile'),
+        (b'Makefile', 13, 19, b'dir1'),
+        (b'Makefile', 23, 27, b'dir2'),
     }
