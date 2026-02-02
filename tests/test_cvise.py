@@ -3,6 +3,7 @@ import shutil
 import signal
 import stat
 import subprocess
+import sys
 import tempfile
 import time
 from collections.abc import Iterator
@@ -24,7 +25,7 @@ def overridden_subprocess_tmpdir() -> Iterator[Path]:
 
 def start_cvise(arguments: list[str], tmp_path: Path, overridden_subprocess_tmpdir: Path) -> subprocess.Popen:
     binary = Path(__file__).parent.parent / 'cvise-cli.py'
-    cmd = [str(binary)] + arguments
+    cmd = [sys.executable, str(binary)] + arguments
 
     new_env = os.environ.copy()
     new_env['TMPDIR'] = str(overridden_subprocess_tmpdir)
