@@ -3,6 +3,7 @@ import shutil
 import signal
 import stat
 import subprocess
+import sys
 import tempfile
 import time
 from collections.abc import Iterator
@@ -24,7 +25,7 @@ def overridden_subprocess_tmpdir() -> Iterator[Path]:
 
 def start_cvise(arguments: list[str], tmp_path: Path, overridden_subprocess_tmpdir: Path) -> subprocess.Popen:
     binary = Path(__file__).parent.parent / 'cvise-cli.py'
-    cmd = [str(binary)] + arguments
+    cmd = [sys.executable, str(binary)] + arguments
 
     new_env = os.environ.copy()
     new_env['TMPDIR'] = str(overridden_subprocess_tmpdir)
@@ -270,11 +271,11 @@ def test_dir_linker_duplicate_var_error(tmp_path: Path, overridden_subprocess_tm
 
     test_case = tmp_path / 'repro'
     test_case.mkdir()
-    (test_case / 'h1.h').write_text('int x;\n')
+    (test_case / 'h1.h').write_text('int x = 1;\n')
     (test_case / 'h2.h').write_text('#include "h1.h"\n')
     (test_case / 'src1.c').write_text('#include "h2.h"\n')
-    (test_case / 'src2.c').write_text('// duplicate!\nint x;\n')
-    (test_case / 'src3.c').write_text('int main() {\n}\n')
+    (test_case / 'src2.c').write_text('// some comment\nint x = 2;\nint main() {\n}\n')
+    (test_case / 'src3.c').write_text('int unrelated() {\nreturn 42;\n}\n')
     (test_case / 'Makefile').write_text(
         """.PHONY: all clean
 all: prog
@@ -307,8 +308,7 @@ clean:
     assert proc.returncode == 0, (
         f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
     )
-    assert _read_files_in_dir(test_case) == {
-        'Makefile': """.PHONY: all clean
+    expected_makefile = """.PHONY: all clean
 all: prog
 src1.o:
 \tgcc -Werror -c src1.c
@@ -318,10 +318,19 @@ prog: src1.o src2.o
 \tgcc -o prog src1.o src2.o
 clean:
 \trm -f src1.o src2.o prog
-""",
-        'src1.c': 'int x;\n',
-        'src2.c': 'int x;\n',
-    }
+"""
+    assert _read_files_in_dir(test_case) in (
+        {
+            'Makefile': expected_makefile,
+            'src1.c': 'int x ;\n',
+            'src2.c': 'int x ;\n',
+        },
+        {
+            'Makefile': expected_makefile,
+            'src1.c': 'int x = 1;\n',
+            'src2.c': 'int x = 2;\nint main() {}\n',
+        },
+    )
 
 
 def test_dir_fibonacci_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
