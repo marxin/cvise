@@ -89,17 +89,13 @@ jobs:
       run: |
         choco install winflexbison3 unifdef
         pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
-    - name: Download LLVM
-      run: |
-        Invoke-WebRequest -Uri "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/llvm-18.1.8-windows-x86_64.7z" -OutFile "llvm.7z"
-        7z x llvm.7z -oLLVM
-        $llvm_root = (Get-Item "LLVM").FullName.Replace('\', '/')
-        echo "LLVM_DIR=$llvm_root/lib/cmake/llvm" >> $env:GITHUB_ENV
-        echo "Clang_DIR=$llvm_root/lib/cmake/clang" >> $env:GITHUB_ENV
-        echo "$llvm_root/bin" >> $env:GITHUB_PATH
+    - name: Install LLVM
+      uses: KyleMayes/install-llvm-action@v2
+      with:
+        version: "18.1.8"
     - name: Configure
       run: |
-        cmake -S . -B objdir -DLLVM_DIR="$env:LLVM_DIR" -DClang_DIR="$env:Clang_DIR" -DFLEX_EXECUTABLE=win_flex
+        cmake -S . -B objdir -DFLEX_EXECUTABLE=win_flex
     - name: Build
       run: cmake --build objdir --config Release --parallel $env:NUMBER_OF_PROCESSORS
     - name: Test
