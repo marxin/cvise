@@ -92,26 +92,31 @@ jobs:
         pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
     - name: Find LLVM
       run: |
-        $llvmConfig = Get-ChildItem -Path "C:\Program Files\LLVM" -Filter "LLVMConfig.cmake" -Recurse | Select-Object -First 1
-        if ($llvmConfig) {
-          $llvm_dir = $llvmConfig.DirectoryName.Replace('\', '/')
-          echo "LLVM_DIR=$llvm_dir" >> $env:GITHUB_ENV
-          echo "Found LLVM_DIR: $llvm_dir"
-        } else {
-          echo "LLVMConfig.cmake not found!"
-          exit 1
+        $llvm_bin = "C:\Program Files\LLVM\bin"
+        if (Test-Path "$llvm_bin\llvm-config.exe") {
+          $cmakedir = (& "$llvm_bin\llvm-config.exe" --cmakedir).Replace('\', '/')
+          echo "LLVM_DIR=$cmakedir" >> $env:GITHUB_ENV
+          echo "Clang_DIR=$($cmakedir.Replace('llvm', 'clang'))" >> $env:GITHUB_ENV
+          echo "Found via llvm-config: $cmakedir"
         }
-        $clangConfig = Get-ChildItem -Path "C:\Program Files\LLVM" -Filter "ClangConfig.cmake" -Recurse | Select-Object -First 1
-        if ($clangConfig) {
-          $clang_dir = $clangConfig.DirectoryName.Replace('\', '/')
-          echo "Clang_DIR=$clang_dir" >> $env:GITHUB_ENV
-          echo "Found Clang_DIR: $clang_dir"
+        
+        # Comprehensive search if llvm-config failed or to verify
+        $configFiles = Get-ChildItem -Path "C:\Program Files\LLVM" -Filter "LLVMConfig.cmake" -Recurse -ErrorAction SilentlyContinue
+        if ($configFiles) {
+          $llvm_dir = $configFiles[0].DirectoryName.Replace('\', '/')
+          echo "LLVM_DIR=$llvm_dir" >> $env:GITHUB_ENV
+          echo "Found via search: $llvm_dir"
+          
+          $clangFiles = Get-ChildItem -Path "C:\Program Files\LLVM" -Filter "ClangConfig.cmake" -Recurse -ErrorAction SilentlyContinue
+          if ($clangFiles) {
+            $clang_dir = $clangFiles[0].DirectoryName.Replace('\', '/')
+            echo "Clang_DIR=$clang_dir" >> $env:GITHUB_ENV
+            echo "Found Clang via search: $clang_dir"
+          }
         } else {
-          echo "ClangConfig.cmake not found!"
-          # Fallback to LLVM_DIR with clang replacement if not found directly
-          $clang_dir = $llvm_dir.Replace('llvm', 'clang')
-          echo "Clang_DIR=$clang_dir" >> $env:GITHUB_ENV
-          echo "Fallback Clang_DIR: $clang_dir"
+          echo "LLVMConfig.cmake NOT FOUND in C:\Program Files\LLVM"
+          echo "Listing all .cmake files for debugging:"
+          Get-ChildItem -Path "C:\Program Files\LLVM" -Recurse -Filter "*.cmake" | Select-Object FullName
         }
     - name: Configure
       run: |
