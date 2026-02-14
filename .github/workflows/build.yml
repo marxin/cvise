@@ -77,6 +77,28 @@ jobs:
     - run: pytest -x -s
       working-directory: objdir
 
+  CI-windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: |
+        choco install llvm winflexbison3 unifdef
+        pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
+    - name: Configure
+      run: |
+        mkdir objdir
+        cmake -S . -B objdir -DCMAKE_PREFIX_PATH="C:\Program Files\LLVM" -DFLEX_EXECUTABLE=win_flex
+    - name: Build
+      run: cmake --build objdir --config Release --parallel $env:NUMBER_OF_PROCESSORS
+    - name: Test
+      working-directory: objdir
+      run: pytest
+
   CI-python:
     runs-on: ubuntu-latest
     container:
