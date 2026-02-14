@@ -87,37 +87,16 @@ jobs:
         python-version: '3.12'
     - name: Install dependencies
       run: |
-        choco install llvm winflexbison3 unifdef
-        echo "C:\Program Files\LLVM\bin" >> $env:GITHUB_PATH
+        choco install winflexbison3 unifdef
         pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
-    - name: Find LLVM
+    - name: Download LLVM
       run: |
-        $llvm_bin = "C:\Program Files\LLVM\bin"
-        if (Test-Path "$llvm_bin\llvm-config.exe") {
-          $cmakedir = (& "$llvm_bin\llvm-config.exe" --cmakedir).Replace('\', '/')
-          echo "LLVM_DIR=$cmakedir" >> $env:GITHUB_ENV
-          echo "Clang_DIR=$($cmakedir.Replace('llvm', 'clang'))" >> $env:GITHUB_ENV
-          echo "Found via llvm-config: $cmakedir"
-        }
-        
-        # Comprehensive search if llvm-config failed or to verify
-        $configFiles = Get-ChildItem -Path "C:\Program Files\LLVM" -Filter "LLVMConfig.cmake" -Recurse -ErrorAction SilentlyContinue
-        if ($configFiles) {
-          $llvm_dir = $configFiles[0].DirectoryName.Replace('\', '/')
-          echo "LLVM_DIR=$llvm_dir" >> $env:GITHUB_ENV
-          echo "Found via search: $llvm_dir"
-          
-          $clangFiles = Get-ChildItem -Path "C:\Program Files\LLVM" -Filter "ClangConfig.cmake" -Recurse -ErrorAction SilentlyContinue
-          if ($clangFiles) {
-            $clang_dir = $clangFiles[0].DirectoryName.Replace('\', '/')
-            echo "Clang_DIR=$clang_dir" >> $env:GITHUB_ENV
-            echo "Found Clang via search: $clang_dir"
-          }
-        } else {
-          echo "LLVMConfig.cmake NOT FOUND in C:\Program Files\LLVM"
-          echo "Listing all .cmake files for debugging:"
-          Get-ChildItem -Path "C:\Program Files\LLVM" -Recurse -Filter "*.cmake" | Select-Object FullName
-        }
+        Invoke-WebRequest -Uri "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/llvm-18.1.8-windows-x86_64.7z" -OutFile "llvm.7z"
+        7z x llvm.7z -oLLVM
+        $llvm_root = (Get-Item "LLVM").FullName.Replace('\', '/')
+        echo "LLVM_DIR=$llvm_root/lib/cmake/llvm" >> $env:GITHUB_ENV
+        echo "Clang_DIR=$llvm_root/lib/cmake/clang" >> $env:GITHUB_ENV
+        echo "$llvm_root/bin" >> $env:GITHUB_PATH
     - name: Configure
       run: |
         cmake -S . -B objdir -DLLVM_DIR="$env:LLVM_DIR" -DClang_DIR="$env:Clang_DIR" -DFLEX_EXECUTABLE=win_flex
