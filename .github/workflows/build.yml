@@ -88,13 +88,34 @@ jobs:
     - name: Install dependencies
       run: |
         choco install llvm winflexbison3 unifdef
+        echo "C:\Program Files\LLVM\bin" >> $env:GITHUB_PATH
         pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
-    - name: List LLVM files
+    - name: Find LLVM
       run: |
-        ls "C:/Program Files/LLVM/lib/cmake/llvm"
+        $llvmConfig = Get-ChildItem -Path "C:\Program Files\LLVM" -Filter "LLVMConfig.cmake" -Recurse | Select-Object -First 1
+        if ($llvmConfig) {
+          $llvm_dir = $llvmConfig.DirectoryName.Replace('\', '/')
+          echo "LLVM_DIR=$llvm_dir" >> $env:GITHUB_ENV
+          echo "Found LLVM_DIR: $llvm_dir"
+        } else {
+          echo "LLVMConfig.cmake not found!"
+          exit 1
+        }
+        $clangConfig = Get-ChildItem -Path "C:\Program Files\LLVM" -Filter "ClangConfig.cmake" -Recurse | Select-Object -First 1
+        if ($clangConfig) {
+          $clang_dir = $clangConfig.DirectoryName.Replace('\', '/')
+          echo "Clang_DIR=$clang_dir" >> $env:GITHUB_ENV
+          echo "Found Clang_DIR: $clang_dir"
+        } else {
+          echo "ClangConfig.cmake not found!"
+          # Fallback to LLVM_DIR with clang replacement if not found directly
+          $clang_dir = $llvm_dir.Replace('llvm', 'clang')
+          echo "Clang_DIR=$clang_dir" >> $env:GITHUB_ENV
+          echo "Fallback Clang_DIR: $clang_dir"
+        }
     - name: Configure
       run: |
-        cmake -S . -B objdir -DLLVM_DIR="C:/Program Files/LLVM/lib/cmake/llvm" -DClang_DIR="C:/Program Files/LLVM/lib/cmake/clang" -DFLEX_EXECUTABLE=win_flex
+        cmake -S . -B objdir -DLLVM_DIR="$env:LLVM_DIR" -DClang_DIR="$env:Clang_DIR" -DFLEX_EXECUTABLE=win_flex
     - name: Build
       run: cmake --build objdir --config Release --parallel $env:NUMBER_OF_PROCESSORS
     - name: Test
