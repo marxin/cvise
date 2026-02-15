@@ -227,6 +227,13 @@ if(MSVC)
     set(DIA_SDK_FOUND TRUE)
     # Ensure CMake-style paths
     file(TO_CMAKE_PATH "${DIA_SDK_ROOT}" DIA_SDK_ROOT)
+    
+    find_file(DIAGUIDS_LIB diaguids.lib PATHS "${DIA_SDK_ROOT}/lib/amd64" NO_DEFAULT_PATH)
+    if(DIAGUIDS_LIB)
+      message(STATUS "Found diaguids.lib at ${DIAGUIDS_LIB}")
+    else()
+      message(WARNING "Could not find diaguids.lib in ${DIA_SDK_ROOT}/lib/amd64")
+    endif()
   else()
     message(WARNING "DIA SDK not found at ${DIA_SDK_ROOT} or in standard locations.")
   endif()
@@ -235,8 +242,9 @@ endif()
 function(cvise_fix_dia_sdk target)
   if(MSVC AND DIA_SDK_FOUND)
     # Check if we need to link against diaguids.lib explicitly
-    # Some LLVM builds on Windows might have this dependency implicitly broken
-    target_link_libraries(${target} "${DIA_SDK_ROOT}/lib/amd64/diaguids.lib")
+    if(DIAGUIDS_LIB)
+      target_link_libraries(${target} "${DIAGUIDS_LIB}")
+    endif()
     
     get_target_property(LIBS ${target} LINK_LIBRARIES)
     if(LIBS)
