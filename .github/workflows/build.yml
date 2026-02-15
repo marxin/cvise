@@ -77,6 +77,32 @@ jobs:
     - run: pytest -x -s
       working-directory: objdir
 
+  CI-windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+    - name: Search for packages
+      run: |
+        vcpkg search clang
+        choco search unifdef --limit-output
+    - name: Install dependencies
+      run: |
+        choco install winflexbison3
+        pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
+        vcpkg install llvm[tools]:x64-windows
+    - name: Configure
+      run: |
+        cmake -S . -B objdir -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
+    - name: Build
+      run: cmake --build objdir --config Release --parallel $env:NUMBER_OF_PROCESSORS
+    - name: Test
+      working-directory: objdir
+      run: pytest
+
   CI-python:
     runs-on: ubuntu-latest
     container:
