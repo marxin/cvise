@@ -91,13 +91,8 @@ jobs:
     - name: Install dependencies
       shell: bash -l {0}
       run: |
-        conda install -y -c conda-forge llvmdev clangdev winflexbison
-        pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
-    - name: Debug Conda Prefix
-      shell: bash -l {0}
-      run: |
-        echo "CONDA_PREFIX: $CONDA_PREFIX"
-        find "$CONDA_PREFIX" -name "LLVMConfig.cmake" || echo "LLVMConfig.cmake not found"
+        conda install -y -c conda-forge llvmdev clangdev winflexbison \
+          chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
     - name: Configure
       shell: bash -l {0}
       run: |
@@ -107,7 +102,8 @@ jobs:
           -DCMAKE_PREFIX_PATH="$CONDA_PREFIX_UNIX/Library" \
           -DLLVM_DIR="$CONDA_PREFIX_UNIX/Library/lib/cmake/llvm" \
           -DClang_DIR="$CONDA_PREFIX_UNIX/Library/lib/cmake/clang" \
-          -DFLEX_EXECUTABLE=win_flex
+          -DFLEX_EXECUTABLE="$CONDA_PREFIX_UNIX/Library/bin/win_flex.exe" \
+          -DPython3_EXECUTABLE="$CONDA_PREFIX_UNIX/python.exe"
     - name: Build
       shell: bash -l {0}
       run: cmake --build objdir --config Release --parallel $NUMBER_OF_PROCESSORS
