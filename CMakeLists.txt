@@ -207,6 +207,38 @@ endif()
 
 ###############################################################################
 
+# On Windows, LLVM might depend on DIA SDK. If it's not found correctly, we fix it.
+if(MSVC)
+  set(DIA_SDK_ROOT "$ENV{VSINSTALLDIR}DIA SDK")
+  if(NOT EXISTS "${DIA_SDK_ROOT}")
+    foreach(vs_path "C:/Program Files/Microsoft Visual Studio/2022/Enterprise"
+                    "C:/Program Files/Microsoft Visual Studio/2022/Community"
+                    "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise"
+                    "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community")
+      if(EXISTS "${vs_path}/DIA SDK")
+        set(DIA_SDK_ROOT "${vs_path}/DIA SDK")
+        break()
+      endif()
+    endforeach()
+  endif()
+  if(EXISTS "${DIA_SDK_ROOT}")
+    message(STATUS "Found DIA SDK at ${DIA_SDK_ROOT}")
+    set(DIA_SDK_FOUND TRUE)
+  endif()
+endif()
+
+function(cvise_fix_dia_sdk target)
+  if(MSVC AND DIA_SDK_FOUND)
+    get_target_property(LIBS ${target} LINK_LIBRARIES)
+    if(LIBS)
+      string(REPLACE "\\DIA SDK" "${DIA_SDK_ROOT}" FIXED_LIBS "${LIBS}")
+      set_target_properties(${target} PROPERTIES LINK_LIBRARIES "${FIXED_LIBS}")
+    endif()
+  endif()
+endfunction()
+
+###############################################################################
+
 # Enable tests
 enable_testing()
 add_test(NAME all COMMAND ${Python3_EXECUTABLE} -m pytest)

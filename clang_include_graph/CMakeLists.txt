@@ -29,6 +29,7 @@ else()
   )
 endif()
 target_link_libraries(clang_include_graph ${CLANG_LIBS})
+cvise_fix_dia_sdk(clang_include_graph)
 
 install(TARGETS clang_include_graph
   DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}/${cvise_PACKAGE}/"
