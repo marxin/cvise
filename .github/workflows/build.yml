@@ -89,7 +89,7 @@ jobs:
       run: |
         choco install unifdef
         pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
-        vcpkg install llvm:x64-windows clang:x64-windows winflexbison:x64-windows
+        vcpkg install llvm:x64-windows winflexbison:x64-windows
     - name: Configure
       run: |
         cmake -S . -B objdir -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
