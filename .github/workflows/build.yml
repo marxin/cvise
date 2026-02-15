@@ -92,11 +92,12 @@ jobs:
       shell: bash -l {0}
       run: |
         conda install -y -c conda-forge llvmdev clangdev winflexbison
-        pip install unifdef chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
+        pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
     - name: Debug Conda Prefix
       shell: bash -l {0}
       run: |
-        find $CONDA_PREFIX -name "LLVMConfig.cmake"
+        echo "CONDA_PREFIX: $CONDA_PREFIX"
+        find "$CONDA_PREFIX" -name "LLVMConfig.cmake" || echo "LLVMConfig.cmake not found"
     - name: Configure
       shell: bash -l {0}
       run: |
