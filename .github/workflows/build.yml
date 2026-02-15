@@ -87,14 +87,13 @@ jobs:
         python-version: '3.12'
     - name: Search for packages
       run: |
-        vcpkg search flex
-        vcpkg search llvm
+        vcpkg search clang
         choco search unifdef --limit-output
     - name: Install dependencies
       run: |
         choco install winflexbison3
         pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
-        vcpkg install llvm:x64-windows win-flex-bison:x64-windows
+        vcpkg install llvm[tools]:x64-windows
     - name: Configure
       run: |
         cmake -S . -B objdir -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
