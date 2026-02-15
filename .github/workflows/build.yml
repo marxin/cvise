@@ -89,20 +89,29 @@ jobs:
         python-version: '3.12'
         activate-environment: cvise-env
     - name: Install dependencies
-      shell: powershell
+      shell: bash -l {0}
       run: |
-        conda install -y -c conda-forge llvmdev clangdev winflexbison unifdef
+        conda install -y -c conda-forge llvmdev clangdev winflexbison
+        choco install unifdef
         pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
-    - name: Configure
-      shell: powershell
+    - name: Debug Conda Prefix
+      shell: bash -l {0}
       run: |
-        cmake -S . -B objdir -DCMAKE_PREFIX_PATH="$env:CONDA_PREFIX" -DFLEX_EXECUTABLE=win_flex
+        find $CONDA_PREFIX -name "LLVMConfig.cmake"
+    - name: Configure
+      shell: bash -l {0}
+      run: |
+        # Convert Windows path to CMake-friendly path
+        CONDA_PREFIX_UNIX=$(cygpath -m "$CONDA_PREFIX")
+        cmake -S . -B objdir -DCMAKE_PREFIX_PATH="$CONDA_PREFIX_UNIX/Library" -DFLEX_EXECUTABLE=win_flex
     - name: Build
-      shell: powershell
-      run: cmake --build objdir --config Release --parallel $env:NUMBER_OF_PROCESSORS
+      shell: bash -l {0}
+      run: cmake --build objdir --config Release --parallel $NUMBER_OF_PROCESSORS
     - name: Test
-      working-directory: objdir
-      run: pytest
+      shell: bash -l {0}
+      run: |
+        cd objdir
+        pytest
 
   CI-python:
     runs-on: ubuntu-latest
