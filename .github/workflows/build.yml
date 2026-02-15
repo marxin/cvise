@@ -92,8 +92,7 @@ jobs:
       shell: bash -l {0}
       run: |
         conda install -y -c conda-forge llvmdev clangdev winflexbison
-        choco install unifdef
-        pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
+        pip install unifdef chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
     - name: Debug Conda Prefix
       shell: bash -l {0}
       run: |
@@ -103,7 +102,11 @@ jobs:
       run: |
         # Convert Windows path to CMake-friendly path
         CONDA_PREFIX_UNIX=$(cygpath -m "$CONDA_PREFIX")
-        cmake -S . -B objdir -DCMAKE_PREFIX_PATH="$CONDA_PREFIX_UNIX/Library" -DFLEX_EXECUTABLE=win_flex
+        cmake -S . -B objdir \
+          -DCMAKE_PREFIX_PATH="$CONDA_PREFIX_UNIX/Library" \
+          -DLLVM_DIR="$CONDA_PREFIX_UNIX/Library/lib/cmake/llvm" \
+          -DClang_DIR="$CONDA_PREFIX_UNIX/Library/lib/cmake/clang" \
+          -DFLEX_EXECUTABLE=win_flex
     - name: Build
       shell: bash -l {0}
       run: cmake --build objdir --config Release --parallel $NUMBER_OF_PROCESSORS
