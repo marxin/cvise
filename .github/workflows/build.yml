@@ -85,11 +85,16 @@ jobs:
     - uses: actions/setup-python@v6
       with:
         python-version: '3.12'
+    - name: Search for packages
+      run: |
+        vcpkg search flex
+        vcpkg search llvm
+        choco search unifdef --limit-output
     - name: Install dependencies
       run: |
-        choco install unifdef
+        choco install winflexbison3
         pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
-        vcpkg install llvm:x64-windows winflexbison:x64-windows
+        vcpkg install llvm:x64-windows win-flex-bison:x64-windows
     - name: Configure
       run: |
         cmake -S . -B objdir -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
