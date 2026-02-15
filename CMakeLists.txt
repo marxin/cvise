@@ -242,15 +242,26 @@ if(MSVC)
 endif()
 
 function(cvise_fix_dia_sdk target)
+  message(STATUS "Running cvise_fix_dia_sdk for ${target}")
   if(MSVC AND DIA_SDK_FOUND)
     # Check if we need to link against diaguids.lib explicitly
     if(DIAGUIDS_LIB_NATIVE)
+      message(STATUS "Linking target ${target} against ${DIAGUIDS_LIB_NATIVE}")
       target_link_libraries(${target} "${DIAGUIDS_LIB_NATIVE}")
     endif()
     
     # Also inspect imported targets in CLANG_LIBS to fix transitive dependencies
-    # This is where "\DIA SDK" likely comes from
-    foreach(lib ${CLANG_LIBS})
+    # This is where "\DIA SDK" likely comes from.
+    # We must check LLVMSupport explicitly as it's the most common source of this dependency.
+    set(TARGETS_TO_CHECK ${CLANG_LIBS})
+    if(TARGET LLVMSupport)
+      list(APPEND TARGETS_TO_CHECK LLVMSupport)
+    endif()
+    if(TARGET LLVMDebugInfoPDB)
+      list(APPEND TARGETS_TO_CHECK LLVMDebugInfoPDB)
+    endif()
+    
+    foreach(lib ${TARGETS_TO_CHECK})
       if(TARGET ${lib})
         get_target_property(IFACE_LIBS ${lib} INTERFACE_LINK_LIBRARIES)
         if(IFACE_LIBS)
