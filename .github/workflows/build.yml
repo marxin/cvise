@@ -82,36 +82,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Setup Conda
-      uses: conda-incubator/setup-miniconda@v3
+    - uses: actions/setup-python@v6
       with:
-        auto-update-conda: true
         python-version: '3.12'
-        activate-environment: cvise-env
     - name: Install dependencies
-      shell: bash -l {0}
       run: |
-        conda install -y -c conda-forge llvmdev clangdev winflexbison \
-          chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
+        choco install unifdef
+        pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
+        vcpkg install llvm:x64-windows clang:x64-windows winflexbison:x64-windows
     - name: Configure
-      shell: bash -l {0}
       run: |
-        # Use Conda prefix for Windows
-        CONDA_PREFIX_UNIX=$(cygpath -m "$CONDA_PREFIX")
-        cmake -S . -B objdir \
-          -DCMAKE_PREFIX_PATH="$CONDA_PREFIX_UNIX/Library" \
-          -DLLVM_DIR="$CONDA_PREFIX_UNIX/Library/lib/cmake/llvm" \
-          -DClang_DIR="$CONDA_PREFIX_UNIX/Library/lib/cmake/clang" \
-          -DFLEX_EXECUTABLE="$CONDA_PREFIX_UNIX/Library/bin/win_flex.exe" \
-          -DPython3_EXECUTABLE="$CONDA_PREFIX_UNIX/python.exe"
+        cmake -S . -B objdir -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
     - name: Build
-      shell: bash -l {0}
-      run: cmake --build objdir --config Release --parallel $NUMBER_OF_PROCESSORS
+      run: cmake --build objdir --config Release --parallel $env:NUMBER_OF_PROCESSORS
     - name: Test
-      shell: bash -l {0}
-      run: |
-        cd objdir
-        pytest
+      working-directory: objdir
+      run: pytest
 
   CI-python:
     runs-on: ubuntu-latest

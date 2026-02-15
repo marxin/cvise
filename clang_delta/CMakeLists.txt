@@ -668,7 +668,6 @@ add_executable(clang_delta
 
 # ENE: See comment above about why LLVM_LIBS is not included in this call.
 target_link_libraries(clang_delta ${CLANG_LIBS})
-cvise_fix_dia_sdk(clang_delta)
 
 # For cases in which the LLVM libraries are shared libraries, remember where
 # the shared libraries are.
