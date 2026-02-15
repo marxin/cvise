@@ -234,10 +234,13 @@ endif()
 
 function(cvise_fix_dia_sdk target)
   if(MSVC AND DIA_SDK_FOUND)
+    # Check if we need to link against diaguids.lib explicitly
+    # Some LLVM builds on Windows might have this dependency implicitly broken
+    target_link_libraries(${target} "${DIA_SDK_ROOT}/lib/amd64/diaguids.lib")
+    
     get_target_property(LIBS ${target} LINK_LIBRARIES)
     if(LIBS)
       message(STATUS "Inspecting LINK_LIBRARIES for ${target}: ${LIBS}")
-      # Replace both backslash and forward slash variants
       string(REPLACE "\\DIA SDK" "${DIA_SDK_ROOT}" FIXED_LIBS "${LIBS}")
       string(REPLACE "/DIA SDK" "${DIA_SDK_ROOT}" FIXED_LIBS "${FIXED_LIBS}")
       
