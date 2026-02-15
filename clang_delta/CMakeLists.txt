@@ -24,7 +24,7 @@ function(configure_one_file path)
   configure_file(
     "${clang_delta_SOURCE_DIR}/${path}"
     "${clang_delta_BINARY_DIR}/${path}"
-    COPYONLY
+    @ONLY
   )
 endfunction(configure_one_file)
 

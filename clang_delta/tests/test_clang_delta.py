@@ -18,11 +18,8 @@ from cvise.utils.hint import apply_hints  # noqa: E402
 
 
 def get_clang_version():
-    current = os.path.dirname(__file__)
-    binary = os.path.join(current, '../clang_delta')
-    if os.name == 'nt':
-        binary += '.exe'
-    output = subprocess.check_output(f'{binary} --version', shell=True, text=True)
+    binary = get_clang_delta_path()
+    output = subprocess.check_output(f'"{binary}" --version', shell=True, text=True)
     for line in output.splitlines():
         m = re.match(r'clang version (?P<version>[0-9]+)\.', line)
         if m:
@@ -32,9 +29,14 @@ def get_clang_version():
 
 
 def get_clang_delta_path() -> Path:
-    p = Path(__file__).parent.parent / 'clang_delta'
-    if os.name == 'nt':
-        return p.with_suffix('.exe')
+    current = Path(__file__).parent.parent.resolve()
+    binary_name = 'clang_delta' + '@CMAKE_EXECUTABLE_SUFFIX@'
+    p = current / binary_name
+    if not p.exists():
+        for cfg in ['Release', 'Debug', 'RelWithDebInfo', 'MinSizeRel']:
+            p_cfg = current / cfg / binary_name
+            if p_cfg.exists():
+                return p_cfg
     return p
 
 
@@ -83,20 +85,16 @@ class TestClangDelta(unittest.TestCase):
     @classmethod
     def check_query_instances(cls, testcase, arguments, expected):
         current = os.path.dirname(__file__)
-        binary = os.path.join(current, '../clang_delta')
-        if os.name == 'nt':
-            binary += '.exe'
-        cmd = f'{binary} {os.path.join(current, testcase)} {arguments}'
+        binary = get_clang_delta_path()
+        cmd = f'"{binary}" {os.path.join(current, testcase)} {arguments}'
         output = subprocess.check_output(cmd, shell=True, encoding='utf8')
         assert output.strip() == expected
 
     @classmethod
     def check_error_message(cls, testcase, arguments, error_message):
         current = os.path.dirname(__file__)
-        binary = os.path.join(current, '../clang_delta')
-        if os.name == 'nt':
-            binary += '.exe'
-        cmd = f'{binary} {os.path.join(current, testcase)} {arguments}'
+        binary = get_clang_delta_path()
+        cmd = f'"{binary}" {os.path.join(current, testcase)} {arguments}'
         proc = subprocess.run(cmd, shell=True, encoding='utf8', stdout=subprocess.PIPE)
         assert proc.returncode == 255
         assert proc.stdout.strip() == error_message
