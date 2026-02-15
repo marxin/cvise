@@ -82,21 +82,23 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v6
+    - name: Setup Conda
+      uses: conda-incubator/setup-miniconda@v3
       with:
+        auto-update-conda: true
         python-version: '3.12'
+        activate-environment: cvise-env
     - name: Install dependencies
+      shell: powershell
       run: |
-        choco install winflexbison3 unifdef
+        conda install -y -c conda-forge llvmdev clangdev winflexbison unifdef
         pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
-    - name: Install LLVM
-      uses: KyleMayes/install-llvm-action@v2
-      with:
-        version: "18.1.8"
     - name: Configure
+      shell: powershell
       run: |
-        cmake -S . -B objdir -DFLEX_EXECUTABLE=win_flex
+        cmake -S . -B objdir -DCMAKE_PREFIX_PATH="$env:CONDA_PREFIX" -DFLEX_EXECUTABLE=win_flex
     - name: Build
+      shell: powershell
       run: cmake --build objdir --config Release --parallel $env:NUMBER_OF_PROCESSORS
     - name: Test
       working-directory: objdir
