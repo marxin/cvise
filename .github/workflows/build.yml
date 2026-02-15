@@ -119,7 +119,8 @@ jobs:
           -DLLVM_DIR="$CONDA_PREFIX_UNIX/Library/lib/cmake/llvm" \
           -DClang_DIR="$CONDA_PREFIX_UNIX/Library/lib/cmake/clang" \
           -DFLEX_EXECUTABLE="$CONDA_PREFIX_UNIX/Library/bin/win_flex.exe" \
-          -DPython3_EXECUTABLE="$CONDA_PREFIX_UNIX/python.exe"
+          -DPython3_EXECUTABLE="$CONDA_PREFIX_UNIX/python.exe" \
+          -DCLANG_FORMAT_PATH="$CONDA_PREFIX_UNIX/Library/bin/clang-format.exe"
     - name: Build
       shell: bash -l {0}
       run: cmake --build objdir --config Release --parallel $NUMBER_OF_PROCESSORS
