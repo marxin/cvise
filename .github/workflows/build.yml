@@ -91,10 +91,15 @@ jobs:
     - name: Create DIA SDK junction
       shell: cmd
       run: |
-        if exist "C:\DIA SDK" rmdir "C:\DIA SDK"
+        set "CURR_DRIVE=%CD:~0,2%"
         for /d %%i in ("C:\Program Files\Microsoft Visual Studio\2022\Enterprise", "C:\Program Files\Microsoft Visual Studio\2022\Community", "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise", "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community") do (
           if exist "%%~i\DIA SDK" (
+            if exist "C:\DIA SDK" rmdir "C:\DIA SDK"
             mklink /J "C:\DIA SDK" "%%~i\DIA SDK"
+            if /i NOT "!CURR_DRIVE!"=="C:" (
+              if exist "!CURR_DRIVE!\DIA SDK" rmdir "!CURR_DRIVE!\DIA SDK"
+              mklink /J "!CURR_DRIVE!\DIA SDK" "%%~i\DIA SDK"
+            )
             break
           )
         )
