@@ -24,7 +24,7 @@ function(configure_one_file path)
   configure_file(
     "${clang_delta_SOURCE_DIR}/${path}"
     "${clang_delta_BINARY_DIR}/${path}"
-    COPYONLY
+    @ONLY
   )
 endfunction(configure_one_file)
 
@@ -679,7 +679,7 @@ set_target_properties(clang_delta
 
 # On Windows, we also need to link with "Version.dll" system library.
 # See <https://github.com/csmith-project/creduce/pull/126>.
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+if(MSVC)
   target_link_libraries(clang_delta Version)
 endif()
 

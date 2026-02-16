@@ -18,9 +18,8 @@ from cvise.utils.hint import apply_hints  # noqa: E402
 
 
 def get_clang_version():
-    current = os.path.dirname(__file__)
-    binary = os.path.join(current, '../clang_delta')
-    output = subprocess.check_output(f'{binary} --version', shell=True, text=True)
+    binary = get_clang_delta_path()
+    output = subprocess.check_output(f'"{binary}" --version', shell=True, text=True)
     for line in output.splitlines():
         m = re.match(r'clang version (?P<version>[0-9]+)\.', line)
         if m:
@@ -30,7 +29,15 @@ def get_clang_version():
 
 
 def get_clang_delta_path() -> Path:
-    return Path(__file__).parent.parent / 'clang_delta'
+    current = Path(__file__).parent.parent.resolve()
+    binary_name = 'clang_delta' + '@CMAKE_EXECUTABLE_SUFFIX@'
+    p = current / binary_name
+    if not p.exists():
+        for cfg in ['Release', 'Debug', 'RelWithDebInfo', 'MinSizeRel']:
+            p_cfg = current / cfg / binary_name
+            if p_cfg.exists():
+                return p_cfg
+    return p
 
 
 def get_testcase_path(testcase: str) -> Path:
@@ -78,18 +85,18 @@ class TestClangDelta(unittest.TestCase):
     @classmethod
     def check_query_instances(cls, testcase, arguments, expected):
         current = os.path.dirname(__file__)
-        binary = os.path.join(current, '../clang_delta')
-        cmd = f'{binary} {os.path.join(current, testcase)} {arguments}'
+        binary = get_clang_delta_path()
+        cmd = f'"{binary}" {os.path.join(current, testcase)} {arguments}'
         output = subprocess.check_output(cmd, shell=True, encoding='utf8')
         assert output.strip() == expected
 
     @classmethod
     def check_error_message(cls, testcase, arguments, error_message):
         current = os.path.dirname(__file__)
-        binary = os.path.join(current, '../clang_delta')
-        cmd = f'{binary} {os.path.join(current, testcase)} {arguments}'
+        binary = get_clang_delta_path()
+        cmd = f'"{binary}" {os.path.join(current, testcase)} {arguments}'
         proc = subprocess.run(cmd, shell=True, encoding='utf8', stdout=subprocess.PIPE)
-        assert proc.returncode == 255
+        assert proc.returncode in (255, 4294967295)
         assert proc.stdout.strip() == error_message
 
     def test_aggregate_to_scalar_cast(self):
@@ -1326,9 +1333,9 @@ class TestClangDelta(unittest.TestCase):
 
     def test_piggypacking(self):
         current = os.path.dirname(__file__)
-        binary = os.path.join(current, '../clang_delta')
+        binary = get_clang_delta_path()
         args = '--transformation=remove-unused-function --counter=111 --to-counter=222 --warn-on-counter-out-of-bounds --report-instances-count'
-        cmd = '{} {} {}'.format(binary, os.path.join(current, 'remove-unused-function/macro2.cc'), args)
+        cmd = f'"{binary}" {os.path.join(current, "remove-unused-function/macro2.cc")} {args}'
         run = subprocess.run(cmd, shell=True, encoding='utf8', capture_output=True)
         assert 'Available transformation instances: 1' in run.stderr
         assert 'Warning: number of transformation instances exceeded' in run.stderr

@@ -77,6 +77,59 @@ jobs:
     - run: pytest -x -s
       working-directory: objdir
 
+  CI-windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Conda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        auto-update-conda: true
+        python-version: '3.12'
+        activate-environment: cvise-env
+    - name: Create DIA SDK junction
+      shell: cmd
+      run: |
+        setlocal enabledelayedexpansion
+        set "CURR_DRIVE=%CD:~0,2%"
+        for /d %%i in ("C:\Program Files\Microsoft Visual Studio\2022\Enterprise", "C:\Program Files\Microsoft Visual Studio\2022\Community", "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise", "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community") do (
+          if exist "%%~i\DIA SDK" (
+            if exist "C:\DIA SDK" rmdir "C:\DIA SDK"
+            mklink /J "C:\DIA SDK" "%%~i\DIA SDK"
+            if /i NOT "!CURR_DRIVE!"=="C:" (
+              if exist "!CURR_DRIVE!\DIA SDK" rmdir "!CURR_DRIVE!\DIA SDK"
+              mklink /J "!CURR_DRIVE!\DIA SDK" "%%~i\DIA SDK"
+            )
+            goto :done
+          )
+        )
+        :done
+    - name: Install dependencies
+      shell: bash -l {0}
+      run: |
+        conda install -y -c conda-forge llvmdev clangdev winflexbison \
+          chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
+    - name: Configure
+      shell: bash -l {0}
+      run: |
+        CONDA_PREFIX_UNIX=$(cygpath -m "$CONDA_PREFIX")
+        cmake -S . -B objdir \
+          -DCMAKE_PREFIX_PATH="$CONDA_PREFIX_UNIX/Library" \
+          -DLLVM_DIR="$CONDA_PREFIX_UNIX/Library/lib/cmake/llvm" \
+          -DClang_DIR="$CONDA_PREFIX_UNIX/Library/lib/cmake/clang" \
+          -DFLEX_EXECUTABLE="$CONDA_PREFIX_UNIX/Library/bin/win_flex.exe" \
+          -DPython3_EXECUTABLE="$CONDA_PREFIX_UNIX/python.exe" \
+          -DCLANG_FORMAT_PATH="$CONDA_PREFIX_UNIX/Library/bin/clang-format.exe"
+    - name: Build
+      shell: bash -l {0}
+      run: cmake --build objdir --config Release --parallel $NUMBER_OF_PROCESSORS
+    - name: Test
+      shell: bash -l {0}
+      run: |
+        cd objdir
+        pytest -x -s
+
   CI-python:
     runs-on: ubuntu-latest
     container:
