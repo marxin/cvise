@@ -96,7 +96,7 @@ class TestClangDelta(unittest.TestCase):
         binary = get_clang_delta_path()
         cmd = f'"{binary}" {os.path.join(current, testcase)} {arguments}'
         proc = subprocess.run(cmd, shell=True, encoding='utf8', stdout=subprocess.PIPE)
-        assert proc.returncode == 255
+        assert proc.returncode in (255, 4294967295)
         assert proc.stdout.strip() == error_message
 
     def test_aggregate_to_scalar_cast(self):
