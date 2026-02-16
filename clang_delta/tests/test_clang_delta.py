@@ -1333,9 +1333,9 @@ class TestClangDelta(unittest.TestCase):
 
     def test_piggypacking(self):
         current = os.path.dirname(__file__)
-        binary = os.path.join(current, '../clang_delta')
+        binary = get_clang_delta_path()
         args = '--transformation=remove-unused-function --counter=111 --to-counter=222 --warn-on-counter-out-of-bounds --report-instances-count'
-        cmd = '{} {} {}'.format(binary, os.path.join(current, 'remove-unused-function/macro2.cc'), args)
+        cmd = f'"{binary}" {os.path.join(current, "remove-unused-function/macro2.cc")} {args}'
         run = subprocess.run(cmd, shell=True, encoding='utf8', capture_output=True)
         assert 'Available transformation instances: 1' in run.stderr
         assert 'Warning: number of transformation instances exceeded' in run.stderr
