@@ -128,7 +128,7 @@ jobs:
       shell: bash -l {0}
       run: |
         cd objdir
-        pytest
+        pytest -x -s
 
   CI-python:
     runs-on: ubuntu-latest
