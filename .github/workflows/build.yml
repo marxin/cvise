@@ -123,7 +123,7 @@ jobs:
           -DCLANG_FORMAT_PATH="$CONDA_PREFIX_UNIX/Library/bin/clang-format.exe"
     - name: Build
       shell: bash -l {0}
-      run: cmake --build objdir --config Release
+      run: cmake --build objdir --config Release --parallel $NUMBER_OF_PROCESSORS
     - name: Test
       shell: bash -l {0}
       run: |
