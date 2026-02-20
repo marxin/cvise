@@ -98,6 +98,7 @@ using ::e::f::g;
 using h = i::j;
 using namespace std;
 using enum Foo;
+[[deprecated]] using namespace std;
 
 template <typename T>
 using a = typename b<T>::c;
@@ -133,6 +134,11 @@ using foobar [[deprecated]] [[maybe_unused]] = int;
   (using_declaration
     (identifier))
   (using_declaration
+    (identifier))
+  (using_declaration
+    (attribute_declaration
+      (attribute
+        (identifier)))
     (identifier))
   (template_declaration
     (template_parameter_list
@@ -247,6 +253,7 @@ struct S {
   S() : f(0) {}
 
  private:
+  int getF0(this S &self) { return self.f; }
   int getF1() const { return f; }
   int getF2() const try { throw 1; } catch (...) { return f; }
 };
@@ -271,6 +278,22 @@ struct S {
               (number_literal))))
         (compound_statement))
       (access_specifier)
+      (function_definition
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (explicit_object_parameter_declaration
+              (this)
+              (parameter_declaration
+                (type_identifier)
+                (reference_declarator
+                  (identifier))))))
+        (compound_statement
+          (return_statement
+            (field_expression
+              (identifier)
+              (field_identifier)))))
       (function_definition
         (primitive_type)
         (function_declarator
@@ -784,6 +807,9 @@ int f([[a::b(c), d]] int x) {}
 [[gnu::always_inline]] [[gnu::hot]] [[gnu::const]] [[nodiscard]]
 inline int g();
 
+[[using gnu: always_inline, hot, const, visibility("default")]] [[nodiscard]]
+inline int g();
+
 [[aaa]]
 int f() { }
 
@@ -835,6 +861,28 @@ class A final : [[deprecated]] public B {};
     (function_declarator
       (identifier)
       (parameter_list)))
+  (declaration
+        (attribute_declaration
+          (attribute
+            (identifier)
+            (identifier))
+          (attribute
+            (identifier))
+          (attribute
+            (identifier))
+          (attribute
+            (identifier)
+            (argument_list
+              (string_literal
+                (string_content)))))
+        (attribute_declaration
+          (attribute
+            (identifier)))
+        (storage_class_specifier)
+        (primitive_type)
+        (function_declarator
+          (identifier)
+          (parameter_list)))
   (function_definition
     (attribute_declaration
       (attribute
@@ -1400,6 +1448,8 @@ Explicit template instantiations
 
 template A<int, bool>::A(char *, size_t);
 
+extern template int Foo::foo<int>();
+
 --------------------------------------------------------------------------------
 
 (translation_unit
@@ -1419,7 +1469,18 @@ template A<int, bool>::A(char *, size_t);
           (primitive_type)
           (abstract_pointer_declarator))
         (parameter_declaration
-          (primitive_type))))))
+          (primitive_type)))))
+  (template_instantiation
+    (primitive_type)
+    (function_declarator
+      (qualified_identifier
+        (namespace_identifier)
+        (template_function
+          (identifier)
+          (template_argument_list
+            (type_descriptor
+              (primitive_type)))))
+      (parameter_list))))
 
 ================================================================================
 Structured binding declarations
