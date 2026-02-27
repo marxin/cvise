@@ -8,4 +8,4 @@ class TestLanguage(TestCase):
         try:
             tree_sitter.Language(tree_sitter_cpp.language())
         except Exception:
-            self.fail('Error loading C++ grammar')
+            self.fail("Error loading C++ grammar")

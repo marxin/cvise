@@ -3,6 +3,7 @@
  * @author Max Brunsfeld <maxbrunsfeld@gmail.com>
  * @author Amaan Qureshi <amaanq12@gmail.com>
  * @author John Drouhard <john@drouhard.dev>
+ * @author Pablo Hugen <pabloashugen@protonmail.com>
  * @license MIT
  */
 
@@ -64,6 +65,8 @@ module.exports = grammar(C, {
     [$.sized_type_specifier],
     [$.attributed_statement],
     [$._declaration_modifiers, $.attributed_statement],
+    [$._declaration_modifiers, $.using_declaration],
+    [$._declaration_modifiers, $.attributed_statement, $.using_declaration],
     [$._top_level_item, $._top_level_statement],
     [$._block_item, $.statement],
     [$.type_qualifier, $.extension_expression],
@@ -72,6 +75,7 @@ module.exports = grammar(C, {
     [$.template_function, $.template_type],
     [$.template_function, $.template_type, $.expression],
     [$.template_function, $.template_type, $.qualified_identifier],
+    [$.template_function, $.template_type, $.qualified_identifier, $.qualified_type_identifier],
     [$.template_type, $.qualified_type_identifier],
     [$.qualified_type_identifier, $.qualified_identifier],
     [$.comma_expression, $.initializer_list],
@@ -93,7 +97,10 @@ module.exports = grammar(C, {
     [$.expression_statement, $._for_statement_body],
     [$.init_statement, $._for_statement_body],
     [$.field_expression, $.template_method, $.template_type],
+    [$.field_expression, $.template_method],
     [$.qualified_field_identifier, $.template_method, $.template_type],
+    [$.type_specifier, $.template_type, $.template_function, $.expression],
+    [$.splice_type_specifier, $.splice_expression],
   ],
 
   inline: ($, original) => original.concat([
@@ -114,13 +121,18 @@ module.exports = grammar(C, {
       $.using_declaration,
       $.alias_declaration,
       $.static_assert_declaration,
+      $.consteval_block_declaration,
       $.template_declaration,
       $.template_instantiation,
+      $.module_declaration,
+      $.export_declaration,
+      $.import_declaration,
+      $.global_module_fragment_declaration,
+      $.private_module_fragment_declaration,
       alias($.constructor_or_destructor_definition, $.function_definition),
       alias($.operator_cast_definition, $.function_definition),
       alias($.operator_cast_declaration, $.declaration),
     ),
-
     _block_item: ($, original) => choice(
       ...original.members.filter((member) => member.content?.name != '_old_style_function_definition'),
       $.namespace_definition,
@@ -129,6 +141,7 @@ module.exports = grammar(C, {
       $.using_declaration,
       $.alias_declaration,
       $.static_assert_declaration,
+      $.consteval_block_declaration,
       $.template_declaration,
       $.template_instantiation,
       alias($.constructor_or_destructor_definition, $.function_definition),
@@ -139,7 +152,11 @@ module.exports = grammar(C, {
     // Types
 
     placeholder_type_specifier: $ => prec(1, seq(
-      field('constraint', optional($.type_specifier)),
+      field('constraint', optional(choice(
+        alias($.qualified_type_identifier, $.qualified_identifier),
+        $.template_type,
+        $._type_identifier,
+      ))),
       choice($.auto, alias($.decltype_auto, $.decltype)),
     )),
 
@@ -166,6 +183,7 @@ module.exports = grammar(C, {
       $.primitive_type,
       $.template_type,
       $.dependent_type,
+      $.splice_type_specifier,
       $.placeholder_type_specifier,
       $.decltype,
       prec.right(choice(
@@ -182,6 +200,18 @@ module.exports = grammar(C, {
     ),
 
     type_descriptor: (_, original) => prec.right(original),
+
+    attribute: ($, original) => seq(
+      optional(seq('using', field('namespace', $.identifier), ':')),
+      ...original.members,
+    ),
+
+    annotation: $ => seq('=', $.expression),
+
+    attribute_declaration: ($, original) => choice(
+      original,
+      seq('[[', commaSep1($.annotation), ']]'),
+    ),
 
     // When used in a trailing return type, these specifiers can now occur immediately before
     // a compound statement. This introduces a shift/reduce conflict that needs to be resolved
@@ -223,6 +253,7 @@ module.exports = grammar(C, {
     _class_name: $ => prec.right(choice(
       $._type_identifier,
       $.template_type,
+      $.splice_type_specifier,
       alias($.qualified_type_identifier, $.qualified_identifier),
     )),
 
@@ -240,6 +271,7 @@ module.exports = grammar(C, {
         seq(
           // C uses _declaration_declarator here for some nice macro parsing in function declarators,
           // but this causes a world of pain for C++ so we'll just stick to the normal _declarator here.
+          optional($.ms_call_modifier),
           $._declarator,
           optional($.gnu_asm_expression),
         ),
@@ -319,6 +351,49 @@ module.exports = grammar(C, {
 
     // Declarations
 
+    module_name: $ => seq(
+      $.identifier,
+      repeat(seq('.', $.identifier),
+      ),
+    ),
+
+    module_partition: $ => seq(
+      ':',
+      $.module_name,
+    ),
+
+    module_declaration: $ => seq(
+      optional('export'),
+      'module',
+      field('name', $.module_name),
+      field('partition', optional($.module_partition)),
+      optional($.attribute_declaration),
+      ';',
+    ),
+
+    export_declaration: $ => seq(
+      'export',
+      choice($._block_item, seq('{', repeat($._block_item), '}')),
+    ),
+
+    import_declaration: $ => seq(
+      optional('export'),
+      'import',
+      choice(
+        field('name', $.module_name),
+        field('partition', $.module_partition),
+        field('header', choice(
+          $.string_literal,
+          $.system_lib_string,
+        )),
+      ),
+      optional($.attribute_declaration),
+      ';',
+    ),
+
+    global_module_fragment_declaration: _ => seq('module', ';'),
+    private_module_fragment_declaration: _ => seq('module', ':', 'private', ';'),
+
     template_declaration: $ => seq(
       'template',
       field('parameters', $.template_parameter_list),
@@ -338,12 +413,13 @@ module.exports = grammar(C, {
       ),
     ),
 
-    template_instantiation: $ => seq(
+    template_instantiation: $ => prec(1, seq(
+      optional('extern'),
       'template',
       optional($._declaration_specifiers),
       field('declarator', $._declarator),
       ';',
-    ),
+    )),
 
     template_parameter_list: $ => seq(
       '<',
@@ -391,11 +467,17 @@ module.exports = grammar(C, {
       '(',
       commaSep(choice(
         $.parameter_declaration,
+        $.explicit_object_parameter_declaration,
         $.optional_parameter_declaration,
         $.variadic_parameter_declaration,
         '...',
       )),
       ')',
+    ),
+
+    explicit_object_parameter_declaration: $ => seq(
+      $.this,
+      $.parameter_declaration,
     ),
 
     optional_parameter_declaration: $ => seq(
@@ -473,6 +555,7 @@ module.exports = grammar(C, {
       $.using_declaration,
       $.type_definition,
       $.static_assert_declaration,
+      $.consteval_block_declaration,
       ';',
     ),
 
@@ -732,6 +815,7 @@ module.exports = grammar(C, {
       choice(
         $._namespace_identifier,
         $.nested_namespace_specifier,
+        $.splice_specifier,
       ),
       ';',
     ),
@@ -751,11 +835,13 @@ module.exports = grammar(C, {
     )),
 
     using_declaration: $ => seq(
+      repeat($.attribute_declaration),
       'using',
       optional(choice('namespace', 'enum')),
       choice(
         $.identifier,
         $.qualified_identifier,
+        $.splice_type_specifier,
       ),
       ';',
     ),
@@ -781,6 +867,11 @@ module.exports = grammar(C, {
       ';',
     ),
 
+    consteval_block_declaration: $ => seq(
+      'consteval',
+      field('body', $.compound_statement),
+    ),
+
     concept_definition: $ => seq(
       'concept',
       field('name', $.identifier),
@@ -796,6 +887,7 @@ module.exports = grammar(C, {
       $.co_return_statement,
       $.co_yield_statement,
       $.for_range_loop,
+      $.expansion_statement,
       $.try_statement,
       $.throw_statement,
     ),
@@ -805,6 +897,7 @@ module.exports = grammar(C, {
       $.co_return_statement,
       $.co_yield_statement,
       $.for_range_loop,
+      $.expansion_statement,
       $.try_statement,
       $.throw_statement,
     ),
@@ -934,6 +1027,8 @@ module.exports = grammar(C, {
       $.this,
       $.user_defined_literal,
       $.fold_expression,
+      $.reflect_expression,
+      $.splice_expression,
     ),
 
     _string: $ => choice(
@@ -968,10 +1063,13 @@ module.exports = grammar(C, {
       ']',
     ),
 
-    call_expression: ($, original) => choice(original, seq(
-      field('function', $.primitive_type),
+    call_expression: ($, original) => prec.dynamic(1, choice(original, seq(
+      field('function', choice($.primitive_type, seq(
+        optional('typename'),
+        $.splice_type_specifier,
+      ))),
       field('arguments', $.argument_list),
-    )),
+    ))),
 
     co_await_expression: $ => prec.left(PREC.UNARY, seq(
       field('operator', 'co_await'),
@@ -1015,6 +1113,8 @@ module.exports = grammar(C, {
         $.destructor_name,
         $.template_method,
         alias($.dependent_field_identifier, $.dependent_name),
+        $.operator_name,
+        $.splice_expression,
       )),
     ),
 
@@ -1085,13 +1185,53 @@ module.exports = grammar(C, {
       field('requirements', $.requirement_seq),
     ),
 
+    lambda_specifier: $ => choice(
+      'static',
+      'constexpr',
+      'consteval',
+      'mutable',
+    ),
+
+    lambda_declarator: $ => choice(
+      // main declarator form, includes parameter list
+      seq(
+        repeat($.attribute_declaration),
+        field('parameters', $.parameter_list),
+        repeat($.lambda_specifier),
+        optional($._function_exception_specification),
+        repeat($.attribute_declaration),
+        optional($.trailing_return_type),
+        optional($.requires_clause),
+      ),
+
+      // forms supporting omitted parameter list
+      repeat1($.attribute_declaration),
+      seq(
+        repeat($.attribute_declaration),
+        $.trailing_return_type,
+      ),
+      seq(
+        repeat($.attribute_declaration),
+        $._function_exception_specification,
+        repeat($.attribute_declaration),
+        optional($.trailing_return_type),
+      ),
+      seq(
+        repeat($.attribute_declaration),
+        repeat1($.lambda_specifier),
+        optional($._function_exception_specification),
+        repeat($.attribute_declaration),
+        optional($.trailing_return_type),
+      ),
+    ),
+
     lambda_expression: $ => seq(
       field('captures', $.lambda_capture_specifier),
       optional(seq(
         field('template_parameters', $.template_parameter_list),
         optional(field('constraint', $.requires_clause)),
       )),
-      optional(field('declarator', $.abstract_function_declarator)),
+      optional(field('declarator', $.lambda_declarator)),
       field('body', $.compound_statement),
     ),
 
@@ -1230,7 +1370,10 @@ module.exports = grammar(C, {
     compound_literal_expression: ($, original) => choice(
       original,
       seq(
-        field('type', choice($._class_name, $.primitive_type)),
+        field('type', choice(
+          $._class_name,
+          $.primitive_type,
+          seq(optional('typename'), $.splice_type_specifier))),
         field('value', $.initializer_list),
       ),
     ),
@@ -1244,6 +1387,8 @@ module.exports = grammar(C, {
         $._namespace_identifier,
         $.template_type,
         $.decltype,
+        $.splice_expression,
+        $.splice_type_specifier,
         alias($.dependent_type_identifier, $.dependent_name),
       ))),
       '::',
@@ -1255,7 +1400,7 @@ module.exports = grammar(C, {
         alias($.dependent_field_identifier, $.dependent_name),
         alias($.qualified_field_identifier, $.qualified_identifier),
         $.template_method,
-        prec.dynamic(1, $._field_identifier),
+        prec.dynamic(2, $._field_identifier),
       )),
     ),
 
@@ -1265,7 +1410,7 @@ module.exports = grammar(C, {
         alias($.dependent_identifier, $.dependent_name),
         $.qualified_identifier,
         $.template_function,
-        seq(optional('template'), $.identifier),
+        prec.dynamic(1, seq(optional('template'), $.identifier)),
         $.operator_name,
         $.destructor_name,
         $.pointer_type_declarator,
@@ -1278,7 +1423,7 @@ module.exports = grammar(C, {
         alias($.dependent_type_identifier, $.dependent_name),
         alias($.qualified_type_identifier, $.qualified_identifier),
         $.template_type,
-        $._type_identifier,
+        prec.dynamic(1, $._type_identifier),
       )),
     ),
 
@@ -1313,6 +1458,36 @@ module.exports = grammar(C, {
     parenthesized_expression: ($, original) => choice(
       original,
       seq('(', alias($._assignment_expression_lhs, $.assignment_expression), ')'),
+    ),
+
+    reflect_expression: $ => prec.right(seq(
+      '^^',
+      choice(
+        '::',
+        $.expression,
+        $.type_descriptor,
+      ),
+    )),
+
+    splice_specifier: $ => seq( '[:', $.expression, ':]'),
+    _splice_specialization_specifier: $ => seq($.splice_specifier, $.template_argument_list),
+
+    splice_type_specifier: $ => prec.right(choice(
+      $.splice_specifier,
+      $._splice_specialization_specifier,
+    )),
+
+    splice_expression: $ => prec.right(choice(
+      $.splice_specifier,
+      seq('template', $._splice_specialization_specifier),
+    )),
+
+    expansion_statement: $ => seq(
+      'template', 'for',
+      '(',
+      $._for_range_loop_body,
+      ')',
+      field('body', $.statement),
     ),
 
     operator_name: $ => prec(1, seq(
