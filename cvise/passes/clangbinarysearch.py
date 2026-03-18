@@ -11,6 +11,8 @@ from cvise.utils.misc import CloseableTemporaryFile
 
 class ClangBinarySearchPass(AbstractPass):
     QUERY_TIMEOUT = 10
+    QUERY_MAX_TIMEOUTS = 30
+    QUERY_CUR_TIMEOUT = 0
 
     def check_prerequisites(self):
         return self.check_external_program('clang_delta')
@@ -51,6 +53,8 @@ class ClangBinarySearchPass(AbstractPass):
         return state
 
     def count_instances(self, test_case):
+        if self.QUERY_CUR_TIMEOUT >= self.QUERY_MAX_TIMEOUTS:
+            return 0
         assert self.clang_delta_std
         args = [
             self.external_programs['clang_delta'],
@@ -64,8 +68,9 @@ class ClangBinarySearchPass(AbstractPass):
         try:
             proc = subprocess.run(cmd, text=True, capture_output=True, timeout=self.QUERY_TIMEOUT)
         except subprocess.TimeoutExpired:
+            self.QUERY_CUR_TIMEOUT += 1
             logging.warning(
-                f'clang_delta --query-instances (--std={self.clang_delta_std}) {self.QUERY_TIMEOUT}s timeout reached. Cmd: {cmd}'
+                f'[{self.QUERY_CUR_TIMEOUT:{len(str(self.QUERY_MAX_TIMEOUTS))}}/{self.QUERY_MAX_TIMEOUTS:{len(str(self.QUERY_MAX_TIMEOUTS))}}] clang_delta --query-instances (--std={self.clang_delta_std}) {self.QUERY_TIMEOUT}s timeout reached. Cmd: {cmd}'
             )
             return 0
         except subprocess.SubprocessError as e:
