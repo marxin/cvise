@@ -5,6 +5,7 @@ import os
 from cvise.passes.abstract import AbstractPass
 from cvise.passes.balanced import BalancedPass
 from cvise.passes.blank import BlankPass
+from cvise.passes.clear import ClearPass
 from cvise.passes.clang import ClangPass
 from cvise.passes.clangbinarysearch import ClangBinarySearchPass
 from cvise.passes.clex import ClexPass
@@ -41,6 +42,7 @@ class CVise:
         'blank': BlankPass,
         'clang': ClangPass,
         'clangbinarysearch': ClangBinarySearchPass,
+        'clear': ClearPass,
         'clex': ClexPass,
         'comments': CommentsPass,
         'gcda-binary': GCDABinaryPass,
