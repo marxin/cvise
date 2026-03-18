@@ -90,6 +90,11 @@ class MissingPassGroupsError(CViseError):
         return 'Could not find a directory with definitions for pass groups!'
 
 
+class KeyboardInterruption(CViseError):
+    def __str__(self):
+        return 'Got Ctrl+C'
+
+
 class PassBugError(CViseError):
     MSG = """***************************************************
 
