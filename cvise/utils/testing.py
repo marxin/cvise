@@ -15,6 +15,7 @@ import tempfile
 import traceback
 import concurrent.futures
 import time
+import random
 
 from cvise.cvise import CVise
 from cvise.passes.abstract import PassResult, ProcessEventNotifier, ProcessEventType
@@ -24,6 +25,7 @@ from cvise.utils.error import InvalidInterestingnessTestError
 from cvise.utils.error import InvalidTestCaseError
 from cvise.utils.error import PassBugError
 from cvise.utils.error import ZeroSizeError
+from cvise.utils.error import KeyboardInterruption
 from cvise.utils.misc import is_readable_file
 from cvise.utils.readkey import KeyLogger
 import pebble
@@ -62,6 +64,7 @@ class TestEnvironment:
         all_test_cases,
         transform,
         pid_queue=None,
+        min_improvement=0,
     ):
         self.state = state
         self.folder = folder
@@ -76,6 +79,7 @@ class TestEnvironment:
         self.test_case = test_case
         self.base_size = test_case.stat().st_size
         self.all_test_cases = all_test_cases
+        self.min_improvement = min_improvement
 
         # Copy files to the created folder
         for test_case in all_test_cases:
@@ -108,6 +112,10 @@ class TestEnvironment:
             )
             self.result = result
             if self.result != PassResult.OK:
+                return self
+            if self.size_improvement < 0:
+                logging.debug(f'Order {self.order:02d}: Negative improvement on file {self.test_case}: {self.size_improvement} B')
+                self.result = PassResult.INVALID
                 return self
 
             # run test script
@@ -157,6 +165,7 @@ class TestManager:
         die_on_pass_bug,
         print_diff,
         max_improvement,
+        min_improvement,
         no_give_up,
         also_interesting,
         start_with_pass,
@@ -177,6 +186,7 @@ class TestManager:
         self.die_on_pass_bug = die_on_pass_bug
         self.print_diff = print_diff
         self.max_improvement = max_improvement
+        self.min_improvement = min_improvement if min_improvement else 1
         self.no_give_up = no_give_up
         self.also_interesting = also_interesting
         self.start_with_pass = start_with_pass
@@ -347,25 +357,25 @@ class TestManager:
             logging.warning(f'{self.current_pass} has encountered a non fatal bug: {problem}')
 
         crash_dir = self.get_extra_dir(self.BUG_DIR_PREFIX, self.MAX_CRASH_DIRS)
-
+       
         if crash_dir is None:
             return False
-
+       
         crash_dir.mkdir()
         test_env.dump(crash_dir)
-
+       
         if not self.die_on_pass_bug:
             logging.debug(
                 f'Please consider tarring up {crash_dir} and creating an issue at https://github.com/marxin/cvise/issues and we will try to fix the bug.'
             )
-
+       
         with (crash_dir / 'PASS_BUG_INFO.TXT').open(mode='w') as info_file:
             info_file.write(f'Package: {CVise.Info.PACKAGE_STRING}\n')
             info_file.write(f'Git version: {CVise.Info.GIT_VERSION}\n')
             info_file.write(f'LLVM version: {CVise.Info.LLVM_VERSION}\n')
             info_file.write(f'System: {str(platform.uname())}\n')
             info_file.write(PassBugError.MSG.format(self.current_pass, problem, test_env.state, crash_dir))
-
+       
         if self.die_on_pass_bug:
             raise PassBugError(self.current_pass, problem, test_env.state, crash_dir)
         else:
@@ -437,6 +447,8 @@ class TestManager:
                         # Terminate the process more reliability: https://github.com/marxin/cvise/issues/145
                         child.kill()
                     except psutil.NoSuchProcess:
+                        pass
+                    except psutil.AccessDenied:
                         pass
             except psutil.NoSuchProcess:
                 pass
@@ -510,9 +522,13 @@ class TestManager:
             if self.max_improvement is not None and test_env.size_improvement > self.max_improvement:
                 logging.debug(f'Too large improvement: {test_env.size_improvement} B')
                 return PassCheckingOutcome.IGNORE
+            if self.min_improvement is not None and test_env.size_improvement < self.min_improvement:
+                logging.debug(f'Too small improvement on file {test_env.test_case}: {round((test_env.size_improvement / test_env.base_size)*100, 2)}%, i.e., {test_env.size_improvement} B')
+                return PassCheckingOutcome.ACCEPT
             # Report bug if transform did not change the file
             if filecmp.cmp(self.current_test_case, test_env.test_case_path):
                 if not self.silent_pass_bug:
+                    logging.debug(f'pass failed to modify the variant')
                     if not self.report_pass_bug(test_env, 'pass failed to modify the variant'):
                         return PassCheckingOutcome.QUIT_LOOP
                 return PassCheckingOutcome.IGNORE
@@ -530,9 +546,11 @@ class TestManager:
                 self.report_pass_bug(test_env, 'pass error')
                 return PassCheckingOutcome.QUIT_LOOP
 
-        if not self.no_give_up and test_env.order > self.GIVEUP_CONSTANT:
+        if not self.no_give_up and test_env.order > min(self.GIVEUP_CONSTANT, self.skip_after_n_transforms if
+                self.skip_after_n_transforms is not None else self.GIVEUP_CONSTANT):
             if not self.giveup_reported:
-                self.report_pass_bug(test_env, 'pass got stuck')
+                if self.skip_after_n_transforms is None:
+                    self.report_pass_bug(test_env, 'pass got stuck')
                 self.giveup_reported = True
             return PassCheckingOutcome.QUIT_LOOP
         return PassCheckingOutcome.IGNORE
@@ -570,6 +588,7 @@ class TestManager:
                     self.test_cases,
                     self.current_pass.transform,
                     self.pid_queue,
+                    self.min_improvement,
                 )
                 future = pool.schedule(test_env.run, timeout=self.timeout)
                 self.temporary_folders[future] = folder
@@ -609,11 +628,38 @@ class TestManager:
         if not self.skip_key_off:
             logger = KeyLogger()
 
+        num_too_small_improvements = 0
+        num_failures = 0
+        self.skip = False
         try:
-            for test_case in self.sorted_test_cases:
+            curr_i=0
+            num_testcases = len(self.test_cases)
+            test_case_order = []
+            
+            shuffled_test_cases = list(self.test_cases)
+            random.shuffle(shuffled_test_cases)
+            stop_val = 15
+            stop_val = self.current_pass.max_transforms if self.current_pass.max_transforms is not None else stop_val
+            stop_val = self.skip_after_n_transforms if self.skip_after_n_transforms is not None else stop_val
+            for test_case in shuffled_test_cases:
+                if self.skip:
+                    logging.info(f'Skipping the rest of {self.current_pass} after {curr_i}/{num_testcases} runs, because of user request.')
+                    break
+                # Too many files did not make enough progress at all with this pass -> bail out
+                if num_too_small_improvements >= stop_val:
+                    logging.info(f'Cancelling {self.current_pass} after {curr_i}/{num_testcases} runs, because it does not make enough progress.')
+                    break
+                if num_failures >= stop_val:
+                    # Do not bail out too early
+                    if (curr_i / (num_failures*2)) < 1:
+                        logging.info(f'Cancelling {self.current_pass} after {curr_i}/{num_testcases} runs, because it had {num_failures} failures.')
+                        break
+                # File is too small -> We're not going to make enough progress, here
+                if test_case.stat().st_size < self.min_improvement:
+                    logging.debug(f'Skipping {test_case}, because its size {test_case.stat().st_size} Bytes is less than the required min improvement of {self.min_improvement} Bytes')
+                    continue
+                curr_i += 1
                 self.current_test_case = test_case
-                starting_test_case_size = test_case.stat().st_size
-                success_count = 0
 
                 if self.get_file_size([test_case]) == 0:
                     continue
@@ -629,31 +675,38 @@ class TestManager:
                             logging.info(f'cache hit for {test_case}')
                             continue
 
+                starting_test_case_size = test_case.stat().st_size
                 # create initial state
                 self.state = self.current_pass.new(self.current_test_case, self.check_sanity)
-                self.skip = False
 
+                success_count = 0
+                num_success=0
                 while self.state is not None and not self.skip:
                     # Ignore more key presses after skip has been detected
                     if not self.skip_key_off and not self.skip:
                         key = logger.pressed_key()
-                        if key == 's':
-                            self.skip = True
-                            self.log_key_event('skipping the rest of this pass')
-                        elif key == 'd':
-                            self.log_key_event('toggle print diff')
-                            self.print_diff = not self.print_diff
+                        if key is not None:
+                            if key.lower() == 's':
+                                self.skip = True
+                                self.log_key_event('skipping the rest of this pass')
+                                break
+                            elif key.lower() == 'd':
+                                self.log_key_event('toggle print diff')
+                                self.print_diff = not self.print_diff
 
+                    previous_test_case_size = test_case.stat().st_size
                     success_env = self.run_parallel_tests()
                     self.kill_pid_queue()
 
                     if success_env:
+                        num_failures = max(0, num_failures-1)
                         self.process_result(success_env)
                         success_count += 1
 
                     # if the file increases significantly, bail out the current pass
                     test_case_size = self.current_test_case.stat().st_size
-                    if test_case_size >= MAX_PASS_INCREASEMENT_THRESHOLD * starting_test_case_size:
+                    self.pass_statistic.add_improvement(self.current_pass, previous_test_case_size - test_case_size)
+                    if test_case_size >= MAX_PASS_INCREASEMENT_THRESHOLD * previous_test_case_size:
                         logging.info(
                             f'skipping the rest of the pass (huge file increasement '
                             f'{MAX_PASS_INCREASEMENT_THRESHOLD * 100}%)'
@@ -663,7 +716,11 @@ class TestManager:
                     self.release_folders()
                     self.futures.clear()
                     if not success_env:
-                        break
+                        logging.debug(f'{self.current_pass} failed for {test_case}')
+                        num_failures += 1
+                        num_success -= 1
+                        if num_success < 0:
+                            break
 
                     # skip after N transformations if requested
                     if (self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms) or (
@@ -671,6 +728,32 @@ class TestManager:
                     ):
                         logging.info(f'skipping after {success_count} successful transformations')
                         break
+
+                    # This testcase does not make enough progress for the current iteration. Now, we decide:
+                    # (1) Did the current pass not make enough progress at all on this file?
+                    #     E.g., We could have very well met the criteria twice, but failed it thrice - in
+                    #     that case, we certainly don't want to count this as not making enough progress.
+                    # (2) Did the current pass make enough progress in this iteration?
+                    #
+                    # In the first case, we might need to continue with the next pass, in the second case,
+                    # only with the next testcase
+                    if (previous_test_case_size - test_case_size) < self.min_improvement:
+                        # Here, we compare the size of the testcase before the pass, to decide whether we
+                        # should count this as not making enough progress overall.
+                        if (starting_test_case_size - test_case_size) < self.min_improvement:
+                            # (1) Does the pass make progress at all?
+                            #     -> If not continue with next pass
+                            num_too_small_improvements+=1
+                        # (2) Does the pass make progress for this test case?
+                        #     -> If not continue with next test case
+                        num_success -= 1
+                        if num_success < 0:
+                            logging.info('Skipping due to small improvement.')
+                            break
+                    else:
+                        num_too_small_improvements = max(0, num_too_small_improvements-1)
+                        num_success += 1
+
 
                 # Cache result of this pass
                 if not self.no_cache:
@@ -685,8 +768,10 @@ class TestManager:
             self.remove_root()
         except KeyboardInterrupt:
             logging.info('Exiting now ...')
+            self.release_folders()
+            self.futures.clear()
             self.remove_root()
-            sys.exit(1)
+            raise KeyboardInterruption()
 
     def process_result(self, test_env):
         if self.print_diff:

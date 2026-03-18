@@ -217,6 +217,12 @@ if __name__ == '__main__':
         type=int,
         help='Largest improvement in file size from a single transformation that C-Vise should accept (useful only to slow C-Vise down)',
     )
+    parser.add_argument(
+        '--min-improvement',
+        metavar='BYTES',
+        type=int,
+        help='Minimum improvement in file size from a single transformation that C-Vise should accept',
+    )
     passes_group = parser.add_mutually_exclusive_group()
     passes_group.add_argument(
         '--pass-group',
@@ -409,9 +415,6 @@ if __name__ == '__main__':
 
     if args.timeout <= 0:
         args.timeout = default_timeout_value
-    else:
-       from cvise.passes import ClangBinarySearchPass
-       ClangBinarySearchPass.QUERY_TIMEOUT = args.timeout
 
     test_manager = testing.TestManager(
         pass_statistic,
@@ -426,6 +429,7 @@ if __name__ == '__main__':
         args.die_on_pass_bug,
         args.print_diff,
         args.max_improvement,
+        args.min_improvement,
         args.no_give_up,
         args.also_interesting,
         args.start_with_pass,
