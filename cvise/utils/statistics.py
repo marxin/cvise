@@ -8,6 +8,7 @@ class SinglePassStatistic:
         self.worked = 0
         self.failed = 0
         self.totally_executed = 0
+        self.improvement = 0
 
 
 class PassStatistic:
@@ -38,6 +39,10 @@ class PassStatistic:
     def add_success(self, pass_):
         pass_name = repr(pass_)
         self.stats[pass_name].worked += 1
+
+    def add_improvement(self, pass_, bytes_):
+        pass_name = repr(pass_)
+        self.stats[pass_name].improvement += bytes_
 
     def add_failure(self, pass_):
         pass_name = repr(pass_)
