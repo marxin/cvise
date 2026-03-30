@@ -80,7 +80,7 @@ manager:
   all you need).  For example, the openSUSE Tumbleweed provides them
   by `llvm-devel` and `clang-devel` packages.
 
-  Tested LLVM versions: ``18.0.0`` - ``22.0.0``
+  Tested LLVM versions: ``18.0.0`` - ``23.0.0``
 
 * [Python 3.10+](https://www.python.org/downloads/)
 
