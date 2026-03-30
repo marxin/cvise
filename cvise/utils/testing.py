@@ -121,7 +121,7 @@ class TestEnvironment:
         folder: Path,
         test_case: Path,
         all_test_cases: set[Path],
-        should_copy_test_cases: bool,
+        should_copy_current_test_case: bool,
         transform,
         pid_queue: queue.Queue | None = None,
     ):
@@ -134,7 +134,7 @@ class TestEnvironment:
         self.transform = transform
         self.pid_queue = pid_queue
         self.test_case: Path = test_case
-        self.should_copy_test_cases = should_copy_test_cases
+        self.should_copy_current_test_case = should_copy_current_test_case
         self.all_test_cases: set[Path] = all_test_cases
         self.original_size: int | None = None
         self.new_size: int | None = None
@@ -162,13 +162,14 @@ class TestEnvironment:
 
     def copy_test_cases(self):
         for test_case in self.all_test_cases:
+            if test_case == self.test_case and not self.should_copy_current_test_case:
+                # Some passes (e.g., hint-based passes) create the new file themselves, so no need in copying it here.
+                continue
             fileutil.copy_test_case(test_case, self.folder)
 
     def run(self):
         try:
-            # If the pass needs this, copy files to the created folder (e.g., hint-based passes don't need this).
-            if self.should_copy_test_cases:
-                self.copy_test_cases()
+            self.copy_test_cases()
 
             # transform by state
             written_paths: set[Path] = set()
@@ -665,7 +666,7 @@ class TestManager:
             folder,
             list(self.test_cases)[0],
             self.test_cases,
-            should_copy_test_cases=True,
+            should_copy_current_test_case=True,
             transform=None,
         )
         logging.debug(f'sanity check tmpdir = {test_env.folder}')
@@ -1271,7 +1272,7 @@ class TestManager:
 
         # Whether we should copy input files to the temporary work directory, or the pass does it itself. For now, we
         # simply hardcode that hint-based passes are capable of this (and they actually need the original files anyway).
-        should_copy_test_cases = not isinstance(ctx.pass_, HintBasedPass)
+        should_copy_current_test_case = not isinstance(ctx.pass_, HintBasedPass)
 
         folder = self.tmp_dir_manager.create_dir(prefix=f'job{self.order}')
         env = TestEnvironment(
@@ -1281,7 +1282,7 @@ class TestManager:
             folder,
             self.current_test_case,
             self.test_cases,
-            should_copy_test_cases,
+            should_copy_current_test_case,
             ctx.pass_.transform,
             self.process_monitor.pid_queue,
         )
@@ -1312,7 +1313,7 @@ class TestManager:
     def schedule_fold(self, folding_state: FoldingStateIn) -> None:
         assert self.interleaving
 
-        should_copy_test_cases = False  # the fold transform creates the files itself
+        should_copy_current_test_case = False  # the fold transform creates the files itself
         folder = self.tmp_dir_manager.create_dir(prefix='folding')
         env = TestEnvironment(
             folding_state,
@@ -1321,7 +1322,7 @@ class TestManager:
             folder,
             self.current_test_case,
             self.test_cases,
-            should_copy_test_cases,
+            should_copy_current_test_case,
             FoldingManager.transform,
             self.process_monitor.pid_queue,
         )
