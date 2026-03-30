@@ -942,9 +942,9 @@ class TestManager:
         extra_passes = []
         for p in passes:
             extra_passes += p.create_subordinate_passes()
-        passes = extra_passes + list(passes)
+        augmented_passes = extra_passes + list(passes)
 
-        assert len(passes) == 1 or interleaving
+        assert len(augmented_passes) == 1 or interleaving
 
         if self.start_with_pass:
             current_pass_names = [str(c.pass_) for c in self.pass_contexts]
@@ -953,13 +953,7 @@ class TestManager:
             else:
                 return
 
-        self.last_restart_job_order = None
-        self.pass_restart_queue = []
-        self.pass_contexts = []
-        for pass_ in passes:
-            self.pass_contexts.append(PassContext.create(pass_))
         self.interleaving = interleaving
-        self.jobs = []
 
         pass_titles = [c.pass_.user_visible_name() for c in self.pass_contexts]
         pass_titles_str = ', '.join(sorted(set(pass_titles)))
@@ -970,74 +964,7 @@ class TestManager:
 
         try:
             for test_case in self.sorted_test_cases:
-                self.current_test_case = test_case
-                starting_test_case_size = fileutil.get_file_size(test_case)
-                success_count = 0
-
-                if starting_test_case_size == 0:
-                    continue
-
-                if not self.no_cache:
-                    hash_before_pass = fileutil.hash_test_case(test_case)
-                    if cached_path := self.cache.lookup(passes, hash_before_pass):
-                        fileutil.replace_test_case_atomically(cached_path, test_case, move=False)
-                        logging.info(f'cache hit for {test_case}')
-                        continue
-                else:
-                    hash_before_pass = None
-
-                is_dir = test_case.is_dir()
-                for ctx in self.pass_contexts:
-                    ctx.enabled = not is_dir or ctx.pass_.supports_dir_test_cases()
-
-                self.skip = False
-                ready_hint_types = self.get_fully_initialized_hint_types()
-                while any(c.can_start_job_now(ready_hint_types) for c in self.pass_contexts) and not self.skip:
-                    # Ignore more key presses after skip has been detected
-                    if not self.skip_key_off and not self.skip:
-                        match self.key_logger.pressed_key():
-                            case 's':
-                                self.skip = True
-                                self.log_key_event('skipping the rest of this pass')
-                            case 'd':
-                                self.log_key_event('toggle print diff')
-                                self.print_diff = not self.print_diff
-
-                    self.run_parallel_tests()
-
-                    is_success = self.success_candidate is not None
-                    if is_success:
-                        self.process_result()
-                        success_count += 1
-
-                    # if the file increases significantly, bail out the current pass
-                    test_case_size = fileutil.get_file_size(self.current_test_case)
-                    if test_case_size >= MAX_PASS_INCREASEMENT_THRESHOLD * starting_test_case_size:
-                        logging.info(
-                            f'skipping the rest of the pass (huge file increasement '
-                            f'{MAX_PASS_INCREASEMENT_THRESHOLD * 100}%)'
-                        )
-                        break
-
-                    if not is_success:
-                        break
-
-                    # skip after N transformations if requested
-                    skip_rest = self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms
-                    if not self.interleaving:  # max-transforms is only supported for non-interleaving passes
-                        assert len(self.pass_contexts) == 1
-                        if (
-                            self.pass_contexts[0].pass_.max_transforms
-                            and success_count >= self.pass_contexts[0].pass_.max_transforms
-                        ):
-                            skip_rest = True
-                    if skip_rest:
-                        logging.info(f'skipping after {success_count} successful transformations')
-                        break
-
-                if not self.no_cache:
-                    assert hash_before_pass is not None
-                    self.cache.add(passes, hash_before_pass, test_case)
+                self.run_passes_for_test_case(test_case, augmented_passes)
 
             self.restore_mode()
             self.remove_roots()
@@ -1047,6 +974,82 @@ class TestManager:
             self.terminate_all()
             self.remove_roots()
             sys.exit(1)
+
+    def run_passes_for_test_case(self, test_case: Path, augmented_passes: Sequence[AbstractPass]) -> None:
+        self.current_test_case = test_case
+        starting_test_case_size = fileutil.get_file_size(test_case)
+        success_count = 0
+
+        if starting_test_case_size == 0:
+            return
+
+        self.last_restart_job_order = None
+        self.pass_restart_queue = []
+        self.pass_contexts = []
+        for pass_ in augmented_passes:
+            self.pass_contexts.append(PassContext.create(pass_))
+        self.jobs = []
+
+        if not self.no_cache:
+            hash_before_pass = fileutil.hash_test_case(test_case)
+            if cached_path := self.cache.lookup(augmented_passes, hash_before_pass):
+                fileutil.replace_test_case_atomically(cached_path, test_case, move=False)
+                logging.info(f'cache hit for {test_case}')
+                return
+        else:
+            hash_before_pass = None
+
+        is_dir = test_case.is_dir()
+        for ctx in self.pass_contexts:
+            ctx.enabled = not is_dir or ctx.pass_.supports_dir_test_cases()
+
+        self.skip = False
+        ready_hint_types = self.get_fully_initialized_hint_types()
+        while any(c.can_start_job_now(ready_hint_types) for c in self.pass_contexts) and not self.skip:
+            # Ignore more key presses after skip has been detected
+            if not self.skip_key_off and not self.skip:
+                match self.key_logger.pressed_key():
+                    case 's':
+                        self.skip = True
+                        self.log_key_event('skipping the rest of this pass')
+                    case 'd':
+                        self.log_key_event('toggle print diff')
+                        self.print_diff = not self.print_diff
+
+            self.run_parallel_tests()
+
+            is_success = self.success_candidate is not None
+            if is_success:
+                self.process_result()
+                success_count += 1
+
+            # if the file increases significantly, bail out the current pass
+            test_case_size = fileutil.get_file_size(self.current_test_case)
+            if test_case_size >= MAX_PASS_INCREASEMENT_THRESHOLD * starting_test_case_size:
+                logging.info(
+                    f'skipping the rest of the pass (huge file increasement {MAX_PASS_INCREASEMENT_THRESHOLD * 100}%)'
+                )
+                break
+
+            if not is_success:
+                break
+
+            # skip after N transformations if requested
+            skip_rest = self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms
+            if not self.interleaving:  # max-transforms is only supported for non-interleaving passes
+                assert len(self.pass_contexts) == 1
+                if (
+                    self.pass_contexts[0].pass_.max_transforms
+                    and success_count >= self.pass_contexts[0].pass_.max_transforms
+                ):
+                    skip_rest = True
+            if skip_rest:
+                logging.info(f'skipping after {success_count} successful transformations')
+                break
+
+        if not self.no_cache:
+            assert hash_before_pass is not None
+            self.cache.add(augmented_passes, hash_before_pass, test_case)
 
     def process_result(self) -> None:
         assert self.success_candidate
