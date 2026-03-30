@@ -91,7 +91,7 @@ def test_multiple_files(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     other_path.write_text('void foo() {}\n')
 
     proc = start_cvise(
-        ['-c', 'gcc -Wall -Werror main.c other.c', main_path.name, other_path.name, '--debug'],
+        ['-c', 'gcc -Wall -Werror main.c other.c', main_path.name, other_path.name],
         tmp_path,
         overridden_subprocess_tmpdir,
     )
