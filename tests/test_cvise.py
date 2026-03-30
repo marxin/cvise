@@ -86,9 +86,9 @@ def test_simple_reduction_no_interleaving_config(tmp_path: Path, overridden_subp
 def test_multiple_files(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     """Test the reduction of multiple files specified as separate test cases."""
     main_path = tmp_path / 'main.c'
-    main_path.write_text("int main() {}\n")
+    main_path.write_text('int main() {}\n')
     other_path = tmp_path / 'other.c'
-    other_path.write_text("void foo() {}\n")
+    other_path.write_text('void foo() {}\n')
 
     proc = start_cvise(
         ['-c', 'gcc -Wall -Werror main.c other.c', main_path.name, other_path.name, '--debug'],
@@ -99,8 +99,8 @@ def test_multiple_files(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     assert proc.returncode == 0, (
         f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
     )
-    assert main_path.read_text() == "int main() {}\n"
-    assert other_path.read_text() == ""
+    assert main_path.read_text() == 'int main() {}\n'
+    assert other_path.read_text() == ''
     assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
 
 
