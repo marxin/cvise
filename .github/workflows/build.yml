@@ -19,17 +19,17 @@ jobs:
     strategy:
       matrix:
         # Note: when changing the versions below, update INSTALL.md as well.
-        llvm: [18, 19, 20, 21]
+        llvm: [18, 19, 20, 21, 22]
         build-type: [DEBUG]
         include:
-          - llvm: 21
+          - llvm: 22
             build-type: ASAN
-          - llvm: 21
+          - llvm: 22
             build-type: UBSAN
-          - llvm: 21
+          - llvm: 22
             build-type: RelWithDebInfo
             extra-flags: -flto=auto
-          - llvm: 21
+          - llvm: 22
             build-type: RelWithDebInfo
             env: CC=clang CXX=clang++
       fail-fast: false
