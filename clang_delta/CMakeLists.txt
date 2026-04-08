@@ -87,6 +87,8 @@ set(SOURCE_FILES
   "/tests/empty-struct-to-int/test2.output"
   "/tests/empty-struct-to-int/test3.c"
   "/tests/empty-struct-to-int/test3.output"
+  "/tests/hip/kernel.hip"
+  "/tests/hip/kernel.output"
   "/tests/instantiate-template-param/default_param.cc"
   "/tests/instantiate-template-param/default_param.output"
   "/tests/instantiate-template-param/test1.cc"

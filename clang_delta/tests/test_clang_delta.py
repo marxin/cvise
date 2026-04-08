@@ -1308,6 +1308,13 @@ class TestClangDelta(unittest.TestCase):
             '--transformation=simplify-recursive-template-instantiation --counter=1',
         )
 
+    @unittest.skipIf(get_clang_version() < 17, 'HIP input requires LLVM 17+')
+    def test_hip_kernel_aggregate_to_scalar(self):
+        self.check_clang_delta(
+            'hip/kernel.hip',
+            '--transformation=aggregate-to-scalar --counter=1',
+        )
+
     def test_template_arg_to_int_not_valid_5(self):
         self.check_query_instances(
             'template-arg-to-int/not_valid5.cc',
