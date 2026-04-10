@@ -567,5 +567,20 @@ def test_failing_interestingness_test(tmp_path: Path, overridden_subprocess_tmpd
     assert 'interestingness test does not return' in stdout
 
 
+def test_list_passes(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    """Test that --list-passes works without providing an interestingness test or test cases."""
+    proc = start_cvise(
+        ['--list-passes'],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    stdout, stderr = proc.communicate()
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
+    assert 'Available passes:' in stdout
+    assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
+
+
 def _read_files_in_dir(dir: Path) -> dict[str, str]:
     return {str(p.relative_to(dir)): p.read_text() for p in dir.rglob('*') if not p.is_dir()}
