@@ -28,10 +28,13 @@ def CloseableTemporaryFile(mode='w+b', dir: Path | None = None):
     # Use a unique name pattern, so that if NamedTemporaryFile construction or cleanup aborted mid-way (e.g., via
     # KeyboardInterrupt), we can identify and delete the leftover file.
     prefix = _get_random_temp_file_name_prefix()
-    with _clean_up_files_on_abnormal_exit(dir, prefix):
+    try:
         f = tempfile.NamedTemporaryFile(mode=mode, delete=False, dir=dir, prefix=prefix)
         with _auto_close_and_unlink(f):
             yield f
+    except (KeyboardInterrupt, SystemExit):
+        _cleanup_abnormal_exit(dir, prefix)
+        raise
 
 
 class TmpDirManager:
@@ -167,11 +170,16 @@ def copy_test_case(source: Path, destination_parent: Path) -> None:
 
 
 def replace_test_case_atomically(source: Path, destination: Path, move: bool = True) -> None:
-    # First prepare the contents in a temporary location in the same folder as the destination path, and then rename/swap
-    # it with the destination. We use the fact that a rename is atomic on popular file systems, within a single file
-    # system's boundaries.
     if source.is_dir():
-        with _robust_temp_dir(dir=destination.parent) as tmp_dir:
+        _replace_dir_test_case_atomically(source, destination, move)
+    else:
+        _replace_file_test_case_atomically(source, destination, move)
+
+
+def _replace_dir_test_case_atomically(source: Path, destination: Path, move: bool) -> None:
+    prefix = _get_random_temp_file_name_prefix()
+    try:
+        with tempfile.TemporaryDirectory(prefix=prefix, dir=destination.parent) as tmp_dir:
             tmp_path = Path(tmp_dir)
 
             new_path = tmp_path / source.name
@@ -189,15 +197,24 @@ def replace_test_case_atomically(source: Path, destination: Path, move: bool = T
                 with contextlib.suppress(Exception):
                     old_destination.rename(destination)
                 raise
-    else:
-        with CloseableTemporaryFile(dir=destination.parent) as tmp:
-            tmp_path = Path(tmp.name)
-            tmp.close()
-            if move:
-                shutil.move(source, tmp_path)
-            else:
-                shutil.copy2(source, tmp_path)
-            tmp_path.rename(destination)
+    except (KeyboardInterrupt, SystemExit):
+        # Make sure the directory is cleaned up even if the creation was aborted halfway.
+        _cleanup_abnormal_exit(destination.parent, prefix)
+        raise
+
+
+def _replace_file_test_case_atomically(source: Path, destination: Path, move: bool) -> None:
+    # First prepare the contents in a temporary location in the same folder as the destination path, and then rename/swap
+    # it with the destination. We use the fact that a rename is atomic on popular file systems, within a single file
+    # system's boundaries.
+    with CloseableTemporaryFile(dir=destination.parent) as tmp:
+        tmp_path = Path(tmp.name)
+        tmp.close()
+        if move:
+            shutil.move(source, tmp_path)
+        else:
+            shutil.copy2(source, tmp_path)
+        tmp_path.rename(destination)
 
 
 def hash_test_case(test_case: Path) -> bytes:
@@ -316,18 +333,13 @@ def _get_random_temp_file_name_prefix() -> str:
     return f'cvise-{"".join(letters)}-'
 
 
-@contextlib.contextmanager
-def _clean_up_files_on_abnormal_exit(dir: Path, prefix: str) -> Iterator[None]:
-    try:
-        yield
-    except (KeyboardInterrupt, SystemExit):
-        lst = list(dir.glob(f'{prefix}*'))
-        for p in lst:
-            if p.is_file():
-                p.unlink(missing_ok=True)
-            else:
-                shutil.rmtree(p)
-        raise
+def _cleanup_abnormal_exit(dir: Path, prefix: str) -> None:
+    lst = list(dir.glob(f'{prefix}*'))
+    for p in lst:
+        if p.is_file():
+            p.unlink(missing_ok=True)
+        else:
+            shutil.rmtree(p)
 
 
 @contextlib.contextmanager
@@ -340,15 +352,6 @@ def _auto_close_and_unlink(tmp_file) -> Iterator[None]:
             tmp_file.close()
         with contextlib.suppress(FileNotFoundError):
             os.unlink(tmp_file.name)
-
-
-@contextlib.contextmanager
-def _robust_temp_dir(dir: Path) -> Iterator[Path]:
-    """Unlike TemporaryDirectory, guarantees to not leave leftovers on keyboard/exit exceptions."""
-    prefix = _get_random_temp_file_name_prefix()
-    with _clean_up_files_on_abnormal_exit(dir, prefix):
-        with tempfile.TemporaryDirectory(prefix=prefix, dir=dir) as tmp_dir:
-            yield Path(tmp_dir)
 
 
 def _find_files_matching(test_case: Path, globs: list[str]) -> list[Path]:
