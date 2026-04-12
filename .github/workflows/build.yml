@@ -48,7 +48,7 @@ jobs:
     - uses: rui314/setup-mold@v1
     - run: ld --version
     - run: nproc
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: build
       run: |
             mkdir objdir
@@ -94,7 +94,7 @@ jobs:
       fail-fast: false
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - run: apt-get update
     - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex vim unifdef sudo
     - run: chown -R $(whoami) /github/home  # workaround for "directory ... pip ... is not owned or is not writable by the current user"
@@ -122,7 +122,7 @@ jobs:
 
     steps:
     - run: zypper -n install python3-pip
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - run: pip install --break-system-packages ruff
     - run: ruff check
     - run: ruff format --diff
@@ -134,7 +134,7 @@ jobs:
 
     steps:
     - run: zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python312
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: prepare venv
       # Pytype currently only supports Python <=3.12
       run: |
@@ -164,7 +164,7 @@ jobs:
         python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess
         unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-jsonschema
         python3-msgspec python3-zstandard
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - run: mkdir objdir
     - run: cmake ..
       working-directory: objdir
