@@ -9,6 +9,7 @@ import os
 import random
 import re
 import shutil
+import stat
 import string
 import tempfile
 import threading
@@ -32,7 +33,7 @@ def CloseableTemporaryFile(mode='w+b', dir: Path | None = None):
         f = tempfile.NamedTemporaryFile(mode=mode, delete=False, dir=dir, prefix=prefix)
         with _auto_close_and_unlink(f):
             yield f
-    except (KeyboardInterrupt, SystemExit):
+    except (KeyboardInterrupt, SystemExit, OSError):
         _cleanup_abnormal_exit(dir, prefix)
         raise
 
@@ -197,8 +198,8 @@ def _replace_dir_test_case_atomically(source: Path, destination: Path, move: boo
                 with contextlib.suppress(Exception):
                     old_destination.rename(destination)
                 raise
-    except (KeyboardInterrupt, SystemExit):
-        # Make sure the directory is cleaned up even if the creation was aborted halfway.
+    except (KeyboardInterrupt, SystemExit, OSError):
+        # Make sure the directory is cleaned up even if the creation was aborted halfway or __exit__ failed.
         _cleanup_abnormal_exit(destination.parent, prefix)
         raise
 
@@ -336,10 +337,20 @@ def _get_random_temp_file_name_prefix() -> str:
 def _cleanup_abnormal_exit(dir: Path, prefix: str) -> None:
     lst = list(dir.glob(f'{prefix}*'))
     for p in lst:
-        if p.is_file():
+        try:
+            # Use lstat() to read file attributes in a single system call without following symlinks (instead of calling
+            # is_dir()+is_symlink() separately).
+            is_dir = stat.S_ISDIR(p.lstat().st_mode)
+        except FileNotFoundError:
+            continue
+
+        if not is_dir:
             p.unlink(missing_ok=True)
-        else:
+            continue
+        try:
             shutil.rmtree(p)
+        except FileNotFoundError:
+            pass
 
 
 @contextlib.contextmanager
