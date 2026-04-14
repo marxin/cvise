@@ -18,6 +18,7 @@ jobs:
 
   CI-LLVM-nightly:
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     container:
       image: ubuntu:25.04
 
