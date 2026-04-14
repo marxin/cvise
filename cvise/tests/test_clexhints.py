@@ -61,6 +61,7 @@ void f() {
     b"""
 void f() {
     char x;
+
 """,
 ]
 
@@ -99,11 +100,12 @@ void f() {
 """,
     b"""
 void f() {
-    char x""",
+    char x
+""",
 ]
 
 TOKENS_REMOVED_8 = [
-    b'\n',
+    b'\n\n',
 ]
 
 
@@ -244,8 +246,8 @@ def test_directory_input_leading_trailing_spaces(tmp_path: Path):
     p, state = init_pass('rm-toks-1-to-1', tmp_path, test_case)
     all_transforms = collect_all_transforms_dir(p, state, test_case)
 
-    assert (('a.txt', b'\n'), ('b.txt', b'\nchar\n')) in all_transforms
-    assert (('a.txt', b'\nint\n'), ('b.txt', b'\n')) in all_transforms
+    assert (('a.txt', b'\n\n'), ('b.txt', b'\nchar\n')) in all_transforms
+    assert (('a.txt', b'\nint\n'), ('b.txt', b'\n\n')) in all_transforms
 
 
 def test_directory_unclosed_c_comment(tmp_path: Path):
