@@ -15,6 +15,7 @@
 
 #include <assert.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -302,7 +303,13 @@ static void rm_toks(int idx) {
       }
       which++;
     }
-    if (!started || (which > (idx + n_toks)))
+    bool should_print = !started || (which > (idx + n_toks));
+    // Do not consume the file-terminating newline.
+    if (!should_print && tok_list[i].kind == TOK_NEWLINE &&
+        (i + 1 == toks || tok_list[i + 1].path_id != tok_list[i].path_id)) {
+      should_print = true;
+    }
+    if (should_print)
       printf("%s", tok_list[i].str);
   }
   if (matched) {
@@ -326,6 +333,11 @@ static void hints_toks(void) {
            (tok_list[i + 1].kind == TOK_WS ||
             tok_list[i + 1].kind == TOK_NEWLINE) &&
            tok_list[i + 1].path_id == tok_list[i].path_id) {
+      // Do not consume the file-terminating newline.
+      if (tok_list[i + 1].kind == TOK_NEWLINE &&
+          (i + 2 == toks || tok_list[i + 2].path_id != tok_list[i].path_id)) {
+        break;
+      }
       ++i;
     }
     int cut_end = tok_list[i].start_pos + tok_list[i].len;
