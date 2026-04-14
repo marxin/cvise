@@ -8,6 +8,7 @@
 %{
 #include <assert.h>
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>     // atoi
 
 // debugging diagnostic, emitted when enabled
@@ -166,8 +167,20 @@ int yywrap(void) {
   }
   char *path = NULL;
   size_t size = 0;
-  ssize_t nread = getdelim(&path, &size, 0, stdin);
-  if (nread == -1 || !strlen(path)) {
+  size_t len = 0;
+  int c;
+  while ((c = fgetc(stdin)) != EOF && c != '\0') {
+    if (len + 1 >= size) {
+      size = size == 0 ? 256 : size * 2;
+      path = (char *)realloc(path, size);
+      if (!path) abort();
+    }
+    path[len++] = c;
+  }
+  if (path) {
+    path[len] = '\0';
+  }
+  if (!path || len == 0) {
     free(path);
     path_id = INT_MAX;
     return 1;
