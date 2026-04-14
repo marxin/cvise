@@ -335,7 +335,8 @@ def _get_random_temp_file_name_prefix() -> str:
 
 
 def _cleanup_abnormal_exit(dir: Path, prefix: str) -> None:
-    for p in dir.glob(f'{prefix}*'):
+    lst = list(dir.glob(f'{prefix}*'))
+    for p in lst:
         try:
             # Use lstat() to read file attributes in a single system call without following symlinks (instead of calling
             # is_dir()+is_symlink() separately).
