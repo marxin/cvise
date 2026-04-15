@@ -9,6 +9,12 @@ from cvise.tests.testabstract import load_ref_hints, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
 from cvise.utils.hint import Hint, HintBundle, load_hints
 from cvise.utils.process import ProcessEventNotifier
+from cvise.utils import sigmonitor
+
+
+@pytest.fixture(autouse=True)
+def signal_monitor():
+    sigmonitor.init()
 
 
 def init_pass(tmp_dir: Path, input_path: Path) -> tuple[ClangIncludeGraphPass, Any]:
