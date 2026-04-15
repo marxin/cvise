@@ -8,6 +8,9 @@ on:
   workflow_dispatch: {}
 
 # Cancel the workflow if a new one is requested for the same PR/branch, but still test all commits on the master branch.
+env:
+  RETRY: 'retry() { "$@" || for i in 1 2 3 4; do echo "retrying..."; sleep 30; "$@" && break; done; }; retry'
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master'}}
@@ -39,13 +42,14 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: zypper -n install
-        binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel
-        python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess
-        unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-pip python3-jsonschema
-        python3-msgspec python3-zstandard awk
-    - run: zypper -n install sqlite-devel python3
-    - run: pip install --break-system-packages pytest-cov
+    - run: |
+        ${{ env.RETRY }} zypper -n install \
+          binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel \
+          python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess \
+          unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-pip python3-jsonschema \
+          python3-msgspec python3-zstandard awk
+    - run: ${{ env.RETRY }} zypper -n install sqlite-devel python3
+    - run: ${{ env.RETRY }} pip install --break-system-packages pytest-cov
     - uses: rui314/setup-mold@v1
     - run: ld --version
     - run: nproc
@@ -67,8 +71,8 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - uses: actions/setup-python@v6
-    - run: brew install llvm
-    - run: pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
+    - run: ${{ env.RETRY }} brew install llvm
+    - run: ${{ env.RETRY }} pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard
     - run: mkdir objdir
     - run: cmake .. -DCMAKE_PREFIX_PATH="/opt/homebrew/opt/llvm" -DCMAKE_C_COMPILER="/opt/homebrew/opt/llvm/bin/clang"
         -DCMAKE_CXX_COMPILER="/opt/homebrew/opt/llvm/bin/clang++"
@@ -98,18 +102,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
-    - run: apt-get update
-    - run: apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex vim unifdef sudo
+    - run: ${{ env.RETRY }} apt-get update
+    - run: ${{ env.RETRY }} apt-get -qq install -y gcc g++ wget lsb-release software-properties-common gnupg git cmake flex vim unifdef sudo
     - run: chown -R $(whoami) /github/home  # workaround for "directory ... pip ... is not owned or is not writable by the current user"
     - run: rm -rf /__t/Python  # workaround for "error when attempting to execute the process ... pip"
     - uses: actions/setup-python@v6
       with:
         python-version: "${{ matrix.python }}"
         cache: 'pip'
-    - run: pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard ${{ join(matrix.extra-deps, ' ') }}
-    - run: wget https://apt.llvm.org/llvm.sh
+    - run: ${{ env.RETRY }} pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess zstandard ${{ join(matrix.extra-deps, ' ') }}
+    - run: ${{ env.RETRY }} wget https://apt.llvm.org/llvm.sh
     - run: chmod +x llvm.sh
-    - run: ./llvm.sh all
+    - run: ${{ env.RETRY }} ./llvm.sh all
     - run: mkdir objdir
     - run: cmake ..
       working-directory: objdir
@@ -125,9 +129,9 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: zypper -n install python3-pip
+    - run: ${{ env.RETRY }} zypper -n install python3-pip
     - uses: actions/checkout@v6
-    - run: pip install --break-system-packages ruff
+    - run: ${{ env.RETRY }} pip install --break-system-packages ruff
     - run: ruff check
     - run: ruff format --diff
 
@@ -138,14 +142,14 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python312
+    - run: ${{ env.RETRY }} zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python312
     - uses: actions/checkout@v6
     - name: prepare venv
       # Pytype currently only supports Python <=3.12
       run: |
             python3.12 -m venv ~/venv
             source ~/venv/bin/activate
-            pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess pytype zstandard
+            ${{ env.RETRY }} pip install chardet jsonschema msgspec pebble psutil pytest pytest-mock pytest-subprocess pytype zstandard
     - name: build
       run: |
             source ~/venv/bin/activate
@@ -165,11 +169,12 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: zypper -n install
-        binutils clang-devel cmake flex gcc-c++ llvm-devel python3 python3-pyright
-        python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess
-        unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-jsonschema
-        python3-msgspec python3-zstandard
+    - run: |
+        ${{ env.RETRY }} zypper -n install \
+          binutils clang-devel cmake flex gcc-c++ llvm-devel python3 python3-pyright \
+          python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess \
+          unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-jsonschema \
+          python3-msgspec python3-zstandard
     - uses: actions/checkout@v6
     - run: mkdir objdir
     - run: cmake ..
