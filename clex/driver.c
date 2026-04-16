@@ -326,6 +326,13 @@ static void hints_toks(void) {
   for (i = 0; i < toks; i++) {
     if (tok_list[i].kind == TOK_WS || tok_list[i].kind == TOK_NEWLINE)
       continue;
+
+    // Do not consume the file-terminating newline even as a standalone hint.
+    if (tok_list[i].kind == TOK_NEWLINE &&
+        (i + 1 == toks || tok_list[i + 1].path_id != tok_list[i].path_id)) {
+      continue;
+    }
+
     int cut_start = tok_list[i].start_pos;
     // Also eat subsequent spaces within the same file, so that two consecutive
     // hints remove both tokens with all spaces between them.

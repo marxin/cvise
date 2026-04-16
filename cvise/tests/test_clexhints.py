@@ -166,6 +166,18 @@ def test_rm_toks_16_shorter(tmp_path: Path, input_path: Path):
     assert set(TOKENS_REMOVED_1) <= all_transforms
 
 
+def test_trailing_newline_preserved(tmp_path: Path, input_path: Path):
+    """Test that removing tokens at the end of the file doesn't eat the trailing newline."""
+    input_path.write_text('int x = 1;\n')
+    p, state = init_pass('rm-toks-1-to-1', tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    # Note that removing the `;` leaves `int x = 1\n`
+    assert b'int x = 1\n' in all_transforms
+    # Note that removing the `1` leaves `int x = ;\n`
+    assert b'int x = ;\n' in all_transforms
+
+
 def collect_all_advances(s: Any) -> list[Any]:
     observed = []
     while s is not None:
