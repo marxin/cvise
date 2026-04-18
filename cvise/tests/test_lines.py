@@ -56,6 +56,19 @@ def is_valid_brace_sequence(s: bytes) -> bool:
     return balance == 0
 
 
+def test_trailing_newline_preserved(tmp_path: Path, input_path: Path):
+    """Test that removing the last line doesn't eat the trailing newline."""
+    input_path.write_bytes(b'int x = 2;\nint main() {\n}\n')
+    p, state = init_pass('None', tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    for transform in all_transforms:
+        assert transform.endswith(b'\n')
+
+    # Deleting the last line `}\n` now leaves the `\n` behind.
+    assert b'int x = 2;\nint main() {\n\n' in all_transforms
+
+
 def test_func_namespace_level0(tmp_path: Path, input_path: Path):
     """Test that arg=0 deletes top-level functions and namespaces."""
     input_path.write_text(
@@ -808,10 +821,10 @@ def test_multi_file_arg_none(tmp_path: Path):
     all_transforms = collect_all_transforms_dir(p, state, input_dir)
 
     assert (('bar.h', b'x = 1;\n'), ('foo.cc', b'char\nbar() {}\n')) in all_transforms
-    assert (('bar.h', b'int\n'), ('foo.cc', b'char\nbar() {}\n')) in all_transforms
+    assert (('bar.h', b'int\n\n'), ('foo.cc', b'char\nbar() {}\n')) in all_transforms
     assert (('bar.h', b'int\nx = 1;\n'), ('foo.cc', b'bar() {}\n')) in all_transforms
-    assert (('bar.h', b'int\nx = 1;\n'), ('foo.cc', b'char\n')) in all_transforms
-    assert (('bar.h', b''), ('foo.cc', b'')) in all_transforms
+    assert (('bar.h', b'int\nx = 1;\n'), ('foo.cc', b'char\n\n')) in all_transforms
+    assert (('bar.h', b'\n'), ('foo.cc', b'\n')) in all_transforms
 
 
 def test_multi_file_arg_0(tmp_path: Path):
