@@ -221,14 +221,14 @@ add_subdirectory(clang_include_graph)
 add_subdirectory(clex)
 add_subdirectory(cvise)
 add_subdirectory(delta)
-add_subdirectory(treesitter_delta)
+# add_subdirectory(treesitter_delta)
 
 # Always link statically against Tree-sitter.
-set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(tree-sitter EXCLUDE_FROM_ALL)
-add_subdirectory(tree-sitter-cpp EXCLUDE_FROM_ALL)
-set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
+# set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
+# set(BUILD_SHARED_LIBS OFF)
+# add_subdirectory(tree-sitter EXCLUDE_FROM_ALL)
+# add_subdirectory(tree-sitter-cpp EXCLUDE_FROM_ALL)
+# set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
 
 # Copy top-level cvise script
 configure_file(
