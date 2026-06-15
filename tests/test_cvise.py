@@ -317,7 +317,7 @@ clean:
     proc = start_cvise(
         [
             '-c',
-            f"(make -C repro 2>&1 || true) | awk '{{ print }} /{ERROR_REGEX}/ {{ y=1 }} END {{ exit !y }}'",
+            f"(LC_ALL=C make -C repro 2>&1 || true) | awk '{{ print }} /{ERROR_REGEX}/ {{ y=1 }} END {{ exit !y }}'",
             'repro',
             '--tidy',
         ],
