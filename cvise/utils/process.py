@@ -358,6 +358,13 @@ class ProcessEventNotifier:
             except subprocess.TimeoutExpired:
                 if step_timeout == 0:
                     raise  # we reached the original timeout, so bail out
+
+                # If the child process has already exited but orphaned descendants keep the pipes open, communicate()
+                # will wait for EOF forever. In this case, we close the pipes and bail out.
+                if proc.poll() is not None:
+                    _close_pipes(proc)
+                    return proc.communicate(input=b'')  # type: ignore[arg-type]
+
                 input = b''  # the input has been written in the first communicate() call
 
 
@@ -448,15 +455,20 @@ def _auto_kill_on_timeout(proc: subprocess.Popen) -> Iterator[None]:
         raise
 
 
-def _kill(proc: subprocess.Popen) -> None:
-    # First, close i/o streams opened for PIPE. This allows us to simply use wait() to wait for the process completion.
-    # Additionally, it acts as another indication (SIGPIPE on *nix) for the process and its grandchildren to exit.
+def _close_pipes(proc: subprocess.Popen) -> None:
+    """Closes all i/o streams opened for PIPE."""
     if proc.stdin is not None:
         proc.stdin.close()
     if proc.stdout is not None:
         proc.stdout.close()
     if proc.stderr is not None:
         proc.stderr.close()
+
+
+def _kill(proc: subprocess.Popen) -> None:
+    # First, close i/o streams. This allows us to simply use wait() to wait for the process completion.
+    # Additionally, it acts as another indication (SIGPIPE on *nix) for the process and its grandchildren to exit.
+    _close_pipes(proc)
 
     # Second, attempt graceful termination (SIGTERM on *nix). We wait for some timeout that's less than Pebble's
     # term_timeout, so that we (hopefully) have time to try hard termination before C-Vise main process kills us.
