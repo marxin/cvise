@@ -10,7 +10,7 @@ on:
 # Cancel the workflow if a new one is requested for the same PR/branch, but still test all commits on the master branch.
 env:
   RETRY: 'retry() { "$@" || for i in 1 2 3 4; do echo "retrying..."; sleep 30; "$@" && break; done; }; retry'
-  ZYPPER_INSTALL_WITH_RETRY: 'retry_zypper() { zypper -n install "$@" || for i in 1 2 3 4; do echo "retrying..."; sleep 30; zypper clean -a; zypper ref; zypper -n install "$@" && break; done; }; retry_zypper'
+  ZYPPER_INSTALL_WITH_RETRY: 'retry_zypper() { zypper -n install "$@" || for i in 1 2 3 4; do echo "retrying..."; sleep 30; zypper clean -a && zypper ref && zypper -n install "$@" && break; done; }; retry_zypper'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
