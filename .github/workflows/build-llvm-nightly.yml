@@ -29,6 +29,8 @@ jobs:
       - run: ${{ env.RETRY }} apt-get update
       - run: ${{ env.RETRY }} apt-get -qq install -y gcc g++ wget lsb-release wget software-properties-common gnupg git cmake flex mawk python3-pebble python3-psutil python3-chardet python3-msgspec python3-pytest python3-pytest-mock python3-pytest-subprocess python3-jsonschema python3-zstandard vim unifdef sudo
       - uses: rui314/setup-mold@v1
+        with:
+          make-default: false
       - run: ld --version
       - run: nproc
       - run: ${{ env.RETRY }} wget https://apt.llvm.org/llvm.sh
@@ -39,7 +41,7 @@ jobs:
       - run: touch /usr/lib/llvm-22/lib/libLibcTableGenUtil.a
       - uses: actions/checkout@v6
       - run: mkdir objdir
-      - run: cmake ..
+      - run: cmake .. -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=mold"
         working-directory: objdir
       - run: make -j`nproc` VERBOSE=1
         working-directory: objdir

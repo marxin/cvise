@@ -51,6 +51,8 @@ jobs:
     - run: ${{ env.RETRY }} zypper -n install sqlite-devel python3
     - run: ${{ env.RETRY }} pip install --break-system-packages pytest-cov
     - uses: rui314/setup-mold@v1
+      with:
+        make-default: false
     - run: ld --version
     - run: nproc
     - uses: actions/checkout@v6
@@ -58,7 +60,7 @@ jobs:
       run: |
             mkdir objdir
             cd objdir
-            ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS=${{ matrix.extra-flags }}
+            ${{ matrix.env }} cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS="${{ matrix.extra-flags }}" -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=mold"
             make -j`nproc` VERBOSE=1
     - name: test
       run: pytest
