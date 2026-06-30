@@ -9,7 +9,7 @@ on:
 
 # Cancel the workflow if a new one is requested for the same PR/branch, but still test all commits on the master branch.
 env:
-  RETRY: 'retry() { "$@" || for i in 1 2 3 4 5 6 7 8; do echo "retrying..."; sleep 30; "$@" && break; done; }; retry'
+  RETRY: 'retry() { "$@" || for i in 1 2 3 4; do echo "retrying..."; sleep 30; "$@" && break; done; }; retry'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -18,7 +18,7 @@ concurrency:
 jobs:
   CI:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
 
     strategy:
       matrix:
@@ -42,13 +42,9 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
+    - uses: actions/checkout@v6
     - name: Setup openSUSE snapshot repository
-      run: |
-        SNAPSHOT=$(curl -sL https://download.opensuse.org/history/ | grep -o '202[0-9]\{5\}' | sort -n | uniq | tail -n 3 | head -n 1)
-        zypper rr --all
-        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
-        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/non-oss/ repo-non-oss
-        ${{ env.RETRY }} zypper ref
+      uses: ./.github/actions/setup-opensuse
     - run: |
         ${{ env.RETRY }} zypper -n install \
           binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel \
@@ -62,7 +58,6 @@ jobs:
         make-default: false
     - run: ld --version
     - run: nproc
-    - uses: actions/checkout@v6
     - name: build
       run: |
             mkdir objdir
@@ -94,7 +89,7 @@ jobs:
 
   CI-python:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
     container:
       image: ubuntu:latest
 
@@ -133,40 +128,30 @@ jobs:
 
   ruff:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
     container:
       image: opensuse/tumbleweed
 
     steps:
-    - name: Setup openSUSE snapshot repository
-      run: |
-        SNAPSHOT=$(curl -sL https://download.opensuse.org/history/ | grep -o '202[0-9]\{5\}' | sort -n | uniq | tail -n 3 | head -n 1)
-        zypper rr --all
-        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
-        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/non-oss/ repo-non-oss
-        ${{ env.RETRY }} zypper ref
-    - run: ${{ env.RETRY }} zypper -n install python3-pip
     - uses: actions/checkout@v6
+    - name: Setup openSUSE snapshot repository
+      uses: ./.github/actions/setup-opensuse
+    - run: ${{ env.RETRY }} zypper -n install python3-pip
     - run: ${{ env.RETRY }} pip install --break-system-packages ruff
     - run: ruff check
     - run: ruff format --diff
 
   pytype:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
     container:
       image: opensuse/tumbleweed
 
     steps:
-    - name: Setup openSUSE snapshot repository
-      run: |
-        SNAPSHOT=$(curl -sL https://download.opensuse.org/history/ | grep -o '202[0-9]\{5\}' | sort -n | uniq | tail -n 3 | head -n 1)
-        zypper rr --all
-        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
-        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/non-oss/ repo-non-oss
-        ${{ env.RETRY }} zypper ref
-    - run: ${{ env.RETRY }} zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python312
     - uses: actions/checkout@v6
+    - name: Setup openSUSE snapshot repository
+      uses: ./.github/actions/setup-opensuse
+    - run: ${{ env.RETRY }} zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python312
     - name: prepare venv
       # Pytype currently only supports Python <=3.12
       run: |
@@ -187,25 +172,20 @@ jobs:
 
   pyright:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
     container:
       image: opensuse/tumbleweed
 
     steps:
+    - uses: actions/checkout@v6
     - name: Setup openSUSE snapshot repository
-      run: |
-        SNAPSHOT=$(curl -sL https://download.opensuse.org/history/ | grep -o '202[0-9]\{5\}' | sort -n | uniq | tail -n 3 | head -n 1)
-        zypper rr --all
-        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
-        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/non-oss/ repo-non-oss
-        ${{ env.RETRY }} zypper ref
+      uses: ./.github/actions/setup-opensuse
     - run: |
         ${{ env.RETRY }} zypper -n install \
           binutils clang-devel cmake flex gcc-c++ llvm-devel python3 python3-pyright \
           python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess \
           unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-jsonschema \
           python3-msgspec python3-zstandard
-    - uses: actions/checkout@v6
     - run: mkdir objdir
     - run: cmake ..
       working-directory: objdir
