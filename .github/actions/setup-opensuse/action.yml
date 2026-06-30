@@ -6,7 +6,7 @@ runs:
     - name: Setup openSUSE snapshot repository
       shell: bash
       run: |
-        SNAPSHOT=$(curl -sL https://download.opensuse.org/history/ | grep -o '202[0-9]\{5\}' | sort -n | uniq | tail -n 3 | head -n 1)
+        SNAPSHOT=$(curl -s "https://openqa.opensuse.org/group_overview/1.json" | jq -r '.build_results[2].build')
         echo "Using snapshot: $SNAPSHOT"
         zypper rr --all
         zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
