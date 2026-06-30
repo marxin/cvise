@@ -1,0 +1,18 @@
+name: "Setup openSUSE Tumbleweed Snapshot"
+description: "Configures zypper to use a stable historical snapshot to bypass CDN flakiness"
+runs:
+  using: "composite"
+  steps:
+    - name: Setup openSUSE snapshot repository
+      shell: bash
+      run: |
+        SNAPSHOT=$(curl -sL https://download.opensuse.org/history/ | grep -o '202[0-9]\{5\}' | sort -n | uniq | tail -n 3 | head -n 1)
+        echo "Using snapshot: $SNAPSHOT"
+        zypper rr --all
+        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
+        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/non-oss/ repo-non-oss
+        if [ -n "$RETRY" ]; then
+          eval "$RETRY zypper ref"
+        else
+          retry() { "$@" || for i in 1 2 3 4; do echo "retrying..."; sleep 30; "$@" && break; done; }; retry zypper ref
+        fi
