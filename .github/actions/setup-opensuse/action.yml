@@ -11,8 +11,4 @@ runs:
         zypper rr --all
         zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
         zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/non-oss/ repo-non-oss
-        if [ -n "$RETRY" ]; then
-          eval "$RETRY zypper ref"
-        else
-          retry() { "$@" || for i in 1 2 3 4; do echo "retrying..."; sleep 30; "$@" && break; done; }; retry zypper ref
-        fi
+        zypper ref
