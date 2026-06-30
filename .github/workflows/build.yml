@@ -42,7 +42,13 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: ${{ env.RETRY }} bash -c 'zypper clean -a && zypper ref'
+    - name: Setup openSUSE snapshot repository
+      run: |
+        SNAPSHOT=$(curl -sL https://download.opensuse.org/history/ | grep -o '202[0-9]\{5\}' | sort -n | uniq | tail -n 3 | head -n 1)
+        zypper rr --all
+        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
+        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/non-oss/ repo-non-oss
+        ${{ env.RETRY }} zypper ref
     - run: |
         ${{ env.RETRY }} zypper -n install \
           binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel \
@@ -132,7 +138,13 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: ${{ env.RETRY }} bash -c 'zypper clean -a && zypper ref'
+    - name: Setup openSUSE snapshot repository
+      run: |
+        SNAPSHOT=$(curl -sL https://download.opensuse.org/history/ | grep -o '202[0-9]\{5\}' | sort -n | uniq | tail -n 3 | head -n 1)
+        zypper rr --all
+        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
+        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/non-oss/ repo-non-oss
+        ${{ env.RETRY }} zypper ref
     - run: ${{ env.RETRY }} zypper -n install python3-pip
     - uses: actions/checkout@v6
     - run: ${{ env.RETRY }} pip install --break-system-packages ruff
@@ -146,7 +158,13 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: ${{ env.RETRY }} bash -c 'zypper clean -a && zypper ref'
+    - name: Setup openSUSE snapshot repository
+      run: |
+        SNAPSHOT=$(curl -sL https://download.opensuse.org/history/ | grep -o '202[0-9]\{5\}' | sort -n | uniq | tail -n 3 | head -n 1)
+        zypper rr --all
+        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
+        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/non-oss/ repo-non-oss
+        ${{ env.RETRY }} zypper ref
     - run: ${{ env.RETRY }} zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python312
     - uses: actions/checkout@v6
     - name: prepare venv
@@ -174,7 +192,13 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: ${{ env.RETRY }} bash -c 'zypper clean -a && zypper ref'
+    - name: Setup openSUSE snapshot repository
+      run: |
+        SNAPSHOT=$(curl -sL https://download.opensuse.org/history/ | grep -o '202[0-9]\{5\}' | sort -n | uniq | tail -n 3 | head -n 1)
+        zypper rr --all
+        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
+        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/non-oss/ repo-non-oss
+        ${{ env.RETRY }} zypper ref
     - run: |
         ${{ env.RETRY }} zypper -n install \
           binutils clang-devel cmake flex gcc-c++ llvm-devel python3 python3-pyright \
