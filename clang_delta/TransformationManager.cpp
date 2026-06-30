@@ -187,6 +187,18 @@ bool TransformationManager::initializeCompilerInstance(std::string &ErrorMsg)
                                Language::OpenCL,
 			       T, includes);
   }
+#if LLVM_VERSION_MAJOR >= 17
+  else if (IK.getLanguage() == Language::HIP) {
+    std::vector<const char *> Args;
+    Args.push_back("-x");
+    Args.push_back("hip");
+
+    CompilerInvocation::CreateFromArgs(Invocation, Args,
+                                       ClangInstance->getDiagnostics());
+    LangOptions::setLangDefaults(ClangInstance->getLangOpts(), Language::HIP,
+                                 T, includes, LSTD);
+  }
+#endif
   else {
     ErrorMsg = "Unsupported file type!";
     return false;

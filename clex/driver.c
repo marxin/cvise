@@ -15,6 +15,7 @@
 
 #include <assert.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -302,7 +303,13 @@ static void rm_toks(int idx) {
       }
       which++;
     }
-    if (!started || (which > (idx + n_toks)))
+    bool should_print = !started || (which > (idx + n_toks));
+    // Do not consume the file-terminating newline.
+    if (!should_print && tok_list[i].kind == TOK_NEWLINE &&
+        (i + 1 == toks || tok_list[i + 1].path_id != tok_list[i].path_id)) {
+      should_print = true;
+    }
+    if (should_print)
       printf("%s", tok_list[i].str);
   }
   if (matched) {
@@ -319,6 +326,13 @@ static void hints_toks(void) {
   for (i = 0; i < toks; i++) {
     if (tok_list[i].kind == TOK_WS || tok_list[i].kind == TOK_NEWLINE)
       continue;
+
+    // Do not consume the file-terminating newline even as a standalone hint.
+    if (tok_list[i].kind == TOK_NEWLINE &&
+        (i + 1 == toks || tok_list[i + 1].path_id != tok_list[i].path_id)) {
+      continue;
+    }
+
     int cut_start = tok_list[i].start_pos;
     // Also eat subsequent spaces within the same file, so that two consecutive
     // hints remove both tokens with all spaces between them.
@@ -326,6 +340,11 @@ static void hints_toks(void) {
            (tok_list[i + 1].kind == TOK_WS ||
             tok_list[i + 1].kind == TOK_NEWLINE) &&
            tok_list[i + 1].path_id == tok_list[i].path_id) {
+      // Do not consume the file-terminating newline.
+      if (tok_list[i + 1].kind == TOK_NEWLINE &&
+          (i + 2 == toks || tok_list[i + 2].path_id != tok_list[i].path_id)) {
+        break;
+      }
       ++i;
     }
     int cut_end = tok_list[i].start_pos + tok_list[i].len;
@@ -482,8 +501,20 @@ int yywrap(void) {
   }
   char *path = NULL;
   size_t size = 0;
-  ssize_t nread = getdelim(&path, &size, 0, stdin);
-  if (nread == -1 || !strlen(path)) {
+  size_t len = 0;
+  int c;
+  while ((c = fgetc(stdin)) != EOF && c != '\0') {
+    if (len + 1 >= size) {
+      size = size == 0 ? 256 : size * 2;
+      path = (char*)realloc(path, size);
+      if (!path) abort();
+    }
+    path[len++] = c;
+  }
+  if (path) {
+    path[len] = '\0';
+  }
+  if (!path || len == 0) {
     free(path);
     path_id = INT_MAX;
     return 1;

@@ -307,7 +307,7 @@ def main():
         nargs='?',
         help='Executable to check interestingness of test cases',
     )
-    parser.add_argument('test_cases', metavar='TEST_CASE', nargs='+', help='Test cases (files or directories)')
+    parser.add_argument('test_cases', metavar='TEST_CASE', nargs='*', help='Test cases (files or directories)')
     parser.add_argument(
         '--stopping-threshold',
         default=1.0,
@@ -329,6 +329,15 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Shift interestingness_test to test_cases if --commands is used,
+    # or if it's the only positional argument (to match argparse nargs='+' behavior)
+    if args.interestingness_test is not None and (args.commands is not None or not args.test_cases):
+        args.test_cases.insert(0, args.interestingness_test)
+        args.interestingness_test = None
+
+    if not args.list_passes and not args.test_cases:
+        parser.error('the following arguments are required: TEST_CASE')
 
     log_config = {}
 
@@ -420,11 +429,6 @@ def do_reduce(args):
     if not args.interestingness_test and not args.commands:
         print('Either INTERESTINGNESS_TEST or --commands must be used!')
         sys.exit(1)
-
-    # shift interestingness_test if --commands is used
-    if args.interestingness_test and args.commands:
-        args.test_cases.insert(0, args.interestingness_test)
-        args.interestingness_test = None
 
     test_cases = [Path(s) for s in args.test_cases]
 

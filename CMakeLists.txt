@@ -88,7 +88,7 @@ endif()
 # `git archive' inserts the abbreviated hash of the archive's commit into this
 # file.  (See the `.gitattributes' file.)
 #
-set(GIT_HASH "$Format:%h$")
+set(GIT_HASH "$Format:%H$")
 if(GIT_HASH MATCHES "^\\$")
   ## METHOD 2: The source tree is a git repository.
   get_git_head_revision(GIT_REFSPEC GIT_HASH)

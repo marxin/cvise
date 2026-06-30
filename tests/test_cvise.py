@@ -67,7 +67,7 @@ def test_simple_reduction(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     check_cvise(
         'blocksort-part.c',
         ['-c', r"gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c"],
-        ['#define nextHi', '#define nextHi\n', '#undef nextHi', '#undef nextHi\n'],
+        ['#define nextHi', '#define nextHi\n', '#undef nextHi', '#undef nextHi\n', 'nextHi;'],
         tmp_path,
         overridden_subprocess_tmpdir,
     )
@@ -77,7 +77,7 @@ def test_simple_reduction_no_interleaving_config(tmp_path: Path, overridden_subp
     check_cvise(
         'blocksort-part.c',
         ['-c', r"gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c", '--pass-group', 'no-interleaving'],
-        ['#define nextHi', '#define nextHi\n', '#undef nextHi', '#undef nextHi\n'],
+        ['#define nextHi', '#define nextHi\n', '#undef nextHi', '#undef nextHi\n', 'nextHi;'],
         tmp_path,
         overridden_subprocess_tmpdir,
     )
@@ -253,7 +253,7 @@ def test_non_ascii_interestingness_test(tmp_path: Path, overridden_subprocess_tm
     check_cvise(
         'blocksort-part.c',
         ['-c', r"printf '\xc3\xa4\xff'; gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c"],
-        ['#define nextHi', '#define nextHi\n', '#undef nextHi', '#undef nextHi\n'],
+        ['#define nextHi', '#define nextHi\n', '#undef nextHi', '#undef nextHi\n', 'nextHi;'],
         tmp_path,
         overridden_subprocess_tmpdir,
     )
@@ -317,7 +317,7 @@ clean:
     proc = start_cvise(
         [
             '-c',
-            f"(make -C repro 2>&1 || true) | awk '{{ print }} /{ERROR_REGEX}/ {{ y=1 }} END {{ exit !y }}'",
+            f"(LC_ALL=C make -C repro 2>&1 || true) | awk '{{ print }} /{ERROR_REGEX}/ {{ y=1 }} END {{ exit !y }}'",
             'repro',
             '--tidy',
         ],
@@ -565,6 +565,21 @@ def test_failing_interestingness_test(tmp_path: Path, overridden_subprocess_tmpd
 
     assert proc.returncode != 0, f'Process succeeded unexpectedly; stderr:\n{stderr}\nstdout:\n{stdout}'
     assert 'interestingness test does not return' in stdout
+
+
+def test_list_passes(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    """Test that --list-passes works without providing an interestingness test or test cases."""
+    proc = start_cvise(
+        ['--list-passes'],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    stdout, stderr = proc.communicate()
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
+    assert 'Available passes:' in stdout
+    assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
 
 
 def _read_files_in_dir(dir: Path) -> dict[str, str]:
