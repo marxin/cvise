@@ -3,10 +3,19 @@ description: "Configures zypper to use a stable historical snapshot to bypass CD
 runs:
   using: "composite"
   steps:
+    - name: Fetch latest stable snapshot date
+      uses: actions/github-script@v7
+      id: get-snapshot
+      with:
+        script: |
+          const response = await fetch("https://openqa.opensuse.org/group_overview/1.json");
+          const data = await response.json();
+          return data.build_results[2].build;
+        result-encoding: string
     - name: Setup openSUSE snapshot repository
       shell: bash
       run: |
-        SNAPSHOT=$(curl -s "https://openqa.opensuse.org/group_overview/1.json" | jq -r '.build_results[2].build')
+        SNAPSHOT="${{ steps.get-snapshot.outputs.result }}"
         echo "Using snapshot: $SNAPSHOT"
         zypper rr --all
         zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
