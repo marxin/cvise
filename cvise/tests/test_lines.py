@@ -5,8 +5,14 @@ import pytest
 
 from cvise.passes.lines import LinesPass
 from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir, validate_stored_hints
+from cvise.utils import sigmonitor
 from cvise.utils.externalprograms import find_external_programs
 from cvise.utils.process import ProcessEventNotifier
+
+
+@pytest.fixture(autouse=True)
+def signal_monitor():
+    sigmonitor.init()
 
 
 @pytest.fixture
@@ -48,6 +54,19 @@ def is_valid_brace_sequence(s: bytes) -> bool:
         if balance < 0:
             return False
     return balance == 0
+
+
+def test_trailing_newline_preserved(tmp_path: Path, input_path: Path):
+    """Test that removing the last line doesn't eat the trailing newline."""
+    input_path.write_bytes(b'int x = 2;\nint main() {\n}\n')
+    p, state = init_pass('None', tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    for transform in all_transforms:
+        assert transform.endswith(b'\n')
+
+    # Deleting the last line `}\n` now leaves the `\n` behind.
+    assert b'int x = 2;\nint main() {\n\n' in all_transforms
 
 
 def test_func_namespace_level0(tmp_path: Path, input_path: Path):
@@ -802,10 +821,10 @@ def test_multi_file_arg_none(tmp_path: Path):
     all_transforms = collect_all_transforms_dir(p, state, input_dir)
 
     assert (('bar.h', b'x = 1;\n'), ('foo.cc', b'char\nbar() {}\n')) in all_transforms
-    assert (('bar.h', b'int\n'), ('foo.cc', b'char\nbar() {}\n')) in all_transforms
+    assert (('bar.h', b'int\n\n'), ('foo.cc', b'char\nbar() {}\n')) in all_transforms
     assert (('bar.h', b'int\nx = 1;\n'), ('foo.cc', b'bar() {}\n')) in all_transforms
-    assert (('bar.h', b'int\nx = 1;\n'), ('foo.cc', b'char\n')) in all_transforms
-    assert (('bar.h', b''), ('foo.cc', b'')) in all_transforms
+    assert (('bar.h', b'int\nx = 1;\n'), ('foo.cc', b'char\n\n')) in all_transforms
+    assert (('bar.h', b'\n'), ('foo.cc', b'\n')) in all_transforms
 
 
 def test_multi_file_arg_0(tmp_path: Path):
@@ -836,3 +855,10 @@ def test_multi_file_arg_0_unclosed_block(tmp_path: Path):
 
     assert (('bar.h', b''), ('foo.h', b'class A {\n')) in all_transforms
     assert (('bar.h', b'namespace {\n'), ('foo.h', b'')) in all_transforms
+
+
+def test_multi_file_no_files(tmp_path: Path):
+    input_dir = tmp_path / 'test_case'
+    input_dir.mkdir()
+    p, state = init_pass('0', tmp_path, input_dir)
+    assert collect_all_transforms_dir(p, state, input_dir) == set()

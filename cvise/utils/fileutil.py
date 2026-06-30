@@ -9,6 +9,7 @@ import os
 import random
 import re
 import shutil
+import stat
 import string
 import tempfile
 import threading
@@ -28,10 +29,13 @@ def CloseableTemporaryFile(mode='w+b', dir: Path | None = None):
     # Use a unique name pattern, so that if NamedTemporaryFile construction or cleanup aborted mid-way (e.g., via
     # KeyboardInterrupt), we can identify and delete the leftover file.
     prefix = _get_random_temp_file_name_prefix()
-    with _clean_up_files_on_abnormal_exit(dir, prefix):
+    try:
         f = tempfile.NamedTemporaryFile(mode=mode, delete=False, dir=dir, prefix=prefix)
         with _auto_close_and_unlink(f):
             yield f
+    except (KeyboardInterrupt, SystemExit, OSError):
+        _cleanup_abnormal_exit(dir, prefix)
+        raise
 
 
 class TmpDirManager:
@@ -167,11 +171,16 @@ def copy_test_case(source: Path, destination_parent: Path) -> None:
 
 
 def replace_test_case_atomically(source: Path, destination: Path, move: bool = True) -> None:
-    # First prepare the contents in a temporary location in the same folder as the destination path, and then rename/swap
-    # it with the destination. We use the fact that a rename is atomic on popular file systems, within a single file
-    # system's boundaries.
     if source.is_dir():
-        with _robust_temp_dir(dir=destination.parent) as tmp_dir:
+        _replace_dir_test_case_atomically(source, destination, move)
+    else:
+        _replace_file_test_case_atomically(source, destination, move)
+
+
+def _replace_dir_test_case_atomically(source: Path, destination: Path, move: bool) -> None:
+    prefix = _get_random_temp_file_name_prefix()
+    try:
+        with tempfile.TemporaryDirectory(prefix=prefix, dir=destination.parent) as tmp_dir:
             tmp_path = Path(tmp_dir)
 
             new_path = tmp_path / source.name
@@ -189,15 +198,24 @@ def replace_test_case_atomically(source: Path, destination: Path, move: bool = T
                 with contextlib.suppress(Exception):
                     old_destination.rename(destination)
                 raise
-    else:
-        with CloseableTemporaryFile(dir=destination.parent) as tmp:
-            tmp_path = Path(tmp.name)
-            tmp.close()
-            if move:
-                shutil.move(source, tmp_path)
-            else:
-                shutil.copy2(source, tmp_path)
-            tmp_path.rename(destination)
+    except (KeyboardInterrupt, SystemExit, OSError):
+        # Make sure the directory is cleaned up even if the creation was aborted halfway or __exit__ failed.
+        _cleanup_abnormal_exit(destination.parent, prefix)
+        raise
+
+
+def _replace_file_test_case_atomically(source: Path, destination: Path, move: bool) -> None:
+    # First prepare the contents in a temporary location in the same folder as the destination path, and then rename/swap
+    # it with the destination. We use the fact that a rename is atomic on popular file systems, within a single file
+    # system's boundaries.
+    with CloseableTemporaryFile(dir=destination.parent) as tmp:
+        tmp_path = Path(tmp.name)
+        tmp.close()
+        if move:
+            shutil.move(source, tmp_path)
+        else:
+            shutil.copy2(source, tmp_path)
+        tmp_path.rename(destination)
 
 
 def hash_test_case(test_case: Path) -> bytes:
@@ -222,7 +240,7 @@ def filter_files_by_patterns(test_case: Path, include_globs: list[str], default_
     else:
         all = _find_files_matching(test_case, ['**/*'])
         exclude = _find_files_matching(test_case, default_exclude_globs)
-        paths = all - exclude
+        paths = set(all) - set(exclude)
     return sorted(paths)
 
 
@@ -316,18 +334,23 @@ def _get_random_temp_file_name_prefix() -> str:
     return f'cvise-{"".join(letters)}-'
 
 
-@contextlib.contextmanager
-def _clean_up_files_on_abnormal_exit(dir: Path, prefix: str) -> Iterator[None]:
-    try:
-        yield
-    except (KeyboardInterrupt, SystemExit):
-        lst = list(dir.glob(f'{prefix}*'))
-        for p in lst:
-            if p.is_file():
-                p.unlink(missing_ok=True)
-            else:
-                shutil.rmtree(p)
-        raise
+def _cleanup_abnormal_exit(dir: Path, prefix: str) -> None:
+    lst = list(dir.glob(f'{prefix}*'))
+    for p in lst:
+        try:
+            # Use lstat() to read file attributes in a single system call without following symlinks (instead of calling
+            # is_dir()+is_symlink() separately).
+            is_dir = stat.S_ISDIR(p.lstat().st_mode)
+        except FileNotFoundError:
+            continue
+
+        if not is_dir:
+            p.unlink(missing_ok=True)
+            continue
+        try:
+            shutil.rmtree(p)
+        except FileNotFoundError:
+            pass
 
 
 @contextlib.contextmanager
@@ -342,30 +365,23 @@ def _auto_close_and_unlink(tmp_file) -> Iterator[None]:
             os.unlink(tmp_file.name)
 
 
-@contextlib.contextmanager
-def _robust_temp_dir(dir: Path) -> Iterator[Path]:
-    """Unlike TemporaryDirectory, guarantees to not leave leftovers on keyboard/exit exceptions."""
-    prefix = _get_random_temp_file_name_prefix()
-    with _clean_up_files_on_abnormal_exit(dir, prefix):
-        with tempfile.TemporaryDirectory(prefix=prefix, dir=dir) as tmp_dir:
-            yield Path(tmp_dir)
-
-
-def _find_files_matching(test_case: Path, globs: list[str]) -> set[Path]:
+def _find_files_matching(test_case: Path, globs: list[str]) -> list[Path]:
     if test_case.is_symlink():
-        return set()
+        return []
 
     if not test_case.is_dir():
         # TODO: use full_match() once Python 3.13 is the oldest supported release
         for pattern in globs:
             pattern = pattern.removeprefix('**/')
             if fnmatch.fnmatch(str(test_case), pattern):
-                return {test_case}
-        return set()
+                return [test_case]
+        return []
 
-    paths = set()
+    inode_to_path = {}
     for pattern in globs:
         for path in test_case.glob(pattern):
             if not path.is_dir() and not path.is_symlink() and path.is_relative_to(test_case):
-                paths.add(path)
-    return paths
+                st = path.stat()
+                key = st.st_dev, st.st_ino
+                inode_to_path.setdefault(key, path)
+    return list(inode_to_path.values())

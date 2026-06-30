@@ -7,10 +7,18 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from cvise.passes.clanghints import ClangHintsPass
 from cvise.tests.testabstract import collect_all_transforms, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
 from cvise.utils.process import ProcessEventNotifier
+from cvise.utils import sigmonitor
+
+
+@pytest.fixture(autouse=True)
+def signal_monitor():
+    sigmonitor.init()
 
 
 def get_data_path(testcase: str) -> Path:

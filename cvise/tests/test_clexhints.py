@@ -9,6 +9,13 @@ from cvise.passes.clexhints import ClexHintsPass
 from cvise.tests.testabstract import collect_all_transforms, collect_all_transforms_dir, validate_stored_hints
 from cvise.utils.externalprograms import find_external_programs
 from cvise.utils.process import ProcessEventNotifier
+from cvise.utils import sigmonitor
+
+
+@pytest.fixture(autouse=True)
+def signal_monitor():
+    sigmonitor.init()
+
 
 # How many times to repeat each test that involves randomness (for extra reassurance).
 RANDOM_TEST_REPETITIONS = 10
@@ -61,6 +68,7 @@ void f() {
     b"""
 void f() {
     char x;
+
 """,
 ]
 
@@ -99,11 +107,12 @@ void f() {
 """,
     b"""
 void f() {
-    char x""",
+    char x
+""",
 ]
 
 TOKENS_REMOVED_8 = [
-    b'\n',
+    b'\n\n',
 ]
 
 
@@ -155,6 +164,18 @@ def test_rm_toks_16_shorter(tmp_path: Path, input_path: Path):
     assert set(TOKENS_REMOVED_8) <= all_transforms
     assert set(TOKENS_REMOVED_2) <= all_transforms
     assert set(TOKENS_REMOVED_1) <= all_transforms
+
+
+def test_trailing_newline_preserved(tmp_path: Path, input_path: Path):
+    """Test that removing tokens at the end of the file doesn't eat the trailing newline."""
+    input_path.write_text('int x = 1;\n')
+    p, state = init_pass('rm-toks-1-to-1', tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    # Note that removing the `;` leaves `int x = 1\n`
+    assert b'int x = 1\n' in all_transforms
+    # Note that removing the `1` leaves `int x = ;\n`
+    assert b'int x = ;\n' in all_transforms
 
 
 def collect_all_advances(s: Any) -> list[Any]:
@@ -244,8 +265,8 @@ def test_directory_input_leading_trailing_spaces(tmp_path: Path):
     p, state = init_pass('rm-toks-1-to-1', tmp_path, test_case)
     all_transforms = collect_all_transforms_dir(p, state, test_case)
 
-    assert (('a.txt', b'\n'), ('b.txt', b'\nchar\n')) in all_transforms
-    assert (('a.txt', b'\nint\n'), ('b.txt', b'\n')) in all_transforms
+    assert (('a.txt', b'\n\n'), ('b.txt', b'\nchar\n')) in all_transforms
+    assert (('a.txt', b'\nint\n'), ('b.txt', b'\n\n')) in all_transforms
 
 
 def test_directory_unclosed_c_comment(tmp_path: Path):

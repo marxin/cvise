@@ -3,6 +3,7 @@ import shutil
 import signal
 import stat
 import subprocess
+import sys
 import tempfile
 import time
 from collections.abc import Iterator
@@ -24,7 +25,7 @@ def overridden_subprocess_tmpdir() -> Iterator[Path]:
 
 def start_cvise(arguments: list[str], tmp_path: Path, overridden_subprocess_tmpdir: Path) -> subprocess.Popen:
     binary = Path(__file__).parent.parent / 'cvise-cli.py'
-    cmd = [str(binary)] + arguments
+    cmd = [sys.executable, str(binary)] + arguments
 
     new_env = os.environ.copy()
     new_env['TMPDIR'] = str(overridden_subprocess_tmpdir)
@@ -66,7 +67,7 @@ def test_simple_reduction(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     check_cvise(
         'blocksort-part.c',
         ['-c', r"gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c"],
-        ['#define nextHi', '#define nextHi\n', '#undef nextHi', '#undef nextHi\n'],
+        ['#define nextHi', '#define nextHi\n', '#undef nextHi', '#undef nextHi\n', 'nextHi;'],
         tmp_path,
         overridden_subprocess_tmpdir,
     )
@@ -76,10 +77,31 @@ def test_simple_reduction_no_interleaving_config(tmp_path: Path, overridden_subp
     check_cvise(
         'blocksort-part.c',
         ['-c', r"gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c", '--pass-group', 'no-interleaving'],
-        ['#define nextHi', '#define nextHi\n', '#undef nextHi', '#undef nextHi\n'],
+        ['#define nextHi', '#define nextHi\n', '#undef nextHi', '#undef nextHi\n', 'nextHi;'],
         tmp_path,
         overridden_subprocess_tmpdir,
     )
+
+
+def test_multiple_files(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    """Test the reduction of multiple files specified as separate test cases."""
+    main_path = tmp_path / 'main.c'
+    main_path.write_text('int main() {}\n')
+    other_path = tmp_path / 'other.c'
+    other_path.write_text('void foo() {}\n')
+
+    proc = start_cvise(
+        ['-c', 'gcc -Wall -Werror main.c other.c', main_path.name, other_path.name],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    stdout, stderr = proc.communicate()
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
+    assert main_path.read_text() == 'int main() {}\n'
+    assert other_path.read_text() == ''
+    assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
@@ -231,7 +253,7 @@ def test_non_ascii_interestingness_test(tmp_path: Path, overridden_subprocess_tm
     check_cvise(
         'blocksort-part.c',
         ['-c', r"printf '\xc3\xa4\xff'; gcc -c blocksort-part.c && grep '\<nextHi\>' blocksort-part.c"],
-        ['#define nextHi', '#define nextHi\n', '#undef nextHi', '#undef nextHi\n'],
+        ['#define nextHi', '#define nextHi\n', '#undef nextHi', '#undef nextHi\n', 'nextHi;'],
         tmp_path,
         overridden_subprocess_tmpdir,
     )
@@ -248,7 +270,6 @@ def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
             '-c',
             'gcc -c repro/a.cc && grep "nextHi = x" repro/a.cc',
             'repro',
-            '--tidy',
         ],
         tmp_path,
         overridden_subprocess_tmpdir,
@@ -260,6 +281,198 @@ def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     )
     assert (test_case / 'a.h').read_text() == 'int x ;\n'
     assert (test_case / 'a.cc').read_text() == '#include "a.h"\nint nextHi = x;\n'
+
+
+def test_dir_linker_duplicate_var_error(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    """Test reducing headers and a makefile for a link-time error due to duplicate variables.
+
+    Here we had to hardcode particular error messages from real linkers.
+    """
+    ERROR_REGEX = 'multiple|duplicate'
+
+    test_case = tmp_path / 'repro'
+    test_case.mkdir()
+    (test_case / 'h1.h').write_text('int x = 1;\n')
+    (test_case / 'h2.h').write_text('#include "h1.h"\n')
+    (test_case / 'src1.c').write_text('#include "h2.h"\n')
+    (test_case / 'src2.c').write_text('// some comment\nint x = 2;\nint main() {\n}\n')
+    (test_case / 'src3.c').write_text('int unrelated() {\nreturn 42;\n}\n')
+    (test_case / 'Makefile').write_text(
+        """.PHONY: all clean
+all: prog
+src1.o:
+\tgcc -Werror -c src1.c
+src2.o:
+\tgcc -Werror -c src2.c
+src3.o:
+\tgcc -Werror -c src3.c
+prog: src1.o src2.o src3.o
+\tgcc -o prog src1.o src2.o src3.o
+clean:
+\trm -f src1.o src2.o src3.o prog
+"""
+    )
+
+    # Use awk instead of grep to easily see the whole build log if the test fails.
+    proc = start_cvise(
+        [
+            '-c',
+            f"(LC_ALL=C make -C repro 2>&1 || true) | awk '{{ print }} /{ERROR_REGEX}/ {{ y=1 }} END {{ exit !y }}'",
+            'repro',
+            '--tidy',
+        ],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    stdout, stderr = proc.communicate()
+
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
+    expected_makefile = """.PHONY: all clean
+all: prog
+src1.o:
+\tgcc -Werror -c src1.c
+src2.o:
+\tgcc -Werror -c src2.c
+prog: src1.o src2.o
+\tgcc -o prog src1.o src2.o
+clean:
+\trm -f src1.o src2.o prog
+"""
+    assert _read_files_in_dir(test_case) in (
+        {
+            'Makefile': expected_makefile,
+            'src1.c': 'int x ;\n',
+            'src2.c': 'int x ;\n',
+        },
+        {
+            'Makefile': expected_makefile,
+            'src1.c': 'int x = 1;\n',
+            'src2.c': 'int x = 2;\nint main() {}\n',
+        },
+    )
+
+
+def test_dir_fibonacci_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    """Test reducing headers for a compile-time Fibonacci sequence evaluation.
+
+    To prevent C-Vise from deleting compile-time calculations, our makefile checks that the compilation fails iff a
+    preprocessor definition (used in a compile-time assert) is nonzero.
+    """
+    test_case = tmp_path / 'repro'
+    test_case.mkdir()
+    (test_case / 'head1.h').write_text(
+        """
+#ifndef HEAD1_H_
+#define HEAD1_H_
+
+// Fibonacci sequence, induction step.
+template <int N>
+struct Fib {
+  static constexpr int value = Fib<N - 1>::value + Fib<N - 2>::value;
+};
+
+#endif  // HEAD1_H_
+"""
+    )
+    (test_case / 'head2.h').write_text(
+        """
+#ifndef HEAD2_H_
+#define HEAD2_H_
+
+#include "head1.h"
+
+// Fibonacci sequence, base steps.
+template <>
+struct Fib<0> {
+    static constexpr int value = 0;
+};
+template <>
+struct Fib<1> {
+    static constexpr int value = 1;
+};
+
+#endif  // HEAD2_H_
+"""
+    )
+    (test_case / 'head3.h').write_text(
+        """
+#ifndef HEAD3_H_
+#define HEAD3_H_
+
+#include <vector>
+
+std::vector<int> Foo() {
+    return {1, 2, 3};
+}
+
+#endif  // HEAD3_H_
+"""
+    )
+    (test_case / 'src1.cc').write_text(
+        """
+#include "head2.h"
+#include "head3.h"
+static_assert(Fib<6>::value == 8 + DISTURB, "unexpected Fibonacci value #6");
+"""
+    )
+    (test_case / 'src2.cc').write_text('// unrelated\nint x;\n')
+    (test_case / 'src3.cc').write_text('int main() {\n}\n')
+    (test_case / 'Makefile').write_text(
+        """.PHONY: all sanity
+all: prog sanity
+prog: src1.o src2.o src3.o
+\tg++ -o prog -lstdc++ src1.o src2.o src3.o
+src1.o:
+\tg++ -c -DDISTURB=0 src1.cc
+src2.o:
+\tg++ -c src2.cc
+src3.o:
+\tg++ -c src3.cc
+sanity:
+\tg++ -c -DDISTURB=0 src1.cc
+\t! g++ -c -DDISTURB=1 src1.cc
+"""
+    )
+
+    # Use awk instead of grep to easily see the whole build log if the test fails.
+    proc = start_cvise(
+        [
+            '-c',
+            'make -C repro',
+            'repro',
+        ],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    stdout, stderr = proc.communicate()
+
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
+    assert _read_files_in_dir(test_case) == {
+        'Makefile': """.PHONY: all sanity
+all: sanity
+sanity:
+\tg++ -c -DDISTURB=0 src1.cc
+\t! g++ -c -DDISTURB=1 src1.cc
+""",
+        'src1.cc': """template <int N>
+struct Fib {
+  static constexpr int value = Fib<N - 1>::value + Fib<N - 2>::value;
+};
+template <>
+struct Fib<0> {
+    static constexpr int value = 0;
+};
+template <>
+struct Fib<1> {
+    static constexpr int value = 1;
+};
+static_assert(Fib<6>::value == 8 + DISTURB);
+""",
+    }
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
@@ -308,7 +521,6 @@ def test_non_ascii_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: P
             '-c',
             'gcc -c -Wall -Werror repro/*.c && grep foo repro/*.c',
             'repro',
-            '--tidy',
             '--print-diff',
         ],
         tmp_path,
@@ -324,6 +536,22 @@ def test_non_ascii_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: P
     assert 'Streichholz' in stderr
 
 
+@pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
+def test_empty_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    test_case = tmp_path / 'repro'
+    test_case.mkdir()
+
+    proc = start_cvise(
+        ['-c', 'true', 'repro'],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    stdout, stderr = proc.communicate()
+
+    assert proc.returncode != 0, f'Process succeeded unexpectedly; stderr:\n{stderr}\nstdout:\n{stdout}'
+    assert 'has reached zero size' in stdout
+
+
 def test_failing_interestingness_test(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     testcase_path = tmp_path / 'test.c'
     testcase_path.write_text('foo')
@@ -337,3 +565,22 @@ def test_failing_interestingness_test(tmp_path: Path, overridden_subprocess_tmpd
 
     assert proc.returncode != 0, f'Process succeeded unexpectedly; stderr:\n{stderr}\nstdout:\n{stdout}'
     assert 'interestingness test does not return' in stdout
+
+
+def test_list_passes(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+    """Test that --list-passes works without providing an interestingness test or test cases."""
+    proc = start_cvise(
+        ['--list-passes'],
+        tmp_path,
+        overridden_subprocess_tmpdir,
+    )
+    stdout, stderr = proc.communicate()
+    assert proc.returncode == 0, (
+        f'Process failed with exit code {proc.returncode}; stderr:\n{stderr}\nstdout:\n{stdout}'
+    )
+    assert 'Available passes:' in stdout
+    assert_subprocess_tmpdir_empty(overridden_subprocess_tmpdir)
+
+
+def _read_files_in_dir(dir: Path) -> dict[str, str]:
+    return {str(p.relative_to(dir)): p.read_text() for p in dir.rglob('*') if not p.is_dir()}

@@ -126,15 +126,23 @@ and creating an issue at https://github.com/marxin/cvise/issues and we will try 
 
 
 class InsaneTestCaseError(CViseError):
-    def __init__(self, test_cases: set[Path], test: Path):
+    def __init__(self, test_cases: set[Path], test: Path, stdout: bytes, stderr: bytes):
         super().__init__()
         self.test_cases = test_cases
         self.test = test
+        # Drop invalid UTF sequences for printing.
+        self.stdout = stdout.decode('utf-8', 'ignore')
+        self.stderr = stderr.decode('utf-8', 'ignore')
 
     def __str__(self):
         message = """C-Vise cannot run because the interestingness test does not return
-zero. Please ensure that it does so not only in the directory where
-you are invoking C-Vise, but also in an arbitrary temporary
+zero.
+===< STDOUT >===
+{stdout}
+===< STDERR >===
+{stderr}
+
+Please ensure that the interestingness test works from an arbitrary temporary
 directory containing only the files that are being reduced. In other
 words, running these commands:
 
@@ -149,6 +157,9 @@ Please ensure that the test script takes no arguments; it should be hard-coded t
 to the same file that is passed as an argument to C-Vise.
 
 See 'cvise-cli.py --help' for more information.""".format(
-            test_cases=' '.join([str(t) for t in self.test_cases]), test=self.test
+            test_cases=' '.join([str(t) for t in self.test_cases]),
+            test=self.test,
+            stdout=self.stdout,
+            stderr=self.stderr,
         )
         return message

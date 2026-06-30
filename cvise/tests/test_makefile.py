@@ -201,7 +201,7 @@ c.o:
 
 
 def test_remove_argument_from_all_commands(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 a.out:
 \tgcc -ansi foo.c
@@ -215,7 +215,7 @@ b.out:
     # "-ansi" removed from all commands
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.out:
 \tgcc foo.c
@@ -227,7 +227,7 @@ b.out:
 
 
 def test_continuation(tmp_path: Path, test_case_path: Path):
-    (test_case_path / 'makefile').write_text(
+    (test_case_path / 'Makefile').write_text(
         """
 a.out:
 \tgcc -ansi foo.c
@@ -245,7 +245,7 @@ b.out: \\
     # "-ansi" removed from all commands
     assert (
         (
-            'makefile',
+            'Makefile',
             b"""
 a.out:
 \tgcc foo.c

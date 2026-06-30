@@ -121,7 +121,7 @@ class TestEnvironment:
         folder: Path,
         test_case: Path,
         all_test_cases: set[Path],
-        should_copy_test_cases: bool,
+        should_copy_current_test_case: bool,
         transform,
         pid_queue: queue.Queue | None = None,
     ):
@@ -134,7 +134,7 @@ class TestEnvironment:
         self.transform = transform
         self.pid_queue = pid_queue
         self.test_case: Path = test_case
-        self.should_copy_test_cases = should_copy_test_cases
+        self.should_copy_current_test_case = should_copy_current_test_case
         self.all_test_cases: set[Path] = all_test_cases
         self.original_size: int | None = None
         self.new_size: int | None = None
@@ -162,13 +162,14 @@ class TestEnvironment:
 
     def copy_test_cases(self):
         for test_case in self.all_test_cases:
+            if test_case == self.test_case and not self.should_copy_current_test_case:
+                # Some passes (e.g., hint-based passes) create the new file themselves, so no need in copying it here.
+                continue
             fileutil.copy_test_case(test_case, self.folder)
 
     def run(self):
         try:
-            # If the pass needs this, copy files to the created folder (e.g., hint-based passes don't need this).
-            if self.should_copy_test_cases:
-                self.copy_test_cases()
+            self.copy_test_cases()
 
             # transform by state
             written_paths: set[Path] = set()
@@ -184,7 +185,7 @@ class TestEnvironment:
                 return self
 
             # run test script
-            self.exitcode = self.run_test(False)
+            self.exitcode, _stdout, _stderr = self.run_test()
 
             # cleanup and stats (only useful for successful case - otherwise job's dir will be deleted anyway)
             if self.exitcode == 0:
@@ -202,7 +203,7 @@ class TestEnvironment:
             logging.exception('Unexpected TestEnvironment::run failure')
             return self
 
-    def run_test(self, verbose):
+    def run_test(self) -> tuple[int, bytes, bytes]:
         # Make the job use our custom temp dir instead of the standard one, so that the standard location doesn't get
         # cluttered with files it might leave undeleted (the process might do this because of an oversight in the
         # interestingness test, or because C-Vise abruptly kills our job without a chance for a proper cleanup).
@@ -211,11 +212,7 @@ class TestEnvironment:
             stdout, stderr, returncode = ProcessEventNotifier(self.pid_queue).run_process(
                 str(self.test_script), shell=True, env=env, cwd=self.folder
             )
-        if verbose and returncode != 0:
-            # Drop invalid UTF sequences.
-            logging.debug('stdout:\n%s', stdout.decode('utf-8', 'ignore'))
-            logging.debug('stderr:\n%s', stderr.decode('utf-8', 'ignore'))
-        return returncode
+            return returncode, stdout, stderr
 
 
 @unique
@@ -573,13 +570,16 @@ class TestManager:
     def total_dir_count(self) -> int:
         return sum(fileutil.get_dir_count(p) for p in self.test_cases)
 
-    def backup_test_cases(self):
+    def backup_test_cases(self) -> None:
         for f in self.test_cases:
-            orig_file = Path(f'{f}.orig')
-
-            if not orig_file.exists():
-                # Copy file and preserve attributes
-                shutil.copy2(f, orig_file)
+            orig_path = Path(f'{f}.orig')
+            if orig_path.exists():
+                continue
+            # Copy files and preserve attributes
+            if f.is_dir():
+                shutil.copytree(f, orig_path, symlinks=True, ignore_dangling_symlinks=True)
+            else:
+                shutil.copy2(f, orig_path)
 
     @staticmethod
     def check_file_permissions(path: Path, modes, error):
@@ -666,18 +666,18 @@ class TestManager:
             folder,
             list(self.test_cases)[0],
             self.test_cases,
-            should_copy_test_cases=True,
+            should_copy_current_test_case=True,
             transform=None,
         )
         logging.debug(f'sanity check tmpdir = {test_env.folder}')
 
         test_env.copy_test_cases()
-        returncode = test_env.run_test(verbose=True)
+        returncode, stdout, stderr = test_env.run_test()
         self.tmp_dir_manager.delete_dir(folder)
         if returncode == 0:
             logging.debug('sanity check successful')
         else:
-            raise InsaneTestCaseError(self.test_cases, self.test_script)
+            raise InsaneTestCaseError(self.test_cases, self.test_script, stdout, stderr)
 
     @classmethod
     def log_key_event(cls, event):
@@ -907,7 +907,7 @@ class TestManager:
 
         ready_hint_types = self.get_fully_initialized_hint_types()
         while self.jobs or any(c.can_start_job_now(ready_hint_types) for c in self.pass_contexts):
-            sigmonitor.maybe_retrigger_action()
+            sigmonitor.maybe_raise_exc()
 
             # schedule new jobs, as long as there are free workers
             while len(self.jobs) < self.parallel_tests and self.maybe_schedule_job():
@@ -919,7 +919,7 @@ class TestManager:
                 return_when=FIRST_COMPLETED,
                 timeout=self.time_till_missing_timeout_workaround(),
             )
-            sigmonitor.maybe_retrigger_action()
+            sigmonitor.maybe_raise_exc()
 
             self.workaround_missing_timeouts()
             self.process_done_futures()
@@ -943,9 +943,9 @@ class TestManager:
         extra_passes = []
         for p in passes:
             extra_passes += p.create_subordinate_passes()
-        passes = extra_passes + list(passes)
+        augmented_passes = extra_passes + list(passes)
 
-        assert len(passes) == 1 or interleaving
+        assert len(augmented_passes) == 1 or interleaving
 
         if self.start_with_pass:
             current_pass_names = [str(c.pass_) for c in self.pass_contexts]
@@ -954,13 +954,7 @@ class TestManager:
             else:
                 return
 
-        self.last_restart_job_order = None
-        self.pass_restart_queue = []
-        self.pass_contexts = []
-        for pass_ in passes:
-            self.pass_contexts.append(PassContext.create(pass_))
         self.interleaving = interleaving
-        self.jobs = []
 
         pass_titles = [c.pass_.user_visible_name() for c in self.pass_contexts]
         pass_titles_str = ', '.join(sorted(set(pass_titles)))
@@ -971,74 +965,7 @@ class TestManager:
 
         try:
             for test_case in self.sorted_test_cases:
-                self.current_test_case = test_case
-                starting_test_case_size = fileutil.get_file_size(test_case)
-                success_count = 0
-
-                if starting_test_case_size == 0:
-                    continue
-
-                if not self.no_cache:
-                    hash_before_pass = fileutil.hash_test_case(test_case)
-                    if cached_path := self.cache.lookup(passes, hash_before_pass):
-                        fileutil.replace_test_case_atomically(cached_path, test_case, move=False)
-                        logging.info(f'cache hit for {test_case}')
-                        continue
-                else:
-                    hash_before_pass = None
-
-                is_dir = test_case.is_dir()
-                for ctx in self.pass_contexts:
-                    ctx.enabled = not is_dir or ctx.pass_.supports_dir_test_cases()
-
-                self.skip = False
-                ready_hint_types = self.get_fully_initialized_hint_types()
-                while any(c.can_start_job_now(ready_hint_types) for c in self.pass_contexts) and not self.skip:
-                    # Ignore more key presses after skip has been detected
-                    if not self.skip_key_off and not self.skip:
-                        match self.key_logger.pressed_key():
-                            case 's':
-                                self.skip = True
-                                self.log_key_event('skipping the rest of this pass')
-                            case 'd':
-                                self.log_key_event('toggle print diff')
-                                self.print_diff = not self.print_diff
-
-                    self.run_parallel_tests()
-
-                    is_success = self.success_candidate is not None
-                    if is_success:
-                        self.process_result()
-                        success_count += 1
-
-                    # if the file increases significantly, bail out the current pass
-                    test_case_size = fileutil.get_file_size(self.current_test_case)
-                    if test_case_size >= MAX_PASS_INCREASEMENT_THRESHOLD * starting_test_case_size:
-                        logging.info(
-                            f'skipping the rest of the pass (huge file increasement '
-                            f'{MAX_PASS_INCREASEMENT_THRESHOLD * 100}%)'
-                        )
-                        break
-
-                    if not is_success:
-                        break
-
-                    # skip after N transformations if requested
-                    skip_rest = self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms
-                    if not self.interleaving:  # max-transforms is only supported for non-interleaving passes
-                        assert len(self.pass_contexts) == 1
-                        if (
-                            self.pass_contexts[0].pass_.max_transforms
-                            and success_count >= self.pass_contexts[0].pass_.max_transforms
-                        ):
-                            skip_rest = True
-                    if skip_rest:
-                        logging.info(f'skipping after {success_count} successful transformations')
-                        break
-
-                if not self.no_cache:
-                    assert hash_before_pass is not None
-                    self.cache.add(passes, hash_before_pass, test_case)
+                self.run_passes_for_test_case(test_case, augmented_passes)
 
             self.restore_mode()
             self.remove_roots()
@@ -1048,6 +975,82 @@ class TestManager:
             self.terminate_all()
             self.remove_roots()
             sys.exit(1)
+
+    def run_passes_for_test_case(self, test_case: Path, augmented_passes: Sequence[AbstractPass]) -> None:
+        self.current_test_case = test_case
+        starting_test_case_size = fileutil.get_file_size(test_case)
+        success_count = 0
+
+        if starting_test_case_size == 0:
+            return
+
+        self.last_restart_job_order = None
+        self.pass_restart_queue = []
+        self.pass_contexts = []
+        for pass_ in augmented_passes:
+            self.pass_contexts.append(PassContext.create(pass_))
+        self.jobs = []
+
+        if not self.no_cache:
+            hash_before_pass = fileutil.hash_test_case(test_case)
+            if cached_path := self.cache.lookup(augmented_passes, hash_before_pass):
+                fileutil.replace_test_case_atomically(cached_path, test_case, move=False)
+                logging.info(f'cache hit for {test_case}')
+                return
+        else:
+            hash_before_pass = None
+
+        is_dir = test_case.is_dir()
+        for ctx in self.pass_contexts:
+            ctx.enabled = not is_dir or ctx.pass_.supports_dir_test_cases()
+
+        self.skip = False
+        ready_hint_types = self.get_fully_initialized_hint_types()
+        while any(c.can_start_job_now(ready_hint_types) for c in self.pass_contexts) and not self.skip:
+            # Ignore more key presses after skip has been detected
+            if not self.skip_key_off and not self.skip:
+                match self.key_logger.pressed_key():
+                    case 's':
+                        self.skip = True
+                        self.log_key_event('skipping the rest of this pass')
+                    case 'd':
+                        self.log_key_event('toggle print diff')
+                        self.print_diff = not self.print_diff
+
+            self.run_parallel_tests()
+
+            is_success = self.success_candidate is not None
+            if is_success:
+                self.process_result()
+                success_count += 1
+
+            # if the file increases significantly, bail out the current pass
+            test_case_size = fileutil.get_file_size(self.current_test_case)
+            if test_case_size >= MAX_PASS_INCREASEMENT_THRESHOLD * starting_test_case_size:
+                logging.info(
+                    f'skipping the rest of the pass (huge file increasement {MAX_PASS_INCREASEMENT_THRESHOLD * 100}%)'
+                )
+                break
+
+            if not is_success:
+                break
+
+            # skip after N transformations if requested
+            skip_rest = self.skip_after_n_transforms and success_count >= self.skip_after_n_transforms
+            if not self.interleaving:  # max-transforms is only supported for non-interleaving passes
+                assert len(self.pass_contexts) == 1
+                if (
+                    self.pass_contexts[0].pass_.max_transforms
+                    and success_count >= self.pass_contexts[0].pass_.max_transforms
+                ):
+                    skip_rest = True
+            if skip_rest:
+                logging.info(f'skipping after {success_count} successful transformations')
+                break
+
+        if not self.no_cache:
+            assert hash_before_pass is not None
+            self.cache.add(augmented_passes, hash_before_pass, test_case)
 
     def process_result(self) -> None:
         assert self.success_candidate
@@ -1116,7 +1119,8 @@ class TestManager:
 
     def log_test_case_metrics(self, extra_note: str | None = None) -> None:
         total_bytes = self.total_file_size
-        pct = 100 - (float(total_bytes) * 100.0 / self.orig_total_file_size)
+        size_fraction = total_bytes / max(1, self.orig_total_file_size)
+        pct = 100 - size_fraction * 100.0
         notes = []
         notes.append(f'{round(pct, 1)}%')
         notes.append(f'{total_bytes} byte{"s" if total_bytes != 1 else ""}')
@@ -1268,7 +1272,7 @@ class TestManager:
 
         # Whether we should copy input files to the temporary work directory, or the pass does it itself. For now, we
         # simply hardcode that hint-based passes are capable of this (and they actually need the original files anyway).
-        should_copy_test_cases = not isinstance(ctx.pass_, HintBasedPass)
+        should_copy_current_test_case = not isinstance(ctx.pass_, HintBasedPass)
 
         folder = self.tmp_dir_manager.create_dir(prefix=f'job{self.order}')
         env = TestEnvironment(
@@ -1278,7 +1282,7 @@ class TestManager:
             folder,
             self.current_test_case,
             self.test_cases,
-            should_copy_test_cases,
+            should_copy_current_test_case,
             ctx.pass_.transform,
             self.process_monitor.pid_queue,
         )
@@ -1309,7 +1313,7 @@ class TestManager:
     def schedule_fold(self, folding_state: FoldingStateIn) -> None:
         assert self.interleaving
 
-        should_copy_test_cases = False  # the fold transform creates the files itself
+        should_copy_current_test_case = False  # the fold transform creates the files itself
         folder = self.tmp_dir_manager.create_dir(prefix='folding')
         env = TestEnvironment(
             folding_state,
@@ -1318,7 +1322,7 @@ class TestManager:
             folder,
             self.current_test_case,
             self.test_cases,
-            should_copy_test_cases,
+            should_copy_current_test_case,
             FoldingManager.transform,
             self.process_monitor.pid_queue,
         )
@@ -1368,18 +1372,18 @@ def override_tmpdir_env(old_env: Mapping[str, str], tmp_override: Path) -> Mappi
 
 
 def _init_worker_process(initializers: list[Callable]) -> None:
-    # By default (when not executing a job), terminate a worker immediately on relevant signals. Raising an exception at
-    # unexpected times, especially inside multiprocessing internals, can put the worker into a bad state.
-    sigmonitor.init(sigmonitor.Mode.QUICK_EXIT)
+    # Observe SIGTERM but not SIGINT - the latter would be handled by the main process and result in the process pool
+    # termination, arriving to us as SIGTERM in the end; handling both signals could result in incomplete cleanup.
+    sigmonitor.init(sigint=False)
     for func in initializers:
         func()
 
 
 def _worker_process_job_wrapper(job_order: int, func: Callable) -> Any:
-    # Handle signals as exceptions within the job, to let the code do proper resource deallocation (like terminating
-    # subprocesses), but once the func returns after a signal was triggered, terminate the worker.
-    with sigmonitor.scoped_mode(sigmonitor.Mode.RAISE_EXCEPTION):
-        # Annotate each log message with the job order, for the log recipient in the main process to discard logs coming
-        # from canceled jobs.
-        with mplogging.worker_process_job_wrapper(job_order):
-            return func()
+    sigmonitor.maybe_raise_exc()
+    # Annotate each log message with the job order, for the log recipient in the main process to discard logs coming
+    # from canceled jobs.
+    with mplogging.worker_process_job_wrapper(job_order):
+        res = func()
+        sigmonitor.maybe_raise_exc()
+    return res

@@ -18,6 +18,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic")
 endif()
 
+# Some versions of Flex (e.g., the macOS-provided one) define "yyleng" as being
+# of the "yy_size_t" type, which is size_t by default; override it to int to be
+# compatible with other versions.
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Dyy_size_t=int -DYY_TYPEDEF_YY_SIZE_T")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dyy_size_t=int -DYY_TYPEDEF_YY_SIZE_T")
+
 ###############################################################################
 
 project(clex)

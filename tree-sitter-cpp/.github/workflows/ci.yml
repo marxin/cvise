@@ -28,27 +28,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-14]
+        os: [ubuntu-latest, windows-latest, macos-15]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Checkout tree-sitter-c
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: tree-sitter/tree-sitter-c
           path: node_modules/tree-sitter-c
           sparse-checkout: queries/
-          ref: v0.23.1
+          ref: v0.23.6
       - name: Set up tree-sitter
-        uses: tree-sitter/setup-action/cli@v1
+        uses: tree-sitter/setup-action/cli@v2
       - name: Run tests
-        uses: tree-sitter/parser-test-action@v2
+        uses: tree-sitter/parser-test-action@v3
         with:
           test-rust: true
           test-node: true
           test-python: true
           test-go: true
           test-swift: true
+          abi-version: 14
       - name: Parse examples
         uses: tree-sitter/parse-action@v4
         with:

@@ -20,6 +20,7 @@ from cvise.utils.process import (
     ProcessKiller,
     ProcessMonitor,
 )
+from cvise.utils import sigmonitor
 
 
 @pytest.fixture
@@ -28,6 +29,11 @@ def process_monitor():
     mpmanager = multiprocessing.Manager()
     with ProcessMonitor(mpmanager, parallel_tests=PARALLEL_TESTS) as process_monitor:
         yield process_monitor
+
+
+@pytest.fixture(autouse=True)
+def signal_monitor():
+    sigmonitor.init()
 
 
 @pytest.fixture
@@ -346,4 +352,5 @@ def _wait_until(predicate: Callable) -> None:
 
 
 def _run_with_process_event_notifier(pid_queue: queue.Queue, *args):
+    sigmonitor.init()
     ProcessEventNotifier(pid_queue).run_process(*args)

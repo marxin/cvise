@@ -22,6 +22,9 @@ class LinesPass(HintBasedPass):
     def generate_hints(self, test_case: Path, process_event_notifier: ProcessEventNotifier, *args, **kwargs):
         is_dir = test_case.is_dir()
         paths = filter_files_by_patterns(test_case, self.claim_files, self.claimed_by_others_files)
+        if not paths:
+            return HintBundle(hints=[])
+
         vocab = [str(p.relative_to(test_case)).encode() for p in paths] if is_dir else []
         hints = []
         if self.arg == 'None':
@@ -36,11 +39,18 @@ class LinesPass(HintBasedPass):
     def _generate_hints_for_text_lines(self, input_path: Path, path_id: int | None, hints: list[Hint]) -> None:
         """Generate a hint per each line in the input as written."""
         with open(input_path, 'rb') as in_file:
+            lines = in_file.readlines()
             file_pos = 0
-            for line in in_file:
+            for i, line in enumerate(lines):
                 end_pos = file_pos + len(line)
-                hints.append(Hint(patches=(Patch(left=file_pos, right=end_pos, path=path_id),)))
-                file_pos = end_pos
+
+                # Do not consume the file-terminating newline.
+                if i == len(lines) - 1 and line.endswith(b'\n'):
+                    end_pos -= 1
+
+                if end_pos > file_pos:
+                    hints.append(Hint(patches=(Patch(left=file_pos, right=end_pos, path=path_id),)))
+                file_pos += len(line)
 
     def _generate_topformflat_hints(
         self,

@@ -5,6 +5,13 @@ from typing import Any
 
 from cvise.passes.abstract import ProcessEventNotifier
 from cvise.passes.ifs import IfPass
+from cvise.utils import sigmonitor
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def signal_monitor():
+    sigmonitor.init()
 
 
 class LineMarkersTestCase(unittest.TestCase):
