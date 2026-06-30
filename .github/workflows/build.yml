@@ -18,7 +18,7 @@ concurrency:
 jobs:
   CI:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
 
     strategy:
       matrix:
@@ -42,8 +42,7 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - name: Refresh zypper repositories
-      run: ${{ env.RETRY }} bash -c 'zypper ref || { zypper clean -a; exit 1; }'
+    - run: ${{ env.RETRY }} bash -c 'zypper clean -a && zypper ref'
     - run: |
         ${{ env.RETRY }} zypper -n install \
           binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel \
@@ -89,7 +88,7 @@ jobs:
 
   CI-python:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
     container:
       image: ubuntu:latest
 
@@ -128,13 +127,12 @@ jobs:
 
   ruff:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
     container:
       image: opensuse/tumbleweed
 
     steps:
-    - name: Refresh zypper repositories
-      run: ${{ env.RETRY }} bash -c 'zypper ref || { zypper clean -a; exit 1; }'
+    - run: ${{ env.RETRY }} bash -c 'zypper clean -a && zypper ref'
     - run: ${{ env.RETRY }} zypper -n install python3-pip
     - uses: actions/checkout@v6
     - run: ${{ env.RETRY }} pip install --break-system-packages ruff
@@ -143,13 +141,12 @@ jobs:
 
   pytype:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
     container:
       image: opensuse/tumbleweed
 
     steps:
-    - name: Refresh zypper repositories
-      run: ${{ env.RETRY }} bash -c 'zypper ref || { zypper clean -a; exit 1; }'
+    - run: ${{ env.RETRY }} bash -c 'zypper clean -a && zypper ref'
     - run: ${{ env.RETRY }} zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python312
     - uses: actions/checkout@v6
     - name: prepare venv
@@ -172,13 +169,12 @@ jobs:
 
   pyright:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
     container:
       image: opensuse/tumbleweed
 
     steps:
-    - name: Refresh zypper repositories
-      run: ${{ env.RETRY }} bash -c 'zypper ref || { zypper clean -a; exit 1; }'
+    - run: ${{ env.RETRY }} bash -c 'zypper clean -a && zypper ref'
     - run: |
         ${{ env.RETRY }} zypper -n install \
           binutils clang-devel cmake flex gcc-c++ llvm-devel python3 python3-pyright \
