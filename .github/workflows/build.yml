@@ -9,9 +9,7 @@ on:
 
 # Cancel the workflow if a new one is requested for the same PR/branch, but still test all commits on the master branch.
 env:
-  RETRY: 'retry() { "$@" || for i in 1 2 3 4; do echo "retrying..."; sleep 30; "$@" && break; done; }; retry'
-  ZYPPER_INSTALL_WITH_RETRY: 'retry_zypper() { zypper -n install "$@" || for i in 1 2 3 4; do echo "retrying..."; sleep 30; zypper clean -a && zypper ref && zypper -n install "$@" && break; done; }; retry_zypper'
-  ZYPP_MEDIANETWORK: "1"
+  RETRY: 'retry() { "$@" || for i in 1 2 3 4 5 6 7 8; do echo "retrying..."; sleep 30; "$@" && break; done; }; retry'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -44,13 +42,15 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
+    - name: Refresh zypper repositories
+      run: ${{ env.RETRY }} bash -c 'timeout 45s zypper ref || { zypper clean -a; exit 1; }'
     - run: |
-        ${{ env.ZYPPER_INSTALL_WITH_RETRY }} \
+        ${{ env.RETRY }} zypper -n install \
           binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel \
           python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess \
           unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-pip python3-jsonschema \
           python3-msgspec python3-zstandard awk
-    - run: ${{ env.ZYPPER_INSTALL_WITH_RETRY }} sqlite-devel python3
+    - run: ${{ env.RETRY }} zypper -n install sqlite-devel python3
     - run: ${{ env.RETRY }} pip install --break-system-packages pytest-cov
     - uses: rui314/setup-mold@v1
       with:
@@ -133,7 +133,9 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: ${{ env.ZYPPER_INSTALL_WITH_RETRY }} python3-pip
+    - name: Refresh zypper repositories
+      run: ${{ env.RETRY }} bash -c 'timeout 45s zypper ref || { zypper clean -a; exit 1; }'
+    - run: ${{ env.RETRY }} zypper -n install python3-pip
     - uses: actions/checkout@v6
     - run: ${{ env.RETRY }} pip install --break-system-packages ruff
     - run: ruff check
@@ -146,7 +148,9 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: ${{ env.ZYPPER_INSTALL_WITH_RETRY }} binutils clang-devel cmake flex gcc-c++ llvm-devel python312
+    - name: Refresh zypper repositories
+      run: ${{ env.RETRY }} bash -c 'timeout 45s zypper ref || { zypper clean -a; exit 1; }'
+    - run: ${{ env.RETRY }} zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python312
     - uses: actions/checkout@v6
     - name: prepare venv
       # Pytype currently only supports Python <=3.12
@@ -173,8 +177,10 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
+    - name: Refresh zypper repositories
+      run: ${{ env.RETRY }} bash -c 'timeout 45s zypper ref || { zypper clean -a; exit 1; }'
     - run: |
-        ${{ env.ZYPPER_INSTALL_WITH_RETRY }} \
+        ${{ env.RETRY }} zypper -n install \
           binutils clang-devel cmake flex gcc-c++ llvm-devel python3 python3-pyright \
           python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess \
           unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-jsonschema \

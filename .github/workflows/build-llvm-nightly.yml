@@ -11,7 +11,7 @@ on:
 
 # Cancel the workflow if a new one is requested for the same PR/branch, but still test all commits on the master branch.
 env:
-  RETRY: 'retry() { "$@" || for i in 1 2 3 4; do echo "retrying..."; sleep 30; "$@" && break; done; }; retry'
+  RETRY: 'retry() { "$@" || for i in 1 2 3 4 5 6 7 8; do echo "retrying..."; sleep 30; "$@" && break; done; }; retry'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
