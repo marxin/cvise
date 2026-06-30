@@ -43,7 +43,7 @@ jobs:
 
     steps:
     - name: Refresh zypper repositories
-      run: ${{ env.RETRY }} bash -c 'timeout 45s zypper ref || { zypper clean -a; exit 1; }'
+      run: ${{ env.RETRY }} bash -c 'zypper ref || { zypper clean -a; exit 1; }'
     - run: |
         ${{ env.RETRY }} zypper -n install \
           binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel \
@@ -134,7 +134,7 @@ jobs:
 
     steps:
     - name: Refresh zypper repositories
-      run: ${{ env.RETRY }} bash -c 'timeout 45s zypper ref || { zypper clean -a; exit 1; }'
+      run: ${{ env.RETRY }} bash -c 'zypper ref || { zypper clean -a; exit 1; }'
     - run: ${{ env.RETRY }} zypper -n install python3-pip
     - uses: actions/checkout@v6
     - run: ${{ env.RETRY }} pip install --break-system-packages ruff
@@ -149,7 +149,7 @@ jobs:
 
     steps:
     - name: Refresh zypper repositories
-      run: ${{ env.RETRY }} bash -c 'timeout 45s zypper ref || { zypper clean -a; exit 1; }'
+      run: ${{ env.RETRY }} bash -c 'zypper ref || { zypper clean -a; exit 1; }'
     - run: ${{ env.RETRY }} zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python312
     - uses: actions/checkout@v6
     - name: prepare venv
@@ -178,7 +178,7 @@ jobs:
 
     steps:
     - name: Refresh zypper repositories
-      run: ${{ env.RETRY }} bash -c 'timeout 45s zypper ref || { zypper clean -a; exit 1; }'
+      run: ${{ env.RETRY }} bash -c 'zypper ref || { zypper clean -a; exit 1; }'
     - run: |
         ${{ env.RETRY }} zypper -n install \
           binutils clang-devel cmake flex gcc-c++ llvm-devel python3 python3-pyright \
