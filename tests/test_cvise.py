@@ -283,7 +283,8 @@ def test_dir_test_case(tmp_path: Path, overridden_subprocess_tmpdir: Path):
     assert (test_case / 'a.cc').read_text() == '#include "a.h"\nint nextHi = x;\n'
 
 
-def test_dir_linker_duplicate_var_error(tmp_path: Path, overridden_subprocess_tmpdir: Path):
+@pytest.mark.parametrize('extra_args', [[], ['-n', '1']], ids=['default_cores', 'single_core'])
+def test_dir_linker_duplicate_var_error(tmp_path: Path, overridden_subprocess_tmpdir: Path, extra_args: list[str]):
     """Test reducing headers and a makefile for a link-time error due to duplicate variables.
 
     Here we had to hardcode particular error messages from real linkers.
@@ -320,7 +321,8 @@ clean:
             f"(LC_ALL=C make -C repro 2>&1 || true) | awk '{{ print }} /{ERROR_REGEX}/ {{ y=1 }} END {{ exit !y }}'",
             'repro',
             '--tidy',
-        ],
+        ]
+        + extra_args,
         tmp_path,
         overridden_subprocess_tmpdir,
     )
