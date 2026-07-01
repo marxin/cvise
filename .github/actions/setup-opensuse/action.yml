@@ -10,6 +10,9 @@ runs:
         script: |
           const response = await fetch("https://openqa.opensuse.org/group_overview/1.json");
           const data = await response.json();
+          // Use index 2 (the 3rd most recent snapshot, roughly 2-3 days old)
+          // to ensure all global mirrors have fully synced the RPM packages.
+          // This avoids 404s/timeouts on regional mirrors that lag behind live releases.
           return data.build_results[2].build;
         result-encoding: string
     - name: Setup openSUSE snapshot repository
@@ -19,5 +22,3 @@ runs:
         echo "Using snapshot: $SNAPSHOT"
         zypper rr --all
         zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/oss/ repo-oss
-        zypper ar -f http://download.opensuse.org/history/$SNAPSHOT/tumbleweed/repo/non-oss/ repo-non-oss
-        zypper ref
