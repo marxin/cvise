@@ -42,6 +42,9 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
+    - uses: actions/checkout@v6
+    - name: Setup openSUSE snapshot repository
+      uses: ./.github/actions/setup-opensuse
     - run: |
         ${{ env.RETRY }} zypper -n install \
           binutils clang${{ matrix.llvm }}-devel cmake flex gcc-c++ llvm${{ matrix.llvm }}-devel \
@@ -55,7 +58,6 @@ jobs:
         make-default: false
     - run: ld --version
     - run: nproc
-    - uses: actions/checkout@v6
     - name: build
       run: |
             mkdir objdir
@@ -132,8 +134,10 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: ${{ env.RETRY }} zypper -n install python3-pip
     - uses: actions/checkout@v6
+    - name: Setup openSUSE snapshot repository
+      uses: ./.github/actions/setup-opensuse
+    - run: ${{ env.RETRY }} zypper -n install python3-pip
     - run: ${{ env.RETRY }} pip install --break-system-packages ruff
     - run: ruff check
     - run: ruff format --diff
@@ -145,8 +149,10 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
-    - run: ${{ env.RETRY }} zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python312
     - uses: actions/checkout@v6
+    - name: Setup openSUSE snapshot repository
+      uses: ./.github/actions/setup-opensuse
+    - run: ${{ env.RETRY }} zypper -n install binutils clang-devel cmake flex gcc-c++ llvm-devel python312
     - name: prepare venv
       # Pytype currently only supports Python <=3.12
       run: |
@@ -172,13 +178,15 @@ jobs:
       image: opensuse/tumbleweed
 
     steps:
+    - uses: actions/checkout@v6
+    - name: Setup openSUSE snapshot repository
+      uses: ./.github/actions/setup-opensuse
     - run: |
         ${{ env.RETRY }} zypper -n install \
           binutils clang-devel cmake flex gcc-c++ llvm-devel python3 python3-pyright \
           python3-Pebble python3-pytest python3-pytest-mock python3-pytest-subprocess \
           unifdef python3-psutil curl git python3-chardet findutils sudo wget python3-jsonschema \
           python3-msgspec python3-zstandard
-    - uses: actions/checkout@v6
     - run: mkdir objdir
     - run: cmake ..
       working-directory: objdir
