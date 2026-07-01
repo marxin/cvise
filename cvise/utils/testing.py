@@ -913,6 +913,11 @@ class TestManager:
             while len(self.jobs) < self.parallel_tests and self.maybe_schedule_job():
                 pass
 
+            if not self.jobs:
+                # If maybe_schedule_job() couldn't schedule any work (e.g. because states were exhausted)
+                # and there are no active jobs left, we must break to avoid a deadlock in wait().
+                break
+
             # no more jobs could be scheduled at the moment - wait for some results
             wait(
                 [j.future for j in self.jobs] + [sigmonitor.get_future()],

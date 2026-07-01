@@ -13,7 +13,7 @@ import psutil
 import pytest
 
 from cvise.passes.abstract import AbstractPass, PassResult  # noqa: E402
-from cvise.passes.hint_based import HintBasedPass  # noqa: E402
+from cvise.passes.hint_based import HintBasedPass, HintState  # noqa: E402
 from cvise.utils import sigmonitor, statistics, testing  # noqa: E402
 from cvise.utils.fileutil import filter_files_by_patterns
 from cvise.utils.hint import Hint, HintBundle, Patch
@@ -23,7 +23,7 @@ bar
 baz
 """
 
-PARALLEL_TESTS = 10
+DEFAULT_PARALLEL_TESTS = 10
 
 
 class StubPass(AbstractPass):
@@ -291,7 +291,23 @@ def with_colordiff(fp, with_tty) -> None:
 
 
 @pytest.fixture
-def manager(tmp_path: Path, input_path: Path, interestingness_script: str, job_timeout: int, print_diff: bool):
+def parallel_tests() -> int:
+    """The default parallel_tests parameter.
+
+    Can be overridden in particular tests.
+    """
+    return DEFAULT_PARALLEL_TESTS
+
+
+@pytest.fixture
+def manager(
+    tmp_path: Path,
+    input_path: Path,
+    interestingness_script: str,
+    job_timeout: int,
+    print_diff: bool,
+    parallel_tests: int,
+):
     SAVE_TEMPS = False
     NO_CACHE = False
     SKIP_KEY_OFF = True  # tests shouldn't listen to keyboard
@@ -317,7 +333,7 @@ def manager(tmp_path: Path, input_path: Path, interestingness_script: str, job_t
         job_timeout,
         SAVE_TEMPS,
         [input_path],
-        PARALLEL_TESTS,
+        parallel_tests,
         NO_CACHE,
         SKIP_KEY_OFF,
         SHADDAP,
@@ -412,7 +428,7 @@ def test_give_up_on_repeating_timeouts(input_path: Path, manager):
     manager.run_passes([p], interleaving=False)
     assert extra_dir_count() >= manager.MAX_TIMEOUTS
     # we should've stopped soon after MAX_TIMEOUTS, at worst a batch of jobs later.
-    assert extra_dir_count() <= 2 * max(manager.MAX_TIMEOUTS, PARALLEL_TESTS)
+    assert extra_dir_count() <= 2 * max(manager.MAX_TIMEOUTS, DEFAULT_PARALLEL_TESTS)
 
 
 def test_interleaving_letter_removals(input_path: Path, manager):
@@ -429,7 +445,7 @@ def test_interleaving_letter_removals(input_path: Path, manager):
 
 
 @pytest.mark.skipif(os.name != 'posix', reason='requires POSIX for command-line tools')
-@pytest.mark.parametrize('input_contents', ['ababacac' * PARALLEL_TESTS])
+@pytest.mark.parametrize('input_contents', ['ababacac' * DEFAULT_PARALLEL_TESTS])
 @pytest.mark.parametrize('interestingness_script', [r"grep a {test_case} && ! grep '\(.\)\1' {test_case}"])
 def test_interleaving_letter_removals_large(input_path: Path, manager):
     """Test that multiple passes executed in interleaving way can delete all but one character.
@@ -452,7 +468,9 @@ def test_interleaving_letter_removals_large(input_path: Path, manager):
 @pytest.mark.parametrize('interestingness_script', [r'false {test_case}'])
 def test_interleaving_round_robin_transforms(manager: testing.TestManager):
     tracing_queue = multiprocessing.Manager().Queue()
-    passes = [TracingHintPass(tracing_queue, letters_to_remove=chr(ord('a') + i)) for i in range(PARALLEL_TESTS)]
+    passes = [
+        TracingHintPass(tracing_queue, letters_to_remove=chr(ord('a') + i)) for i in range(DEFAULT_PARALLEL_TESTS)
+    ]
     manager.run_passes(passes, interleaving=True)
 
     transform_calls = []
@@ -460,12 +478,12 @@ def test_interleaving_round_robin_transforms(manager: testing.TestManager):
         transform_calls.append(tracing_queue.get())
 
     # all passes should've gotten equal number of jobs
-    execs_per_pass = [transform_calls.count(str(i)) for i in range(PARALLEL_TESTS)]
+    execs_per_pass = [transform_calls.count(str(i)) for i in range(DEFAULT_PARALLEL_TESTS)]
     assert min(execs_per_pass) == max(execs_per_pass)
     # we cannot assert the ideal round-robin order (like 123..N123..) because concurrent writes to the queue are racy,
     # but at least it's almost guaranteed that no pass should be recorded N times in a row.
-    for i in range(len(transform_calls) - PARALLEL_TESTS + 1):
-        slice = transform_calls[i : i + PARALLEL_TESTS]
+    for i in range(len(transform_calls) - DEFAULT_PARALLEL_TESTS + 1):
+        slice = transform_calls[i : i + DEFAULT_PARALLEL_TESTS]
         assert min(slice) != max(slice)
 
 
@@ -637,3 +655,39 @@ def _assert_stats_validity(pass_statistic: statistics.PassStatistic, start_time:
         assert stat.worked + stat.failed <= stat.totally_executed
     elapsed = time.monotonic() - start_time
     assert sum(stat.total_seconds for stat in stats) <= elapsed
+
+
+class MockHintState(HintState):
+    def subset_of(self, other: HintState) -> bool:
+        # We only want to skip state 2 if state 1 has already succeeded
+        return self.ptr == 2 and other.ptr == 1
+
+    def real_chunk(self) -> int:
+        return 1
+
+
+class StateSkippingPass(AbstractPass):
+    """A pass that triggers the subset skipping logic, causing its state to exhaust unexpectedly."""
+
+    def new(self, test_case: Path, *args, **kwargs) -> MockHintState:
+        return MockHintState(tmp_dir=Path(), per_type_states=(), ptr=1, special_hints=())
+
+    def advance(self, test_case: Path, state: MockHintState) -> MockHintState | None:
+        if state.ptr == 1:
+            return MockHintState(tmp_dir=Path(), per_type_states=(), ptr=2, special_hints=())
+        return None
+
+    def advance_on_success(self, test_case: Path, state: MockHintState, *args, **kwargs) -> MockHintState | None:
+        return self.advance(test_case, state)
+
+    def transform(self, test_case: Path, state: MockHintState, *args, **kwargs) -> tuple[PassResult, MockHintState]:
+        with open(test_case, 'a') as f:
+            f.write(f'modification {state.ptr}\n')
+        return (PassResult.OK, state)
+
+
+@pytest.mark.parametrize('parallel_tests', [1])
+def test_scheduler_deadlock_on_empty_jobs(input_path: Path, manager: testing.TestManager):
+    """Verifies that the orchestrator avoids deadlock when subset-skipping exhausts remaining states."""
+
+    manager.run_passes([StateSkippingPass()], interleaving=True)
