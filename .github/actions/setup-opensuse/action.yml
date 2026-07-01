@@ -4,7 +4,7 @@ runs:
   using: "composite"
   steps:
     - name: Fetch latest stable snapshot date
-      uses: actions/github-script@v7
+      uses: actions/github-script@v9
       id: get-snapshot
       with:
         script: |
