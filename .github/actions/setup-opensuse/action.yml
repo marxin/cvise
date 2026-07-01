@@ -8,7 +8,9 @@ runs:
       id: get-snapshot
       with:
         script: |
-          const response = await fetch("https://openqa.opensuse.org/group_overview/1.json");
+          const response = await fetch("https://openqa.opensuse.org/group_overview/1.json", {
+            headers: { "User-Agent": "curl/8.0.0" }
+          });
           const data = await response.json();
           // Use index 2 (the 3rd most recent snapshot, roughly 2-3 days old)
           // to ensure all global mirrors have fully synced the RPM packages.
