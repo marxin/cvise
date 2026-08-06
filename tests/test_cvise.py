@@ -168,7 +168,18 @@ def test_interleaving_lines_passes(tmp_path: Path, overridden_subprocess_tmpdir:
         """)
 
     proc = start_cvise(
-        ['-c', 'gcc -c test.c && grep foo test.c', '--pass-group-file', str(config_path), testcase_path.name],
+        [
+            '-c',
+            # -Werror=implicit-function-declaration makes the reduction below unique. Without it, GCC <= 13 also
+            # accepts "int main() { return foo(); }" (an implicit declaration is merely a warning there), so which
+            # of the two results we end up with depends on which interleaved pass happens to win the race.
+            # Plain -Werror is not usable: it would reject the expected result too, whose non-void foo() falls off
+            # the end and trips -Wreturn-type.
+            'gcc -c -Werror=implicit-function-declaration test.c && grep foo test.c',
+            '--pass-group-file',
+            str(config_path),
+            testcase_path.name,
+        ],
         tmp_path,
         overridden_subprocess_tmpdir,
     )
