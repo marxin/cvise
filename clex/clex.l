@@ -94,8 +94,6 @@ L?\"(\\.|[^\\"])*\"	{ process_token(TOK_STRING); }
 "&="			{ process_token(TOK_OP); }
 "^="			{ process_token(TOK_OP); }
 "|="			{ process_token(TOK_OP); }
-">>"			{ process_token(TOK_OP); }
-"<<"			{ process_token(TOK_OP); }
 "++"			{ process_token(TOK_OP); }
 "--"			{ process_token(TOK_OP); }
 "->"			{ process_token(TOK_OP); }
