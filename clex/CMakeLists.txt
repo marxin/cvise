@@ -66,6 +66,13 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
 set_source_files_properties(clex.c PROPERTIES COMPILE_FLAGS "-Wno-unused-function -Wno-sign-compare")
 set_source_files_properties(strlex.c PROPERTIES COMPILE_FLAGS "-Wno-unused-function -Wno-sign-compare")
 endif()
+
+# Serialize flex execution to avoid potential race conditions with temporary files
+add_custom_command(OUTPUT ${FLEX_strlex_scanner_OUTPUTS}
+  APPEND
+  DEPENDS ${FLEX_clex_scanner_OUTPUTS}
+)
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 set_source_files_properties(clex.c PROPERTIES COMPILE_FLAGS -DYY_NO_UNISTD_H)
 set_source_files_properties(strlex.c PROPERTIES COMPILE_FLAGS -DYY_NO_UNISTD_H)
