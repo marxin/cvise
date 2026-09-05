@@ -186,16 +186,34 @@ clang::SourceRange RewriteUtils::getDeclFullSourceRange(const clang::Decl* D)
 
   // Ensure that template parameters are included in the def range
   if (auto* FD = dyn_cast<FunctionDecl>(D)) {
-    if (FD->getNumTemplateParameterLists()) {
+#if LLVM_VERSION_MAJOR < 23
+    unsigned NumTPLists = FD->getNumTemplateParameterLists();
+#else
+    unsigned NumTPLists = FD->getTemplateParameterLists().size();
+#endif
+    if (NumTPLists) {
+#if LLVM_VERSION_MAJOR < 23
       TemplateParameterList* TPL = FD->getTemplateParameterList(0);
+#else
+      TemplateParameterList* TPL = FD->getTemplateParameterLists().front();
+#endif
       Range.setBegin(TPL->getSourceRange().getBegin());
     } else if (auto* T = FD->getDescribedTemplate()) {
       TemplateParameterList* TPL = T->getTemplateParameters();
       Range.setBegin(TPL->getSourceRange().getBegin());
     }
   } else if (auto* TD = dyn_cast<TagDecl>(D)) {
-    if (TD->getNumTemplateParameterLists()) {
+#if LLVM_VERSION_MAJOR < 23
+    unsigned NumTPLists = TD->getNumTemplateParameterLists();
+#else
+    unsigned NumTPLists = TD->getTemplateParameterLists().size();
+#endif
+    if (NumTPLists) {
+#if LLVM_VERSION_MAJOR < 23
       TemplateParameterList* TPL = TD->getTemplateParameterList(0);
+#else
+      TemplateParameterList* TPL = TD->getTemplateParameterLists().front();
+#endif
       Range.setBegin(TPL->getSourceRange().getBegin());
     } else if (auto* T = TD->getDescribedTemplate()) {
       TemplateParameterList* TPL = T->getTemplateParameters();

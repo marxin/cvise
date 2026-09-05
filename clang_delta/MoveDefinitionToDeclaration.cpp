@@ -17,6 +17,7 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/SourceManager.h"
+#include "llvm/Config/llvm-config.h"
 
 #include "TransformationManager.h"
 
@@ -135,8 +136,17 @@ void MoveDefinitionToDeclaration::doRewriting(void)
 
     // Update the template parameters name of the class if they are empty
     // This is very likely since unused parameter names gets removed during reduction
-    if (MethDef->getNumTemplateParameterLists() == 1) {
+#if LLVM_VERSION_MAJOR < 23
+    unsigned NumTPLists = MethDef->getNumTemplateParameterLists();
+#else
+    unsigned NumTPLists = MethDef->getTemplateParameterLists().size();
+#endif
+    if (NumTPLists == 1) {
+#if LLVM_VERSION_MAJOR < 23
       TemplateParameterList* TPL = MethDef->getTemplateParameterList(0);
+#else
+      TemplateParameterList* TPL = MethDef->getTemplateParameterLists().front();
+#endif
 
       if (const TemplateParameterList* ClassTPL = getDescribedTemplateParams(MethDecl->getParent())) {
         assert(TPL->size() == ClassTPL->size());
@@ -155,10 +165,16 @@ void MoveDefinitionToDeclaration::doRewriting(void)
     }
 
     // Removing template lists for classes
+#if LLVM_VERSION_MAJOR < 23
     for (unsigned i = 0; i < MethDef->getNumTemplateParameterLists(); ++i) {
       TemplateParameterList* TPL = MethDef->getTemplateParameterList(i);
       TheRewriter.RemoveText(TPL->getSourceRange());
     }
+#else
+    for (TemplateParameterList* TPL : MethDef->getTemplateParameterLists()) {
+      TheRewriter.RemoveText(TPL->getSourceRange());
+    }
+#endif
   }
 
   std::string FuncDefStr = TheRewriter.getRewrittenText(DefRange);
