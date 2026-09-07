@@ -19,6 +19,7 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/SourceManager.h"
+#include "llvm/Config/llvm-config.h"
 
 #include "TransformationManager.h"
 
@@ -129,9 +130,17 @@ bool ClassTemplateMethodVisitor::VisitFunctionDecl(FunctionDecl *FD)
   FunctionTemplateDecl *TD = FD->getDescribedFunctionTemplate();
   for (FunctionDecl::redecl_iterator I = FD->redecls_begin(),
        E = FD->redecls_end(); I != E; ++I) {
+#if LLVM_VERSION_MAJOR < 23
     unsigned Num = (*I)->getNumTemplateParameterLists();
+#else
+    unsigned Num = (*I)->getTemplateParameterLists().size();
+#endif
     for (unsigned Idx = 0; Idx < Num; ++Idx) {
+#if LLVM_VERSION_MAJOR < 23
       const TemplateParameterList *TPList = (*I)->getTemplateParameterList(Idx);
+#else
+      const TemplateParameterList *TPList = (*I)->getTemplateParameterLists()[Idx];
+#endif
       // We don't want to mistakenly rewrite template parameters associated
       // with the FD if FD is a function template.
       if (TD && TPList == TD->getTemplateParameters())

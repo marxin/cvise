@@ -17,6 +17,7 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/SourceManager.h"
+#include "llvm/Config/llvm-config.h"
 
 #include "TransformationManager.h"
 
@@ -199,8 +200,17 @@ bool ClassTemplateToClassSpecializationTypeRewriteVisitor::
 bool ClassTemplateToClassSpecializationTypeRewriteVisitor::VisitCXXMethodDecl(CXXMethodDecl* MD) {
   if (auto DCT = MD->getParent()->getDescribedClassTemplate()) {
     if (MD->isOutOfLine() && DCT->getCanonicalDecl() == ConsumerInstance->TheClassTemplateDecl) {
-      if (MD->getNumTemplateParameterLists() == 1) {
+#if LLVM_VERSION_MAJOR < 23
+      unsigned NumTPLists = MD->getNumTemplateParameterLists();
+#else
+      unsigned NumTPLists = MD->getTemplateParameterLists().size();
+#endif
+      if (NumTPLists == 1) {
+#if LLVM_VERSION_MAJOR < 23
         const TemplateParameterList* TPList = MD->getTemplateParameterList(0);
+#else
+        const TemplateParameterList* TPList = MD->getTemplateParameterLists().front();
+#endif
         SourceLocation LocStart = MD->getBeginLoc();
         ConsumerInstance->removeTemplateAndParameter(LocStart, TPList);
       }
