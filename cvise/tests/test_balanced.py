@@ -78,7 +78,14 @@ class BalancedParensTestCase(unittest.TestCase):
         state = self._pass_new()
         all_transforms = collect_all_transforms_dir(self.pass_, state, self.input_path)
 
-        self.assertIn((('a.txt', b'This is a  test!\n'), ('b.txt', b'This \n')), all_transforms)
+        # Normalize line endings for Windows compatibility
+        normalized_transforms = set()
+        for t in all_transforms:
+            normalized_transforms.add(
+                tuple((name, content.replace(b'\r\n', b'\n')) for name, content in t)
+            )
+
+        self.assertIn((('a.txt', b'This is a  test!\n'), ('b.txt', b'This \n')), normalized_transforms)
 
 
 class BalancedParensOnlyTestCase(unittest.TestCase):
