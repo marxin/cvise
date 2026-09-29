@@ -293,3 +293,12 @@ def test_directory_file_reading_failure(tmp_path: Path):
     all_transforms = collect_all_transforms_dir(p, state, test_case)
 
     assert all_transforms == set()
+
+
+def test_nested_brackets(tmp_path: Path, input_path: Path):
+    """Test that clex does not treat >> or << as a single token, allowing reduction of nested generics."""
+    input_path.write_text('Foo<Bar<Baz>>')
+    p, state = init_pass('rm-toks-1-to-1', tmp_path, input_path)
+    all_transforms = collect_all_transforms(p, state, input_path)
+
+    assert b'Foo<Bar<Baz>' in all_transforms
