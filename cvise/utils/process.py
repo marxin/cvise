@@ -13,7 +13,7 @@ import shlex
 import subprocess
 import threading
 import time
-from collections.abc import Iterator, Mapping
+from collections.abc import Generator, Mapping
 from concurrent.futures import ALL_COMPLETED, Future, wait
 from dataclasses import dataclass, field
 from enum import Enum, auto, unique
@@ -333,7 +333,7 @@ class ProcessEventNotifier:
         )
 
     @contextlib.contextmanager
-    def _auto_notify_end(self, proc: subprocess.Popen) -> Iterator[None]:
+    def _auto_notify_end(self, proc: subprocess.Popen) -> Generator[None, None, None]:
         try:
             yield
         finally:
@@ -440,7 +440,7 @@ class MPTaskLossWorkaround:
 
 
 @contextlib.contextmanager
-def _auto_kill_on_timeout(proc: subprocess.Popen) -> Iterator[None]:
+def _auto_kill_on_timeout(proc: subprocess.Popen) -> Generator[None, None, None]:
     try:
         yield
     except subprocess.TimeoutExpired:

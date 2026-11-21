@@ -7,7 +7,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from pathlib import Path
 from unittest.mock import patch
 
@@ -568,7 +568,7 @@ def test_remove_extraneous(tmp_path: Path):
 
 # TODO: use contextlib.chdir once Python 3.11 is the oldest supported release
 @contextlib.contextmanager
-def _chdir(path: Path) -> Iterator[None]:
+def _chdir(path: Path) -> Generator[None, None, None]:
     original_workdir = os.getcwd()
     os.chdir(path)
     try:

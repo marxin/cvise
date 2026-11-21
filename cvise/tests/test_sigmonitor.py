@@ -6,7 +6,7 @@ import queue
 import signal
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 
 import pytest
 
@@ -98,7 +98,7 @@ def _process_main_calling_retrigger(process_ready_event: threading.Event, proces
 
 
 @contextlib.contextmanager
-def _assert_duration_less_than(max_duration: float) -> Iterator[None]:
+def _assert_duration_less_than(max_duration: float) -> Generator[None, None, None]:
     start_time = time.monotonic()
     yield
     assert time.monotonic() - start_time < max_duration

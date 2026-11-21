@@ -13,7 +13,7 @@ import stat
 import string
 import tempfile
 import threading
-from collections.abc import Iterable, Iterator
+from collections.abc import Generator, Iterable
 from copy import copy
 from pathlib import Path
 
@@ -354,7 +354,7 @@ def _cleanup_abnormal_exit(dir: Path, prefix: str) -> None:
 
 
 @contextlib.contextmanager
-def _auto_close_and_unlink(tmp_file) -> Iterator[None]:
+def _auto_close_and_unlink(tmp_file) -> Generator[None, None, None]:
     try:
         yield
     finally:
