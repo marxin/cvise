@@ -138,7 +138,7 @@ jobs:
     - name: Setup openSUSE snapshot repository
       uses: ./.github/actions/setup-opensuse
     - run: ${{ env.RETRY }} zypper -n install python3-pip
-    - run: ${{ env.RETRY }} pip install --break-system-packages ruff
+    - run: ${{ env.RETRY }} pip install --break-system-packages ruff==0.17.6
     - run: ruff check
     - run: ruff format --diff
 
