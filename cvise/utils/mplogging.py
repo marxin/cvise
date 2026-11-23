@@ -5,7 +5,7 @@ import logging
 import multiprocessing
 import threading
 from collections import deque
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 
@@ -72,7 +72,7 @@ class MPLogger:
 
 
 @contextmanager
-def worker_process_job_wrapper(job_order: int) -> Iterator[None]:
+def worker_process_job_wrapper(job_order: int) -> Generator[None, None, None]:
     """Runs the given function with the logging configured to mark all logs with the job_order."""
     root = logging.getLogger()
     filter = _JobOrderAttachingFilter(job_order)
