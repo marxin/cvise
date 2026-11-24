@@ -55,3 +55,38 @@
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */
 #cmakedefine YYTEXT_POINTER 1
+
+#ifdef _WIN32
+#include <io.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#define isatty _isatty
+#define fileno _fileno
+#define read _read
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+
+static inline ssize_t getdelim(char **lineptr, size_t *n, int delim, FILE *stream) {
+    if (lineptr == NULL || n == NULL || stream == NULL) return -1;
+    if (*lineptr == NULL) {
+        *n = 128;
+        *lineptr = (char *)malloc(*n);
+        if (*lineptr == NULL) return -1;
+    }
+    int c;
+    size_t i = 0;
+    while ((c = getc(stream)) != EOF) {
+        if (i + 1 >= *n) {
+            *n *= 2;
+            char *next = (char *)realloc(*lineptr, *n);
+            if (next == NULL) return -1;
+            *lineptr = next;
+        }
+        (*lineptr)[i++] = (char)c;
+        if (c == delim) break;
+    }
+    (*lineptr)[i] = '\0';
+    return (i == 0 && c == EOF) ? -1 : (ssize_t)i;
+}
+#endif
